@@ -31,6 +31,8 @@ concurrency:
 
 jobs:
   build:
+    # Olympus: publishes openGym's own images, site or CLA records; nothing to do in a fork.
+    if: github.repository == 'DuarteSantos8/openGym'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -54,6 +56,8 @@ jobs:
 
   deploy:
     needs: build
+    # Olympus: publishes openGym's own images, site or CLA records; nothing to do in a fork.
+    if: github.repository == 'DuarteSantos8/openGym'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

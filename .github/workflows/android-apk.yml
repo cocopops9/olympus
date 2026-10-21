@@ -1,0 +1,83 @@
+# Olympus: builds the Android APK on every push to main and publishes it as the single asset of
+# the "android" release, so one link always downloads the newest build:
+#   https://github.com/<owner>/<repo>/releases/latest/download/olympus.apk
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'catalogue/**'
+      - 'scripts/catalogue/**'
+      - '.github/workflows/android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.OLYMPUS_KEYSTORE_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build:mobile
+        working-directory: frontend
+
+      # Secrets, when the repository has them, replace the public keystore in frontend/android.
+      - name: Keystore from secrets
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/olympus.keystore"
+          echo "OLYMPUS_KEYSTORE=$RUNNER_TEMP/olympus.keystore" >> "$GITHUB_ENV"
+
+      - name: Build the release APK
+        working-directory: frontend/android
+        env:
+          OLYMPUS_KEYSTORE_PASSWORD: ${{ secrets.OLYMPUS_KEYSTORE_PASSWORD }}
+          OLYMPUS_KEY_ALIAS: ${{ secrets.OLYMPUS_KEY_ALIAS }}
+          OLYMPUS_KEY_PASSWORD: ${{ secrets.OLYMPUS_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER))
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/olympus.apk"
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$RUNNER_TEMP/olympus.apk" | head -3
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: olympus-apk
+          path: ${{ runner.temp }}/olympus.apk
+
+      # One release, moved to this commit and given the new file each time.
+      - name: Publish to the "android" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag -f android
+          git push -f origin android
+          notes="Olympus for Android, built from ${GITHUB_SHA::7}. Download olympus.apk on the phone and open it to install."
+          if gh release view android > /dev/null 2>&1; then
+            gh release edit android --title "Olympus for Android" --notes "$notes" --latest
+          else
+            gh release create android --title "Olympus for Android" --notes "$notes" --latest
+          fi
+          gh release upload android "$RUNNER_TEMP/olympus.apk" --clobber

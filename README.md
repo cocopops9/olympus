@@ -92,7 +92,27 @@ Caddy, Traefik and nginx. Back up the `data/` folder: it holds every account, wo
 
 ### 2. The Android app
 
-There is no prebuilt Olympus APK: it has to be built once, from this folder.
+**Download link.** Pushed to a public GitHub repository, this folder builds its own APK: the
+workflow `.github/workflows/android-apk.yml` runs on GitHub's servers after every push to `main`
+(about 10 minutes) and publishes the file as the release *android*, so this link always gives the
+newest build:
+
+```
+https://github.com/<github-user>/<repo>/releases/latest/download/olympus.apk
+```
+
+Opened on the phone, it downloads `olympus.apk`; opening the file installs it (Android asks once
+to allow installs from the browser). A newer build installs over the old one from the same link,
+keeping your data.
+
+The APK is signed with `frontend/android/olympus-release.keystore`, which is public with the code.
+That is enough for a personal app, but anyone who has the repository could sign an APK your phone
+would accept as an update. To use a private key instead, create one with `keytool`, and set the
+repository secrets `OLYMPUS_KEYSTORE_B64` (the keystore, base64), `OLYMPUS_KEYSTORE_PASSWORD`,
+`OLYMPUS_KEY_ALIAS` and `OLYMPUS_KEY_PASSWORD`; the workflow then uses those. Changing the key
+means uninstalling the old app once (export a backup first).
+
+**Building it yourself** instead:
 
 Requirements: Node.js 22, JDK 17 or 21, and the Android SDK (installing
 [Android Studio](https://developer.android.com/studio) gives you the SDK).

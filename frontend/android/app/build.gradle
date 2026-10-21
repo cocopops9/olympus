@@ -7,7 +7,9 @@ android {
         applicationId "app.olympus.gym"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 26
+        // CI passes -PolympusVersionCode (a number that grows with every build) so each new APK
+        // installs over the previous one; a local build keeps 26.
+        versionCode((project.findProperty('olympusVersionCode') ?: '26') as int)
         versionName "1.4.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -16,8 +18,22 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Olympus release signing. An APK must be signed to install, and every update must carry the
+    // same signature as the version already on the phone. The keystore path and passwords come
+    // from the environment (CI secrets); without them the build falls back to the Olympus keystore
+    // in this folder, which is public with the code: fine for a personal build, but anyone who has
+    // the repository can sign an APK your phone would accept as an update. See README.
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('OLYMPUS_KEYSTORE') ?: '../olympus-release.keystore')
+            storePassword System.getenv('OLYMPUS_KEYSTORE_PASSWORD') ?: 'olympus-public'
+            keyAlias System.getenv('OLYMPUS_KEY_ALIAS') ?: 'olympus'
+            keyPassword System.getenv('OLYMPUS_KEY_PASSWORD') ?: 'olympus-public'
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             // The barcode scanner's ML Kit library ships a native build for four CPU families.

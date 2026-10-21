@@ -23,6 +23,8 @@ permissions:
 
 jobs:
   build:
+    # Olympus: publishes openGym's own images, site or CLA records; nothing to do in a fork.
+    if: github.repository == 'DuarteSantos8/openGym'
     runs-on: ubuntu-latest
     strategy:
       matrix:
