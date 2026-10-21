@@ -67,6 +67,21 @@ export const HEVY_TITLE_FIX = {
   'bicep curl (suspension)': null,           // was: dumbbell
   'front raise (suspension)': null,          // was: weighted front raise
 
+  // Found importing a real Spanish-language export (titles via hevy-locale.js)
+  'hip abduction (cable)': '3048',           // cable hip abduction (was: lever machine)
+  'back extension (hyperextension)': '4455', // 45 degrees back extension (was: lever machine)
+  'back extension (weighted hyperextension)': '4455',
+  'one arm push up': '0725',                 // single arm push-up (was: suspension strap version)
+  'overhead press (barbell)': '1162',        // barbell standing military press (was: SEATED press)
+  'bent over row (dumbbell)': '0293',        // dumbbell bent over row (was: one arm row)
+  'low cable fly crossovers': '0179',        // cable low fly
+  'nordic hamstrings curls': '7746',         // nordic hamstring curl
+  'triceps rope pushdown': '0200',           // cable pushdown (with rope attachment)
+  'single arm lat pulldown': '1204',         // cable one arm lat pulldown
+  'triceps kickback (cable)': '0860',        // cable kickback
+  'single arm curl (cable)': '0190',         // cable one arm curl
+  'straight arm lat pulldown (cable)': '0238', // cable straight arm pulldown
+
   // Olympic lifts filed under a different lift
   'clean': null,                             // no squat clean entry (was: clean and PRESS)
   'hang clean': '1520',                      // barbell hang clean (was: kettlebell)

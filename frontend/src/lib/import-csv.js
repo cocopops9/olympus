@@ -23,6 +23,7 @@ import { uid } from './format.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_TITLE_MAP } from './hevy-id-map.js'
 import { hevyTitleFix } from './hevy-title-fixes.js'
+import { englishForMatching } from './hevy-locale.js'
 import { clampIncline, inclineFrom } from './incline.js'
 import { normalizeMeasurementEntry, DEFAULT_MEASUREMENT_KEYS } from './measurements.js'
 
@@ -236,6 +237,9 @@ const ALIAS_EX = {
   'behind the back bicep wrist curl (barbell)': '0104',
   // A face pull is a rope rear-delt row; the dataset has no entry under that name.
   'face pull': '0203',
+  // Olympus: names people give their own variants of a common lift.
+  'one arm preacher curl': '3084', 'one arm preacher curl (dumbbell)': '3084', 'single arm preacher curl (dumbbell)': '3084',
+  'seated lateral raise': '0396', 'lateral raise seated': '0396',
   // Cardio again: the only candidates in a 29-entry cardio vocabulary.
   'jumping jack': '3094', 'jumping jacks': '3094', 'battle ropes': '0128',
   'stair machine (steps)': '2311', 'stair machine': '2311',
@@ -314,6 +318,10 @@ const NAME_BP = [
   [/\b(romanian|rdl|stiff leg|stiff legged|straight leg)\b.*\bdeadlifts?\b|\brdl\b/, 'upper legs'],
   [/\b(curl|curls|bicep|biceps|tricep|triceps|skullcrusher|pushdown)\b/, 'upper arms'],
   [/\bchest supported\b/, 'back'],   // where the chest rests, not what it trains
+  // Olympus: a rear-delt fly trains the shoulders, and a leg raise the abs, whatever "fly" and
+  // "leg" say further down.
+  [/\b(rear delt|reverse fly|rear fly)\b/, 'shoulders'],
+  [/\b(leg raise|leg raises|knee raise|knee raises|toes to bar)\b/, 'waist'],
   [/\b(bench|chest|pec|fly|flye|crossover|crossovers|dip)\b/, 'chest'],
   [/\b(row|rows|pulldown|pullup|pull up|chin up|lat|lats|back|deadlift|deadlifts|shrug)\b/, 'back'],
   [/\b(shoulder|delt|delts|overhead|lateral raise|front raise|face pull|press up)\b/, 'shoulders'],
@@ -552,6 +560,10 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
     if (warmup) warmups++
 
     const key = keyOf(name)
+    // Olympus: a Hevy export in another language (or with spelling slips) is matched by Hevy's
+    // English title; the exercise keeps its own name when it becomes a custom one.
+    const eng = source === 'Hevy' ? englishForMatching(name) : { name }
+    const en = eng.name
     let id = resolved.get(key)
     if (id === undefined) {
       const own = priorCustom(customEx, importId('im', source + '|' + name.toLowerCase()), name)
@@ -560,8 +572,8 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
       // Localized titles still fall through to the word-bag matcher.
       // A correction set to null means "no catalogue entry is this movement": a custom exercise,
       // never the word-bag's guess, which is what filed it wrongly in the first place.
-      const forcedCustom = source === 'Hevy' && hevyTitleFix(name) === null
-      id = own ? own.id : forcedCustom ? null : canonicalExId((source === 'Hevy' ? matchHevyTitle(name) : null) || matchExercise(name))
+      const forcedCustom = source === 'Hevy' && (eng.keepOwn || hevyTitleFix(en) === null)
+      id = own ? own.id : forcedCustom ? null : canonicalExId((source === 'Hevy' ? matchHevyTitle(en) : null) || matchExercise(en) || (en !== name ? matchExercise(name) : null))
       resolved.set(key, id)
     }
     if (id) matched++
@@ -573,8 +585,8 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
           bp: CATEGORY_BP[cell(r, 'category').toLowerCase()] || (km ? 'cardio' : null)
             // Seconds with nothing else is a hold when the name says what it is (a plank is
             // core work); a name that says nothing keeps being read as cardio, as before.
-            || (mins && !reps ? (secs > 0 ? bpFromName(name.toLowerCase()) : null) || 'cardio' : null)
-            || bpFromName(name.toLowerCase()) || 'upper legs',
+            || (mins && !reps ? (secs > 0 ? bpFromName(en.toLowerCase()) : null) || 'cardio' : null)
+            || bpFromName(en.toLowerCase()) || 'upper legs',
         }
         created.set(key, c)
         unmatched.add(name)
@@ -587,7 +599,7 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
     // minute of cardio at zero speed. Strong's Seconds is always the set's own time, so its
     // catalogue match decides; any other file also needs the name to say what it is, because a
     // loose match ("Walking" → walking lunge) would turn a walk into a hold.
-    const nameBp = bpFromName(name.toLowerCase())
+    const nameBp = bpFromName(en.toLowerCase())
     const exCardio = isCardioEx(id) || (created.get(key) || prior.get(key))?.bp === 'cardio' || nameBp === 'cardio'
     const timed = secs > 0 && !km && !reps && !exCardio && (source === 'Strong' || !!nameBp)
     const isCardio = !timed && (km > 0 || mins > 0) && !reps

@@ -33,6 +33,7 @@ import { socialReady } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
 import { parseImport, mergeImport, sessionClash } from './lib/import-csv.js'
+import { importText } from './lib/import-file.js'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP, formulaOf, FORMULA_NAMES } from './lib/onerm.js'
@@ -499,23 +500,26 @@ function ImportSummary({ parsed, close }) {
   </>
 }
 
-/** Read a CSV/XML export, then show what it would do. */
+/** Read a CSV/XLSX/XML export, then show what it would do. */
 export function importFromApp(file, onDone) {
   const rd = new FileReader()
-  rd.onload = () => {
+  rd.onload = async () => {
     let parsed
-    try { parsed = parseImport(String(rd.result), { unit: S().unit, customEx: S().customEx }) }
+    try {
+      const text = await importText(new Uint8Array(rd.result))
+      parsed = parseImport(text, { unit: S().unit, customEx: S().customEx })
+    }
     catch (e) { toast(t('Could not read that file')); return }
     if (parsed.error === 'empty') { toast(t('That file is empty')); return }
     if (parsed.error) { toast(t("We don't recognise that file's columns. Check the docs for supported apps.")); return }
-    if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length : !parsed.workouts.length) {
+    if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length && !(parsed.measurements || []).length : !parsed.workouts.length) {
       toast(t('Nothing to import from that file')); return
     }
     ui().openSheet(close => <ImportSummary parsed={parsed} close={close} />)
     onDone && onDone()
   }
   rd.onerror = () => toast(t('Could not read that file'))
-  rd.readAsText(file)
+  rd.readAsArrayBuffer(file)
 }
 
 /* ============================ import from Hevy API ============================ */

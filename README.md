@@ -102,9 +102,10 @@ Caddy, Traefik and nginx. Back up the `data/` folder: it holds every account, wo
 
 **Import from Hevy.** In Hevy: *Profile → Settings → Export & Import Data → Export Workouts*
 (and *Export Measurements*). In Olympus: *Settings → Data & backup → Import from another app*,
-then pick the CSV. Workouts land in the calendar with their times, names, notes, warm-up, failure
+then pick the file: the CSV, or the same data as an Excel workbook (`.xlsx`). Workouts land in the calendar with their times, names, notes, warm-up, failure
 and drop sets, supersets and RPE; exercise names are matched to the catalogue, and the ones it has
-no entry for become your own exercises. The measurements file brings weigh-ins and circumferences.
+no entry for become your own exercises. An export made with Hevy set to Spanish is matched by Hevy's English
+names too (`frontend/src/lib/hevy-locale.js`). The measurements file brings weigh-ins and circumferences.
 Importing the same file again adds nothing twice.
 
 **Download link.** Pushed to a public GitHub repository, this folder builds its own APK: the
