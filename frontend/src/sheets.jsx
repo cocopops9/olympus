@@ -32,7 +32,7 @@ import { composeSheet } from './components/Social.jsx'
 import { socialReady } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
-import { parseImport, mergeImport } from './lib/import-csv.js'
+import { parseImport, mergeImport, sessionClash } from './lib/import-csv.js'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP, formulaOf, FORMULA_NAMES } from './lib/onerm.js'
@@ -422,17 +422,24 @@ const effortLine = (effort, n, scale) => effort === 'none'
 function ImportSummary({ parsed, close }) {
   const st = useStore(s => s.S)
   const isBW = parsed.kind === 'bodyweight'
+  // The same rule the merge applies (import-csv sessionClash): for Hevy and Strong a session is
+  // left out only when that session is already here, not when the day merely has something.
+  const clash = isBW ? null : sessionClash(st, parsed)
   const have = isBW
     ? parsed.bodyweight.filter(b => st.bodyweight.some(x => x.d === b.d)).length
-    : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length
+    : parsed.workouts.filter(clash).length
   const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have
+  const bySession = !isBW && (parsed.source === 'Hevy' || parsed.source === 'Strong')
+  const measures = isBW ? (parsed.measurements || []).length : 0
+  const freshMeasures = isBW ? (parsed.measurements || []).filter(m => !(st.measurements || []).some(x => x.d === m.d)).length : 0
+  const anything = fresh + freshMeasures
 
   const doImport = () => {
     let res
     update(s => { res = mergeImport(s, parsed) })
     close()
     toast(isBW
-      ? tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added)
+      ? (res.measured ? t('Imported: weigh-ins {0}, body measurements {1}', res.added, res.measured) : tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added))
       : tn('{0} workout imported', '{0} workouts imported', res.added))
   }
 
@@ -446,6 +453,7 @@ function ImportSummary({ parsed, close }) {
       {isBW ? <>
         <div className="tile"><div className="l">{t('Weigh-ins')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.bodyweight.length}</div></div>
         <div className="tile"><div className="l">{t('New')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fresh}</div></div>
+        {measures > 0 && <div className="tile"><div className="l">{t('Body measurements')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{measures}</div></div>}
       </> : <>
         <div className="tile"><div className="l">{t('Workouts')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.workouts.length}</div></div>
         <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.sets}</div></div>
@@ -463,7 +471,7 @@ function ImportSummary({ parsed, close }) {
       {t('The file doesn’t say which unit it uses, so numbers are imported as they are.')}
     </div>}
     {have > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
-      {t('{0} days already have data here and will be left alone.', have)}
+      {bySession ? t('{0} sessions are already here and will be left alone.', have) : t('{0} days already have data here and will be left alone.', have)}
     </div>}
     {/* The file rated its sets. Say so: the column is off by default, so the ratings would
         otherwise arrive invisibly and look like they had been dropped. */}
@@ -483,8 +491,8 @@ function ImportSummary({ parsed, close }) {
       </div>
     </>}
 
-    <Button variant="primary" onClick={doImport} disabled={!fresh}>
-      {fresh ? t('Import') : t('Nothing new to import')}
+    <Button variant="primary" onClick={doImport} disabled={!anything}>
+      {anything ? t('Import') : t('Nothing new to import')}
     </Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
@@ -634,7 +642,8 @@ function HevyImportSheet({ close }) {
   const w = payload.workouts
   const r = payload.routines
   const b = payload.bodyweight
-  const haveW = w.workouts.filter(x => st.workouts.some(y => y.d === x.d)).length
+  // Same per-session rule as the merge (Hevy sessions carry their times).
+  const haveW = w.workouts.filter(sessionClash(st, w)).length
   const freshW = w.workouts.length - haveW
   const haveB = b.bodyweight.filter(x => st.bodyweight.some(y => y.d === x.d)).length
   const freshB = b.bodyweight.length - haveB

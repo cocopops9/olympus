@@ -9,6 +9,7 @@ import { EXIDX, canonicalExId } from './exercises.js'
 import { uid } from './format.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_ID_MAP, HEVY_TITLE_MAP } from './hevy-id-map.js'
+import { hevyTitleFix } from './hevy-title-fixes.js'
 import { daysBetween, importId, priorCustom } from './import-csv.js'
 
 export { HEVY_ID_MAP, HEVY_TITLE_MAP }
@@ -175,7 +176,11 @@ function makeResolver(templates, customEx) {
     const t = templateId ? byId.get(templateId) : null
     const own = priorCustom(customEx, importId('im', 'Hevy|' + key), t?.title || fallbackTitle)
     if (own) return own.id
-    const pinned = templateId && canonicalExId(HEVY_ID_MAP[templateId])
+    // Olympus: a hand-checked correction by Hevy's English title beats the generated id table;
+    // null there means no catalogue entry is that movement, so it stays a custom exercise.
+    const fix = hevyTitleFix(t?.title ?? fallbackTitle)
+    if (fix && EXIDX[fix]) { matchedIds.add(fix); return fix }
+    const pinned = fix === null ? null : templateId && canonicalExId(HEVY_ID_MAP[templateId])
     if (pinned && EXIDX[pinned]) {
       matchedIds.add(pinned)
       return pinned

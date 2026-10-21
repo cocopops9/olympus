@@ -8,7 +8,11 @@ import { EXIDX } from './exercises.js'
 const MAPS = {
   Treadmill: '3666',
   'Goblet Squat': '1760',
-  Cycling: '2331',
+  // Olympus: plain entries the word-bag used to miss for a weighted or lunge variant.
+  Running: '0685',
+  Walking: '2258',
+  'Treadmill Run': '2197',
+  'Jumping Jacks': '3094',
   'Cable Core Pallof Press': '0979',
   Elliptical: '2141',
   'Stationary Bike': '2138',
@@ -29,6 +33,12 @@ const MAPS = {
 }
 
 describe('foreign exercise names resolve to the catalogue', () => {
+  // "Cycling" once mapped to the cycle cross trainer, which is an elliptical. The catalogue has no
+  // bike entry for it, so it stays the person's own exercise (imported as cardio by its name).
+  it('leaves Cycling unmatched rather than filing it as an elliptical', () => {
+    expect(matchExercise('Cycling')).toBe(null)
+    expect(matchHevyTitle('Cycling')).toBe(null)
+  })
   for (const [name, id] of Object.entries(MAPS)) {
     it(`maps "${name}" to ${id}`, () => {
       expect(matchExercise(name)).toBe(id)

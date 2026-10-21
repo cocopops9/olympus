@@ -22,7 +22,9 @@ import { EXDB, EXIDX, canonicalExId, isCardio as isCardioEx } from './exercises.
 import { uid } from './format.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_TITLE_MAP } from './hevy-id-map.js'
+import { hevyTitleFix } from './hevy-title-fixes.js'
 import { clampIncline, inclineFrom } from './incline.js'
+import { normalizeMeasurementEntry, DEFAULT_MEASUREMENT_KEYS } from './measurements.js'
 
 /* ----------------------------------------------------------------- CSV ---- */
 
@@ -206,8 +208,13 @@ const ALIAS_EX = {
   // Reported in issue #74: these come out of Hevy under names no word-overlap can reach, so
   // they landed as custom exercises. The catalogue's cardio vocabulary is thin (29 of 1,324
   // entries), so each of these is the *only* candidate rather than the best of several.
-  treadmill: '3666', 'treadmill walk': '3666', 'treadmill run': '3666',
-  cycling: '2331', 'cross trainer': '2331', elliptical: '2141',
+  treadmill: '3666', 'treadmill walk': '3666', 'treadmill run': '2197',
+  // Olympus: "Running" used to land on "weighted backpack running" and "Walking" on a walking
+  // lunge; "Cycling" on the cycle cross trainer, which is an elliptical. The catalogue has plain
+  // entries for the first two; cycling has none and imports as a custom cardio exercise.
+  cycling: null, 'outdoor cycling': null, 'road cycling': null,
+  running: '0685', run: '0685', jogging: '0685', 'outdoor run': '0685', walking: '2258', walk: '2258',
+  'cross trainer': '2331', elliptical: '2141',
   'stationary bike': '2138', 'exercise bike': '2138', 'stepmill': '2311',
   // The catalogue has only band Pallof presses, so a cable one resolves to the band entry:
   // same movement, wrong equipment label, which beats leaving it uncategorised.
@@ -230,7 +237,7 @@ const ALIAS_EX = {
   // A face pull is a rope rear-delt row; the dataset has no entry under that name.
   'face pull': '0203',
   // Cardio again: the only candidates in a 29-entry cardio vocabulary.
-  'jumping jack': '3220', 'jumping jacks': '3220', 'battle ropes': '0128',
+  'jumping jack': '3094', 'jumping jacks': '3094', 'battle ropes': '0128',
   'stair machine (steps)': '2311', 'stair machine': '2311',
 }
 
@@ -260,6 +267,9 @@ export function matchExercise(name) {
   // alias — the exporters disagree about whether the equipment leads or trails.
   const sorted = w.slice().sort().join(' ')
   const aliased = aliasIndex().get(sorted)
+  // An alias of null is a name known to have no catalogue entry ("Cycling" would otherwise land
+  // on "reverse air cycling", a core exercise): it stays the person's own exercise.
+  if (aliased === null) return null
   if (aliased && EXIDX[aliased]) return aliased
   const exact = idx.exact.get(sorted)
   if (exact) return exact
@@ -283,6 +293,9 @@ export function matchExercise(name) {
  * keyed by title because Hevy's CSV has no template id column.
  */
 export function matchHevyTitle(name) {
+  // Olympus: the hand-checked corrections win over the generated table (hevy-title-fixes.js).
+  const fix = hevyTitleFix(name)
+  if (fix !== undefined) return fix && EXIDX[fix] ? fix : null
   const id = HEVY_TITLE_MAP[String(name || '').trim().toLowerCase()]
   return id && EXIDX[id] ? id : null
 }
@@ -545,7 +558,10 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
       if (own) prior.set(key, own)
       // Hevy CSV: prefer the generated English-title map (same table as the API import).
       // Localized titles still fall through to the word-bag matcher.
-      id = own ? own.id : canonicalExId((source === 'Hevy' ? matchHevyTitle(name) : null) || matchExercise(name))
+      // A correction set to null means "no catalogue entry is this movement": a custom exercise,
+      // never the word-bag's guess, which is what filed it wrongly in the first place.
+      const forcedCustom = source === 'Hevy' && hevyTitleFix(name) === null
+      id = own ? own.id : forcedCustom ? null : canonicalExId((source === 'Hevy' ? matchHevyTitle(name) : null) || matchExercise(name))
       resolved.set(key, id)
     }
     if (id) matched++
@@ -618,7 +634,19 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
       if (len > 0) day.end = (day.start ?? 18 * 3600000) + Math.round(len * 60000)
     }
     if (!day.ex.has(id)) day.ex.set(id, [])
-    day.ex.get(id).push(set)
+    const list = day.ex.get(id)
+    // Olympus: Hevy writes each drop of a drop set as its own row, typed "dropset", after the
+    // set it drops from. The app keeps a drop set as ONE row carrying its drops (workout-model
+    // setType/dropsOf), so a drop row joins the work set before it instead of becoming a set of
+    // its own. A drop row with no work set before it (the first row, or after a warm-up or a
+    // hold) has nothing to join and stays a set, as before.
+    const prev = list[list.length - 1]
+    const dropRow = !warmup && /^(d|drop|dropset|drop set|drop-set)$/i.test(String(cell(r, 'setType') || '').trim())
+    const repSet = x => x && x.r != null && x.sec == null && x.min == null
+    if (dropRow && repSet(set) && repSet(prev) && !isWarmupRow(prev)) {
+      prev.type = 'dropset'
+      prev.drops = [...(prev.drops || []), { w: set.w, r: set.r, u: set.u }]
+    } else list.push(set)
     // A note written against a set belongs to the exercise that day; the app keeps one per entry.
     if (setNote) {
       const list = day.notes.get(id) || []
@@ -657,7 +685,13 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
   const workouts = days.map(day => {
     const d = day.d
     const entries = [...day.ex.entries()].map(([id, ss]) => {
-      const conv2 = ss.map(({ u, ...s }) => (s.w !== undefined ? { ...s, w: convRow({ ...s, u }) } : s))
+      const conv2 = ss.map(({ u, ...s }) => {
+        if (s.w === undefined) return s
+        const out = { ...s, w: convRow({ ...s, u }) }
+        // A drop carries the unit of its own row, converted the same way as its set.
+        if (s.drops) out.drops = s.drops.map(({ u: du, ...d }) => ({ ...d, w: convRow({ ...d, u: du }) }))
+        return out
+      })
       const mx = Math.max(0, ...conv2.filter(s => !isWarmupRow(s)).map(s => s.w || 0))
       const note = (day.notes.get(id) || []).join(' · ').slice(0, 280)
       return { id, sets: conv2, topW: mx || null, ...(day.sg.has(id) ? { sg: day.sg.get(id) } : {}), ...(note ? { note } : {}) }
@@ -675,7 +709,9 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
     }
     // Work sets only, like `workoutVolume` for a workout finished in the app: warm-ups are
     // promised to stay out of the volume, and this number is stored with the workout for good.
-    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (isWarmupRow(s) ? 0 : (s.w || 0) * (s.r || 0)), 0), 0)
+    // A drop set's drops are work too, counted at their own load (as history.js counts them).
+    const dropVol = s => (s.drops || []).reduce((c, x) => c + (x.w || 0) * (x.r || 0), 0)
+    w.vol = entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (isWarmupRow(s) ? 0 : (s.w || 0) * (s.r || 0) + dropVol(s)), 0), 0)
     return w
   })
 
@@ -693,6 +729,29 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
 
 /* ------------------------------------------------------- body weight ------ */
 
+// Olympus: circumference and body-fat columns of a measurements export (Hevy writes
+// `neck_cm`, `left_bicep_cm`, `fat_percent`, ...), as normalised header -> measurement key.
+// Values in inches are converted, since the app stores measurements in centimetres.
+const MEAS_SITES = {
+  neck: 'neck', shoulder: 'shoulders', shoulders: 'shoulders', chest: 'chest', waist: 'waist',
+  hip: 'hips', hips: 'hips', abdomen: 'abdomen', abs: 'abdomen',
+  'left bicep': 'upperArmLeft', 'right bicep': 'upperArmRight', 'left biceps': 'upperArmLeft', 'right biceps': 'upperArmRight',
+  'left upper arm': 'upperArmLeft', 'right upper arm': 'upperArmRight', 'left arm': 'upperArmLeft', 'right arm': 'upperArmRight',
+  'left forearm': 'forearmLeft', 'right forearm': 'forearmRight', 'left wrist': 'wristLeft', 'right wrist': 'wristRight',
+  'left thigh': 'thighLeft', 'right thigh': 'thighRight', 'left calf': 'calfLeft', 'right calf': 'calfRight',
+  'left ankle': 'ankleLeft', 'right ankle': 'ankleRight',
+}
+function measurementColumns(header) {
+  const cols = []
+  header.forEach((h, i) => {
+    const n = norm(h)
+    if (/^(body )?fat( percent| pct| %)?$/.test(n) || n === 'fat percentage' || n === 'body fat percentage') { cols.push({ i, key: 'bodyFat', f: 1 }); return }
+    const m = /^(.*) (cm|in|inch|inches)$/.exec(n)
+    if (m && MEAS_SITES[m[1]]) cols.push({ i, key: MEAS_SITES[m[1]], f: m[2] === 'cm' ? 1 : 2.54 })
+  })
+  return cols
+}
+
 /**
  * Body-weight history from Apple Health, or any CSV with a date and a weight.
  *
@@ -704,7 +763,9 @@ export function parseWorkoutCSV(text, { unit = 'kg', customEx = [] } = {}) {
 export function parseBodyweight(text, { unit = 'kg' } = {}) {
   const s = String(text)
   const out = new Map()          // iso date -> { w, t }  (one weigh-in per day, the last)
+  const meas = new Map()         // iso date -> measurement entry (cm, body fat in %)
   let fileUnit = ''
+  let csvSource = null           // null: Apple Health's XML; '' a CSV of unknown origin
 
   if (s.includes('HKQuantityTypeIdentifierBodyMass')) {
     const re = /<Record[^>]*type="HKQuantityTypeIdentifierBodyMass"[^>]*>/g
@@ -732,18 +793,33 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
     // a weight-only CSV: whichever weight column it has
     const wCol = map.weightKg ?? map.weightLb ?? map.weight
     const dCol = map.date ?? map.startTime
-    if (wCol === undefined || dCol === undefined) return { error: 'unrecognised' }
+    const mCols = measurementColumns(rows[0])
+    if (dCol === undefined || (wCol === undefined && !mCols.length)) return { error: 'unrecognised' }
     if (map.weightKg !== undefined) fileUnit = 'kg'
     else if (map.weightLb !== undefined) fileUnit = 'lb'
     for (let i = 1; i < rows.length; i++) {
       const when = parseWhen(String(rows[i][dCol] ?? ''))
+      if (!when) continue
+      const at = new Date(when.d).getTime() + (when.t ?? 0)
+      if (mCols.length) {
+        const entry = { d: when.d, t: new Date(when.d + 'T12:00:00').getTime() }
+        let any = false
+        for (const c of mCols) {
+          const v = num(rows[i][c.i]) * c.f
+          // Plausible bounds only: a broken cell must not become a 900 cm waist on the chart.
+          if (v > 0 && (c.key === 'bodyFat' ? v < 75 : v < 300)) { entry[c.key] = Math.round(v * 10) / 10; any = true }
+        }
+        if (any) meas.set(when.d, { ...(meas.get(when.d) || {}), ...entry })
+      }
+      if (wCol === undefined) continue
       const w = num(rows[i][wCol])
-      if (!when || !w || !bodyOk(w, fileUnit || unit)) continue
-      out.set(when.d, { w, t: new Date(when.d).getTime() + (when.t ?? 0) })
+      if (!w || !bodyOk(w, fileUnit || unit)) continue
+      out.set(when.d, { w, t: at })
     }
+    csvSource = mCols.length ? (rows[0].some(h => /^(fat_percent|left_bicep_cm)$/i.test(String(h).trim())) ? 'Hevy' : '') : ''
   }
 
-  if (!out.size) return { error: 'unrecognised' }
+  if (!out.size && !meas.size) return { error: 'unrecognised' }
   const units = new Set([...out.values()].map(b => b.unit || fileUnit).filter(Boolean))
   fileUnit = [...units].sort().join(' / ')
   const converted = [...units].some(sourceUnit => sourceUnit !== unit)
@@ -754,10 +830,12 @@ export function parseBodyweight(text, { unit = 'kg' } = {}) {
       : b.w
     return Math.round(w * 10) / 10
   }
-  const dates = [...out.keys()].sort()
+  const dates = [...new Set([...out.keys(), ...meas.keys()])].sort()
   return {
-    kind: 'bodyweight', source: 'Apple Health',
-    bodyweight: dates.map(d => ({ d, w: conv(out.get(d)), t: out.get(d).t || new Date(d).getTime() })),
+    // Olympus: a CSV is no longer labelled Apple Health; only the Health XML is.
+    kind: 'bodyweight', source: csvSource === null ? 'Apple Health' : csvSource,
+    bodyweight: [...out.keys()].sort().map(d => ({ d, w: conv(out.get(d)), t: out.get(d).t || new Date(d).getTime() })),
+    measurements: [...meas.keys()].sort().map(d => meas.get(d)),
     fileUnit, converted, from: dates[0], to: dates[dates.length - 1],
   }
 }
@@ -777,19 +855,57 @@ export function parseImport(text, opts) {
 
 /* --------------------------------------------------------------- merge ---- */
 
+// Olympus: how close two sessions on one day may start or end and still be the same session,
+// logged twice (in Hevy and here during a switch, or a later export of a session edited since).
+const SAME_SESSION_MS = 30 * 60000
+
+/** True for a parsed workout the merge would leave out: that session is already in the history. */
+export function sessionClash(S, parsed) {
+  const timed = parsed.source === 'Hevy' || parsed.source === 'Strong'
+  const byDay = new Map()
+  for (const x of S.workouts || []) { if (!byDay.has(x.d)) byDay.set(x.d, []); byDay.get(x.d).push(x) }
+  const ids = new Set((S.workouts || []).map(x => x.id))
+  return w => {
+    if (ids.has(w.id)) return true
+    const same = byDay.get(w.d)
+    if (!same) return false
+    if (!timed || !(w.start > 0)) return true
+    return same.some(x => {
+      if (!(x.start > 0)) return true
+      const xEnd = Math.max(x.end || 0, x.start), wEnd = Math.max(w.end || 0, w.start)
+      return w.start <= xEnd + SAME_SESSION_MS && x.start <= wEnd + SAME_SESSION_MS
+    })
+  }
+}
+
 /**
- * Merge into state. Existing days win — importing twice never duplicates a workout. A day the
- * file has two sessions on brings both (they are checked against the state before the merge,
- * not against each other); a day already in the history brings neither.
+ * Merge into state; importing twice never duplicates a workout.
+ *
+ * Strong and Hevy stamp every session with its start and end, so for those a session is skipped
+ * only when the history already has one that overlaps it in time on that day: a morning workout
+ * logged here no longer hides the evening one in the file. Files without times (FitNotes, plain
+ * spreadsheets) keep the older rule: a day already in the history brings none of its sessions.
+ * Sessions are checked against the state before the merge, not against each other.
  */
 export function mergeImport(S, parsed) {
   if (parsed.kind === 'bodyweight') {
     const have = new Set(S.bodyweight.map(b => b.d))
     const fresh = parsed.bodyweight.filter(b => !have.has(b.d))
     S.bodyweight = [...S.bodyweight, ...fresh].sort((a, b) => (a.d < b.d ? -1 : 1))
-    return { added: fresh.length, skipped: parsed.bodyweight.length - fresh.length }
+    // Measurements: a day already measured here is left alone, like a weigh-in. A site the file
+    // has values for is switched on, so an imported body-fat or abdomen series is not hidden.
+    const incoming = parsed.measurements || []
+    const measured = new Set((S.measurements || []).map(m => m.d))
+    const freshM = incoming.filter(m => !measured.has(m.d))
+    if (freshM.length) {
+      S.measurements = [...(S.measurements || []), ...freshM.map(m => normalizeMeasurementEntry(m, S.customMeasurements || []))]
+        .sort((a, b) => a.d.localeCompare(b.d))
+      const used = new Set(freshM.flatMap(m => Object.keys(m).filter(k => k !== 'd' && k !== 't')))
+      S.measurementEnabled = [...new Set([...(Array.isArray(S.measurementEnabled) ? S.measurementEnabled : DEFAULT_MEASUREMENT_KEYS), ...used])]
+    }
+    return { added: fresh.length, skipped: parsed.bodyweight.length - fresh.length, ...(incoming.length ? { measured: freshM.length } : {}) }
   }
-  const have = new Set(S.workouts.map(w => w.d))
+  const clashes = sessionClash(S, parsed)
   // Every parse invents fresh ids for the names it cannot match, and a later export of the same
   // account names those exercises again. So a custom exercise is looked up by name among the ones
   // already here — from an earlier import or made by hand — and the new days are pointed at it,
@@ -801,7 +917,7 @@ export function mergeImport(S, parsed) {
     const same = S.customEx.find(x => x.id !== c.id && nameKey(x.n) === nameKey(c.n))
     if (same) exIdMap[c.id] = same.id
   })
-  const fresh = parsed.workouts.filter(w => !have.has(w.d))
+  const fresh = parsed.workouts.filter(w => !clashes(w))
     .map(w => ({ ...w, entries: w.entries.map(e => (exIdMap[e.id] ? { ...e, id: exIdMap[e.id] } : e)) }))
   const used = new Set(fresh.flatMap(w => w.entries.map(e => e.id)))
   // (one an earlier import of the same name already made has the same id now: kept once)
