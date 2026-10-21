@@ -8,9 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TabBar from './TabBar.jsx'
 import { DEF, useStore } from '../store/useStore.js'
 
+const route = vi.hoisted(() => ({ pathname: '/home' }))
 vi.mock('react-router-dom', () => ({
   useNavigate: () => () => {},
-  useLocation: () => ({ pathname: '/home' }),
+  useLocation: () => ({ pathname: route.pathname }),
 }))
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -28,6 +29,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  route.pathname = '/home'
   act(() => root.unmount())
   host.remove()
   useStore.setState({ S: originalS, user: originalUser })
@@ -39,7 +41,7 @@ describe('the tab bar across a store write', () => {
   it('keeps the very same buttons instead of rebuilding them every tick', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
     const before = tabs()
-    expect(before).toHaveLength(5)
+    expect(before).toHaveLength(3)   // Olympus: Home, Workout, Profile
 
     // What a rest does once a second: S is replaced, so everything reading it re-renders.
     act(() => { useStore.getState().update(s => { s.restSec = 91 }, false) })
@@ -52,19 +54,33 @@ describe('the tab bar across a store write', () => {
   it('still lights the tab for the route it is on, and follows a change of state', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
     expect(tabs()[0].className).toBe('on')
-    expect(tabs()[1].className).toBe('')
-    expect(tabs()[2].className).toBe('start')
+    expect(tabs()[1].className).toBe('start')
+    expect(tabs()[2].className).toBe('')
 
     act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0 } }, false) })
-    expect(tabs()[2].className).toBe('start rec')
+    expect(tabs()[1].className).toBe('start rec')
+    expect(tabs()[0].className).toBe('on')
+  })
+
+  // Profile owns the screens that used to be tabs of their own, and Settings; a person's page
+  // reached from the feed stays under Home.
+  it('lights Profile for every screen reached from it, and Home for a person’s page', () => {
+    for (const path of ['/profile', '/stats', '/history', '/plan', '/library', '/settings/about', '/measurements', '/today']) {
+      route.pathname = path
+      act(() => { root.render(<TabBar onStart={() => {}} />) })
+      expect(tabs()[2].className, path).toBe('on')
+      expect(tabs()[0].className, path).toBe('')
+    }
+    route.pathname = '/u/abc'
+    act(() => { root.render(<TabBar onStart={() => {}} />) })
     expect(tabs()[0].className).toBe('on')
   })
 })
 
-// Settings → "Show connection status" off (#369, #330): a stuck sync shows as a dot on Home, the
-// tab Settings opens from, and the tab's name says it.
-describe('the connection dot on Home', () => {
-  const home = () => tabs()[0]
+// Settings → "Show connection status" off (#369, #330): a stuck sync shows as a dot on Profile,
+// the tab Settings opens from in Olympus, and the tab's name says it.
+describe('the connection dot on Profile', () => {
+  const home = () => tabs()[2]
   it('is there for a sync problem only while the banner is switched off', () => {
     const original = useStore.getState().sync
     try {
@@ -73,7 +89,7 @@ describe('the connection dot on Home', () => {
       expect(home().querySelector('.tab-dot')).toBeNull()
       act(() => { useStore.getState().update(s => { s.connStatus = false }, false) })
       expect(home().querySelector('.tab-dot')).not.toBeNull()
-      expect(home().getAttribute('aria-label')).toBe('Home, Connection problem')
+      expect(home().getAttribute('aria-label')).toBe('Profile, Connection problem')
       act(() => { useStore.setState({ sync: { status: 'ok', lastError: null, pending: false } }) })
       expect(home().querySelector('.tab-dot')).toBeNull()
       expect(home().getAttribute('aria-label')).toBeNull()
@@ -81,19 +97,19 @@ describe('the connection dot on Home', () => {
   })
 })
 
-// v1.3.11 icon sweep: one icon per concept. Every tab carries its name under the icon, Start is a
-// play button whether or not a session runs, and Exercises is the dumbbell (no more generic list).
+// One icon per concept. Every tab carries its name under the icon, and Workout is the play button
+// it always was (the old Start), whether or not a session runs.
 describe('the tab icons and labels', () => {
   const icon = el => el.querySelector('svg')?.getAttribute('data-icon')
   const label = el => el.querySelector('span:last-child').textContent
   it('labels every tab and uses one icon per concept', () => {
     act(() => { root.render(<TabBar onStart={() => {}} />) })
-    expect(tabs().map(icon)).toEqual(['house', 'calendar', 'play', 'chart', 'dumbbell'])
-    expect(tabs().map(label)).toEqual(['Home', 'Plan', 'Start', 'Stats', 'Exercises'])
+    expect(tabs().map(icon)).toEqual(['house', 'play', 'person'])
+    expect(tabs().map(label)).toEqual(['Home', 'Workout', 'Profile'])
 
     act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0 } }, false) })
-    expect(icon(tabs()[2])).toBe('play')
-    expect(label(tabs()[2])).toBe('Resume')
+    expect(icon(tabs()[1])).toBe('play')
+    expect(label(tabs()[1])).toBe('Resume')
   })
 
   it('shows a minimized session’s running time, still named Resume', () => {
@@ -102,16 +118,16 @@ describe('the tab icons and labels', () => {
       vi.setSystemTime(new Date(2026, 9, 5, 18, 0, 0))
       act(() => { useStore.getState().update(s => { s.active = { id: 'a', entries: [], cur: 0, start: Date.now() - 754_000 } }, false) })
       act(() => { root.render(<TabBar onStart={() => {}} />) })
-      const start = tabs()[2]
+      const start = tabs()[1]
       expect(label(start)).toBe('12:34')
       expect(start.getAttribute('aria-label')).toBe('Resume')
       act(() => { vi.advanceTimersByTime(2000) })
       expect(label(start)).toBe('12:36')
-      expect(tabs()[2]).toBe(start)   // the same button, only its text ticks
+      expect(tabs()[1]).toBe(start)   // the same button, only its text ticks
 
       // a past workout being edited has no clock running
       act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
-      expect(label(tabs()[2])).toBe('Edit workout')
+      expect(label(tabs()[1])).toBe('Edit workout')
     } finally { vi.useRealTimers() }
   })
 })

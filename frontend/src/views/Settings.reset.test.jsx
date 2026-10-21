@@ -154,9 +154,12 @@ describe('Settings — reset everything', () => {
 })
 
 describe('Settings — footer', () => {
-  it('links the source code to its home on GitHub, on About & updates', () => {
+  // Olympus is a fork of openGym: About credits the original project, and offers a "Source code"
+  // link only once lib/app-info.js names where this version's source lives (empty as shipped).
+  it('credits openGym on About & updates, with no source link of its own until one is set', () => {
     act(() => root.render(<Settings page="about" />))
-    const link = [...host.querySelectorAll('a')].find(a => a.textContent === 'Source code')
-    expect(link.getAttribute('href')).toBe('https://github.com/DuarteSantos8/openGym')
+    const upstream = [...host.querySelectorAll('a')].find(a => a.textContent === 'openGym')
+    expect(upstream.getAttribute('href')).toBe('https://github.com/DuarteSantos8/openGym')
+    expect([...host.querySelectorAll('a')].some(a => a.textContent === 'Source code')).toBe(false)
   })
 })

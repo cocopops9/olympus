@@ -1,4 +1,4 @@
-package ch.duartesantos.opengym;
+package app.olympus.gym;
 
 import android.app.Notification;
 import android.app.Service;

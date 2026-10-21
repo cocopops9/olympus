@@ -151,7 +151,8 @@ export function manageMeasurementsSheet() {
   return useUI.getState().openSheet(close => <ManageMeasurements close={close} />)
 }
 
-export default function Measurements() {
+// `embedded`: shown inside Profile → Body, under the body-weight card.
+export default function Measurements({ embedded = false } = {}) {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const [range, setRange] = useState(90)
@@ -185,12 +186,15 @@ export default function Measurements() {
     onConfirm: () => { update(state => { state.measurements = state.measurements.filter(e => e.d !== entry.d) }); toast(t('Measurements deleted')) },
   })
 
-  return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
+  return <div className={embedded ? '' : 'narrow'}>
+    {embedded ? <div className="row between" style={{ margin: '6px 2px 10px' }}>
+      <h3 style={{ margin: 0 }}>{t('Body measurements')}</h3>
+      <button className="iconbtn" onClick={manageMeasurementsSheet} aria-label={t('Choose measurements')}><Icon name="gear" /></button>
+    </div> : <div className="hdr">
+      <button className="iconbtn" onClick={() => nav('/profile?tab=body')} aria-label={t('Profile')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginLeft: 10 }}><h1>{t('Body measurements')}</h1><div className="sub">{t('Circumference & composition')}</div></div>
       <button className="iconbtn" onClick={manageMeasurementsSheet} aria-label={t('Choose measurements')}><Icon name="gear" /></button>
-    </div>
+    </div>}
 
     <div className="card">
       <div className="row between" style={{ marginBottom: 10 }}>

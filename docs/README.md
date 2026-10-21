@@ -28,7 +28,7 @@ to install.
 | [Security](../SECURITY.md) | You host it for other people, or want to report a vulnerability |
 
 All settings live in `.env`; [`.env.example`](../.env.example) explains each one, and the
-[README](../README.md#quick-start) has the full table.
+[the openGym README](OPENGYM_README.md#quick-start) has the full table.
 
 ## Working on the code
 

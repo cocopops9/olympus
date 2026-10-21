@@ -1,4 +1,4 @@
-/* opengym-api — passkey (WebAuthn) auth + per-user state storage for openGym
+/* opengym-api — passkey (WebAuthn) auth + per-user state storage for Olympus
    No framework, JSON-file storage, signed session cookies.               */
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -31,6 +31,7 @@ import {
 } from './passkeys-store.js';
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
+import { createSocial, SocialError } from './social.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
@@ -40,7 +41,7 @@ const PORT = +(process.env.PORT || 3000);
 const DATA = process.env.DATA_DIR || '/data';
 const RP_ID = process.env.RP_ID || 'localhost';
 const ORIGIN = process.env.ORIGIN || 'http://localhost:8080';
-const RP_NAME = process.env.RP_NAME || 'openGym';
+const RP_NAME = process.env.RP_NAME || 'Olympus';
 // Admin dashboard (issue): admins are matched by uid (or the admin flag FIRST_USER_ADMIN sets);
 // INVITE_ONLY gates new signups behind a code the admin generates. Off by default, so a fresh
 // self-hosted instance stays open.
@@ -162,6 +163,9 @@ function saveDb() {
 // Flushed before and after the rename (durable.js): a host reset must not bring back the file
 // the client was told had been replaced.
 function atomicWrite(file, content, mode) { durableWrite(file, content, mode); }
+// Olympus social layer (social.js): follows, posts, likes and comments, in DATA_DIR/social.json.
+// It reads the accounts from db.json through `users`, so a disabled profile disappears from it.
+const SOCIAL = createSocial({ dataDir: DATA, write: (f, c) => atomicWrite(f, c, 0o600), users: () => db.users });
 // How many earlier write ids a document keeps (`_wids`, see PUT /api/data): a device that last
 // synced more writes ago than this merges on its next pull instead of taking the server's copy.
 const WID_KEEP = 50;
@@ -619,6 +623,14 @@ function requireAdmin(req, res) {
   // Only the 403 is recorded: a 401 is any unauthenticated bot poking /api/admin/*, and
   // logging those would bury the events an operator actually wants to see.
   if (!isAdmin(user)) { audit(req, 'admin.denied', { ok: false, user }); json(res, 403, { error: 'forbidden' }); return null; }
+  return user;
+}
+// The query string of a request, for the GET routes that take one.
+const qs = req => new URL(req.url, 'http://x').searchParams;
+// Guard for /api/social/*: the signed-in caller, or a 401 answered and null.
+function socialUser(req, res) {
+  const user = readSession(req);
+  if (!user) { json(res, 401, { error: 'not signed in' }); return null; }
   return user;
 }
 const expireCookie = name => `${name}=; Path=/; Max-Age=0; HttpOnly;${SECURE} SameSite=Lax`;
@@ -2490,10 +2502,72 @@ const routes = {
     try { coachConfig.clearProfileAuth(u.id); } catch { /* nothing stored */ }
     // Their photos and videos — the one place a profile's folder under uploads/ is removed.
     try { MEDIA.removeUser(u.id); } catch (e) { console.error('media: could not remove uploads of', u.id, e.message); }
+    // Their posts, likes, comments and follows (social.js).
+    try { SOCIAL.removeUser(u.id); } catch (e) { console.error('social: could not remove', u.id, e.message); }
     saveDb();
     // Logged with the name, because the id is about to mean nothing to anyone reading this back.
     audit(req, 'admin.user.delete', { user: admin, msg: name });
     json(res, 200, { ok: true, id: u.id });
+  },
+
+  /* ---------- social (Olympus) ----------
+     Every route needs a session. A guest or a phone kept local has no profile to post as and
+     never reaches these: the app explains that the feed needs a server account instead. */
+  'GET /api/social/search': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { users: SOCIAL.search(me, qs(req).get('q') || '') });
+  },
+  'GET /api/social/profile': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, SOCIAL.profile(me, qs(req).get('id') || '', { before: qs(req).get('before') }));
+  },
+  'POST /api/social/profile': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { user: SOCIAL.setBio(me, text(body.bio)) });
+  },
+  'GET /api/social/connections': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { users: SOCIAL.connections(me, qs(req).get('id') || '', qs(req).get('kind')) });
+  },
+  'POST /api/social/follow': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { user: SOCIAL.follow(me, text(body.id), body.follow !== false) });
+  },
+  'GET /api/social/feed': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, SOCIAL.feed(me, { before: qs(req).get('before') }));
+  },
+  'GET /api/social/discover': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, SOCIAL.discover(me, { before: qs(req).get('before') }));
+  },
+  'POST /api/social/posts': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { post: SOCIAL.createPost(me, body) });
+  },
+  'POST /api/social/posts/delete': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    // An admin may take down any post on their instance; everyone else only their own.
+    json(res, 200, SOCIAL.deletePost(me, text(body.id), { asAdmin: isAdmin(me) }));
+  },
+  'POST /api/social/posts/like': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { post: SOCIAL.like(me, text(body.id), body.like !== false) });
+  },
+  'POST /api/social/posts/comment': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { post: SOCIAL.comment(me, text(body.id), text(body.text)) });
+  },
+  'POST /api/social/posts/comment/delete': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { post: SOCIAL.deleteComment(me, text(body.id), text(body.commentId)) });
   },
 
   'GET /api/admin/invites': async (req, res) => {
@@ -2683,6 +2757,10 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     // A refused upload or a missing file: the caller's to act on, never a logged 500.
+    if (e instanceof SocialError) {
+      if (!res.headersSent) json(res, e.status, { error: e.message, code: e.code });
+      return;
+    }
     if (e instanceof MediaError) {
       if (!res.headersSent) json(res, e.status, { error: e.message, code: e.code, ...e.extra }, e.headers);
       return;

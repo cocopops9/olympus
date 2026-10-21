@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { checkForUpdate, sha256, resetUpdateCheck, fetchChecksum } from './update.js'
 
+// Olympus ships with the updater off (lib/app-info.js); these tests run it pointed at a repository,
+// the way a fork that publishes releases sets it. update.off.test.js covers the default.
+vi.mock('./app-info.js', () => ({ UPDATE_REPO: 'DuarteSantos8/openGym', SOURCE_URL: '', UPSTREAM_URL: 'https://github.com/DuarteSantos8/openGym' }))
+
 // __APP_VERSION__ is defined at build time by vite.config.js (reads package.json).
 // In the test environment vitest applies the same define, so it's available here.
 
@@ -82,8 +86,8 @@ describe('checkForUpdate', () => {
   const REAL_RELEASE = {
     tag_name: 'v1.4.0',
     assets: [
-      { name: 'openGym-1.4.0.apk', browser_download_url: 'https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk' },
-      { name: 'openGym-1.4.0.apk.sha256', browser_download_url: 'https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk.sha256' },
+      { name: 'Olympus-1.4.0.apk', browser_download_url: 'https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/Olympus-1.4.0.apk' },
+      { name: 'Olympus-1.4.0.apk.sha256', browser_download_url: 'https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/Olympus-1.4.0.apk.sha256' },
     ],
   }
 
@@ -91,8 +95,8 @@ describe('checkForUpdate', () => {
     mockFetch(REAL_RELEASE)
     const result = await checkForUpdate()
     expect(result.latestVersion).toBe('1.4.0')
-    expect(result.apkUrl).toBe('https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk')
-    expect(result.hashUrl).toBe('https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/openGym-1.4.0.apk.sha256')
+    expect(result.apkUrl).toBe('https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/Olympus-1.4.0.apk')
+    expect(result.hashUrl).toBe('https://github.com/DuarteSantos8/openGym/releases/download/v1.4.0/Olympus-1.4.0.apk.sha256')
   })
 
   it('does not take the checksum for the APK when it is listed first', async () => {
@@ -135,7 +139,7 @@ describe('fetchChecksum (web)', () => {
   const serve = text => { globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve(text) })) }
 
   it('reads the hash out of a sha256sum line', async () => {
-    serve('EC2822' + 'a'.repeat(58) + '  openGym-1.4.0.apk\n')
+    serve('EC2822' + 'a'.repeat(58) + '  Olympus-1.4.0.apk\n')
     expect(await fetchChecksum('https://x/a.apk.sha256')).toBe('ec2822' + 'a'.repeat(58))
   })
 

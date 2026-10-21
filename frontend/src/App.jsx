@@ -30,6 +30,9 @@ import { openDeviceLinkRedeem } from './components/Passkeys.jsx'
 import Login from './views/Login.jsx'
 import MobileOnboarding from './views/MobileOnboarding.jsx'
 import Home from './views/Home.jsx'
+import Feed from './views/Feed.jsx'
+import Profile from './views/Profile.jsx'
+import UserProfile from './views/UserProfile.jsx'
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -204,7 +207,11 @@ function Shell() {
         <ErrorBoundary>
           {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
             <Routes>
-              <Route path="/home" element={<Home />} />
+              {/* Olympus: Home is the social feed; the training dashboard that was Home is /today. */}
+              <Route path="/home" element={<Feed />} />
+              <Route path="/today" element={<Home />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/u/:id" element={<UserProfile />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}

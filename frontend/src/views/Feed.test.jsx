@@ -1,0 +1,106 @@
+// @vitest-environment happy-dom
+// Olympus Home (the feed): without a server profile it explains what the feed needs; with one it
+// loads the Following feed, switches to Discover, opens the people search, and keeps a like the
+// server confirmed.
+import React, { act } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRoot } from 'react-dom/client'
+import { useStore } from '../store/useStore.js'
+
+const mocks = vi.hoisted(() => ({
+  nav: vi.fn(),
+  feed: vi.fn(), discover: vi.fn(), search: vi.fn(), like: vi.fn(),
+}))
+vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
+vi.mock('../lib/social.js', async importOriginal => ({
+  ...(await importOriginal()),
+  fetchFeed: (...a) => mocks.feed(...a),
+  fetchDiscover: (...a) => mocks.discover(...a),
+  searchUsers: (...a) => mocks.search(...a),
+  setLike: (...a) => mocks.like(...a),
+}))
+import Feed from './Feed.jsx'
+
+const post = (id, extra = {}) => ({
+  id, ts: Date.now() - 60000, text: 'Leg day ' + id, author: { id: 'u_b', name: 'Ben' },
+  likes: 0, liked: false, comments: [], mine: false,
+  workout: { name: 'Legs', d: '2026-10-20', durMs: 3600000, vol: 4200, unit: 'kg', sets: 15, prs: 1, exercises: [{ n: 'Squat', sets: 5, best: '100×5' }] },
+  ...extra,
+})
+
+let host, root
+beforeEach(() => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  host = document.createElement('div')
+  document.body.appendChild(host)
+  root = createRoot(host)
+  Object.values(mocks).forEach(m => m.mockReset())
+})
+afterEach(() => { act(() => root.unmount()); host.remove(); useStore.setState({ user: null }) })
+
+const flush = () => act(async () => { await new Promise(r => setTimeout(r, 0)) })
+const text = () => host.textContent
+const button = label => [...host.querySelectorAll('button')].find(b => b.textContent === label || b.getAttribute('aria-label') === label)
+
+describe('Feed without a server profile', () => {
+  it('explains that the feed lives on a server, and asks nothing of it', async () => {
+    useStore.setState({ user: null })
+    await act(async () => root.render(<Feed />))
+    expect(text()).toContain('Train together')
+    expect(button('Connect to a server')).toBeTruthy()
+    expect(mocks.feed).not.toHaveBeenCalled()
+  })
+})
+
+describe('Feed with a server profile', () => {
+  beforeEach(() => useStore.setState({ user: { id: 'u_a', name: 'Anna' } }))
+
+  it('shows the Following feed with its workouts, and Discover on request', async () => {
+    mocks.feed.mockResolvedValue({ posts: [post('p1')], next: null })
+    mocks.discover.mockResolvedValue({ posts: [post('p2'), post('p3')], next: null })
+    await act(async () => root.render(<Feed />))
+    await flush()
+    expect(text()).toContain('Leg day p1')
+    expect(text()).toContain('Squat')
+    expect(text()).toContain('100×5')
+    await act(async () => button('Discover').click())
+    await flush()
+    expect(mocks.discover).toHaveBeenCalled()
+    expect(text()).toContain('Leg day p3')
+  })
+
+  it('offers to find people when the feed is empty', async () => {
+    mocks.feed.mockResolvedValue({ posts: [], next: null })
+    mocks.search.mockResolvedValue([{ id: 'u_b', name: 'Ben', bio: '', followers: 0, following: 0, posts: 1, isFollowing: false, me: false }])
+    await act(async () => root.render(<Feed />))
+    await flush()
+    expect(text()).toContain('Your feed is empty')
+    await act(async () => button('Find people').click())
+    await act(async () => { await new Promise(r => setTimeout(r, 300)) })
+    expect(mocks.search).toHaveBeenCalledWith('')
+    expect(text()).toContain('Ben')
+    expect(button('Follow')).toBeTruthy()
+  })
+
+  it('likes at once and keeps what the server answers', async () => {
+    mocks.feed.mockResolvedValue({ posts: [post('p1')], next: null })
+    mocks.like.mockResolvedValue(post('p1', { likes: 1, liked: true }))
+    await act(async () => root.render(<Feed />))
+    await flush()
+    await act(async () => button('Like').click())
+    await flush()
+    expect(mocks.like).toHaveBeenCalledWith('p1', true)
+    expect(button('Unlike')).toBeTruthy()
+  })
+
+  it('says why it could not load, with a way to try again', async () => {
+    mocks.feed.mockRejectedValueOnce(Object.assign(new Error('x'), { status: undefined }))
+    await act(async () => root.render(<Feed />))
+    await flush()
+    expect(text()).toContain('The server could not be reached.')
+    mocks.feed.mockResolvedValue({ posts: [post('p9')], next: null })
+    await act(async () => button('Try again').click())
+    await flush()
+    expect(text()).toContain('Leg day p9')
+  })
+})

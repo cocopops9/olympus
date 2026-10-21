@@ -1,5 +1,5 @@
 /* ============================================================================
-   openGym — design system
+   Olympus — design system
    ----------------------------------------------------------------------------
    Rebuilt around four rules, each aimed at a specific "generated" tell in the
    previous sheet:
@@ -1924,7 +1924,7 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   .tiles{grid-template-columns:repeat(4,1fr)}
   .cols .tiles,.center .tiles{grid-template-columns:1fr 1fr}   /* a 300px dialog has no room for four */
   #tabbar{
-    left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:520px;
+    left:50%;right:auto;bottom:16px;transform:translateX(-50%);width:400px;   /* three tabs (Olympus) */
     border:var(--hair) solid var(--sep-op);border-radius:var(--r-xl);
     padding:7px 10px 9px;box-shadow:0 12px 40px -10px rgba(0,0,0,.5);
   }

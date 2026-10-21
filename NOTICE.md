@@ -1,5 +1,8 @@
 # Third-party notices
 
+Olympus is a modified version of openGym (see README.md, "Modified version notice"). The notices
+below are openGym's and apply to Olympus unchanged.
+
 openGym — Copyright (C) 2026 Duarte Santos.
 openGym's own code is licensed under the **GNU AGPL v3.0** (see [LICENSE](LICENSE)).
 

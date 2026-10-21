@@ -25,12 +25,16 @@ export default function TabBar({ onStart }) {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const isGuest = useStore(s => s.isGuest())
-  // With the connection banner switched off, a sync problem shows as a dot on Home, the tab
-  // Settings lives under (#369, #330).
+  // With the connection banner switched off, a sync problem shows as a dot on Profile (below).
   const trouble = useConnectionTrouble()
   if (!user && !isGuest) return null
   const cur = loc.pathname.split('/')[1] || 'home'
-  const on = k => cur === k || (cur === 'history' && k === 'stats') || (cur === 'settings' && k === 'home') || (cur === 'muscles' && k === 'library') || (cur === 'structural-balance' && k === 'stats')
+  // Three tabs (Olympus): Home is the feed and the profiles it links to; Profile is everything
+  // about your own training — calendar, stats, body, and the screens reached from it.
+  const HOME = new Set(['home', 'u'])
+  const PROFILE = new Set(['profile', 'today', 'stats', 'history', 'measurements', 'progress-photos', 'muscles',
+    'structural-balance', 'plan', 'library', 'settings', 'checkin', 'coach', 'admin'])
+  const on = k => (k === 'home' ? HOME.has(cur) : k === 'profile' ? PROFILE.has(cur) : cur === k)
 
   const running = !!S.active && cur !== 'workout' && !S.active.editingWorkoutId && !S.active.backfill && S.active.start > 0
   const startWorkout = () => {
@@ -44,23 +48,22 @@ export default function TabBar({ onStart }) {
 
   return (
     <nav id="tabbar">
-      <Tab active={on('home')} icon="house" label={t('Home')} dot={trouble} onClick={() => nav('/home')} />
-      <Tab active={on('plan')} icon="calendar" label={t('Plan')} onClick={() => nav('/plan')} />
-      {/* On the workout screen itself there is nothing to resume, so the button reads as the
-          tab it is and stays lit (#29); anywhere else it brings you back to the exercise you
-          were on — the marker is kept in S.active.cur and never moves on its own (#21). The
-          glyph is always play: start and resume are one concept, and an exercise is a dumbbell.
-          A live session you stepped away from shows its running time instead of a word, the
-          button still named Resume; a past workout being edited or logged after the fact has no
-          clock to run. */}
+      <Tab active={on('home')} icon="house" label={t('Home')} onClick={() => nav('/home')} />
+      {/* Workout: the start button it always was. On the workout screen itself there is nothing
+          to resume, so it reads as the tab it is and stays lit (#29); anywhere else it brings you
+          back to the exercise you were on — the marker is kept in S.active.cur and never moves on
+          its own (#21). The glyph is always play: start and resume are one concept. A live session
+          you stepped away from shows its running time instead of a word, the button still named
+          Resume; a past workout being edited or logged after the fact has no clock to run. */}
       <button className={'start' + (S.active ? ' rec' : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}
         aria-label={running ? t('Resume') : undefined}>
         <span className="cir"><Icon name="play" /></span>
         {running ? <span className="tab-time"><Elapsed start={S.active.start} /></span>
-          : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Start')}</span>}
+          : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Workout')}</span>}
       </button>
-      <Tab active={on('stats')} icon="chart" label={t('Stats')} onClick={() => nav('/stats')} />
-      <Tab active={on('library')} icon="dumbbell" label={t('Exercises')} onClick={() => nav('/library')} />
+      {/* With the connection banner switched off, a sync problem shows as a dot on Profile, the
+          tab Settings lives under (#369, #330). */}
+      <Tab active={on('profile')} icon="person" label={t('Profile')} dot={trouble} onClick={() => nav('/profile')} />
     </nav>
   )
 }

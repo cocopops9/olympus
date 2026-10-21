@@ -1,15 +1,15 @@
-# openGym HTTP API: hand-written OpenAPI 3.1 spec.
+# Olympus HTTP API: hand-written OpenAPI 3.1 spec.
 # Source of truth: api/server.js (a single framework-free Node file). Every route the
 # server registers is documented here; if you add a route there, add it here too.
 # Browsable version: https://opengym.ch/api.html
 openapi: 3.1.0
 
 info:
-  title: openGym API
+  title: Olympus API
   version: 1.4.1
-  summary: Passkey (WebAuthn) auth + per-user state storage for openGym
+  summary: Passkey (WebAuthn) auth + per-user state storage for Olympus
   description: |
-    The backend of [openGym](https://opengym.ch), a free, open-source
+    The backend of [Olympus](https://opengym.ch), a free, open-source
     gym & body-weight tracker. A plain Node server, no framework, JSON-file storage,
     HMAC-signed session cookies.
 
@@ -115,12 +115,12 @@ info:
     name: AGPL-3.0-or-later
     identifier: AGPL-3.0-or-later
   contact:
-    name: openGym
+    name: Olympus
     url: https://gitlab.com/DuarteSantos8/opengym
 
 servers:
   - url: /
-    description: Same origin as the openGym web app (the normal deployment)
+    description: Same origin as the Olympus web app (the normal deployment)
   - url: https://opengym.example.com
     description: Your self-hosted instance
 
@@ -153,6 +153,11 @@ tags:
       attached to a logged workout. Stored per profile (one quota for both) and named
       by the SHA-256 of its bytes; the state only carries a `MediaRef`. Every route here is a
       404 when the instance runs with `MEDIA_UPLOADS=0`.
+  - name: social
+    description: >-
+      Olympus social layer: find other profiles on the instance, follow them, post workouts
+      and text, like and comment. Every route needs a session; data lives in
+      `DATA_DIR/social.json`.
   - name: coach
     description: >-
       AI Coach: plans, reviews and debriefs. Every route here answers 503 unless the
@@ -2265,6 +2270,329 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "no such user" }
 
+  /api/social/search:
+    get:
+      tags: [social]
+      operationId: socialSearch
+      summary: Find profiles
+      description: Profiles on this instance whose name contains `q` (case-insensitive). Without `q`, the most followed first.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+          description: Part of a name.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/SocialUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/social/profile:
+    get:
+      tags: [social]
+      operationId: socialProfile
+      summary: A profile and its posts
+      description: One profile (the caller when `id` is absent) with its counts and newest posts.
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema: { type: string }
+          description: Profile id.
+        - name: before
+          in: query
+          required: false
+          schema: { type: string }
+          description: Page cursor; the `next` value of the previous page.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PostPage'
+                  - type: object
+                    properties:
+                      user: { $ref: '#/components/schemas/SocialUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+    post:
+      tags: [social]
+      operationId: socialSetBio
+      summary: Edit your bio
+      description: Sets the caller's bio (160 characters at most).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio: { type: string, maxLength: 160 }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/SocialUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/social/connections:
+    get:
+      tags: [social]
+      operationId: socialConnections
+      summary: Followers or following
+      description: The followers of a profile, or the profiles it follows (`kind=following`).
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema: { type: string }
+          description: Profile id; the caller when absent.
+        - name: kind
+          in: query
+          required: false
+          schema: { type: string }
+          description: `followers` (default) or `following`.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/SocialUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/social/follow:
+    post:
+      tags: [social]
+      operationId: socialFollow
+      summary: Follow or unfollow
+      description: Follows the profile `id`, or unfollows it with `follow: false`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+                follow: { type: boolean, default: true }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/SocialUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '400': { description: 'Nothing to post (`empty`), or following yourself (`self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/social/feed:
+    get:
+      tags: [social]
+      operationId: socialFeed
+      summary: Following feed
+      description: The caller's posts and those of the profiles they follow, newest first.
+      parameters:
+        - name: before
+          in: query
+          required: false
+          schema: { type: string }
+          description: Page cursor; the `next` value of the previous page.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/social/discover:
+    get:
+      tags: [social]
+      operationId: socialDiscover
+      summary: Discover feed
+      description: Every post on the instance, newest first.
+      parameters:
+        - name: before
+          in: query
+          required: false
+          schema: { type: string }
+          description: Page cursor; the `next` value of the previous page.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/social/posts:
+    post:
+      tags: [social]
+      operationId: socialPost
+      summary: Publish a post
+      description: A post with text, a workout summary, or both.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string, maxLength: 1000 }
+                workout: { $ref: '#/components/schemas/PostWorkout' }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post: { $ref: '#/components/schemas/Post' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '400': { description: 'Nothing to post (`empty`), or following yourself (`self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'Too many posts or comments in the last hour (`rate-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/social/posts/delete:
+    post:
+      tags: [social]
+      operationId: socialPostDelete
+      summary: Delete a post
+      description: The author, or an admin of the instance, deletes a post.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/social/posts/like:
+    post:
+      tags: [social]
+      operationId: socialLike
+      summary: Like or unlike
+      description: Likes post `id`, or takes the like back with `like: false`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+                like: { type: boolean, default: true }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post: { $ref: '#/components/schemas/Post' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/social/posts/comment:
+    post:
+      tags: [social]
+      operationId: socialComment
+      summary: Comment on a post
+      description: Adds a comment (500 characters at most).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, text]
+              properties:
+                id: { type: string }
+                text: { type: string, maxLength: 500 }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post: { $ref: '#/components/schemas/Post' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '400': { description: 'Nothing to post (`empty`), or following yourself (`self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'Too many posts or comments in the last hour (`rate-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/social/posts/comment/delete:
+    post:
+      tags: [social]
+      operationId: socialCommentDelete
+      summary: Delete a comment
+      description: The commenter, or the author of the post, removes a comment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, commentId]
+              properties:
+                id: { type: string }
+                commentId: { type: string }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post: { $ref: '#/components/schemas/Post' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 'No such post or profile (`no-post`, `no-profile`, `no-comment`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/admin/invites:
     get:
       tags: [admin]
@@ -3531,6 +3859,65 @@ components:
             auth: { type: string }
 
     # ------------------------------------------------------------------ admin
+    SocialUser:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        bio: { type: string }
+        followers: { type: integer }
+        following: { type: integer }
+        posts: { type: integer }
+        isFollowing: { type: boolean, description: Whether the caller follows this profile. }
+        me: { type: boolean, description: Whether this is the caller. }
+    PostWorkout:
+      type: object
+      description: A bounded summary of a logged workout, built by the app.
+      properties:
+        name: { type: string, maxLength: 80 }
+        d: { type: string, format: date }
+        durMs: { type: integer }
+        vol: { type: number }
+        unit: { type: string, enum: [kg, lb] }
+        sets: { type: integer }
+        prs: { type: integer }
+        exercises:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            properties:
+              n: { type: string }
+              sets: { type: integer }
+              best: { type: string }
+    Post:
+      type: object
+      properties:
+        id: { type: string }
+        ts: { type: integer, description: Milliseconds since the epoch. }
+        text: { type: string }
+        workout: { $ref: '#/components/schemas/PostWorkout' }
+        author: { type: object, properties: { id: { type: string }, name: { type: string } } }
+        likes: { type: integer }
+        liked: { type: boolean }
+        mine: { type: boolean }
+        comments:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              ts: { type: integer }
+              text: { type: string }
+              mine: { type: boolean }
+              author: { type: object, properties: { id: { type: string }, name: { type: string } } }
+    PostPage:
+      type: object
+      properties:
+        posts:
+          type: array
+          items: { $ref: '#/components/schemas/Post' }
+        next: { type: integer, nullable: true, description: Pass as `before` for the next page; null on the last one. }
     AdminUserRow:
       type: object
       properties:

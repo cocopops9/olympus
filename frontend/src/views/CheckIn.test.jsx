@@ -217,10 +217,11 @@ describe('CheckIn — the rail reopens where you left it', () => {
     expect(host.querySelector('.ci-value').textContent).toBe('MEMBER-9931')
   })
 
-  it('the back button goes home', async () => {
+  // Olympus: check-in is reached from Today's training (/today), so back returns there.
+  it('the back button goes back to today', async () => {
     mount()
-    await tap(byLabel(host, 'Home')[0])
-    expect(mocks.nav).toHaveBeenCalledWith('/home')
+    await tap(byLabel(host, 'Today')[0])
+    expect(mocks.nav).toHaveBeenCalledWith('/today')
   })
 })
 

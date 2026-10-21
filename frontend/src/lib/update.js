@@ -2,7 +2,7 @@
 // the latest release on GitHub and optionally downloads + installs the APK.
 //
 // The GitHub releases API is public, so no token is needed (60 requests an hour per address,
-// and the check runs once per app session). GitHub is openGym's home since v1.4.0; the GitLab
+// and the check runs once per app session). GitHub is Olympus's home since v1.4.0; the GitLab
 // mirror stopped getting releases, so a phone that asked it saw no update.
 // On Android (Capacitor) the APK is downloaded natively into the cache directory (an APK with
 // the animations is ~300 MB: read into the WebView's memory it ran phones out of it, and
@@ -10,10 +10,13 @@
 // against its SHA-256 by the native Install plugin and handed to the system installer.
 
 import { MOBILE } from './mobile.js'
+import { UPDATE_REPO } from './app-info.js'
 
-const REPO = 'DuarteSantos8/openGym'
-const LATEST_URL = `https://api.github.com/repos/${REPO}/releases/latest`
-export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`
+// Olympus: the releases of UPDATE_REPO (lib/app-info.js). None set, no check at all.
+const REPO = UPDATE_REPO
+const LATEST_URL = REPO ? `https://api.github.com/repos/${REPO}/releases/latest` : ''
+export const RELEASES_PAGE = REPO ? `https://github.com/${REPO}/releases/latest` : ''
+export const UPDATES_ON = !!REPO
 
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
@@ -55,6 +58,7 @@ export async function checkForUpdate() {
   return cached
 }
 async function fetchLatest() {
+  if (!REPO) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
   const res = await fetch(LATEST_URL, { headers: { Accept: 'application/vnd.github+json' } })
   // 404: the repository has no published release yet
   if (res.status === 404) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
