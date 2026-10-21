@@ -5,12 +5,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { t } from '../lib/i18n.js'
+import { t, tn } from '../lib/i18n.js'
 import { socialReady, fetchProfile, socialErrorText } from '../lib/social.js'
 import { streakWeeks } from '../lib/history.js'
 import { Button, Segmented, Section, Row } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import { Avatar, PostCard, bioSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
+import { Avatar, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
+import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { Calendar, WorkoutRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
 import Stats from './Stats.jsx'
@@ -69,6 +70,7 @@ export default function Profile() {
   const user = useStore(s => s.user)
   const ready = socialReady(user)
   const trouble = useConnectionTrouble()
+  const requests = useSocial(s => s.requests)
   const wanted = params.get('tab')
   const tab = TABS.includes(wanted) && (wanted !== 'posts' || ready) ? wanted : 'calendar'
   // In the address, not in state: back from History or a measurement lands on the same tab.
@@ -96,8 +98,8 @@ export default function Profile() {
 
   const name = user?.name || t('You')
   const counts = ready && me
-    ? [[me.followers, t('Followers'), () => connectionsSheet(me.id, 'followers')],
-      [me.following, t('Following'), () => connectionsSheet(me.id, 'following')],
+    ? [[me.followers, t('Followers'), () => connectionsSheet(me.id, 'followers', true)],
+      [me.following, t('Following'), () => connectionsSheet(me.id, 'following', true)],
       [me.posts, t('Posts'), () => setTab('posts')]]
     : [[S.workouts.length, t('Workouts'), () => setTab('calendar')],
       [streakWeeks(S), t('Week streak'), () => setTab('calendar')],
@@ -121,13 +123,16 @@ export default function Profile() {
     <div className="prof">
       <Avatar user={user || { id: 'local', name }} size="lg" />
       <div className="prof-n">{name}</div>
+      {ready && me?.private && <p className="prof-bio small"><Icon name="lock" className="person-lock" /> {t('Private profile')}</p>}
       {ready && me?.bio && <p className="prof-bio">{me.bio}</p>}
+      {ready && requests > 0 && <Button size="sm" variant="tinted" icon="person" style={{ marginTop: 10 }} onClick={() => nav('/notifications')}>
+        {tn('{0} follow request', '{0} follow requests', requests)}</Button>}
       {!ready && <p className="prof-bio">{t('Training on this device only.')}</p>}
       <div className="prof-counts">
         {counts.map(([v, l, go]) => <button key={l} onClick={go}><span className="v">{v}</span><span className="l">{l}</span></button>)}
       </div>
       {ready && <div className="prof-actions">
-        <Button size="sm" icon="pencil" onClick={() => bioSheet(me?.bio, u => setMe(m => ({ ...m, ...u })))}>{t('Edit profile')}</Button>
+        <Button size="sm" icon="pencil" onClick={() => profileSheet(me, u => setMe(m => ({ ...m, ...u })))}>{t('Edit profile')}</Button>
         <Button size="sm" icon="share" onClick={() => composeSheet()}>{t('New post')}</Button>
       </div>}
     </div>

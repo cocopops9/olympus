@@ -1441,6 +1441,28 @@ export const PT_BR_OVERRIDES = {
   "Slow down a little: too many posts in the last hour.": "Mais devagar: muitas publicações na última hora.",
   "That post or profile no longer exists.": "Essa publicação ou esse perfil não existe mais.",
   "The server could not be reached.": "Não foi possível conectar ao servidor.",
+  // Olympus: photos, notifications, private profiles and blocking
+  "Everyone on this server can see your posts and follow you.": "Todos neste servidor podem ver suas publicações e seguir você.",
+  "Follow {0} to ask to see their posts.": "Siga {0} para pedir para ver as publicações.",
+  "Follows you": "Segue você",
+  "Likes, comments and new followers are always listed in the app.": "Curtidas, comentários e novos seguidores ficam sempre listados no app.",
+  "Likes, comments and new followers show up here.": "Curtidas, comentários e novos seguidores aparecem aqui.",
+  "Only the followers you accept see your posts. New followers send a request first.": "Só os seguidores que você aceitar veem suas publicações. Novos seguidores enviam um pedido antes.",
+  "Push notifications for likes, comments and follows": "Notificações push de curtidas, comentários e seguidores",
+  "That photo is too large.": "Essa foto é grande demais.",
+  "They cannot find you, see your posts or follow you, and you do not see theirs.": "Eles não podem encontrar você, ver suas publicações nem seguir você, e você não vê as deles.",
+  "They will not be able to find you, see your posts or follow you, and you will not see theirs. Follows between you are removed. They are not told.": "A pessoa não vai poder encontrar você, ver suas publicações nem seguir você, e você não vai ver as dela. As conexões entre vocês são removidas. Ela não é avisada.",
+  "Unblock this profile first.": "Desbloqueie este perfil primeiro.",
+  "Uploading photos…": "Enviando fotos…",
+  "You blocked {0}": "Você bloqueou {0}",
+  "You do not see each other’s posts. Unblock to follow each other again.": "Vocês não veem as publicações um do outro. Desbloqueie para voltar a se seguir.",
+  "You have not blocked anyone.": "Você não bloqueou ninguém.",
+  "Your request is waiting for {0} to answer.": "Seu pedido aguarda a resposta de {0}.",
+  "{0} accepted your follow request": "{0} aceitou seu pedido para seguir",
+  "{0} commented on your post": "{0} comentou sua publicação",
+  "{0} liked your post": "{0} curtiu sua publicação",
+  "{0} started following you": "{0} começou a seguir você",
+  "{0} wants to follow you": "{0} quer seguir você",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES }

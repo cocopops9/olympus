@@ -18,7 +18,7 @@ import * as coachJobs from './coach/jobs.js';
 import { coachRoutes } from './coach/routes.js';
 import { startCadence } from './coach/cadence.js';
 import { startWarmup } from './coach/warmup.js';
-import { dayReminderPush, nudgePush, restTimerPush, testPush } from './push-messages.js';
+import { dayReminderPush, nudgePush, restTimerPush, testPush, socialPush } from './push-messages.js';
 import { verifyError } from './verify-error.js';
 import {
   hashPassword, verifyPassword, needsRehash, passwordProblem, passwordLength, nameKey, BusyError,
@@ -165,7 +165,15 @@ function saveDb() {
 function atomicWrite(file, content, mode) { durableWrite(file, content, mode); }
 // Olympus social layer (social.js): follows, posts, likes and comments, in DATA_DIR/social.json.
 // It reads the accounts from db.json through `users`, so a disabled profile disappears from it.
-const SOCIAL = createSocial({ dataDir: DATA, write: (f, c) => atomicWrite(f, c, 0o600), users: () => db.users });
+// A like, comment, follow or follow request also goes out as a Web Push to the profile it is for,
+// in that profile's language, unless they switched it off (pushSocial in their social profile).
+const SOCIAL = createSocial({
+  dataDir: DATA, write: (f, c) => atomicWrite(f, c, 0o600), users: () => db.users,
+  onNotify: (uid, note) => { sendPush(uid, socialPush(readStateCached(uid)?.lang, note)).catch(e => console.error('social push failed', e.message)); },
+});
+// Photos uploaded and never posted are removed after a day; checked hourly and at start.
+setInterval(() => { try { SOCIAL.sweepOrphans(); } catch (e) { console.error('social: photo sweep failed', e.message); } }, 3600000).unref();
+setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ } }, 5000).unref();
 // How many earlier write ids a document keeps (`_wids`, see PUT /api/data): a device that last
 // synced more writes ago than this merges on its next pull instead of taking the server's copy.
 const WID_KEEP = 50;
@@ -2524,7 +2532,61 @@ const routes = {
   'POST /api/social/profile': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
-    json(res, 200, { user: SOCIAL.setBio(me, text(body.bio)) });
+    const change = {};
+    if (body.bio !== undefined) change.bio = text(body.bio);
+    if (typeof body.private === 'boolean') change.private = body.private;
+    if (typeof body.pushSocial === 'boolean') change.pushSocial = body.pushSocial;
+    json(res, 200, { user: SOCIAL.setProfile(me, change) });
+  },
+  'GET /api/social/post': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { post: SOCIAL.post(me, qs(req).get('id') || '') });
+  },
+  'POST /api/social/followers/remove': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { user: SOCIAL.removeFollower(me, text(body.id)) });
+  },
+  'GET /api/social/requests': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { users: SOCIAL.requests(me) });
+  },
+  'POST /api/social/requests/answer': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { users: SOCIAL.answerRequest(me, text(body.id), body.accept === true) });
+  },
+  'POST /api/social/block': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { user: SOCIAL.block(me, text(body.id), body.block !== false) });
+  },
+  'GET /api/social/blocked': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { users: SOCIAL.blockedList(me) });
+  },
+  'GET /api/social/notifications': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, SOCIAL.notifications(me));
+  },
+  'POST /api/social/notifications/read': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, SOCIAL.markRead(me));
+  },
+  'POST /api/social/photos': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, SOCIAL.uploadPhoto(me, body.data));
+  },
+  // The one social route that answers bytes: a photo of a post the caller may see.
+  'GET /api/social/photo': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const f = SOCIAL.photo(me, qs(req).get('id') || '');
+    let bytes;
+    try { bytes = fs.readFileSync(f.file); }
+    catch { return json(res, 404, { error: 'photo not found', code: 'no-photo' }); }
+    res.writeHead(200, { 'Content-Type': f.type, 'Content-Length': bytes.length, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+    res.end(bytes);
   },
   'GET /api/social/connections': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;

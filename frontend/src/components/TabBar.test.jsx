@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TabBar from './TabBar.jsx'
 import { DEF, useStore } from '../store/useStore.js'
+import { useSocial } from '../store/useSocial.js'
 
 const route = vi.hoisted(() => ({ pathname: '/home' }))
 vi.mock('react-router-dom', () => ({
@@ -129,5 +130,20 @@ describe('the tab icons and labels', () => {
       act(() => { useStore.getState().update(s => { s.active.editingWorkoutId = 'w1' }, false) })
       expect(label(tabs()[1])).toBe('Edit workout')
     } finally { vi.useRealTimers() }
+  })
+})
+
+// Olympus: unread notifications and follow requests show as a count on Home.
+describe('the notification badge on Home', () => {
+  afterEach(() => useSocial.setState({ unread: 0, requests: 0 }))
+  it('counts unread notifications and waiting requests, and names them', () => {
+    useSocial.setState({ unread: 2, requests: 1 })
+    act(() => { root.render(<TabBar onStart={() => {}} />) })
+    expect(tabs()[0].querySelector('.tab-badge').textContent).toBe('3')
+    expect(tabs()[0].getAttribute('aria-label')).toBe('Home, New notifications')
+    act(() => { useSocial.setState({ unread: 12, requests: 0 }) })
+    expect(tabs()[0].querySelector('.tab-badge').textContent).toBe('9+')
+    act(() => { useSocial.setState({ unread: 0, requests: 0 }) })
+    expect(tabs()[0].querySelector('.tab-badge')).toBeNull()
   })
 })

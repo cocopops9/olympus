@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
+import { useSocial, useWhenVisible } from '../store/useSocial.js'
 import { t } from '../lib/i18n.js'
 import { socialReady, fetchFeed, fetchDiscover, searchUsers, socialErrorText } from '../lib/social.js'
 import { Button, Segmented, SearchField } from '../components/ui.jsx'
@@ -58,6 +59,7 @@ export default function Feed() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
   const ready = socialReady(user)
+  const news = useSocial(s => s.unread + s.requests)
   const [tab, setTab] = useState('following')
   const [searching, setSearching] = useState(false)
   const [posts, setPosts] = useState(null)
@@ -90,6 +92,11 @@ export default function Feed() {
     setPosts(null); setError(null)
     load(tab).then(p => { setPosts(p.posts); setNext(p.next) }, e => setError(socialErrorText(e, t)))
   }
+  // Back in front: the newest page again, quietly, keeping what is on screen until it arrives.
+  useWhenVisible(() => {
+    if (!ready || searching) return
+    load(tab).then(p => { setPosts(p.posts); setNext(p.next) }, () => {})
+  })
   const change = p => setPosts(list => list.map(x => (x.id === p.id ? p : x)))
   const remove = p => setPosts(list => list.filter(x => x.id !== p.id))
   // New posts arrive through POSTED_EVENT, whether written here or from a workout sheet.
@@ -107,6 +114,8 @@ export default function Feed() {
     <div className="hdr">
       <div><h1>Olympus</h1><div className="sub">{ready ? t('Your feed') : t('Train, share, follow')}</div></div>
       <div className="hdr-actions">
+        {ready && <button className="iconbtn" onClick={() => nav('/notifications')} aria-label={news ? t('Notifications') + ', ' + t('New notifications') : t('Notifications')}>
+          <Icon name="bell" />{news > 0 && <span className="icon-badge" aria-hidden="true">{news > 9 ? '9+' : news}</span>}</button>}
         {ready && <button className="iconbtn" onClick={() => setSearching(v => !v)} aria-label={t('Search people')}><Icon name="magnifier" /></button>}
         {ready && <button className="iconbtn" onClick={() => composeSheet({ onPosted: posted })} aria-label={t('New post')}><Icon name="plus" /></button>}
       </div>

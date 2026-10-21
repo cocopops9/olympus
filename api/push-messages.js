@@ -59,3 +59,24 @@ export function nudgePush(lang, tone, routine, iso) {
   const name = routine?.name || 'Olympus';
   return { title: copy.title, body: line.replace('{0}', () => name), tag: 'nudge' };
 }
+
+// Olympus social pushes: a like, a comment, a new follower, a follow request, an accepted
+// request. `note` is { kind, fromName, text }; the language falls back to English.
+const SOCIAL_COPY = {
+  en: { like: '{0} liked your post', comment: '{0} commented: {1}', follow: '{0} started following you', request: '{0} wants to follow you', accepted: '{0} accepted your follow request' },
+  it: { like: 'A {0} piace il tuo post', comment: '{0} ha commentato: {1}', follow: '{0} ha iniziato a seguirti', request: '{0} vuole seguirti', accepted: '{0} ha accettato la tua richiesta' },
+  es: { like: 'A {0} le gusta tu publicación', comment: '{0} comentó: {1}', follow: '{0} empezó a seguirte', request: '{0} quiere seguirte', accepted: '{0} aceptó tu solicitud' },
+  fr: { like: '{0} a aimé ta publication', comment: '{0} a commenté : {1}', follow: '{0} s’est abonné à toi', request: '{0} veut s’abonner à toi', accepted: '{0} a accepté ta demande' },
+  de: { like: '{0} gefällt dein Beitrag', comment: '{0} hat kommentiert: {1}', follow: '{0} folgt dir jetzt', request: '{0} möchte dir folgen', accepted: '{0} hat deine Anfrage angenommen' },
+  pt: { like: '{0} gostou da tua publicação', comment: '{0} comentou: {1}', follow: '{0} começou a seguir-te', request: '{0} quer seguir-te', accepted: '{0} aceitou o teu pedido' },
+  'pt-BR': { like: '{0} curtiu sua publicação', comment: '{0} comentou: {1}', follow: '{0} começou a seguir você', request: '{0} quer seguir você', accepted: '{0} aceitou seu pedido' },
+};
+
+export function socialPush(lang, note) {
+  const base = String(lang || 'en');
+  const copy = SOCIAL_COPY[base] || SOCIAL_COPY[base.split('-')[0]] || SOCIAL_COPY.en;
+  const line = (copy[note.kind] || SOCIAL_COPY.en[note.kind] || '{0}')
+    .replace('{0}', note.fromName || 'Olympus').replace('{1}', note.text || '');
+  // One tray entry per kind: a burst of likes replaces itself instead of stacking up.
+  return { title: 'Olympus', body: line, tag: 'social-' + note.kind };
+}

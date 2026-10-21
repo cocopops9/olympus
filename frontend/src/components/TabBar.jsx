@@ -6,15 +6,19 @@ import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
 import { useConnectionTrouble } from './SyncBanner.jsx'
+import { useSocial } from '../store/useSocial.js'
 
 // Module scope, not TabBar's render body. Declared inside it, `Tab` was a new function on every
 // render, so React saw a different component type each time and threw the button away and built a
 // fresh one — on a bar that is fixed on screen, and once a second for the whole of a rest. The
 // state it took with it is the DOM node itself: focus, the :active tint, any in-flight transition.
-function Tab({ active, icon, label, onClick, dot }) {
+// `dot`: a connection problem (Profile). `badge`: unread notifications (Home), a count.
+function Tab({ active, icon, label, onClick, dot, badge }) {
+  const said = dot ? label + ', ' + t('Connection problem') : badge ? label + ', ' + t('New notifications') : undefined
   return (
-    <button className={active ? 'on' : ''} onClick={onClick} aria-label={dot ? label + ', ' + t('Connection problem') : undefined}>
-      <span className="tab-ic"><Icon name={icon} />{dot && <span className="tab-dot" aria-hidden="true" />}</span><span>{label}</span>
+    <button className={active ? 'on' : ''} onClick={onClick} aria-label={said}>
+      <span className="tab-ic"><Icon name={icon} />{dot && <span className="tab-dot" aria-hidden="true" />}
+        {!dot && badge > 0 && <span className="tab-badge" aria-hidden="true">{badge > 9 ? '9+' : badge}</span>}</span><span>{label}</span>
     </button>
   )
 }
@@ -27,11 +31,12 @@ export default function TabBar({ onStart }) {
   const isGuest = useStore(s => s.isGuest())
   // With the connection banner switched off, a sync problem shows as a dot on Profile (below).
   const trouble = useConnectionTrouble()
+  const news = useSocial(s => s.unread + s.requests)
   if (!user && !isGuest) return null
   const cur = loc.pathname.split('/')[1] || 'home'
   // Three tabs (Olympus): Home is the feed and the profiles it links to; Profile is everything
   // about your own training — calendar, stats, body, and the screens reached from it.
-  const HOME = new Set(['home', 'u'])
+  const HOME = new Set(['home', 'u', 'notifications', 'post'])
   const PROFILE = new Set(['profile', 'today', 'stats', 'history', 'measurements', 'progress-photos', 'muscles',
     'structural-balance', 'plan', 'library', 'settings', 'checkin', 'coach', 'admin'])
   const on = k => (k === 'home' ? HOME.has(cur) : k === 'profile' ? PROFILE.has(cur) : cur === k)
@@ -48,7 +53,7 @@ export default function TabBar({ onStart }) {
 
   return (
     <nav id="tabbar">
-      <Tab active={on('home')} icon="house" label={t('Home')} onClick={() => nav('/home')} />
+      <Tab active={on('home')} icon="house" label={t('Home')} badge={news} onClick={() => nav('/home')} />
       {/* Workout: the start button it always was. On the workout screen itself there is nothing
           to resume, so it reads as the tab it is and stays lit (#29); anywhere else it brings you
           back to the exercise you were on — the marker is kept in S.active.cur and never moves on

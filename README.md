@@ -27,9 +27,29 @@ workout's detail sheet has **Post to feed**. A post carries a bounded summary on
 duration, volume, work sets, PRs, and per exercise the number of sets and the best one), never
 your whole training document.
 
+A post can also carry up to **four photos**. The app scales each one to at most 1600 px and
+re-encodes it as JPEG before it leaves the phone, which drops the EXIF block (GPS position,
+camera, time); the server strips any metadata segments that are left and keeps only JPEG and PNG.
+
 Another person's page (`/u/<id>`) shows their bio, counts, posts and a Follow button. You can
 delete your own posts, any comment under your posts, and your own comments; an admin of the
 server can delete any post.
+
+**Private profiles.** *Profile → Edit profile → Private profile* hides your posts, followers and
+following from everyone who does not follow you. A Follow on a private profile becomes a request,
+which you accept or decline under the bell on Home. Switching back to public accepts every
+request still waiting.
+
+**Blocking.** The ⋯ menu on someone's page blocks them: the follows between you both are removed,
+neither sees the other's posts, comments or profile, and neither can follow the other until you
+unblock (*Edit profile → Blocked people*, or the same menu).
+
+**Notifications.** Likes, comments, new followers, follow requests and accepted requests appear
+under the bell on Home, with a count on the Home tab; the app asks the server once a minute
+while it is open. Where Web Push works (a browser or an installed web app with notifications
+switched on in *Settings*) they also arrive as system notifications; *Edit profile* has a
+switch to turn those off. The Android app built from this folder runs in a WebView without Web
+Push, so there it is the in-app bell only.
 
 ## How the social part works, and what it needs
 
@@ -43,11 +63,14 @@ container), stored in `DATA_DIR/social.json` beside the existing `db.json`.
   explains that the feed needs a server and offers to connect one. Nothing is sent anywhere.
 
 One server is one community: every signed-in profile on it can find every other enabled profile,
-read their posts, and follow them. There are no private accounts or blocking yet (see *Limits*).
+read their public posts, and follow them, except where a profile is private or a block applies.
 
 Limits enforced by the server (`api/social.js`, `LIMITS`): post text 1000 characters, comments
 500, bio 160, 30 posts and 120 comments per profile per hour, 200 comments per post, 20 exercises
-per attached workout, 20,000 posts per server (the oldest go first).
+per attached workout, 20,000 posts per server (the oldest go first); 4 photos per post, 2 MB
+per photo, 60 photo uploads per hour and 500 photos per profile, with photos never attached to a
+post deleted after 24 hours; the newest 200 notifications per profile. Photos are stored in
+`DATA_DIR/social-photos/` and served only to people allowed to see the post.
 
 ## Run it
 
@@ -133,9 +156,10 @@ and plan files, which Olympus still reads.
 
 ## Limits of this version
 
-- No private profiles, blocking or reporting; every profile on a server can see every post on it.
-  Fine for a server shared by friends, not for an open public instance.
-- Posts carry text and a workout summary; no photos in posts yet (workout photos stay on the
-  workout itself).
-- No push notifications for likes, comments or new followers.
+- No reporting or moderation queue: an admin can delete posts, and people can block each other,
+  but there is nothing to flag content to the admin. Fine for a server shared by friends, not for
+  an open public instance.
+- No system push notifications in the Android app (see *Notifications* above); the in-app bell
+  and badge work everywhere.
+- Photos only, no video, and no editing of a post once published.
 - The website in `website/` and most guides in `docs/` still describe openGym.

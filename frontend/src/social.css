@@ -58,7 +58,8 @@
 
 /* ---------- profile header ---------- */
 .prof{display:flex;flex-direction:column;align-items:center;text-align:center;margin:4px 0 16px}
-.prof-n{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:10px 0 2px}
+.prof-n{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:10px 0 2px;display:flex;align-items:center;justify-content:center;gap:6px}
+.prof-n .person-lock{margin:0;font-size:.7em}
 .prof-bio{color:var(--label-2);font-size:15px;line-height:1.4;max-width:34ch;margin:4px 0 0;white-space:pre-wrap}
 .prof-counts{display:flex;gap:6px;margin:14px 0 4px;width:100%;max-width:360px}
 .prof-counts button{
@@ -78,3 +79,48 @@
 
 .prof-tab{margin:4px 0 14px}
 .prof-month{background:var(--surface);border-radius:var(--r-card);padding:12px 12px 14px;margin-bottom:14px}
+
+/* ---------- photos in posts ---------- */
+.post-phs{display:grid;gap:4px;border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.post-phs.n1{grid-template-columns:1fr}
+.post-phs.n2,.post-phs.n4{grid-template-columns:1fr 1fr}
+.post-phs.n3{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}
+.post-phs.n3 .post-ph:first-child{grid-row:1 / span 2}
+.post-ph{display:block;border:0;padding:0;margin:0;background:var(--surface-2);cursor:zoom-in;aspect-ratio:1 / 1;width:100%;overflow:hidden}
+.post-phs.n1 .post-ph{aspect-ratio:4 / 3}
+.post-phs.n3 .post-ph{aspect-ratio:auto;min-height:110px}
+.post-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.post-ph-x{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--label-3);font-size:26px}
+.ph-full{display:block;width:100%;max-height:78vh;object-fit:contain;border-radius:var(--r)}
+
+/* the composer's picked photos */
+.cmp-phs{display:flex;gap:8px;margin-top:10px;overflow-x:auto}
+.cmp-ph{position:relative;flex:0 0 auto;width:76px;height:76px;border-radius:var(--r-sm);overflow:hidden;background:var(--surface-2)}
+.cmp-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.cmp-ph.busy img{opacity:.45}
+.cmp-ph-x{position:absolute;top:3px;inset-inline-end:3px;width:24px;height:24px;border-radius:50%;border:0;
+  background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer}
+
+/* ---------- badges ---------- */
+.tab-badge,.icon-badge{
+  position:absolute;top:-4px;inset-inline-end:-9px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  background:var(--red);color:#fff;font-size:10.5px;font-weight:700;line-height:17px;text-align:center;
+  font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--bg-el)
+}
+.iconbtn .icon-badge{top:2px;inset-inline-end:2px;box-shadow:0 0 0 2px var(--bg)}
+.person-lock{font-size:.8em;color:var(--label-2);margin-inline-start:6px;vertical-align:-1px}
+
+/* ---------- notifications ---------- */
+.notes{display:flex;flex-direction:column;gap:6px}
+.note{display:flex;align-items:center;gap:12px;width:100%;text-align:start;border:0;color:inherit;font:inherit;
+  background:var(--surface);border-radius:var(--r-card);padding:10px 12px;cursor:pointer}
+.note.unread{background:color-mix(in srgb,var(--acc) 10%,var(--surface))}
+.note-av{position:relative;flex:0 0 auto}
+.note-k{position:absolute;bottom:-3px;inset-inline-end:-5px;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;background:var(--grey);box-shadow:0 0 0 2px var(--surface)}
+.note-k.k-like{background:var(--red)}
+.note-k.k-comment{background:var(--blue)}
+.note-k.k-follow,.note-k.k-accepted{background:var(--green)}
+.note-k.k-request{background:var(--indigo)}
+.note-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.note-t{font-size:15px;line-height:1.35;overflow-wrap:anywhere}

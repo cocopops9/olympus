@@ -33,6 +33,10 @@ import Home from './views/Home.jsx'
 import Feed from './views/Feed.jsx'
 import Profile from './views/Profile.jsx'
 import UserProfile from './views/UserProfile.jsx'
+import Notifications from './views/Notifications.jsx'
+import PostView from './views/PostView.jsx'
+import { startSocialPolling, stopSocialPolling } from './store/useSocial.js'
+import { socialReady } from './lib/social.js'
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
@@ -136,6 +140,14 @@ function Shell() {
     if (MOBILE || !user || !ready) return
     syncPushSubscription().catch(() => {})
   }, [user?.id, ready])
+  // Olympus: the unread count behind the Home tab's dot, asked once a minute while signed in to a
+  // server (store/useSocial.js). A guest or a phone kept local has no feed to ask about.
+  const social = ready && socialReady(user)
+  useEffect(() => {
+    if (!social) return
+    startSocialPolling()
+    return () => stopSocialPolling()
+  }, [social, user?.id])
   // Opened from a device-link QR code (#95): once boot knows who is here, the sheet that redeems
   // it opens by itself — over the sign-in screen, or over the app for a guest or a signed-in
   // browser. Once per visit; closed, the code stays for the sign-in screen's own button.
@@ -212,6 +224,8 @@ function Shell() {
               <Route path="/today" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/u/:id" element={<UserProfile />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/post/:id" element={<PostView />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}

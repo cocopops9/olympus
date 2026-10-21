@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { workoutPostSummary, initialsOf, hueOf, socialReady, socialErrorText } from './social.js'
+import { workoutPostSummary, initialsOf, hueOf, socialReady, socialErrorText, fitWithin, followLabel, notificationLine } from './social.js'
 
 // What a post says about a workout. The server keeps only these fields (api/social.js
 // cleanWorkout), so this is the whole of what other people get to see of a session.
@@ -79,5 +79,39 @@ describe('avatars and readiness', () => {
     expect(socialErrorText({ status: 429 }, t)).toMatch(/too many posts/)
     expect(socialErrorText({ code: 'not-paired', status: 0 }, t)).toMatch(/Connect to a server/)
     expect(socialErrorText({ message: 'boom', status: 500 }, t)).toBe('boom')
+  })
+})
+
+describe('photo sizing', () => {
+  it('keeps the proportions and caps the longer side', () => {
+    expect(fitWithin(4000, 3000)).toEqual({ w: 1600, h: 1200 })
+    expect(fitWithin(3000, 4000)).toEqual({ w: 1200, h: 1600 })
+    expect(fitWithin(800, 600)).toEqual({ w: 800, h: 600 })   // never enlarged
+    expect(fitWithin(5000, 10, 1600)).toEqual({ w: 1600, h: 3 })
+    expect(fitWithin(0, 0)).toEqual({ w: 1, h: 1 })
+  })
+})
+
+describe('labels', () => {
+  const t = (s, ...a) => a.reduce((x, v, i) => x.replace('{' + i + '}', v), s)
+  it('says Following, Requested or Follow', () => {
+    expect(followLabel({ isFollowing: true }, t)).toBe('Following')
+    expect(followLabel({ requested: true }, t)).toBe('Requested')
+    expect(followLabel({}, t)).toBe('Follow')
+  })
+  it('words every kind of notification with who did it', () => {
+    const from = { id: 'b', name: 'Ben' }
+    expect(notificationLine({ kind: 'like', from }, t)).toBe('Ben liked your post')
+    expect(notificationLine({ kind: 'comment', from, text: 'huge' }, t)).toBe('Ben commented: huge')
+    expect(notificationLine({ kind: 'comment', from }, t)).toBe('Ben commented on your post')
+    expect(notificationLine({ kind: 'follow', from }, t)).toBe('Ben started following you')
+    expect(notificationLine({ kind: 'request', from }, t)).toBe('Ben wants to follow you')
+    expect(notificationLine({ kind: 'accepted', from }, t)).toBe('Ben accepted your follow request')
+  })
+  it('explains photo and privacy refusals', () => {
+    const t1 = s => s
+    expect(socialErrorText({ code: 'photo-too-large', status: 413 }, t1)).toMatch(/too large/)
+    expect(socialErrorText({ code: 'private', status: 403 }, t1)).toMatch(/private/)
+    expect(socialErrorText({ code: 'blocked', status: 409 }, t1)).toMatch(/Unblock/)
   })
 })

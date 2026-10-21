@@ -9,7 +9,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { boundPort } from './helpers.mjs';
-import { createSocial, cleanWorkout, LIMITS } from '../social.js';
+import { createSocial, cleanWorkout, stripJpeg, stripPng, photoType, LIMITS } from '../social.js';
 
 const API = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -17,8 +17,9 @@ function store(t, users) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'olympus-social-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   let clock = 1_000_000;
-  const s = createSocial({ dataDir: dir, write: (f, c) => fs.writeFileSync(f, c), users: () => users, now: () => clock });
-  return { s, dir, tick: ms => { clock += ms; } };
+  const pushes = [];
+  const s = createSocial({ dataDir: dir, write: (f, c) => fs.writeFileSync(f, c), users: () => users, now: () => clock, onNotify: (uid, note) => pushes.push({ uid, ...note }) });
+  return { s, dir, pushes, tick: ms => { clock += ms; } };
 }
 
 const ANNA = { id: 'u_anna', name: 'Anna' };
@@ -70,7 +71,7 @@ test('likes and comments, and who may delete what', t => {
 
 test('a post needs content, and its workout is bounded to the summary fields', t => {
   const { s } = store(t, [ANNA]);
-  assert.throws(() => s.createPost(ANNA, { text: '   ' }), /needs text or a workout/);
+  assert.throws(() => s.createPost(ANNA, { text: '   ' }), /needs text, a workout or a photo/);
   const p = s.createPost(ANNA, {
     workout: {
       name: 'Push', d: '2026-10-20', durMs: 3600000, vol: 5230.5, unit: 'kg', sets: 18, prs: 2,
@@ -138,6 +139,205 @@ test('the document survives a restart and an unreadable file is kept aside', t =
   assert.ok(errors.some(m => /cannot be read/.test(m)));
 });
 
+/* ---------------- private profiles, requests, blocks ---------------- */
+
+const DANA = { id: 'u_dana', name: 'Dana' };
+
+test('a private profile: following asks first, posts wait for the answer', t => {
+  const { s, pushes } = store(t, [ANNA, BEN, DANA]);
+  s.setProfile(ANNA, { private: true });
+  const secret = s.createPost(ANNA, { text: 'only for friends' });
+  // Findable, with counts, but no posts and no lists.
+  const prof = s.profile(BEN, ANNA.id);
+  assert.equal(prof.user.private, true);
+  assert.equal(prof.user.canSeePosts, false);
+  assert.deepEqual(prof.posts, []);
+  assert.deepEqual(s.discover(BEN).posts, []);
+  assert.throws(() => s.post(BEN, secret.id), /not found/);
+  assert.throws(() => s.like(BEN, secret.id), /not found/);
+  assert.throws(() => s.connections(BEN, ANNA.id, 'followers'), /private/);
+
+  const asked = s.follow(BEN, ANNA.id);
+  assert.equal(asked.isFollowing, false);
+  assert.equal(asked.requested, true);
+  assert.deepEqual(s.requests(ANNA).map(u => u.id), [BEN.id]);
+  assert.equal(s.notifications(ANNA).requests, 1);
+  assert.equal(pushes.at(-1).kind, 'request');
+
+  s.answerRequest(ANNA, BEN.id, true);
+  assert.deepEqual(s.requests(ANNA), []);
+  assert.equal(s.profile(BEN, ANNA.id).user.isFollowing, true);
+  assert.deepEqual(s.feed(BEN).posts.map(p => p.id), [secret.id]);
+  assert.equal(s.notifications(BEN).items[0].kind, 'accepted');
+
+  // Taking access back: remove the follower.
+  s.removeFollower(ANNA, BEN.id);
+  assert.deepEqual(s.feed(BEN).posts, []);
+
+  // A declined request leaves nothing behind; going public lets the waiting in.
+  s.follow(DANA, ANNA.id);
+  s.answerRequest(ANNA, DANA.id, false);
+  assert.equal(s.profile(DANA, ANNA.id).user.requested, false);
+  s.follow(DANA, ANNA.id);
+  s.setProfile(ANNA, { private: false });
+  assert.equal(s.profile(DANA, ANNA.id).user.isFollowing, true);
+  assert.deepEqual(s.requests(ANNA), []);
+});
+
+test('cancelling a request takes the notification back too', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  s.setProfile(ANNA, { private: true });
+  s.follow(BEN, ANNA.id);
+  s.follow(BEN, ANNA.id, false);
+  assert.deepEqual(s.requests(ANNA), []);
+  assert.equal(s.notifications(ANNA).items.length, 0);
+});
+
+test('a block cuts both ways and leaves no connection behind', t => {
+  const { s } = store(t, [ANNA, BEN, DANA]);
+  s.follow(ANNA, BEN.id); s.follow(BEN, ANNA.id);
+  const benPost = s.createPost(BEN, { text: 'ben' });
+  const annaPost = s.createPost(ANNA, { text: 'anna' });
+  s.comment(BEN, annaPost.id, 'from ben');
+  s.comment(DANA, annaPost.id, 'from dana');
+
+  s.block(ANNA, BEN.id);
+  // Follows gone both ways.
+  assert.equal(s.profile(ANNA, BEN.id).user.isFollowing, false);
+  assert.equal(s.profile(ANNA, BEN.id).user.followsMe, false);
+  // The blocked one cannot find, open or reach the blocker.
+  assert.deepEqual(s.search(BEN, 'anna'), []);
+  assert.throws(() => s.profile(BEN, ANNA.id), /not found/);
+  assert.throws(() => s.follow(BEN, ANNA.id), /not found/);
+  assert.throws(() => s.comment(BEN, annaPost.id, 'still here?'), /not found/);
+  // Neither sees the other's posts; the blocker no longer sees the blocked one's comments.
+  assert.ok(!s.discover(ANNA).posts.some(p => p.id === benPost.id));
+  assert.ok(!s.discover(BEN).posts.some(p => p.id === annaPost.id));
+  assert.deepEqual(s.post(ANNA, annaPost.id).comments.map(c => c.text), ['from dana']);
+  // The blocker can still open the profile, to unblock it, and cannot follow it until then.
+  assert.equal(s.profile(ANNA, BEN.id).user.blockedByMe, true);
+  assert.throws(() => s.follow(ANNA, BEN.id), /unblock/);
+  assert.deepEqual(s.blockedList(ANNA).map(u => u.id), [BEN.id]);
+  // Notifications from the blocked profile are gone and no new ones arrive.
+  assert.ok(!s.notifications(ANNA).items.some(n => n.from.id === BEN.id));
+
+  s.block(ANNA, BEN.id, false);
+  assert.deepEqual(s.blockedList(ANNA), []);
+  assert.equal(s.search(BEN, 'anna').length, 1);
+  assert.throws(() => s.block(ANNA, ANNA.id), /yourself/);
+});
+
+/* ---------------- notifications ---------------- */
+
+test('likes, comments and follows notify the author, once each, never yourself', t => {
+  const { s, pushes } = store(t, [ANNA, BEN]);
+  const p = s.createPost(ANNA, { text: 'pr day' });
+  s.like(ANNA, p.id);                      // your own like: nothing
+  s.like(BEN, p.id); s.like(BEN, p.id, false); s.like(BEN, p.id);
+  s.comment(BEN, p.id, 'huge');
+  s.follow(BEN, ANNA.id);
+  const n = s.notifications(ANNA);
+  assert.deepEqual(n.items.map(x => x.kind), ['follow', 'comment', 'like']);
+  assert.equal(n.unread, 3);
+  assert.equal(n.items[1].text, 'huge');
+  assert.equal(n.items[2].postId, p.id);
+  assert.deepEqual(pushes.map(x => x.kind), ['like', 'like', 'comment', 'follow']);
+  assert.equal(pushes[0].fromName, BEN.name);
+  assert.equal(s.markRead(ANNA).unread, 0);
+  // Switched off: still listed in the app, no push.
+  s.setProfile(ANNA, { pushSocial: false });
+  s.comment(BEN, p.id, 'again');
+  assert.equal(pushes.length, 4);
+  assert.equal(s.notifications(ANNA).unread, 1);
+  assert.equal(s.profile(ANNA, '').user.pushSocial, false);
+});
+
+test('a deleted post takes its notifications with it', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  const p = s.createPost(ANNA, { text: 'x' });
+  s.like(BEN, p.id);
+  s.deletePost(ANNA, p.id);
+  assert.equal(s.notifications(ANNA).items.length, 0);
+});
+
+/* ---------------- photos ---------------- */
+
+const seg = (marker, body) => Buffer.concat([Buffer.from([0xff, marker]), Buffer.from([(body.length + 2) >> 8, (body.length + 2) & 255]), body]);
+function jpeg() {
+  return Buffer.concat([
+    Buffer.from([0xff, 0xd8]),
+    seg(0xe0, Buffer.from('JFIF\0\x01\x01\0\0\x01\0\x01\0\0', 'latin1')),
+    seg(0xe1, Buffer.from('Exif\0\0GPS 45.4064N 11.8768E', 'latin1')),
+    seg(0xfe, Buffer.from('a private comment', 'latin1')),
+    seg(0xdb, Buffer.from([0, 1, 2, 3])),
+    seg(0xda, Buffer.from([1, 2, 3, 4])), Buffer.from([9, 9, 9, 9]), Buffer.from([0xff, 0xd9]),
+  ]);
+}
+const chunk = (type, data) => Buffer.concat([Buffer.from([0, 0, data.length >> 8, data.length & 255]), Buffer.from(type, 'latin1'), data, Buffer.alloc(4)]);
+function png() {
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', Buffer.alloc(13)), chunk('tEXt', Buffer.from('Location\0Padova', 'latin1')), chunk('IDAT', Buffer.from([1, 2])), chunk('IEND', Buffer.alloc(0))]);
+}
+
+test('a photo loses its metadata, keeps its picture', () => {
+  const clean = stripJpeg(jpeg());
+  assert.equal(photoType(clean), 'jpg');
+  const text = clean.toString('latin1');
+  assert.ok(text.includes('JFIF'));
+  assert.ok(!text.includes('GPS') && !text.includes('private comment'));
+  assert.ok(clean.subarray(-6).equals(Buffer.from([9, 9, 9, 9, 0xff, 0xd9])), 'image data untouched');
+  const p = stripPng(png());
+  assert.ok(!p.toString('latin1').includes('Padova'));
+  assert.ok(p.toString('latin1').includes('IDAT'));
+  assert.equal(stripJpeg(Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff])), null, 'a segment longer than the file');
+  assert.equal(photoType(Buffer.from('GIF89a')), null);
+});
+
+test('photos attach to one post of their owner, follow its visibility, and go with it', t => {
+  const { s, dir, tick } = store(t, [ANNA, BEN, DANA]);
+  const { id } = s.uploadPhoto(ANNA, jpeg().toString('base64'));
+  const onDisk = path.join(dir, 'social-photos', id + '.jpg');
+  assert.ok(fs.existsSync(onDisk));
+  assert.ok(!fs.readFileSync(onDisk, 'latin1').includes('GPS'));
+  assert.throws(() => s.photo(BEN, id), /not found/, 'not posted yet: only its owner');
+  assert.throws(() => s.createPost(BEN, { photos: [id] }), /unknown photo/, 'someone else’s photo');
+  const p = s.createPost(ANNA, { photos: [id] });
+  assert.deepEqual(p.photos, [id]);
+  assert.equal(s.photo(BEN, id).type, 'image/jpeg');
+  assert.throws(() => s.createPost(ANNA, { photos: [id] }), /unknown photo/, 'already on a post');
+  // Private now: only accepted followers see the photo.
+  s.setProfile(ANNA, { private: true });
+  assert.throws(() => s.photo(DANA, id), /not found/);
+  s.deletePost(ANNA, p.id);
+  assert.ok(!fs.existsSync(onDisk));
+
+  // Refusals.
+  assert.throws(() => s.uploadPhoto(ANNA, Buffer.from('GIF89a....').toString('base64')), /JPEG and PNG/);
+  assert.throws(() => s.uploadPhoto(ANNA, 'not base64 !!'), /base64/);
+  assert.throws(() => s.uploadPhoto(ANNA, Buffer.alloc(LIMITS.photoBytes + 10, 0xff).toString('base64')), /too large/);
+  assert.throws(() => s.createPost(ANNA, { photos: ['a', 'b', 'c', 'd', 'e'] }), /at most 4/);
+
+  // Never posted: swept after a day.
+  const orphan = s.uploadPhoto(ANNA, png().toString('base64'));
+  assert.equal(s.sweepOrphans(), 0);
+  tick(LIMITS.photoOrphanMs + 1);
+  assert.equal(s.sweepOrphans(), 1);
+  assert.throws(() => s.photo(ANNA, orphan.id), /not found/);
+});
+
+test('a version 1 document is read as it was', t => {
+  const { dir } = store(t, [ANNA]);
+  fs.writeFileSync(path.join(dir, 'social.json'), JSON.stringify({ v: 1, follows: { u_anna: ['u_ben'] }, posts: [{ id: 'p1', uid: 'u_anna', ts: 5, text: 'old', likes: [], comments: [] }], profiles: {} }));
+  const s = createSocial({ dataDir: dir, write: (f, c) => fs.writeFileSync(f, c), users: () => [ANNA, BEN] });
+  assert.equal(s.discover(BEN).posts[0].text, 'old');
+  // Anna follows Ben, as the old document said; nothing else appeared.
+  assert.equal(s.profile(ANNA, BEN.id).user.isFollowing, true);
+  assert.equal(s.profile(BEN, ANNA.id).user.followsMe, true);
+  assert.equal(s.profile(BEN, ANNA.id).user.isFollowing, false);
+  assert.deepEqual(s.requests(ANNA), []);
+  assert.deepEqual(s.blockedList(ANNA), []);
+});
+
 /* ---------------- through the server ---------------- */
 
 const SECRET = crypto.randomBytes(32).toString('hex');
@@ -174,7 +374,7 @@ async function server(t) {
     const r = await fetch(base + p, { method, headers, body: body ? JSON.stringify(body) : undefined });
     return { status: r.status, body: await r.json() };
   };
-  return { call, dataDir, log: () => log };
+  return { call, dataDir, base, log: () => log };
 }
 
 test('server: every social route needs a session', async t => {
@@ -225,4 +425,43 @@ test('server: deleting an account removes its social data', async t => {
   const doc = JSON.parse(fs.readFileSync(path.join(h.dataDir, 'social.json'), 'utf8'));
   assert.deepEqual(doc.posts, []);
   assert.deepEqual(doc.follows, {});
+});
+
+test('server: photo upload and download, private profile and block', async t => {
+  const h = await server(t);
+  const up = await h.call(ANNA.id, 'POST', '/api/social/photos', { data: 'data:image/jpeg;base64,' + jpeg().toString('base64') });
+  assert.equal(up.status, 200);
+  const posted = await h.call(ANNA.id, 'POST', '/api/social/posts', { text: 'look', photos: [up.body.id] });
+  assert.deepEqual(posted.body.post.photos, [up.body.id]);
+  const r = await fetch(`${h.base}/api/social/photo?id=${up.body.id}`, { headers: { Cookie: `gymsid=${mint(BEN.id)}` } });
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('content-type'), 'image/jpeg');
+  assert.ok(!Buffer.from(await r.arrayBuffer()).toString('latin1').includes('GPS'));
+
+  assert.equal((await h.call(ANNA.id, 'POST', '/api/social/profile', { private: true })).body.user.private, true);
+  assert.equal((await fetch(`${h.base}/api/social/photo?id=${up.body.id}`, { headers: { Cookie: `gymsid=${mint(BEN.id)}` } })).status, 404);
+  assert.equal((await h.call(BEN.id, 'POST', '/api/social/follow', { id: ANNA.id })).body.user.requested, true);
+  assert.deepEqual((await h.call(ANNA.id, 'GET', '/api/social/requests')).body.users.map(u => u.id), [BEN.id]);
+  await h.call(ANNA.id, 'POST', '/api/social/requests/answer', { id: BEN.id, accept: true });
+  assert.equal((await h.call(BEN.id, 'GET', `/api/social/post?id=${posted.body.post.id}`)).status, 200);
+
+  // The answered request is no longer news for Anna; the answer is news for Ben.
+  assert.equal((await h.call(ANNA.id, 'GET', '/api/social/notifications')).body.requests, 0);
+  const benNotes = await h.call(BEN.id, 'GET', '/api/social/notifications');
+  assert.equal(benNotes.body.items[0].kind, 'accepted');
+  assert.equal(benNotes.body.unread, 1);
+  assert.equal((await h.call(BEN.id, 'POST', '/api/social/notifications/read')).body.unread, 0);
+
+  assert.equal((await h.call(ANNA.id, 'POST', '/api/social/block', { id: BEN.id })).status, 200);
+  assert.equal((await h.call(BEN.id, 'GET', `/api/social/profile?id=${ANNA.id}`)).status, 404);
+  assert.deepEqual((await h.call(ANNA.id, 'GET', '/api/social/blocked')).body.users.map(u => u.id), [BEN.id]);
+  assert.equal(h.log().split('\n').filter(l => /^\s+at /.test(l)).length, 0, 'no stack traces:\n' + h.log());
+});
+
+test('social pushes speak the profile’s language and fall back to English', async () => {
+  const { socialPush } = await import('../push-messages.js');
+  assert.deepEqual(socialPush('it', { kind: 'like', fromName: 'Ben' }), { title: 'Olympus', body: 'A Ben piace il tuo post', tag: 'social-like' });
+  assert.equal(socialPush('es-MX', { kind: 'follow', fromName: 'Ana' }).body, 'Ana empezó a seguirte');
+  assert.equal(socialPush('pt-BR', { kind: 'comment', fromName: 'Bia', text: 'boa!' }).body, 'Bia comentou: boa!');
+  assert.equal(socialPush('ja', { kind: 'request', fromName: 'Ken' }).body, 'Ken wants to follow you');
 });
