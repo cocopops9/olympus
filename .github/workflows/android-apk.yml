@@ -22,21 +22,25 @@ concurrency:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    # 24.04 ships the Android SDK (ANDROID_HOME); Gradle fetches any missing platform itself.
+    runs-on: ubuntu-24.04
     env:
       KEYSTORE_B64: ${{ secrets.OLYMPUS_KEYSTORE_B64 }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK licences
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - run: npm ci
         working-directory: frontend
@@ -60,9 +64,10 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER))
           cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/olympus.apk"
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$RUNNER_TEMP/olympus.apk" | head -3
+          tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$tools/apksigner" verify --print-certs "$RUNNER_TEMP/olympus.apk" | head -3
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: olympus-apk
           path: ${{ runner.temp }}/olympus.apk
