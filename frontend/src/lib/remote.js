@@ -6,7 +6,7 @@
 // server's RP_ID), so auth here is a short one-time code redeemed from an already signed-in
 // browser tab (Settings → "Pair the mobile app") for a bearer token — see api/server.js's
 // /api/pair/create + /api/pair/redeem.
-import { pairRedeem, setRemoteAuth } from './api.js'
+import { pairRedeem, appAccount, setRemoteAuth } from './api.js'
 import { loadRemoteFile, saveRemoteFile } from './mobile.js'
 import { clearCfAccess } from './cf-access.js'
 
@@ -54,6 +54,17 @@ export async function connect(rawUrl, code) {
   const base = normalizeServerUrl(rawUrl)
   if (!base) throw new Error('Enter a valid server address')
   const { token, user } = await pairRedeem(base, String(code || '').trim())
+  setRemoteAuth(base, token)
+  await saveRemoteFile({ mode: 'remote', base, token, user })
+  return user
+}
+
+// Olympus: the same as connect(), with a name and a password for the app's built-in server
+// (lib/app-info.js DEFAULT_SERVER) instead of a pairing code. `mode`: 'signup' or 'login'.
+export async function connectWithAccount(rawUrl, mode, creds) {
+  const base = normalizeServerUrl(rawUrl)
+  if (!base) throw new Error('Enter a valid server address')
+  const { token, user } = await appAccount(base, mode, creds)
   setRemoteAuth(base, token)
   await saveRemoteFile({ mode: 'remote', base, token, user })
   return user

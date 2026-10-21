@@ -10,6 +10,9 @@ import { socialReady, fetchFeed, fetchDiscover, searchUsers, socialErrorText } f
 import { Button, Segmented, SearchField } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { PostCard, PersonRow, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
+import { MOBILE } from '../lib/mobile.js'
+import { DEFAULT_SERVER } from '../lib/app-info.js'
+import { openAccountSheet } from './MobileOnboarding.jsx'
 import '../social.css'
 
 function NoServer() {
@@ -17,8 +20,16 @@ function NoServer() {
   return <div className="feed-note">
     <div className="ico-big"><Icon name="globe" /></div>
     <h3>{t('Train together')}</h3>
-    <p>{t('The feed, people search and posts live on an Olympus server. Sign in to your server, or connect this phone to one, to follow friends and share your workouts.')}</p>
-    <Button variant="primary" icon="cloud" onClick={() => nav('/settings')}>{t('Connect to a server')}</Button>
+    {MOBILE && DEFAULT_SERVER ? <>
+      {/* The app's own server: a name and a password, nothing to set up. */}
+      <p>{t('Create a profile to follow friends and share your workouts. Your training is then kept on this phone and on the Olympus server.')}</p>
+      <Button variant="primary" icon="person" onClick={() => openAccountSheet('signup')}>{t('Create profile')}</Button>
+      <div style={{ height: 8 }} />
+      <Button icon="key" onClick={() => openAccountSheet('login')}>{t('Sign in')}</Button>
+    </> : <>
+      <p>{t('The feed, people search and posts live on an Olympus server. Sign in to your server, or connect this phone to one, to follow friends and share your workouts.')}</p>
+      <Button variant="primary" icon="cloud" onClick={() => nav('/settings')}>{t('Connect to a server')}</Button>
+    </>}
     <div style={{ height: 8 }} />
     <Button icon="calendar" onClick={() => nav('/today')}>{t('Today’s training')}</Button>
   </div>

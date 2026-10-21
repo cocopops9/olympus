@@ -643,3 +643,52 @@ test('a disabled account is refused even with the right password', async t => {
   assert.equal(r.status, 403);
   assert.equal(r.cookie, null);
 });
+
+/* Olympus: the phone app signs in to, or creates a profile on, its built-in server with a name and
+   a password. The answer is a Bearer token (what a pairing gives) and never a cookie; the request
+   comes from the app's WebView origin, so it is exempt from the same-origin check, which is safe
+   because no cookie is set and no session is acted on. */
+test('the app routes answer with a working Bearer token, set no cookie, and keep the password rules', async t => {
+  const h = await startServer(t, { users: [withPassword('u1', 'Ana')] });
+  const app = { Origin: 'https://localhost', 'Sec-Fetch-Site': 'cross-site' };
+
+  const ok = await h.req('POST', '/api/app/login', { body: { identifier: 'ana', password: GOOD }, ip: '198.51.100.40', headers: app });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.cookie, null);
+  assert.ok(ok.body.token);
+  assert.equal(ok.body.user.id, 'u1');
+  const me = await h.req('GET', '/api/me', { headers: { Authorization: 'Bearer ' + ok.body.token } });
+  assert.equal(me.status, 200);
+  assert.equal(me.body.user?.id ?? me.body.id, 'u1');
+
+  const wrong = await h.req('POST', '/api/app/login', { body: { identifier: 'Ana', password: 'not the password at all' }, ip: '198.51.100.41', headers: app });
+  assert.equal(wrong.status, 401);
+  assert.equal(wrong.body.code, 'bad-credentials');
+
+  const made = await h.req('POST', '/api/app/signup', { body: { name: 'Bea', password: GOOD + ' two' }, ip: '198.51.100.42', headers: app });
+  assert.equal(made.status, 200);
+  assert.equal(made.cookie, null);
+  assert.ok(made.body.token);
+  assert.ok(h.db().users.some(u => u.name === 'Bea' && u.pw?.h));
+
+  const weak = await h.req('POST', '/api/app/signup', { body: { name: 'Cleo', password: 'short' }, ip: '198.51.100.43', headers: app });
+  assert.equal(weak.status, 400);
+  assert.equal(weak.body.code, 'too-short');
+  const taken = await h.req('POST', '/api/app/signup', { body: { name: 'bea', password: GOOD + ' three' }, ip: '198.51.100.44', headers: app });
+  assert.equal(taken.status, 409);
+
+  // The browser route keeps its origin check: the same cross-site request is refused there.
+  const browser = await h.req('POST', '/api/login/password', { body: { name: 'Ana', password: GOOD }, ip: '198.51.100.45', headers: app });
+  assert.equal(browser.status, 403);
+});
+
+test('the app routes are absent while PASSWORD_LOGIN is off, and follow INVITE_ONLY', async t => {
+  const off = await startServer(t, { env: { PASSWORD_LOGIN: '' } });
+  assert.equal((await off.req('POST', '/api/app/login', { body: { identifier: 'a', password: GOOD } })).status, 404);
+  assert.equal((await off.req('POST', '/api/app/signup', { body: { name: 'a', password: GOOD } })).status, 404);
+
+  const invite = await startServer(t, { env: { INVITE_ONLY: '1' } });
+  const r = await invite.req('POST', '/api/app/signup', { body: { name: 'Dan', password: GOOD }, ip: '198.51.100.50' });
+  assert.equal(r.status, 403);
+  assert.equal(r.body.code, 'invite');
+});

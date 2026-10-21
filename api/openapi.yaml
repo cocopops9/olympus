@@ -638,6 +638,85 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
               example: { error: "invalid or expired code", code: "pair-invalid" }
 
+  /api/app/login:
+    post:
+      tags: [password]
+      operationId: appLogin
+      summary: Sign the phone app in with a name or e-mail and a password
+      description: |
+        Olympus. The same request, checks, throttle and answers as `POST /api/login/password`,
+        except that a success sets no cookie and returns a Bearer token instead, the way
+        `POST /api/pair/redeem` does. This lets the app sign in to its built-in server without a
+        pairing code made in a browser. CSRF-exempt: it acts on no session and sets no cookie.
+        Present only while PASSWORD_LOGIN is on.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                identifier: { type: string, description: A profile name or an e-mail address. }
+                password: { type: string, maxLength: 256 }
+            example: { identifier: "Ada", password: "correct horse battery staple" }
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: Signed session token, valid for SESSION_DAYS. }
+                  user: { $ref: '#/components/schemas/SessionUser' }
+        '400': { description: Name or password missing., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { description: Wrong name or password., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: The right password for a disabled account., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Busy' }
+
+  /api/app/signup:
+    post:
+      tags: [password]
+      operationId: appSignup
+      summary: Create a profile from the phone app with a name and a password
+      description: |
+        Olympus. The same request, policy, invite rules and answers as `POST /api/register/password`,
+        except that a success sets no cookie and returns a Bearer token for the app instead.
+        CSRF-exempt for the same reason as `POST /api/app/login`. Present only while
+        PASSWORD_LOGIN is on.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password]
+              properties:
+                name: { type: string, maxLength: 40 }
+                password: { type: string, minLength: 10, maxLength: 256 }
+                code: { type: string, description: Invite code (INVITE_ONLY only). }
+                email: { type: string, maxLength: 254, description: Optional sign-in e-mail. }
+            example: { name: "Ada", password: "correct horse battery staple" }
+      responses:
+        '200':
+          description: Registered and signed in.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: Signed session token, valid for SESSION_DAYS. }
+                  user: { $ref: '#/components/schemas/SessionUser' }
+        '400': { description: The password breaks the policy, a field is missing, or the e-mail is invalid., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '403': { description: Invite-only and the code is missing, used or revoked., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: The name or the e-mail is taken., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Busy' }
+
   /api/login/password:
     post:
       tags: [password]

@@ -1,0 +1,19 @@
+# Added to docker-compose.yml on the Oracle VM (see setup.sh):
+#   docker compose -f docker-compose.yml -f deploy/oracle/compose.https.yml up -d --build
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - OLYMPUS_HOST=${OLYMPUS_HOST}
+    volumes:
+      - ./deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-data:/data        # the HTTPS certificate; renewed by Caddy on its own
+      - ./caddy-config:/config

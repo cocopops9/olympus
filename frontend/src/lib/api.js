@@ -420,6 +420,26 @@ export async function passwordLogin(name, password) {
 export async function passwordRegister(name, password, code, email) {
   return (await post('/api/register/password', { name, password, code: code || '', ...(email ? { email } : {}) })).user
 }
+// Olympus: the phone app signing in to (or creating a profile on) its built-in server with a
+// name and a password, no pairing code. Like pairRedeem it talks straight to that server before
+// any base is set, and gets a Bearer token back (api/server.js POST /api/app/login, /signup).
+export async function appAccount(serverBase, mode, { name, password, email, code }, { probeMs = PROBE_MS } = {}) {
+  const path = mode === 'signup' ? '/api/app/signup' : '/api/app/login'
+  const body = mode === 'signup'
+    ? { name, password, code: code || '', ...(email ? { email } : {}) }
+    : { identifier: name, password }
+  let data
+  try {
+    data = await request(serverBase + path, {
+      method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, accessFor(serverBase)), body: JSON.stringify(body)
+    }, TIMEOUT_GET_MS)
+  } catch (e) {
+    if (e && (e.status != null || e.code)) throw e
+    throw await whyUnreachable(serverBase, probeMs)
+  }
+  if (!data.token || !data.user) throw failure(t('The server answered with something other than Olympus data.'), 'bad-response', 200)
+  return data
+}
 export async function passwordResetRedeem(name, code, next) {
   return (await post('/api/login/password-reset', { name, code, next })).user
 }

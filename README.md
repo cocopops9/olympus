@@ -76,6 +76,14 @@ post deleted after 24 hours; the newest 200 notifications per profile. Photos ar
 
 ### 1. The server (needed for the social features)
 
+**Free and always on:** [deploy/oracle/README.md](deploy/oracle/README.md) puts it on an Oracle
+Cloud *Always Free* VM. You create the account and the VM and paste one script; the VM installs
+everything, gets HTTPS on a free `sslip.io` address and updates itself from GitHub every night.
+With that address set as the repository variable `OLYMPUS_SERVER`, the APK joins the server by
+itself (Home: *Create profile* / *Sign in*), with no pairing code.
+
+**On your own machine** instead:
+
 You need [Docker](https://docs.docker.com/get-docker/) with Compose.
 
 ```
@@ -91,6 +99,13 @@ change in `.env`; [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) walks through Clo
 Caddy, Traefik and nginx. Back up the `data/` folder: it holds every account, workout and post.
 
 ### 2. The Android app
+
+**Import from Hevy.** In Hevy: *Profile → Settings → Export & Import Data → Export Workouts*
+(and *Export Measurements*). In Olympus: *Settings → Data & backup → Import from another app*,
+then pick the CSV. Workouts land in the calendar with their times, names, notes, warm-up, failure
+and drop sets, supersets and RPE; exercise names are matched to the catalogue, and the ones it has
+no entry for become your own exercises. The measurements file brings weigh-ins and circumferences.
+Importing the same file again adds nothing twice.
 
 **Download link.** Pushed to a public GitHub repository, this folder builds its own APK: the
 workflow `.github/workflows/android-apk.yml` runs on GitHub's servers after every push to `main`

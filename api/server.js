@@ -671,7 +671,10 @@ const clearCookie = COOKIE === LEGACY_COOKIE
 const CSRF_EXEMPT = new Set([
   'POST /api/register/options', 'POST /api/register/verify',
   'POST /api/login/options', 'POST /api/login/verify',
-  'POST /api/pair/redeem'
+  'POST /api/pair/redeem',
+  // Olympus: these set no cookie and act on no session; the token they answer with can only be
+  // read by an origin CORS lets through (the app's), so a hostile page gains nothing.
+  'POST /api/app/login', 'POST /api/app/signup'
 ]);
 const originsMatch = (a, b) => a.replace(/\/+$/, '') === b.replace(/\/+$/, '');
 function csrfOk(req, key) {
@@ -970,6 +973,7 @@ setInterval(() => { AUTH_BURST.sweep(); ADDR_FAILS.sweep(); ACCOUNT_FAILS.sweep(
 const THROTTLED = {
   'POST /api/login/password': 'password', 'POST /api/login/password-reset': 'password',
   'POST /api/register/password': 'signup',
+  'POST /api/app/login': 'password', 'POST /api/app/signup': 'signup',
   'POST /api/account/password': 'password', 'DELETE /api/account/password': null,
   // Setting an e-mail only spends the budget and asks the address's e-mail pause; an address
   // already in use counts against it (see POST /api/account/email).
@@ -1256,7 +1260,7 @@ async function removeEmail(req, res, user, body) {
 }
 
 const passwordRoutes = {
-  'POST /api/login/password': async (req, res) => {
+  'POST /api/login/password': async (req, res, opts = {}) => {
     const body = await readBody(req);
     const target = loginTarget(body);
     const pw = typeof body.password === 'string' ? body.password : '';
@@ -1295,12 +1299,15 @@ const passwordRoutes = {
       if (!still()) return json(res, 401, WRONG);
     }
     audit(req, 'auth.password.ok', { user });
+    // Olympus: the app routes below answer with a Bearer token, the way a pairing does, and set
+    // no cookie: the WebView's origin is never ORIGIN, so a cookie would be useless to it.
+    if (opts.app) return json(res, 200, { user: publicUser(user), token: makeSession(user) });
     json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   },
 
   // For browsers that cannot make a passkey at all: plain http on a LAN address, some Firefox
   // setups. Same invite rules as /api/register/*, checked again and burned after the hash.
-  'POST /api/register/password': async (req, res) => {
+  'POST /api/register/password': async (req, res, opts = {}) => {
     const body = await readBody(req);
     const name = text(body.name).trim().slice(0, 40);
     if (!name) return json(res, 400, { error: 'name required', code: 'missing' });
@@ -1348,8 +1355,15 @@ const passwordRoutes = {
     db.users.push(user);
     saveDb();
     audit(req, 'auth.register.ok', { user, msg: inv ? inv.code + ' · password' : 'password' });
+    if (opts.app) return json(res, 200, { user: publicUser(user), token: makeSession(user) });
     json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   },
+
+  // Olympus: the phone app signs in or creates a profile on its server with a name and a
+  // password, without the browser-made pairing code. Same rules, throttles and invite checks as
+  // the two routes above; the answer is a token for the app instead of a session cookie.
+  'POST /api/app/login': (req, res) => passwordRoutes['POST /api/login/password'](req, res, { app: true }),
+  'POST /api/app/signup': (req, res) => passwordRoutes['POST /api/register/password'](req, res, { app: true }),
 
   // What Settings shows: whether a password is set, and whether it could be removed.
   'GET /api/account/password': async (req, res) => {

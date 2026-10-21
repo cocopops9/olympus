@@ -221,6 +221,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <a class="side-link" href="#push"><b>Push</b><span>Notifications &amp; rest timer</span></a>
   <a class="side-link" href="#activity"><b>Activity</b><span>Live presence</span></a>
   <a class="side-link" href="#media"><b>Media</b><span>Photos &amp; videos of your exercises &amp; workouts</span></a>
+  <a class="side-link" href="#social"><b>Social</b><span>Profiles, follows, posts</span></a>
   <a class="side-link" href="#coach"><b>AI Coach</b><span>Plans, reviews, debriefs</span></a>
   <a class="side-link" href="#admin"><b>Admin</b><span>Users, invites, audit log, Coach</span></a>
   <a class="side-link" href="#schemas"><b>Schemas</b><span>The state blob, the error shape &amp; co.</span></a>
@@ -245,16 +246,16 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>69 endpoints</span>
+    <span>93 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
   <section class="api-sec" id="overview">
     <h2>Overview</h2>
-    <p class="sub">Passkey (WebAuthn) auth + per-user state storage for openGym. One Node file, no framework, JSON-file
+    <p class="sub">Passkey (WebAuthn) auth + per-user state storage for Olympus. One Node file, no framework, JSON-file
        storage, HMAC-signed session cookies.</p>
     <div class="srv">
-  <div class="srv-row"><code>/</code><span>Same origin as the openGym web app (the normal deployment)</span></div>
+  <div class="srv-row"><code>/</code><span>Same origin as the Olympus web app (the normal deployment)</span></div>
   <div class="srv-row"><code>https://opengym.example.com</code><span>Your self-hosted instance</span></div>
     </div>
     <div class="ov-grid">
@@ -666,6 +667,130 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <h2>Password</h2>
   <p class="sub">Optional name-and-password sign-in (<code>PASSWORD_LOGIN=1</code>). Every route here is a 404 while the flag is off.</p>
   <div class="eps">
+
+<details class="ep" id="op-appLogin">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/app/login</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Sign the phone app in with a name or e-mail and a password</span>
+  </summary>
+  <div class="ep-body">
+<p>Olympus. The same request, checks, throttle and answers as <code>POST /api/login/password</code>, except that a success sets no cookie and returns a Bearer token instead, the way <code>POST /api/pair/redeem</code> does. This lets the app sign in to its built-in server without a pairing code made in a browser. CSRF-exempt: it acts on no session and sets no cookie. Present only while PASSWORD_LOGIN is on.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">identifier</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">A profile name or an e-mail address.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">password<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 256 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+<pre><code>{
+  &quot;identifier&quot;: &quot;Ada&quot;,
+  &quot;password&quot;: &quot;correct horse battery staple&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Signed in.<span class="r-sig">{ token: string, user: <a href="#schema-SessionUser">SessionUser</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Name or password missing.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Wrong name or password.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">The right password for a disabled account.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">Every password check slot and the short queue behind them are taken.<span class="r-sig"><code>{&quot;error&quot;:&quot;the server is busy, try again in a moment&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-appSignup">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/app/signup</code><span class="ep-chip public">public</span></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Create a profile from the phone app with a name and a password</span>
+  </summary>
+  <div class="ep-body">
+<p>Olympus. The same request, policy, invite rules and answers as <code>POST /api/register/password</code>, except that a success sets no cookie and returns a Bearer token for the app instead. CSRF-exempt for the same reason as <code>POST /api/app/login</code>. Present only while PASSWORD_LOGIN is on.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Public: no authentication required.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">name<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 40 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">password<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 256 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">code</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Invite code (INVITE_ONLY only).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">email</span>
+    <span class="p-type">string <span class="p-hint">(&le; 254 chars)</span></span>
+    <span class="p-desc">Optional sign-in e-mail.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;name&quot;: &quot;Ada&quot;,
+  &quot;password&quot;: &quot;correct horse battery staple&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Registered and signed in.<span class="r-sig">{ token: string, user: <a href="#schema-SessionUser">SessionUser</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">The password breaks the policy</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Invite-only and the code is missing</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">409</span>
+    <span class="p-desc">The name or the e-mail is taken.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Paused by the sign-in throttle (see <i>Throttling</i> in the description). The request was not looked at; try again after <code>Retry-After</code> seconds.<span class="r-sig"><code>{&quot;error&quot;:&quot;too many attempts, try again later&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">Every password check slot and the short queue behind them are taken.<span class="r-sig"><code>{&quot;error&quot;:&quot;the server is busy, try again in a moment&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
 
 <details class="ep" id="op-loginPassword">
   <summary>
@@ -2058,6 +2183,845 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s4">429</span>
     <span class="p-desc">More than 10 sweeps this hour (<code>locked</code>).<span class="r-sig"><code>{&quot;error&quot;:&quot;too many uploads, try again later&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+  </div>
+</section>
+
+<section class="api-sec" id="social">
+  <h2>Social</h2>
+  <p class="sub">Olympus social layer: find other profiles on the instance, follow them (or ask, for a private profile), post workouts, text and photos, like and comment, get notified, block. Every route needs a session; data lives in <code>DATA_DIR/social.json</code>.</p>
+  <div class="eps">
+
+<details class="ep" id="op-socialSearch">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/search</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Find profiles</span>
+  </summary>
+  <div class="ep-body">
+<p>Profiles on this instance whose name contains <code>q</code> (case-insensitive). Without <code>q</code>, the most followed first.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">q</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Part of a name.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: <a href="#schema-SocialUser">SocialUser</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialProfile">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/profile</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A profile and its posts</span>
+  </summary>
+  <div class="ep-body">
+<p>One profile (the caller when <code>id</code> is absent) with its counts and newest posts.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Profile id.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">before</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Page cursor; the <code>next</code> value of the previous page.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">object</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialSetBio">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/profile</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Edit your profile</span>
+  </summary>
+  <div class="ep-body">
+<p>Sets the caller's bio (160 characters at most), whether the profile is private, and whether social events send a push. Making a private profile public accepts every pending request.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">bio</span>
+    <span class="p-type">string <span class="p-hint">(&le; 160 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">private</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Posts only for accepted followers; following asks first.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">pushSocial</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Push for likes</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ user: <a href="#schema-SocialUser">SocialUser</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialConnections">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/connections</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Followers or following</span>
+  </summary>
+  <div class="ep-body">
+<p>The followers of a profile, or the profiles it follows (<code>kind=following</code>).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Profile id; the caller when absent.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">kind</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"><code>followers</code> (default) or <code>following</code>.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: <a href="#schema-SocialUser">SocialUser</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialFollow">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/follow</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Follow or unfollow</span>
+  </summary>
+  <div class="ep-body">
+<p>Follows the profile <code>id</code>, or unfollows it with <code>follow: false</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">follow</span>
+    <span class="p-type">boolean <span class="p-hint">(default true)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ user: <a href="#schema-SocialUser">SocialUser</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Nothing to post (<code>empty</code>), or following yourself (<code>self</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialFeed">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/feed</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Following feed</span>
+  </summary>
+  <div class="ep-body">
+<p>The caller's posts and those of the profiles they follow, newest first.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">before</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Page cursor; the <code>next</code> value of the previous page.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig"><a href="#schema-PostPage">PostPage</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialDiscover">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/discover</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Discover feed</span>
+  </summary>
+  <div class="ep-body">
+<p>Every post on the instance, newest first.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">before</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Page cursor; the <code>next</code> value of the previous page.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig"><a href="#schema-PostPage">PostPage</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialPost">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/posts</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Publish a post</span>
+  </summary>
+  <div class="ep-body">
+<p>A post with text, a workout summary, or both.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text</span>
+    <span class="p-type">string <span class="p-hint">(&le; 1000 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">workout</span>
+    <span class="p-type"><a href="#schema-PostWorkout">PostWorkout</a></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">photos</span>
+    <span class="p-type">string[]</span>
+    <span class="p-desc">Ids from POST /api/social/photos.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ post: <a href="#schema-Post">Post</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Nothing to post (<code>empty</code>), or following yourself (<code>self</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Too many posts or comments in the last hour (<code>rate-limit</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialPostDelete">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/posts/delete</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Delete a post</span>
+  </summary>
+  <div class="ep-body">
+<p>The author, or an admin of the instance, deletes a post.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig"><a href="#schema-Ok">Ok</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialLike">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/posts/like</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Like or unlike</span>
+  </summary>
+  <div class="ep-body">
+<p>Likes post <code>id</code>, or takes the like back with <code>like: false</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">like</span>
+    <span class="p-type">boolean <span class="p-hint">(default true)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ post: <a href="#schema-Post">Post</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialComment">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/posts/comment</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Comment on a post</span>
+  </summary>
+  <div class="ep-body">
+<p>Adds a comment (500 characters at most).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 500 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ post: <a href="#schema-Post">Post</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Nothing to post (<code>empty</code>), or following yourself (<code>self</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Too many posts or comments in the last hour (<code>rate-limit</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialCommentDelete">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/posts/comment/delete</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Delete a comment</span>
+  </summary>
+  <div class="ep-body">
+<p>The commenter, or the author of the post, removes a comment.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">commentId<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ post: <a href="#schema-Post">Post</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">403</span>
+    <span class="p-desc">Signed in, but not an admin. The attempt is recorded in the audit log.<span class="r-sig"><code>{&quot;error&quot;:&quot;forbidden&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such post or profile (<code>no-post</code>, <code>no-profile</code>, <code>no-comment</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialGetPost">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/post</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">One post</span>
+  </summary>
+  <div class="ep-body">
+<p>A single post the caller may see, with its comments.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Post id.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ post: <a href="#schema-Post">Post</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not found, or not visible to the caller.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialRemoveFollower">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/followers/remove</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Remove a follower</span>
+  </summary>
+  <div class="ep-body">
+<p>Stops profile <code>id</code> from following the caller.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ user: <a href="#schema-SocialUser">SocialUser</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not found, or not visible to the caller.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialRequests">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/requests</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Follow requests</span>
+  </summary>
+  <div class="ep-body">
+<p>Profiles asking to follow the caller (a private profile).</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: <a href="#schema-SocialUser">SocialUser</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialAnswerRequest">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/requests/answer</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Accept or decline a request</span>
+  </summary>
+  <div class="ep-body">
+<p>Accepts (<code>accept: true</code>) or declines the request of profile <code>id</code>; answers the requests still open.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">accept<em class="p-req" title="required">required</em></span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: <a href="#schema-SocialUser">SocialUser</a>[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not found, or not visible to the caller.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialBlock">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/block</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Block or unblock</span>
+  </summary>
+  <div class="ep-body">
+<p>Blocks profile <code>id</code> (<code>block: false</code> unblocks). A block removes follows and requests both ways and hides each side from the other.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">block</span>
+    <span class="p-type">boolean <span class="p-hint">(default true)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ user: <a href="#schema-SocialUser">SocialUser</a> }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Blocking yourself (<code>self</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not found, or not visible to the caller.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialBlocked">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/blocked</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Blocked profiles</span>
+  </summary>
+  <div class="ep-body">
+<p>The profiles the caller has blocked.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: object[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialNotifications">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/notifications</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Notifications</span>
+  </summary>
+  <div class="ep-body">
+<p>Likes, comments, follows, follow requests and accepted requests for the caller, newest first, with the unread count.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig"><a href="#schema-Notifications">Notifications</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialNotificationsRead">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/notifications/read</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Mark notifications read</span>
+  </summary>
+  <div class="ep-body">
+<p>Marks every notification of the caller as read.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig"><a href="#schema-Notifications">Notifications</a></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialUploadPhoto">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/photos</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Upload a photo</span>
+  </summary>
+  <div class="ep-body">
+<p>A JPEG or PNG (base64, 2 MB at most), stored without its metadata. Attach the returned id to a post within a day, or it is removed.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">data<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Base64 or a data URL.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ id: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">413</span>
+    <span class="p-desc">Larger than 2 MB (<code>photo-too-large</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">415</span>
+    <span class="p-desc">Not a JPEG or PNG (<code>photo-type</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">Too many uploads in the last hour (<code>rate-limit</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialPhoto">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/photo</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A photo</span>
+  </summary>
+  <div class="ep-body">
+<p>The bytes of a photo: the caller’s own, or one on a post the caller may see.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Photo id.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">Not found, or not visible to the caller.</span>
   </div>
     </div>
   </div>
@@ -4123,6 +5087,361 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">keys.auth<em class="p-req" title="required">required</em></span>
     <span class="p-type">string</span>
     <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-SocialUser">
+  <summary>
+    <span class="sch-name"><code>SocialUser</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">bio</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">followers</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">following</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">posts</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">isFollowing</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Whether the caller follows this profile.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">private</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">requested</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">The caller asked to follow this private profile.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">followsMe</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">blockedByMe</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">canSeePosts</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">pushSocial</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Only on the caller's own profile.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">me</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">Whether this is the caller.</span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-PostWorkout">
+  <summary>
+    <span class="sch-name"><code>PostWorkout</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A bounded summary of a logged workout, built by the app.</span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">name</span>
+    <span class="p-type">string <span class="p-hint">(&le; 80 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">d</span>
+    <span class="p-type">string <span class="p-hint">(date)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">durMs</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">vol</span>
+    <span class="p-type">number</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">unit</span>
+    <span class="p-type">&quot;kg&quot; | &quot;lb&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">sets</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">prs</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">exercises</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">exercises[].n</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">exercises[].sets</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">exercises[].best</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-Post">
+  <summary>
+    <span class="sch-name"><code>Post</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">ts</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Milliseconds since the epoch.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">text</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">workout</span>
+    <span class="p-type"><a href="#schema-PostWorkout">PostWorkout</a></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">photos</span>
+    <span class="p-type">string[]</span>
+    <span class="p-desc">Photo ids</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">author</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">author.id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">author.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">likes</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">liked</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">mine</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].ts</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].text</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].mine</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].author</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].author.id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">comments[].author.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-Notifications">
+  <summary>
+    <span class="sch-name"><code>Notifications</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">unread</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">requests</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Follow requests waiting for an answer.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].kind</span>
+    <span class="p-type">&quot;like&quot; | &quot;comment&quot; | &quot;follow&quot; | &quot;request&quot; | &quot;accepted&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].ts</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].read</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].postId</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].text</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The start of the comment</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].from</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].from.id</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].from.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
+
+<details class="ep sch" id="schema-PostPage">
+  <summary>
+    <span class="sch-name"><code>PostPage</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum"></span>
+  </summary>
+  <div class="ep-body">
+
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">posts</span>
+    <span class="p-type"><a href="#schema-Post">Post</a>[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">next</span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">Pass as <code>before</code> for the next page; null on the last one.</span>
   </div>
 </div>
   </div>

@@ -1,0 +1,10 @@
+# Olympus on one VM: Caddy takes HTTPS for the host (a free <ip>.sslip.io name by default, or your
+# own domain) and passes everything to the web container. The real client address goes along in
+# CF-Connecting-IP, which Caddy sets itself, so nobody can forge it; nginx passes it on
+# (CF_CONNECTING_IP in .env) and the API's sign-in throttle counts by it (TRUST_PROXY).
+{$OLYMPUS_HOST} {
+	encode gzip
+	reverse_proxy web:80 {
+		header_up CF-Connecting-IP {remote_host}
+	}
+}

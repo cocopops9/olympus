@@ -26,6 +26,9 @@ services:
       # X-Forwarded-For / X-Real-IP with the real peer — so the sign-in throttle may count
       # requests by those headers instead of lumping everyone in as "the web container".
       - TRUST_PROXY=${TRUST_PROXY:-1}
+      # Olympus: the phone app signs in with a name and a password (POST /api/app/login, /signup),
+      # so passwords are on unless .env says PASSWORD_LOGIN=0.
+      - PASSWORD_LOGIN=${PASSWORD_LOGIN:-1}
     volumes:
       - ./data:/data         # users, passkeys, per-user state, session secret — BACK THIS UP
                              # (and uploads/: the photos and videos of custom exercises)

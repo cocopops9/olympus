@@ -10,6 +10,8 @@ import { Button } from '../components/ui.jsx'
 import { askAddDeviceData } from '../sheets.jsx'
 import { normalizeServerUrl } from '../lib/remote.js'
 import { loadCfAccess, saveCfAccess } from '../lib/cf-access.js'
+import { DEFAULT_SERVER } from '../lib/app-info.js'
+import { MIN_PASSWORD, looksLikeEmail, passwordError } from '../components/PasswordAuth.jsx'
 
 // A plain http:// server works (#428), but whatever the app sends, the pairing code and then its
 // token, crosses the network readable. Said once under the field, not in the way: on a home
@@ -120,6 +122,77 @@ export function ConnectSheet({ close, initialUrl = '', again = false }) {
   </>
 }
 
+/* Olympus: joining the app's own server (lib/app-info.js DEFAULT_SERVER) with a name and a
+   password, nothing else to type. Creating a profile moves what this phone already logged into
+   it (adoptProfile, the same step pairing takes); signing in to a profile that has data asks
+   first, as pairing does. `mode`: 'signup' or 'login'. */
+export function AccountSheet({ close, mode: start = 'signup' }) {
+  const joinServer = useStore(s => s.joinServer)
+  const [mode, setMode] = useState(start)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [pw, setPw] = useState('')
+  const [again, setAgain] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const nameRef = useRef(null)
+  useEffect(() => { setTimeout(() => nameRef.current?.focus(), 250) }, [])
+  const signup = mode === 'signup'
+  const field = { autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }
+  const submit = async ev => {
+    ev.preventDefault()
+    if (busy) return
+    const n = name.trim()
+    const mail = email.trim()
+    const bad = !n ? (signup ? t('Enter a name') : t('Enter your name or e-mail.'))
+      : !pw ? t('Enter your password.')
+      : signup && mail && !looksLikeEmail(mail) ? t('That is not an e-mail address.')
+      : signup && [...pw].length < MIN_PASSWORD ? t('Use at least {0} characters.', MIN_PASSWORD)
+      : signup && pw !== again ? t('The two passwords are not the same.')
+      : null
+    if (bad) { setErr(bad); return }
+    setBusy(true); setErr('')
+    try {
+      await joinServer(DEFAULT_SERVER, signup ? 'signup' : 'login', { name: n, password: pw, email: mail }, askAddDeviceData)
+      close()
+      useUI.getState().toast(signup ? t('Welcome, {0}', n) : t('Welcome back, {0}', useStore.getState().user?.name || n))
+    } catch (e) { setErr(e?.data?.code || e?.status === 429 ? passwordError(e) : (e?.message || t('Could not connect'))) }
+    finally { setBusy(false) }
+  }
+  return <>
+    <h3>{signup ? t('Create your profile') : t('Sign in with password')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>
+      {signup ? t('Pick a name and a password. You sign in with both.') : t('Use your profile name (or the e-mail you added to it) and your password.')}
+    </div>
+    <form onSubmit={submit} noValidate>
+      <input ref={nameRef} className="input" name="username" autoComplete="username" placeholder={signup ? t('Your name') : t('Name or e-mail')}
+        maxLength={signup ? 40 : 254} value={name} onChange={e => setName(e.target.value)} {...field} />
+      {signup && <>
+        <div style={{ height: 10 }} />
+        <input className="input" type="email" name="email" autoComplete="email" inputMode="email" placeholder={t('E-mail (optional)')} maxLength={254}
+          value={email} onChange={e => setEmail(e.target.value)} {...field} />
+      </>}
+      <div style={{ height: 10 }} />
+      <input className="input" type="password" name={signup ? 'new-password' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'}
+        placeholder={t('Password')} value={pw} onChange={e => setPw(e.target.value)} />
+      {signup && <>
+        <div style={{ height: 10 }} />
+        <input className="input" type="password" name="new-password-again" autoComplete="new-password" placeholder={t('Repeat the password')}
+          value={again} onChange={e => setAgain(e.target.value)} />
+        <div className="dim small" style={{ marginTop: 6 }}>{t('At least {0} characters. A few unrelated words make a good one.', MIN_PASSWORD)}</div>
+      </>}
+      {err && <div className="small" role="alert" style={{ color: 'var(--red)', marginTop: 10, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{err}</div>}
+      <div style={{ height: 12 }} />
+      <Button type="submit" variant="primary" disabled={busy}>{busy ? t('Connecting…') : signup ? t('Create profile') : t('Sign in')}</Button>
+    </form>
+    <div style={{ height: 8 }} />
+    <Button type="button" variant="ghost" className="dim" disabled={busy} onClick={() => { setErr(''); setMode(signup ? 'login' : 'signup') }}>
+      {signup ? t('Sign in') : t('Create profile')}
+    </Button>
+  </>
+}
+export const openAccountSheet = mode => useUI.getState().openSheet(close => <AccountSheet close={close} mode={mode} />)
+
 export default function MobileOnboarding() {
   const { chooseLocalMode } = useStore()
   const head = <>
@@ -131,9 +204,17 @@ export default function MobileOnboarding() {
     <div className="narrow" style={wrap}>
       {head}
       <div className="muted" style={{ marginBottom: 34 }}>{t('How do you want to use Olympus?')}</div>
-      <Button variant="primary" icon="lock" onClick={() => chooseLocalMode()}>{t('Use on this device')}</Button>
-      <div style={{ height: 10 }} />
-      <Button icon="cloud" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} />)}>{t('Connect to my server')}</Button>
+      {DEFAULT_SERVER ? <>
+        <Button variant="primary" icon="person" onClick={() => openAccountSheet('signup')}>{t('Create profile')}</Button>
+        <div style={{ height: 10 }} />
+        <Button icon="key" onClick={() => openAccountSheet('login')}>{t('Sign in')}</Button>
+        <div style={{ height: 10 }} />
+        <Button variant="ghost" className="dim" icon="lock" onClick={() => chooseLocalMode()}>{t('Use on this device')}</Button>
+      </> : <>
+        <Button variant="primary" icon="lock" onClick={() => chooseLocalMode()}>{t('Use on this device')}</Button>
+        <div style={{ height: 10 }} />
+        <Button icon="cloud" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} />)}>{t('Connect to my server')}</Button>
+      </>}
       <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>
         {t('Local keeps everything on this phone. Connecting syncs to your own Olympus server instead. You can switch later in Settings.')}
       </div>
