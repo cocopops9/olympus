@@ -1,8 +1,8 @@
 #!/bin/bash
 # Olympus server on an Oracle Cloud "Always Free" VM, in one go.
 #
-# Paste this whole file as the instance's initialization script (Create instance → Show advanced
-# options → Management → Paste cloud-init script) and it runs as root on the first boot; or run it
+# Paste this whole file as the instance's initialization script (Create instance -> Show advanced
+# options -> Management -> Paste cloud-init script) and it runs as root on the first boot; or run it
 # by hand on the VM with `sudo bash setup.sh`. It is safe to run again.
 #
 # What it does: adds swap (the free AMD shape has 1 GB of RAM, too little to build the app),
@@ -70,7 +70,7 @@ RP_NAME=Olympus
 WEB_PORT=127.0.0.1:8080
 # Name-and-password sign-in, which the phone app uses to join without a pairing code.
 PASSWORD_LOGIN=1
-# The first profile created becomes the admin (Settings → Admin dashboard). Create yours first.
+# The first profile created becomes the admin (Settings -> Admin dashboard). Create yours first.
 FIRST_USER_ADMIN=1
 # Caddy sets this header to the real client address; nginx passes it to the API's throttle.
 CF_CONNECTING_IP=\$\$http_cf_connecting_ip
