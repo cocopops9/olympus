@@ -15,12 +15,15 @@ import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { glyphOf } from '../lib/glyphs.js'
 import { dayNoteOf } from '../lib/day-notes.js'
+import { toggledTheme, prefersDark } from '../lib/theme.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
+  const update = useStore(s => s.update)
+  const nextTheme = toggledTheme(S.theme, prefersDark())
   // The banner switched off and the sync stuck: a dot on the gear (Settings → Show connection status).
   const trouble = useConnectionTrouble()
   const [weekOffset, setWeekOffset] = useState(0)
@@ -99,7 +102,12 @@ export default function Home() {
   return <div className="narrow">
     <div className="hdr">
       <div><h1>{user ? t('Hi {0}', user.name) : 'Olympus'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
+      <div className="hdr-actions">
+        {/* Dark / Light at a glance; the System option stays in Settings, Look. The icon is the
+            theme a tap switches to. */}
+        <button className="iconbtn" onClick={() => update(s => { s.theme = nextTheme })} aria-label={t('Theme') + ': ' + (nextTheme === 'light' ? t('Light') : t('Dark'))}><Icon name={nextTheme === 'light' ? 'sun' : 'moon'} /></button>
+        <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
+      </div>
     </div>
 
     <div className="card">
