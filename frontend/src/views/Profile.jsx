@@ -10,6 +10,7 @@ import { socialReady, fetchProfile, socialErrorText } from '../lib/social.js'
 import { streakWeeks } from '../lib/history.js'
 import { Button, Segmented, Section, Row } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 import { Avatar, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
 import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
@@ -115,9 +116,12 @@ export default function Profile() {
   return <div className="narrow">
     <div className="hdr">
       <div><h1>{t('Profile')}</h1></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>
-        <Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}
-      </button>
+      <div className="hdr-actions">
+        <ThemeToggle />
+        <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>
+          <Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}
+        </button>
+      </div>
     </div>
 
     <div className="prof">
