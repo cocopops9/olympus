@@ -2362,4 +2362,12 @@ export default {
   "{0} follow requests": "{0} pedidos para seguir",
   "Up to {0} photo per post.": "Até {0} foto por publicação.",
   "Up to {0} photos per post.": "Até {0} fotos por publicação.",
+  "Uploading photo…": "A enviar foto…",
+  "Profile picture updated": "Foto de perfil atualizada",
+  "Profile picture": "Foto de perfil",
+  "Choose a new photo": "Escolher uma nova foto",
+  "Profile picture removed": "Foto de perfil removida",
+  "Change profile picture": "Alterar foto de perfil",
+  "Switch to dark mode": "Mudar para modo escuro",
+  "Switch to light mode": "Mudar para modo claro",
 }

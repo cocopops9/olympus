@@ -10,7 +10,8 @@ import { socialReady, fetchProfile, socialErrorText } from '../lib/social.js'
 import { streakWeeks } from '../lib/history.js'
 import { Button, Segmented, Section, Row } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import { Avatar, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
+import { Avatar, avatarSheet, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
 import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { Calendar, WorkoutRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
@@ -115,13 +116,21 @@ export default function Profile() {
   return <div className="narrow">
     <div className="hdr">
       <div><h1>{t('Profile')}</h1></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>
-        <Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}
-      </button>
+      <div className="hdr-actions">
+        <ThemeToggle />
+        <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>
+          <Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}
+        </button>
+      </div>
     </div>
 
     <div className="prof">
-      <Avatar user={user || { id: 'local', name }} size="lg" />
+      {ready && me
+        ? <button className="prof-av" onClick={() => avatarSheet(me, u => setMe(m => ({ ...m, ...u })))} aria-label={t('Change profile picture')}>
+          <Avatar user={{ ...user, avatar: me.avatar }} size="lg" />
+          <span className="prof-av-cam" aria-hidden="true"><Icon name="camera" /></span>
+        </button>
+        : <Avatar user={user || { id: 'local', name }} size="lg" />}
       <div className="prof-n">{name}</div>
       {ready && me?.private && <p className="prof-bio small"><Icon name="lock" className="person-lock" /> {t('Private profile')}</p>}
       {ready && me?.bio && <p className="prof-bio">{me.bio}</p>}

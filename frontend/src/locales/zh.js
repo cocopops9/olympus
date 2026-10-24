@@ -2362,4 +2362,12 @@ export default {
   "{0} follow requests": "{0} 个关注请求",
   "Up to {0} photo per post.": "每条动态最多 {0} 张照片。",
   "Up to {0} photos per post.": "每条动态最多 {0} 张照片。",
+  "Uploading photo…": "正在上传照片…",
+  "Profile picture updated": "头像已更新",
+  "Profile picture": "头像",
+  "Choose a new photo": "选择新照片",
+  "Profile picture removed": "头像已移除",
+  "Change profile picture": "更换头像",
+  "Switch to dark mode": "切换到深色模式",
+  "Switch to light mode": "切换到浅色模式",
 }

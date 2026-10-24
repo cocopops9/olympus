@@ -2362,4 +2362,12 @@ export default {
   "{0} follow requests": "{0} फ़ॉलो अनुरोध",
   "Up to {0} photo per post.": "हर पोस्ट में ज़्यादा से ज़्यादा {0} फ़ोटो।",
   "Up to {0} photos per post.": "हर पोस्ट में ज़्यादा से ज़्यादा {0} फ़ोटो।",
+  "Uploading photo…": "फ़ोटो अपलोड हो रही है…",
+  "Profile picture updated": "प्रोफ़ाइल फ़ोटो अपडेट हुई",
+  "Profile picture": "प्रोफ़ाइल फ़ोटो",
+  "Choose a new photo": "नई फ़ोटो चुनें",
+  "Profile picture removed": "प्रोफ़ाइल फ़ोटो हटाई गई",
+  "Change profile picture": "प्रोफ़ाइल फ़ोटो बदलें",
+  "Switch to dark mode": "डार्क मोड पर जाएँ",
+  "Switch to light mode": "लाइट मोड पर जाएँ",
 }

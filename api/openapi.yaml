@@ -2409,7 +2409,7 @@ paths:
       tags: [social]
       operationId: socialSetBio
       summary: Edit your profile
-      description: Sets the caller's bio (160 characters at most), whether the profile is private, and whether social events send a push. Making a private profile public accepts every pending request.
+      description: Sets the caller's bio (160 characters at most), profile picture, whether the profile is private, and whether social events send a push. Making a private profile public accepts every pending request.
       requestBody:
         required: true
         content:
@@ -2420,6 +2420,7 @@ paths:
                 bio: { type: string, maxLength: 160 }
                 private: { type: boolean, description: Posts only for accepted followers; following asks first. }
                 pushSocial: { type: boolean, description: Push for likes, comments and follows. }
+                avatar: { type: [string, 'null'], description: 'Profile picture: the id of a photo the caller uploaded (POST /api/social/photos) and has not posted, or null to remove it. The picture it replaces is deleted.' }
       responses:
         '200':
           description: OK.
@@ -4175,6 +4176,7 @@ components:
         id: { type: string }
         name: { type: string }
         bio: { type: string }
+        avatar: { type: [string, 'null'], description: Photo id of the profile picture (GET /api/social/photo), or null. }
         followers: { type: integer }
         following: { type: integer }
         posts: { type: integer }

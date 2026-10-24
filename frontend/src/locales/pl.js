@@ -2362,4 +2362,12 @@ export default {
   "{0} follow requests": { one: "{0} prośba o obserwowanie", few: "{0} prośby o obserwowanie", many: "{0} próśb o obserwowanie" },
   "Up to {0} photo per post.": "Maksymalnie {0} zdjęcie w poście.",
   "Up to {0} photos per post.": { one: "Maksymalnie {0} zdjęcie w poście.", few: "Maksymalnie {0} zdjęcia w poście.", many: "Maksymalnie {0} zdjęć w poście." },
+  "Uploading photo…": "Przesyłanie zdjęcia…",
+  "Profile picture updated": "Zdjęcie profilowe zaktualizowane",
+  "Profile picture": "Zdjęcie profilowe",
+  "Choose a new photo": "Wybierz nowe zdjęcie",
+  "Profile picture removed": "Zdjęcie profilowe usunięte",
+  "Change profile picture": "Zmień zdjęcie profilowe",
+  "Switch to dark mode": "Przełącz na tryb ciemny",
+  "Switch to light mode": "Przełącz na tryb jasny",
 }

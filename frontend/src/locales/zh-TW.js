@@ -2355,4 +2355,12 @@ export default {
   "{0} follow requests": "{0} 個追蹤請求",
   "Up to {0} photo per post.": "每則貼文最多 {0} 張照片。",
   "Up to {0} photos per post.": "每則貼文最多 {0} 張照片。",
+  "Uploading photo…": "正在上傳照片…",
+  "Profile picture updated": "大頭貼已更新",
+  "Profile picture": "大頭貼",
+  "Choose a new photo": "選擇新照片",
+  "Profile picture removed": "大頭貼已移除",
+  "Change profile picture": "更換大頭貼",
+  "Switch to dark mode": "切換到深色模式",
+  "Switch to light mode": "切換到淺色模式",
 }

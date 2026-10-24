@@ -2362,4 +2362,12 @@ export default {
   "{0} follow requests": "{0} takip isteği",
   "Up to {0} photo per post.": "Gönderi başına en fazla {0} fotoğraf.",
   "Up to {0} photos per post.": "Gönderi başına en fazla {0} fotoğraf.",
+  "Uploading photo…": "Fotoğraf yükleniyor…",
+  "Profile picture updated": "Profil fotoğrafı güncellendi",
+  "Profile picture": "Profil fotoğrafı",
+  "Choose a new photo": "Yeni fotoğraf seç",
+  "Profile picture removed": "Profil fotoğrafı kaldırıldı",
+  "Change profile picture": "Profil fotoğrafını değiştir",
+  "Switch to dark mode": "Koyu moda geç",
+  "Switch to light mode": "Açık moda geç",
 }

@@ -2417,4 +2417,12 @@ export default {
   "{0} follow requests": "{0} طلبات متابعة",
   "Up to {0} photo per post.": "حتى {0} صورة لكل منشور.",
   "Up to {0} photos per post.": "حتى {0} صور لكل منشور.",
+  "Uploading photo…": "جارٍ رفع الصورة…",
+  "Profile picture updated": "تم تحديث صورة الملف الشخصي",
+  "Profile picture": "صورة الملف الشخصي",
+  "Choose a new photo": "اختر صورة جديدة",
+  "Profile picture removed": "تمت إزالة صورة الملف الشخصي",
+  "Change profile picture": "تغيير صورة الملف الشخصي",
+  "Switch to dark mode": "التبديل إلى الوضع الداكن",
+  "Switch to light mode": "التبديل إلى الوضع الفاتح",
 }

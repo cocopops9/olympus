@@ -2366,4 +2366,12 @@ export default {
   "{0} follow requests": { one: "{0} запрос на подписку", few: "{0} запроса на подписку", many: "{0} запросов на подписку" },
   "Up to {0} photo per post.": "Не больше {0} фото в публикации.",
   "Up to {0} photos per post.": { one: "Не больше {0} фото в публикации.", few: "Не больше {0} фото в публикации.", many: "Не больше {0} фото в публикации." },
+  "Uploading photo…": "Загрузка фото…",
+  "Profile picture updated": "Фото профиля обновлено",
+  "Profile picture": "Фото профиля",
+  "Choose a new photo": "Выбрать новое фото",
+  "Profile picture removed": "Фото профиля удалено",
+  "Change profile picture": "Изменить фото профиля",
+  "Switch to dark mode": "Включить тёмную тему",
+  "Switch to light mode": "Включить светлую тему",
 }

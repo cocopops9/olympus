@@ -2550,6 +2550,7 @@ const routes = {
     if (body.bio !== undefined) change.bio = text(body.bio);
     if (typeof body.private === 'boolean') change.private = body.private;
     if (typeof body.pushSocial === 'boolean') change.pushSocial = body.pushSocial;
+    if (body.avatar === null || typeof body.avatar === 'string') change.avatar = body.avatar;
     json(res, 200, { user: SOCIAL.setProfile(me, change) });
   },
   'GET /api/social/post': async (req, res) => {

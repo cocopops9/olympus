@@ -2365,4 +2365,12 @@ export default {
   "{0} follow requests": "{0} követési kérelem",
   "Up to {0} photo per post.": "Bejegyzésenként legfeljebb {0} fotó.",
   "Up to {0} photos per post.": "Bejegyzésenként legfeljebb {0} fotó.",
+  "Uploading photo…": "Fotó feltöltése…",
+  "Profile picture updated": "Profilkép frissítve",
+  "Profile picture": "Profilkép",
+  "Choose a new photo": "Új fotó választása",
+  "Profile picture removed": "Profilkép eltávolítva",
+  "Change profile picture": "Profilkép módosítása",
+  "Switch to dark mode": "Váltás sötét módra",
+  "Switch to light mode": "Váltás világos módra",
 }

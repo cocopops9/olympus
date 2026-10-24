@@ -325,6 +325,38 @@ test('photos attach to one post of their owner, follow its visibility, and go wi
   assert.throws(() => s.photo(ANNA, orphan.id), /not found/);
 });
 
+test('a profile picture: shown on the profile and its posts, seen past private, replaced cleanly', t => {
+  const { s, dir, tick } = store(t, [ANNA, BEN, DANA]);
+  const first = s.uploadPhoto(ANNA, jpeg().toString('base64')).id;
+  const onDisk = id => path.join(dir, 'social-photos', id + '.jpg');
+  assert.throws(() => s.setProfile(BEN, { avatar: first }), /unknown photo/, 'someone else’s photo');
+  assert.equal(s.setProfile(ANNA, { avatar: first }).avatar, first);
+  s.setProfile(ANNA, { private: true });
+  // A private profile's picture is still seen: it is how people recognise whom to ask.
+  assert.equal(s.profile(DANA, ANNA.id).user.avatar, first);
+  assert.equal(s.photo(DANA, first).type, 'image/jpeg');
+  assert.equal(s.search(BEN, 'anna')[0].avatar, first);
+  // Not usable as a post photo, and never swept as an orphan.
+  assert.throws(() => s.createPost(ANNA, { photos: [first] }), /unknown photo/);
+  tick(LIMITS.photoOrphanMs + 1);
+  assert.equal(s.sweepOrphans(), 0);
+  // Authors of posts carry it.
+  s.setProfile(ANNA, { private: false });
+  const p = s.createPost(ANNA, { text: 'hi' });
+  assert.equal(p.author.avatar, first);
+  // Replacing deletes the old file; a block hides the picture.
+  const second = s.uploadPhoto(ANNA, jpeg().toString('base64')).id;
+  s.setProfile(ANNA, { avatar: second });
+  assert.ok(!fs.existsSync(onDisk(first)));
+  assert.throws(() => s.photo(ANNA, first), /not found/);
+  s.block(ANNA, BEN.id, true);
+  assert.throws(() => s.photo(BEN, second), /not found/);
+  // Removing it.
+  assert.equal(s.setProfile(ANNA, { avatar: null }).avatar, null);
+  assert.ok(!fs.existsSync(onDisk(second)));
+  assert.equal(s.post(DANA, p.id).author.avatar, undefined);
+});
+
 test('a version 1 document is read as it was', t => {
   const { dir } = store(t, [ANNA]);
   fs.writeFileSync(path.join(dir, 'social.json'), JSON.stringify({ v: 1, follows: { u_anna: ['u_ben'] }, posts: [{ id: 'p1', uid: 'u_anna', ts: 5, text: 'old', likes: [], comments: [] }], profiles: {} }));

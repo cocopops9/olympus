@@ -1466,4 +1466,6 @@ export const PT_BR_OVERRIDES = {
   "{0} wants to follow you": "{0} quer seguir você",
 }
 
-export default { ...pt, ...PT_BR_OVERRIDES }
+export default { ...pt, ...PT_BR_OVERRIDES,
+  "Uploading photo…": "Enviando foto…",
+}

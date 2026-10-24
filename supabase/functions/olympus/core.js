@@ -320,6 +320,7 @@ export function createApp({ store, photos, now = () => Date.now() }) {
       if (body.bio !== undefined) change.bio = text(body.bio);
       if (typeof body.private === 'boolean') change.private = body.private;
       if (typeof body.pushSocial === 'boolean') change.pushSocial = body.pushSocial;
+      if (body.avatar === null || typeof body.avatar === 'string') change.avatar = body.avatar;
       return { body: { user: await withSocial(s => s.setProfile(me, change)) } };
     },
     'GET /api/social/post': async (req, q) => { const { user: me } = await signedIn(req); return { body: { post: await withSocial(s => s.post(me, q.get('id') || '')) } }; },

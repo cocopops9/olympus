@@ -2359,4 +2359,12 @@ export default {
   "{0} follow requests": { one: "{0} запит на стеження", few: "{0} запити на стеження", many: "{0} запитів на стеження" },
   "Up to {0} photo per post.": "Не більше {0} фото в дописі.",
   "Up to {0} photos per post.": { one: "Не більше {0} фото в дописі.", few: "Не більше {0} фото в дописі.", many: "Не більше {0} фото в дописі." },
+  "Uploading photo…": "Завантаження фото…",
+  "Profile picture updated": "Фото профілю оновлено",
+  "Profile picture": "Фото профілю",
+  "Choose a new photo": "Вибрати нове фото",
+  "Profile picture removed": "Фото профілю видалено",
+  "Change profile picture": "Змінити фото профілю",
+  "Switch to dark mode": "Увімкнути темну тему",
+  "Switch to light mode": "Увімкнути світлу тему",
 }

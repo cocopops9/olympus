@@ -22,7 +22,7 @@ const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(bo
 export const searchUsers = text => api('/api/social/search' + q({ q: text })).then(r => r.users || [])
 export const fetchProfile = (id, before) => api('/api/social/profile' + q({ id, before }))
 export const saveBio = bio => post('/api/social/profile', { bio }).then(r => r.user)
-/** Bio, `private` and `pushSocial`, any of them; answers your profile as it now is. */
+/** Bio, `private`, `pushSocial` and `avatar` (a photo id, or null), any of them; answers your profile as it now is. */
 export const saveProfile = change => post('/api/social/profile', change).then(r => r.user)
 export const fetchPost = id => api('/api/social/post' + q({ id })).then(r => r.post)
 export const removeFollower = id => post('/api/social/followers/remove', { id }).then(r => r.user)
@@ -36,6 +36,17 @@ export const markNotificationsRead = () => post('/api/social/notifications/read'
 export const uploadPhoto = data => post('/api/social/photos', { data }).then(r => r.id)
 // The server sends 2 MB at most; a little over that is refused before it is read.
 export const photoBlob = id => apiBlob('/api/social/photo' + q({ id }), { expectSize: 2 * 1024 * 1024 })
+
+// Profile pictures repeat down a feed, so each is fetched once and its object URL kept for the
+// session. A new picture has a new id, so nothing here goes stale; a failed load is forgotten so
+// the next screen tries again.
+const avatarUrls = new Map()
+export function avatarUrl(id) {
+  if (!avatarUrls.has(id)) {
+    avatarUrls.set(id, photoBlob(id).then(b => URL.createObjectURL(b), e => { avatarUrls.delete(id); throw e }))
+  }
+  return avatarUrls.get(id)
+}
 export const fetchConnections = (id, kind) => api('/api/social/connections' + q({ id, kind })).then(r => r.users || [])
 export const setFollow = (id, follow) => post('/api/social/follow', { id, follow }).then(r => r.user)
 export const fetchFeed = before => api('/api/social/feed' + q({ before }))

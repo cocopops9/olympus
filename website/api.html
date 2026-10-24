@@ -2276,7 +2276,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">Edit your profile</span>
   </summary>
   <div class="ep-body">
-<p>Sets the caller's bio (160 characters at most), whether the profile is private, and whether social events send a push. Making a private profile public accepts every pending request.</p>
+<p>Sets the caller's bio (160 characters at most), profile picture, whether the profile is private, and whether social events send a push. Making a private profile public accepts every pending request.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
 <p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
@@ -2294,6 +2294,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">pushSocial</span>
     <span class="p-type">boolean</span>
     <span class="p-desc">Push for likes</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">avatar</span>
+    <span class="p-type">string | null</span>
+    <span class="p-desc">Profile picture: the id of a photo the caller uploaded (POST /api/social/photos) and has not posted, or null to remove it. The picture it replaces is deleted.</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>
@@ -5115,6 +5120,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">bio</span>
     <span class="p-type">string</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">avatar</span>
+    <span class="p-type">string | null</span>
+    <span class="p-desc">Photo id of the profile picture (GET /api/social/photo)</span>
   </div>
   <div class="prow">
     <span class="p-name">followers</span>

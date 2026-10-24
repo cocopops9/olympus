@@ -2373,4 +2373,12 @@ export default {
   "{0} follow requests": "คำขอติดตาม {0} รายการ",
   "Up to {0} photo per post.": "โพสต์ละไม่เกิน {0} รูป",
   "Up to {0} photos per post.": "โพสต์ละไม่เกิน {0} รูป",
+  "Uploading photo…": "กำลังอัปโหลดรูป…",
+  "Profile picture updated": "อัปเดตรูปโปรไฟล์แล้ว",
+  "Profile picture": "รูปโปรไฟล์",
+  "Choose a new photo": "เลือกรูปใหม่",
+  "Profile picture removed": "ลบรูปโปรไฟล์แล้ว",
+  "Change profile picture": "เปลี่ยนรูปโปรไฟล์",
+  "Switch to dark mode": "เปลี่ยนเป็นโหมดมืด",
+  "Switch to light mode": "เปลี่ยนเป็นโหมดสว่าง",
 }

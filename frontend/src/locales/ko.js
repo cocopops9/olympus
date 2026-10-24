@@ -2362,4 +2362,12 @@ export default {
   "{0} follow requests": "팔로우 요청 {0}개",
   "Up to {0} photo per post.": "게시물당 사진은 최대 {0}장이에요.",
   "Up to {0} photos per post.": "게시물당 사진은 최대 {0}장이에요.",
+  "Uploading photo…": "사진 업로드 중…",
+  "Profile picture updated": "프로필 사진이 업데이트되었습니다",
+  "Profile picture": "프로필 사진",
+  "Choose a new photo": "새 사진 선택",
+  "Profile picture removed": "프로필 사진이 삭제되었습니다",
+  "Change profile picture": "프로필 사진 변경",
+  "Switch to dark mode": "다크 모드로 전환",
+  "Switch to light mode": "라이트 모드로 전환",
 }

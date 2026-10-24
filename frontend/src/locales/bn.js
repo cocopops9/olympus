@@ -2441,4 +2441,12 @@ export default {
   "{0} follow requests": "{0}টি ফলো অনুরোধ",
   "Up to {0} photo per post.": "প্রতি পোস্টে সর্বোচ্চ {0}টি ছবি।",
   "Up to {0} photos per post.": "প্রতি পোস্টে সর্বোচ্চ {0}টি ছবি।",
+  "Uploading photo…": "ছবি আপলোড হচ্ছে…",
+  "Profile picture updated": "প্রোফাইল ছবি হালনাগাদ হয়েছে",
+  "Profile picture": "প্রোফাইল ছবি",
+  "Choose a new photo": "নতুন ছবি বেছে নিন",
+  "Profile picture removed": "প্রোফাইল ছবি সরানো হয়েছে",
+  "Change profile picture": "প্রোফাইল ছবি বদলান",
+  "Switch to dark mode": "ডার্ক মোডে যান",
+  "Switch to light mode": "লাইট মোডে যান",
 }

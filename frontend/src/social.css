@@ -11,6 +11,15 @@
 }
 :root[data-theme="light"] .avatar{background:hsl(var(--h) 60% 44%)}
 .avatar.lg{--av:76px}
+.avatar.xl{--av:132px}
+.avatar.ph{background:var(--surface-2);overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+button.prof-av{display:inline-flex;vertical-align:top;background:none;border:0;padding:0;border-radius:50%;cursor:pointer;position:relative;color:inherit}
+button.prof-av .prof-av-cam{position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;background:var(--acc);color:var(--on-acc,#000);box-shadow:0 0 0 3px var(--bg)}
+button.prof-av .prof-av-cam .icn{width:15px;height:15px}
+.prof-av-edit{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;margin:2px 0 14px;
+  background:none;border:0;padding:0;color:var(--acc);font:inherit;font-size:15px;font-weight:500;cursor:pointer}
 .avatar.sm{--av:30px}
 
 /* ---------- post card ---------- */

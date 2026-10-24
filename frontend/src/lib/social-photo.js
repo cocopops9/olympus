@@ -31,3 +31,21 @@ export async function preparePhoto(file) {
   ctx.drawImage(img, 0, 0, w, h)
   return canvas.toDataURL('image/jpeg', QUALITY)
 }
+
+const AVATAR_SIDE = 512
+
+/** A File as a profile picture: the centre square, 512 px, JPEG (metadata dropped the same way). */
+export async function prepareAvatar(file) {
+  const img = await decode(file)
+  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height
+  const side = Math.min(w, h)
+  const out = Math.min(AVATAR_SIDE, side)
+  const canvas = document.createElement('canvas')
+  canvas.width = out
+  canvas.height = out
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, out, out)
+  ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, out, out)
+  return canvas.toDataURL('image/jpeg', QUALITY)
+}

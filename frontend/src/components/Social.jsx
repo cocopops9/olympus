@@ -13,9 +13,9 @@ import { speedUnitOf } from '../lib/speed.js'
 import {
   initialsOf, hueOf, workoutPostSummary, createPost, deletePost, setLike, addComment,
   deleteComment, setFollow, saveProfile, fetchConnections, socialErrorText, followLabel,
-  uploadPhoto, photoBlob, fetchBlocked, setBlock, removeFollower,
+  uploadPhoto, photoBlob, fetchBlocked, setBlock, removeFollower, avatarUrl,
 } from '../lib/social.js'
-import { preparePhoto } from '../lib/social-photo.js'
+import { preparePhoto, prepareAvatar } from '../lib/social-photo.js'
 import { Button, TextArea, TextField, SelectRow, Section, Row, Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../social.css'
@@ -41,10 +41,55 @@ const nameOfEntry = e => (EXIDX[e.id] ? exerciseNameFor(EXIDX[e.id]) : (e.n || e
 /** A logged workout as the summary a post carries, in the profile's own units and names. */
 export const summaryOf = (w, S) => workoutPostSummary(w, { unit: S.unit, nameOf: nameOfEntry, speedUnit: speedUnitOf(S) })
 
+// The profile picture when there is one and it has loaded; the coloured initials until then,
+// and for good if it cannot be fetched.
 export function Avatar({ user, size }) {
-  return <span className={'avatar' + (size ? ' ' + size : '')} style={{ '--h': hueOf(user?.id) }} aria-hidden="true">
-    {initialsOf(user?.name)}
+  const id = user?.avatar || null
+  const [url, setUrl] = useState(null)
+  useEffect(() => {
+    let live = true
+    setUrl(null)
+    if (id) avatarUrl(id).then(u => { if (live) setUrl(u) }, () => {})
+    return () => { live = false }
+  }, [id])
+  return <span className={'avatar' + (size ? ' ' + size : '') + (url ? ' ph' : '')} style={{ '--h': hueOf(user?.id) }} aria-hidden="true">
+    {url ? <img src={url} alt="" /> : initialsOf(user?.name)}
   </span>
+}
+
+/** Pick a new profile picture (or remove it); `onSaved` gets your profile as it now is. */
+export function avatarSheet(me, onSaved) {
+  const pick = () => {
+    // In the page while the picker is open: some WebViews ignore a click on a detached input.
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.style.display = 'none'
+    document.body.appendChild(input)
+    input.onchange = async () => {
+      const f = input.files && input.files[0]
+      input.remove()
+      if (!f) return
+      toast(t('Uploading photo…'))
+      try {
+        const id = await uploadPhoto(await prepareAvatar(f))
+        onSaved?.(await saveProfile({ avatar: id }))
+        toast(t('Profile picture updated'))
+      } catch (e) { fail(e) }
+    }
+    input.click()
+  }
+  if (!me?.avatar) { pick(); return }
+  useUI.getState().openSheet(close => <>
+    <h3>{t('Profile picture')}</h3>
+    <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 16px' }}><Avatar user={me} size="xl" /></div>
+    <Button variant="primary" icon="camera" onClick={() => { close(); pick() }}>{t('Choose a new photo')}</Button>
+    <div style={{ height: 8 }} />
+    <Button variant="danger" icon="trash" onClick={() => {
+      close()
+      saveProfile({ avatar: null }).then(u => { onSaved?.(u); toast(t('Profile picture removed')) }, fail)
+    }}>{t('Remove photo')}</Button>
+  </>)
 }
 
 /* ---------------- photos ---------------- */
@@ -299,8 +344,14 @@ function ProfileEditor({ close, me, onSaved }) {
     setBusy(true)
     try { onSaved?.(await saveProfile({ bio: text.trim(), private: priv, pushSocial: push })); close() } catch (e) { fail(e); setBusy(false) }
   }
+  const [shown, setShown] = useState(me)
+  const changed = u => { setShown(m => ({ ...m, ...u })); onSaved?.(u) }
   return <>
     <h3>{t('Edit profile')}</h3>
+    <button className="prof-av-edit" onClick={() => avatarSheet(shown, changed)} aria-label={t('Change profile picture')}>
+      <Avatar user={shown} size="lg" />
+      <span>{t('Change profile picture')}</span>
+    </button>
     <div className="small muted" style={{ marginBottom: 6 }}>{t('Bio')}</div>
     <TextArea rows={3} maxLength={160} value={text} placeholder={t('Goals, sport, the gym you train at…')} onChange={e => setText(e.target.value)} />
     <div className="small dim" style={{ textAlign: 'end', margin: '4px 2px 12px' }}>{text.length}/160</div>

@@ -210,7 +210,9 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
 
   const authorOf = uid => {
     const u = userById(uid);
-    return u ? { id: u.id, name: u.name } : null;
+    if (!u) return null;
+    const avatar = prof(uid).avatar;
+    return avatar ? { id: u.id, name: u.name, avatar } : { id: u.id, name: u.name };
   };
 
   // A profile as `viewer` sees it. Null when the viewer may not know it exists: it blocked them.
@@ -221,6 +223,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       id: u.id,
       name: u.name,
       bio: prof(u.id).bio || '',
+      avatar: prof(u.id).avatar || null,
       private: isPrivate(u.id),
       followers: followersOf(u.id).filter(id => !blockedEither(id, u.id)).length,
       following: followsOf(u.id).filter(userById).length,
@@ -315,7 +318,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
   }
   function sweepOrphans() {
     const cutoff = now() - LIMITS.photoOrphanMs;
-    const stale = Object.keys(doc.photos).filter(id => !doc.photos[id].postId && doc.photos[id].ts < cutoff);
+    const stale = Object.keys(doc.photos).filter(id => !doc.photos[id].postId && !doc.photos[id].avatar && doc.photos[id].ts < cutoff);
     if (stale.length) { dropPhotos(stale); save(); }
     return stale.length;
   }
@@ -327,7 +330,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     if (ids.length > LIMITS.photosPerPost) throw new SocialError(400, `at most ${LIMITS.photosPerPost} photos per post`, 'too-many-photos');
     for (const id of ids) {
       const meta = doc.photos[id];
-      if (!meta || meta.uid !== viewer.id || meta.postId) throw new SocialError(400, 'unknown photo', 'bad-photos');
+      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar) throw new SocialError(400, 'unknown photo', 'bad-photos');
     }
     return ids;
   }
@@ -357,6 +360,18 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const cur = { ...prof(viewer.id) };
       if (body.bio !== undefined) cur.bio = str(body.bio, LIMITS.bio);
       if (body.pushSocial !== undefined) cur.pushSocial = body.pushSocial !== false;
+      // The profile picture: a photo this profile uploaded and has not posted, or null to remove
+      // it. The picture it replaces is deleted.
+      if (body.avatar !== undefined && (body.avatar || null) !== (cur.avatar || null)) {
+        const id = body.avatar || null;
+        if (id !== null) {
+          const meta = typeof id === 'string' && ID_RE.test(id) ? doc.photos[id] : null;
+          if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar) throw new SocialError(400, 'unknown photo', 'bad-photos');
+          meta.avatar = true;
+        }
+        if (cur.avatar) dropPhotos([cur.avatar]);
+        if (id) cur.avatar = id; else delete cur.avatar;
+      }
       if (body.private !== undefined) {
         const was = cur.private === true;
         cur.private = body.private === true;
@@ -585,11 +600,14 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return { id };
     },
 
-    // Where a photo's bytes are, if `viewer` may see it: its owner, or anyone who can see its post.
+    // Where a photo's bytes are, if `viewer` may see it: its owner, anyone who can see its post,
+    // or, for a profile picture, anyone the profile has not blocked (it shows in search too).
     photo(viewer, id) {
       const meta = typeof id === 'string' && ID_RE.test(id) ? doc.photos[id] : null;
       if (!meta) throw new SocialError(404, 'photo not found', 'no-photo');
-      if (meta.uid !== viewer.id) {
+      if (meta.uid !== viewer.id && meta.avatar) {
+        if (blocked(meta.uid, viewer.id) || !userById(meta.uid)) throw new SocialError(404, 'photo not found', 'no-photo');
+      } else if (meta.uid !== viewer.id) {
         const p = meta.postId ? doc.posts.find(x => x.id === meta.postId) : null;
         if (!p || !canSee(viewer.id, p.uid)) throw new SocialError(404, 'photo not found', 'no-photo');
       }
