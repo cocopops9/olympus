@@ -62,6 +62,10 @@ const pic = await call('GET', '/api/social/photo?id=' + up.body.id, { token: a, 
 const bytes = Buffer.from(await pic.arrayBuffer());
 ok(pic.status === 200 && pic.headers.get('content-type') === 'image/jpeg' && bytes[0] === 0xff && !bytes.includes(Buffer.from('Exif')), 'photo served, metadata stripped', `${pic.status} ${bytes.length}`);
 
+// A new profile is never the founder: only the server's first profile is.
+const meA = await call('GET', '/api/social/profile', { token: a });
+ok(meA.status === 200 && !meA.body?.user?.founder, 'a new profile carries no founder mark', JSON.stringify(meA.body?.user?.founder));
+
 // Profile picture: set by B, seen by A on B's posts and profile, then removed.
 const av = await call('POST', '/api/social/photos', { token: b, body: { data: 'data:image/jpeg;base64,' + jpeg.toString('base64') } });
 const setAv = await call('POST', '/api/social/profile', { token: b, body: { avatar: av.body?.id } });
