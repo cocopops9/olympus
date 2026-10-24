@@ -1,0 +1,28 @@
+# Olympus: checks the live Supabase server the way the phone app uses it (scripts/supabase-e2e.mjs)
+# whenever the server code or the check changes. The address is the repository variable
+# OLYMPUS_SERVER, or the project this repository deploys to.
+name: Supabase server check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'scripts/supabase-e2e.mjs'
+      - '.github/workflows/supabase-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node scripts/supabase-e2e.mjs
+        env:
+          OLYMPUS_SERVER: ${{ vars.OLYMPUS_SERVER || 'https://jmhvabcwzrnzscbtqblk.supabase.co/functions/v1/olympus' }}
