@@ -57,6 +57,26 @@ export function Avatar({ user, size }) {
   </span>
 }
 
+// The founder's seal: a gold rosette with a check, the shape people read as "verified".
+export function FounderBadge() {
+  return <svg className="founder-badge" viewBox="0 0 24 24" role="img" aria-label={t('Founder of Olympus')}>
+    <title>{t('Founder of Olympus')}</title>
+    <defs><linearGradient id="fb-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stopColor="#ffe68a" /><stop offset=".5" stopColor="#f2b705" /><stop offset="1" stopColor="#c98a00" />
+    </linearGradient></defs>
+    <path fill="url(#fb-gold)" d="M12 1.6l2.3 1.7 2.8-.4 1.1 2.6 2.6 1.1-.4 2.8 1.7 2.3-1.7 2.3.4 2.8-2.6 1.1-1.1 2.6-2.8-.4L12 22.4l-2.3-1.7-2.8.4-1.1-2.6-2.6-1.1.4-2.8L1.9 12l1.7-2.3-.4-2.8 2.6-1.1 1.1-2.6 2.8.4Z" />
+    <path d="m7.6 12.3 3 3 5.8-6.2" fill="none" stroke="#3a2600" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+}
+
+/** A person's name; the founder's in gold with the seal after it. */
+export function Name({ user }) {
+  if (!user) return null
+  return user.founder
+    ? <span className="uname founder"><span className="uname-t">{user.name}</span><FounderBadge /></span>
+    : <>{user.name}</>
+}
+
 /** Pick a new profile picture (or remove it); `onSaved` gets your profile as it now is. */
 export function avatarSheet(me, onSaved) {
   const pick = () => {
@@ -189,7 +209,7 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
     <div className="post-h">
       <Avatar user={post.author} />
       <button className="post-who" onClick={() => openAuthor(post.author.id)}>
-        <div className="post-name">{post.author.name}</div>
+        <div className="post-name"><Name user={post.author} /></div>
         <div className="post-ago">{fmtAgo(post.ts)}</div>
       </button>
       {(post.mine || me?.admin) && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
@@ -209,7 +229,7 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
     {showComments && <div className="post-c">
       {post.comments.map(c => <div key={c.id} className="cmt">
         <Avatar user={c.author} size="sm" />
-        <div className="cmt-b"><b onClick={() => openAuthor(c.author.id)}>{c.author.name}</b>{c.text}
+        <div className="cmt-b"><b onClick={() => openAuthor(c.author.id)}><Name user={c.author} /></b>{c.text}
           <div className="post-ago">{fmtAgo(c.ts)}</div></div>
         {(c.mine || post.mine) && <button className="cmt-x" onClick={() => removeComment(c)} aria-label={t('Delete comment')}><Icon name="xmark" /></button>}
       </div>)}
@@ -245,7 +265,7 @@ export function PersonRow({ user, onChange, onOpen, action }) {
   return <div className="person" role="button" tabIndex={0} onClick={open} onKeyDown={e => { if (e.key === 'Enter') open() }}>
     <Avatar user={user} />
     <div className="person-m">
-      <div className="person-n">{user.name}{user.private && <Icon name="lock" className="person-lock" aria-label={t('Private profile')} />}</div>
+      <div className="person-n"><Name user={user} />{user.private && <Icon name="lock" className="person-lock" aria-label={t('Private profile')} />}</div>
       <div className="person-s">{user.bio || [tn('{0} follower', '{0} followers', user.followers || 0), tn('{0} post', '{0} posts', user.posts || 0)].join(' · ')}</div>
     </div>
     {action || <FollowButton user={user} onChange={onChange} />}
@@ -386,7 +406,7 @@ function Blocked() {
     {users === null ? <div className="empty">{t('Loading…')}</div>
       : users.length ? users.map(u => <div key={u.id} className="person">
         <Avatar user={u} />
-        <div className="person-m"><div className="person-n">{u.name}</div></div>
+        <div className="person-m"><div className="person-n"><Name user={u} /></div></div>
         <Button size="sm" onClick={() => unblock(u)}>{t('Unblock')}</Button>
       </div>) : <div className="empty">{t('You have not blocked anyone.')}</div>}
   </>

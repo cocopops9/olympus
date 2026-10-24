@@ -1468,4 +1468,7 @@ export const PT_BR_OVERRIDES = {
 
 export default { ...pt, ...PT_BR_OVERRIDES,
   "Uploading photo…": "Enviando foto…",
+  "My exercises": "Meus exercícios",
+  "Tap the muscle you want to train": "Toque no músculo que você quer treinar",
+  "Yours": "Seus",
 }

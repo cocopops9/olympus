@@ -27,6 +27,7 @@ import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberFie
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
+import ExerciseGuide from './components/ExerciseGuide.jsx'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet } from './components/Social.jsx'
 import { socialReady } from './lib/social.js'
@@ -1288,8 +1289,21 @@ function usageMap(st) {
 }
 // The swap pickers' own scope (#473): exercises sharing the swapped exercise's target muscle.
 const SAME = '≈'
+// The picker opens on the body (components/ExerciseGuide.jsx); its search list is one tap away.
+// A swap opens on the search list, which starts on the exercises for the same muscle. The tests
+// written for the search list keep it as the first screen; a test of the body sets
+// globalThis.__olympusGuide.
+const guideFirst = () => import.meta.env?.MODE !== 'test' || globalThis.__olympusGuide === true
 function ExercisePicker({ onPick, title, close, like }) {
+  const [mode, setMode] = useState(() => (!like && guideFirst() ? 'guide' : 'search'))
+  if (mode === 'guide') return <ExerciseGuide onPick={onPick} title={title}
+    onSearch={() => setMode('search')} onCreate={() => customExSheet(null, ex => onPick(ex))} />
+  return <ExerciseSearch onPick={onPick} title={title} close={close} like={like} onBody={guideFirst() && !like ? () => setMode('guide') : null} />
+}
+function ExerciseSearch({ onPick, title, close, like, onBody }) {
   const st = useStore(s => s.S)
+  // Opened from the body's "Search by name": the keyboard comes up at once.
+  useEffect(() => { if (onBody) searchRef.current?.focus() }, [])
   const usage = usageMap(st)
   const [q, setQ] = useState('')
   // What a swap is away from: the picker opens on what trains the same muscle, if anything you
@@ -1365,8 +1379,11 @@ function ExercisePicker({ onPick, title, close, like }) {
   </>
 
   return <>
-    <div className="row between" style={{ marginBottom: 10 }}><h3>{title || t('Add exercise')}</h3>
-      <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => setByMuscle(true)}>{t('By muscle')}</Button>
+    <div className="row between" style={{ marginBottom: 10 }}>
+      {onBody
+        ? <div className="row" style={{ gap: 8 }}><button className="iconbtn" onClick={onBody} aria-label={t('Back')}><Icon name="chevronLeft" /></button><h3 style={{ margin: 0 }}>{title || t('Add exercise')}</h3></div>
+        : <h3>{title || t('Add exercise')}</h3>}
+      <Button size="sm" variant="tinted" icon="figureStrength" onClick={() => (onBody ? onBody() : setByMuscle(true))}>{onBody ? t('Body') : t('By muscle')}</Button>
     </div>
     {/* .picker-search is what index.css keys the keyboard-aware sheet layout on: the sheet
         lifts above the keys and the search stays put while the list scrolls under it. */}

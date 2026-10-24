@@ -11,7 +11,7 @@ import { streakWeeks } from '../lib/history.js'
 import { Button, Segmented, Section, Row } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
-import { Avatar, avatarSheet, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
+import { Avatar, Name, avatarSheet, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
 import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { Calendar, WorkoutRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
@@ -131,7 +131,7 @@ export default function Profile() {
           <span className="prof-av-cam" aria-hidden="true"><Icon name="camera" /></span>
         </button>
         : <Avatar user={user || { id: 'local', name }} size="lg" />}
-      <div className="prof-n">{name}</div>
+      <div className="prof-n">{ready && me?.founder ? <Name user={{ ...me, name }} /> : name}</div>
       {ready && me?.private && <p className="prof-bio small"><Icon name="lock" className="person-lock" /> {t('Private profile')}</p>}
       {ready && me?.bio && <p className="prof-bio">{me.bio}</p>}
       {ready && requests > 0 && <Button size="sm" variant="tinted" icon="person" style={{ marginTop: 10 }} onClick={() => nav('/notifications')}>

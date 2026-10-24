@@ -150,8 +150,9 @@ export function createApp({ store, photos, now = () => Date.now() }) {
       if (nameTaken(db.users, name)) { out = { status: 409, body: { error: 'another profile already signs in with this name', code: 'name-taken' } }; return; }
       if (email && db.users.some(u => u.email === email)) { out = { status: 409, body: { error: 'another profile already uses this e-mail address', code: 'email-taken' } }; return; }
       const created = new Date(now()).toISOString();
-      // The first profile on a new server is its admin, as with FIRST_USER_ADMIN on the Node server.
-      const user = { id: crypto.randomBytes(12).toString('base64url'), name, created, pw: { h, set: created }, ...(email ? { email } : {}), ...(db.users.length ? {} : { admin: true }) };
+      // The first profile on a new server is its admin, as with FIRST_USER_ADMIN on the Node server,
+      // and its founder (the badge api/social.js shows), which is never handed on.
+      const user = { id: crypto.randomBytes(12).toString('base64url'), name, created, pw: { h, set: created }, ...(email ? { email } : {}), ...(db.users.length ? {} : { admin: true, founder: true }) };
       db.users.push(user);
       set('db', db);
       out = { status: 200, body: { user: publicUser(user), token: await makeSession(user) } };

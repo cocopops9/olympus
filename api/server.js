@@ -60,6 +60,8 @@ const FIRST_USER_ADMIN = /^(1|true|yes|on)$/i.test(process.env.FIRST_USER_ADMIN 
 function claimFirstAdmin(req, user) {
   if (!FIRST_USER_ADMIN || db.users.length !== 0) return;
   user.admin = true;
+  // Also the founder (api/social.js shows the badge); unlike admin it never passes to anyone else.
+  user.founder = true;
   audit(req, 'admin.first-user', { user });
 }
 // Guest mode ("Continue without account") keeps everything in the browser and never touches this

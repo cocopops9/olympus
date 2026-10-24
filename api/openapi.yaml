@@ -4177,6 +4177,7 @@ components:
         name: { type: string }
         bio: { type: string }
         avatar: { type: [string, 'null'], description: Photo id of the profile picture (GET /api/social/photo), or null. }
+        founder: { type: boolean, description: 'Present and true for the founder of this server (its first profile): shown with a badge. Set by the server, never by a request.' }
         followers: { type: integer }
         following: { type: integer }
         posts: { type: integer }

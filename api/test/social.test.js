@@ -357,6 +357,19 @@ test('a profile picture: shown on the profile and its posts, seen past private, 
   assert.equal(s.post(DANA, p.id).author.avatar, undefined);
 });
 
+test('the founder mark comes from the user record and shows wherever the name does', t => {
+  const FOUNDER = { id: 'u_found', name: 'Giuseppe', founder: true };
+  const { s } = store(t, [FOUNDER, BEN]);
+  s.setProfile(FOUNDER, { founder: false, bio: 'x' });
+  assert.equal(s.profile(BEN, FOUNDER.id).user.founder, true, 'a request cannot take it off');
+  s.setProfile(BEN, { founder: true });
+  assert.equal(s.profile(FOUNDER, BEN.id).user.founder, undefined, 'nor put it on');
+  const p = s.createPost(FOUNDER, { text: 'first' });
+  assert.equal(p.author.founder, true);
+  assert.equal(s.post(BEN, p.id).author.founder, true);
+  assert.equal(s.createPost(BEN, { text: 'hi' }).author.founder, undefined);
+});
+
 test('a version 1 document is read as it was', t => {
   const { dir } = store(t, [ANNA]);
   fs.writeFileSync(path.join(dir, 'social.json'), JSON.stringify({ v: 1, follows: { u_anna: ['u_ben'] }, posts: [{ id: 'p1', uid: 'u_anna', ts: 5, text: 'old', likes: [], comments: [] }], profiles: {} }));

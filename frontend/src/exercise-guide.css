@@ -1,0 +1,47 @@
+/* The body-first exercise picker (components/ExerciseGuide.jsx). Built on the index.css tokens,
+   so both themes and every accent colour carry over. */
+
+.eg-search{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;margin-bottom:12px;
+  border:0;border-radius:14px;background:var(--surface-2);color:var(--label-2);font:inherit;font-size:16px;text-align:start;cursor:pointer}
+.eg-search .icn{width:18px;height:18px}
+.eg-equip{margin:0 2px 10px;gap:6px;align-items:center}
+.eg-equip .chip{margin-inline-start:auto;padding:3px 10px;font-size:12px}
+
+.eg-body{position:relative;border-radius:22px;padding:14px 10px 10px;margin-bottom:12px;overflow:hidden;
+  background:radial-gradient(120% 80% at 50% 30%,color-mix(in srgb,var(--acc) 14%,var(--surface)) 0%,var(--surface) 70%)}
+.eg-hint{display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600;color:var(--label);margin-bottom:8px}
+.eg-hint .icn{color:var(--acc);width:16px;height:16px}
+.eg-map{gap:14px}
+.eg-map .bm-v{max-height:min(52vh,400px)}
+/* Every muscle reads as something to press: lightly tinted, brighter under the finger. */
+.eg-map .bm-m{fill:color-mix(in srgb,var(--acc) 22%,var(--bm-base))}
+.eg-map .bm-m:hover{fill:color-mix(in srgb,var(--acc) 55%,var(--bm-base))}
+.eg-map .bm-m.sel{fill:var(--acc);stroke:var(--surface);filter:drop-shadow(0 0 8px var(--acc))}
+.eg-sides{display:flex;justify-content:space-around;margin-top:4px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--label-2)}
+
+.eg-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.eg-tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:14px;border:0;border-radius:18px;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--tint) 24%,var(--surface)) 0%,var(--surface) 75%);
+  color:var(--label);font:inherit;text-align:start;cursor:pointer;transition:transform var(--fast,.12s) var(--ease,ease)}
+.eg-tile:active{transform:scale(.97)}
+.eg-tile:disabled{opacity:.4}
+.eg-ico{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;margin-bottom:8px;
+  background:color-mix(in srgb,var(--tint) 28%,transparent);color:var(--tint)}
+.eg-ico .icn{width:22px;height:22px}
+.eg-tl{font-size:16px;font-weight:650}
+.eg-ts{font-size:12.5px;color:var(--label-2);line-height:1.3}
+
+.eg-mine{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;margin-bottom:8px;border:0;border-radius:14px;
+  background:var(--surface);color:var(--label);font:inherit;font-size:15px;font-weight:550;text-align:start;cursor:pointer}
+.eg-mine>.icn:first-child{color:var(--acc)}
+.eg-mine>.icn:last-child{color:var(--label-3,var(--label-2))}
+
+.eg-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.eg-filter{margin-bottom:12px}
+.eg-sec{display:flex;align-items:center;gap:6px;margin:14px 2px 8px}
+.eg-sec .icn{width:14px;height:14px;color:var(--acc)}
+.eg-row .tt{font-size:16px}
+.eg-add{flex:none;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:50%;
+  background:var(--acc-soft,color-mix(in srgb,var(--acc) 18%,transparent));color:var(--acc);cursor:pointer}
+.eg-add:active{transform:scale(.9)}
+.eg-add .icn{width:18px;height:18px}

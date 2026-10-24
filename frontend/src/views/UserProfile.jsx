@@ -10,7 +10,7 @@ import { t } from '../lib/i18n.js'
 import { socialReady, fetchProfile, socialErrorText } from '../lib/social.js'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import { Avatar, PostCard, FollowButton, connectionsSheet, toggleBlock } from '../components/Social.jsx'
+import { Avatar, Name, PostCard, FollowButton, connectionsSheet, toggleBlock } from '../components/Social.jsx'
 import '../social.css'
 
 export default function UserProfile() {
@@ -72,7 +72,7 @@ export default function UserProfile() {
     {error ? <div className="empty">{error}</div> : !user ? <div className="empty">{t('Loading…')}</div> : <>
       <div className="prof">
         <Avatar user={user} size="lg" />
-        <div className="prof-n">{user.name}{user.private && <Icon name="lock" className="person-lock" aria-label={t('Private profile')} />}</div>
+        <div className="prof-n"><Name user={user} />{user.private && <Icon name="lock" className="person-lock" aria-label={t('Private profile')} />}</div>
         {user.bio && <p className="prof-bio">{user.bio}</p>}
         {user.followsMe && !user.blockedByMe && <p className="prof-bio small">{t('Follows you')}</p>}
         <div className="prof-counts">

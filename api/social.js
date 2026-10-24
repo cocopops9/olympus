@@ -212,7 +212,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     const u = userById(uid);
     if (!u) return null;
     const avatar = prof(uid).avatar;
-    return avatar ? { id: u.id, name: u.name, avatar } : { id: u.id, name: u.name };
+    return { id: u.id, name: u.name, ...(avatar ? { avatar } : {}), ...(u.founder ? { founder: true } : {}) };
   };
 
   // A profile as `viewer` sees it. Null when the viewer may not know it exists: it blocked them.
@@ -224,6 +224,9 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       name: u.name,
       bio: prof(u.id).bio || '',
       avatar: prof(u.id).avatar || null,
+      // The app's founder, shown with a badge and a golden name. Set on the user record by the
+      // server (the first profile of a new server), never by a request, and never handed on.
+      ...(u.founder ? { founder: true } : {}),
       private: isPrivate(u.id),
       followers: followersOf(u.id).filter(id => !blockedEither(id, u.id)).length,
       following: followsOf(u.id).filter(userById).length,
