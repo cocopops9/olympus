@@ -1,15 +1,15 @@
 # Olympus: checks the live Supabase server the way the phone app uses it (scripts/supabase-e2e.mjs)
-# whenever the server code or the check changes. The address is the repository variable
+# after every deploy of the function. The address is the repository variable
 # OLYMPUS_SERVER, or the project this repository deploys to.
 name: Supabase server check
 
 on:
   push:
     branches: [main]
+    # supabase/DEPLOYED names the commit the live function runs; it changes right after a deploy,
+    # so the check runs against the code it is meant to check.
     paths:
-      - 'supabase/**'
-      - 'scripts/supabase-e2e.mjs'
-      - '.github/workflows/supabase-e2e.yml'
+      - 'supabase/DEPLOYED'
   workflow_dispatch:
 
 permissions:

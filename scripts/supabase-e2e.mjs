@@ -79,6 +79,13 @@ ok(after.status === 404, 'blocked: their photo is no longer reachable', String(a
 const del = await call('POST', '/api/social/posts/delete', { token: b, body: { id: post.body.post.id } });
 ok(del.status === 200, 'the author deletes the post');
 
+// Leave nothing behind: both test profiles delete themselves.
+for (const [tok, pw, who] of [[a, 'e2e correct horse battery A', 'Ana'], [b, 'e2e correct horse battery B', 'Ben']]) {
+  const gone = await call('POST', '/api/account/delete', { token: tok, body: { password: pw } });
+  ok(gone.status === 200, `test profile ${who} deletes itself`, JSON.stringify(gone.body));
+}
+ok((await call('GET', '/api/me', { token: a })).status === 401, 'a deleted profile is signed out');
+
 console.log(`${failed ? 'FAILED' : 'passed'} in ${Date.now() - t0} ms`);
 if (!failed) console.log('::notice title=Olympus e2e::all checks passed against ' + BASE);
 process.exit(failed ? 1 : 0);

@@ -243,6 +243,24 @@ export function createApp({ store, photos, now = () => Date.now() }) {
       return { status: 200, body: { ok: true, token } };
     },
 
+    // Deleting one's own profile, confirmed with its password: the account, its training document,
+    // and everything of it in the social layer (posts, photos, likes, comments, follows).
+    'POST /api/account/delete': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      if (!(await verifyPassword(text(body.password), user.pw?.h))) return { status: 401, body: { error: 'your current password is not right', code: 'current-wrong' } };
+      await withSocial(s => s.removeUser(user.id));
+      await store.update(['db', 'state:' + user.id], ({ get, set }) => {
+        const db = get('db');
+        db.users = usersOf(db).filter(u => u.id !== user.id);
+        // The first profile left becomes the admin when the admin leaves.
+        if (db.users.length && !db.users.some(u => u.admin)) db.users[0].admin = true;
+        set('db', db);
+        set('state:' + user.id, null);
+      });
+      return { status: 200, body: { ok: true } };
+    },
+
     // Training data: the same document, revision and conflict rules as the Node server.
     'GET /api/data': async req => {
       const { user } = await signedIn(req);

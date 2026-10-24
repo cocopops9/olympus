@@ -131,3 +131,19 @@ test('concurrent writes to one document are serialized', async () => {
   const both = await Promise.all([1, 2].map(i => s.call('PUT', '/api/data', { token, body: { state: { workouts: [{ id: 'w' + i }], routines: [] }, baseRev: 1 } })));
   assert.deepEqual(both.map(r => r.status).sort(), [200, 409]);
 });
+
+test('a profile deletes itself with its password, and nothing of it stays', async () => {
+  const s = server();
+  const ana = await signup(s, 'Ana');
+  const ben = await signup(s, 'Ben', PW + ' b');
+  await s.call('PUT', '/api/data', { token: ana.token, body: { state: { workouts: [{ id: 'w1' }], routines: [] } } });
+  await s.call('POST', '/api/social/posts', { token: ana.token, body: { text: 'bye' } });
+  await s.call('POST', '/api/social/follow', { token: ben.token, body: { id: ana.user.id } });
+  assert.equal((await s.call('POST', '/api/account/delete', { token: ana.token, body: { password: 'wrong one' } })).status, 401);
+  assert.equal((await s.call('POST', '/api/account/delete', { token: ana.token, body: { password: PW } })).status, 200);
+  assert.equal((await s.call('GET', '/api/me', { token: ana.token })).status, 401);
+  assert.deepEqual((await s.call('GET', '/api/social/discover', { token: ben.token })).body.posts, []);
+  assert.deepEqual((await s.call('GET', '/api/social/search?q=Ana', { token: ben.token })).body.users, []);
+  assert.equal(s.store.docs.get('state:' + ana.user.id), null);
+  assert.equal((await s.call('GET', '/api/me', { token: ben.token })).body.user.admin, true, 'the admin role passes on');
+});
