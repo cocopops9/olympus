@@ -23,6 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { Buffer } from 'node:buffer';
 
 export const LIMITS = Object.freeze({
   postText: 1000,
@@ -140,7 +141,11 @@ export function stripPng(buf) {
 
 /* ---------------- the store ---------------- */
 
-export function createSocial({ dataDir, write, users, now = () => Date.now(), onNotify = () => {} }) {
+// `io` (optional) replaces the files: { read() -> text or null, save(text), writePhoto(id, type,
+// bytes), deletePhoto(id, type) }. Olympus on Supabase keeps the document in Postgres and the
+// photos in Storage this way (supabase/functions/olympus). Without it, everything is files in
+// `dataDir`, as on the Node server.
+export function createSocial({ dataDir = '.', write, users, now = () => Date.now(), onNotify = () => {}, io = null }) {
   const file = path.join(dataDir, 'social.json');
   const photoDir = path.join(dataDir, 'social-photos');
   let doc = load();
@@ -150,9 +155,14 @@ export function createSocial({ dataDir, write, users, now = () => Date.now(), on
 
   function load() {
     let raw;
-    try { raw = fs.readFileSync(file, 'utf8'); } catch (e) {
-      if (e.code === 'ENOENT') return EMPTY();
-      throw e;
+    if (io) {
+      raw = io.read();
+      if (raw == null) return EMPTY();
+    } else {
+      try { raw = fs.readFileSync(file, 'utf8'); } catch (e) {
+        if (e.code === 'ENOENT') return EMPTY();
+        throw e;
+      }
     }
     try {
       const v = JSON.parse(raw);
@@ -167,12 +177,13 @@ export function createSocial({ dataDir, write, users, now = () => Date.now(), on
     } catch (err) {
       // Kept aside, never overwritten: the next save would otherwise replace every post.
       const aside = `${file}.unreadable-${Date.now()}`;
+      if (io) throw err;   // a database copy is never replaced by an empty one: the request fails instead
       try { fs.copyFileSync(file, aside); } catch { /* the original stays where it is */ }
       console.error(`social.json cannot be read (${err.message}); kept a copy as ${path.basename(aside)}, starting empty`);
       return EMPTY();
     }
   }
-  const save = () => write(file, JSON.stringify(doc));
+  const save = () => (io ? io.save(JSON.stringify(doc)) : write(file, JSON.stringify(doc)));
 
   const userById = id => users().find(u => u.id === id && !u.disabled) || null;
   const followsOf = uid => doc.follows[uid] || [];
@@ -297,7 +308,8 @@ export function createSocial({ dataDir, write, users, now = () => Date.now(), on
     for (const id of ids || []) {
       const meta = doc.photos[id];
       if (!meta) continue;
-      try { fs.unlinkSync(photoPath(id, meta.type)); } catch { /* already gone */ }
+      if (io) io.deletePhoto(id, meta.type);
+      else try { fs.unlinkSync(photoPath(id, meta.type)); } catch { /* already gone */ }
       delete doc.photos[id];
     }
   }
@@ -563,8 +575,11 @@ export function createSocial({ dataDir, write, users, now = () => Date.now(), on
       if (mine >= LIMITS.photosPerUser) throw new SocialError(409, 'photo storage for this profile is full', 'photos-full');
       budget(viewer.id, 'photo', LIMITS.photosPerHour);
       const id = rid(12);
-      fs.mkdirSync(photoDir, { recursive: true, mode: 0o700 });
-      write(photoPath(id, type), buf);
+      if (io) io.writePhoto(id, type, buf);
+      else {
+        fs.mkdirSync(photoDir, { recursive: true, mode: 0o700 });
+        write(photoPath(id, type), buf);
+      }
       doc.photos[id] = { uid: viewer.id, ts: now(), type, size: buf.length, postId: null };
       save();
       return { id };
@@ -578,7 +593,7 @@ export function createSocial({ dataDir, write, users, now = () => Date.now(), on
         const p = meta.postId ? doc.posts.find(x => x.id === meta.postId) : null;
         if (!p || !canSee(viewer.id, p.uid)) throw new SocialError(404, 'photo not found', 'no-photo');
       }
-      return { file: photoPath(id, meta.type), type: meta.type === 'png' ? 'image/png' : 'image/jpeg', size: meta.size };
+      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : 'image/jpeg', size: meta.size };
     },
 
     sweepOrphans,

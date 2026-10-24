@@ -24,6 +24,18 @@ export function normalizeServerUrl(raw) {
   } catch (e) { return null }
 }
 
+// Olympus: a server address that may carry a path, as the built-in server does (a Supabase
+// function answers under https://<project>.supabase.co/functions/v1/olympus). Same rules as
+// normalizeServerUrl, keeping the path without its trailing slash. Only for addresses this app
+// ships with: an address someone types is cut to its origin, which is what they mean.
+export function normalizeServerBase(raw) {
+  const origin = normalizeServerUrl(raw)
+  if (!origin) return null
+  const s = String(raw || '').trim()
+  const u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(s) ? s : 'https://' + s)
+  return origin + u.pathname.replace(/\/+$/, '')
+}
+
 export async function loadRemote() {
   return loadRemoteFile()
 }
@@ -62,7 +74,7 @@ export async function connect(rawUrl, code) {
 // Olympus: the same as connect(), with a name and a password for the app's built-in server
 // (lib/app-info.js DEFAULT_SERVER) instead of a pairing code. `mode`: 'signup' or 'login'.
 export async function connectWithAccount(rawUrl, mode, creds) {
-  const base = normalizeServerUrl(rawUrl)
+  const base = normalizeServerBase(rawUrl)
   if (!base) throw new Error('Enter a valid server address')
   const { token, user } = await appAccount(base, mode, creds)
   setRemoteAuth(base, token)

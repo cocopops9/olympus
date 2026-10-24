@@ -15,6 +15,7 @@
  * past that the caller is told to come back rather than the process being walked into its
  * memory limit by a burst of logins. */
 import crypto from 'node:crypto';
+import { Buffer } from 'node:buffer';
 
 export const MIN_LENGTH = 10;
 // Long passphrases are the point, so the cap is only there to bound the work: scrypt runs its

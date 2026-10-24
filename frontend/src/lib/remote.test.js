@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { normalizeServerUrl } from './remote.js'
+import { normalizeServerUrl, normalizeServerBase } from './remote.js'
 
 // The pairing flow lives or dies on this being forgiving about what someone types on a phone
 // keyboard, while still refusing input that can't possibly be a server address.
@@ -23,5 +23,13 @@ describe('normalizeServerUrl', () => {
     for (const v of ['', '   ', null, undefined, 'not a url at all!!']) {
       expect(normalizeServerUrl(v)).toBe(null)
     }
+  })
+})
+
+describe('normalizeServerBase', () => {
+  it('keeps the path of a built-in address, without its trailing slash', () => {
+    expect(normalizeServerBase('https://abc.supabase.co/functions/v1/olympus/')).toBe('https://abc.supabase.co/functions/v1/olympus')
+    expect(normalizeServerBase('gym.example.com')).toBe('https://gym.example.com')
+    expect(normalizeServerBase('not a url')).toBe(null)
   })
 })

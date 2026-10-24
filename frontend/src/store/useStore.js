@@ -19,7 +19,7 @@ import { countChanges, syncFingerprint } from '../lib/sync-changes.js'
 import { saveWorkoutEdit, deleteEditedWorkout } from '../lib/session-edit.js'
 import { appBase } from '../lib/app-base.js'
 import { linkTokenFromSearch, stripLinkFromUrl } from '../lib/device-link.js'
-import { loadRemote, chooseLocal, forgetRemote, connect, connectWithAccount, normalizeServerUrl, renewToken } from '../lib/remote.js'
+import { loadRemote, chooseLocal, forgetRemote, connect, connectWithAccount, normalizeServerUrl, normalizeServerBase, renewToken } from '../lib/remote.js'
 import { loadCfAccess } from '../lib/cf-access.js'
 import { loadCoachDevice, saveCoachDevice, coachDeviceSettings } from '../lib/coach-device.js'
 import { RTL_LANGS } from '../lib/i18n-core.js'
@@ -1780,19 +1780,20 @@ export const useStore = create((set, get) => {
     // account pairing again merges what the phone kept (adoptProfile).
     async connectToServer(url, code, ask) {
       const user = await connect(url, code)   // throws on a bad URL/expired code — caller shows it
-      await get().joinedServer(url, user, ask)
+      await get().joinedServer(normalizeServerUrl(url), user, ask)
     },
     // Olympus: the built-in server, with a name and a password instead of a pairing code.
     async joinServer(url, mode, creds, ask) {
       const user = await connectWithAccount(url, mode, creds)   // throws: the caller shows why
-      await get().joinedServer(url, user, ask)
+      await get().joinedServer(normalizeServerBase(url), user, ask)
     },
-    async joinedServer(url, user, ask) {
+    // `base`: the server's address as the requests use it (normalized by the caller).
+    async joinedServer(base, user, ask) {
       // The account first, the address after: a copy another account still owed is kept aside
       // for it under the server it belongs to, not the one being paired.
       get().setUser(user, { adopt: true })
       if (keeping) { await keeping; keeping = null }
-      pairedBase = normalizeServerUrl(url)
+      pairedBase = base
       setSync({ server: pairedBase })
       await get().refreshConfig()   // what this server offers (the Coach, guest mode) — see boot()
       await get().adoptProfile(ask)
