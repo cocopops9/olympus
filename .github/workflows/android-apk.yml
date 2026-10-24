@@ -45,11 +45,11 @@ jobs:
       - run: npm ci
         working-directory: frontend
       # The server the app joins by itself (lib/app-info.js DEFAULT_SERVER): the repository variable
-      # OLYMPUS_SERVER, e.g. https://olympus.example.org. Unset, the app keeps manual pairing.
+      # OLYMPUS_SERVER when it is set; otherwise this repository's own server on Oracle Cloud.
       - run: npm run build:mobile
         working-directory: frontend
         env:
-          VITE_OLYMPUS_SERVER: ${{ vars.OLYMPUS_SERVER }}
+          VITE_OLYMPUS_SERVER: ${{ vars.OLYMPUS_SERVER || 'https://92-4-167-76.sslip.io' }}
 
       # Secrets, when the repository has them, replace the public keystore in frontend/android.
       - name: Keystore from secrets
