@@ -76,7 +76,12 @@ post deleted after 24 hours; the newest 200 notifications per profile. Photos ar
 
 ### 1. The server (needed for the social features)
 
-**Free and always on:** [deploy/oracle/README.md](deploy/oracle/README.md) puts it on an Oracle
+**What the APK uses:** a free Supabase project. The server's job runs there as one Edge Function
+with the data in Postgres; nothing to keep running. See [supabase/README.md](supabase/README.md)
+for what it covers and its limits (no passkeys, push or Coach; the free project pauses after a
+week without use).
+
+**Your own server instead**, with every feature: [deploy/oracle/README.md](deploy/oracle/README.md) puts it on an Oracle
 Cloud *Always Free* VM. You create the account and the VM and paste one script; the VM installs
 everything, gets HTTPS on a free `sslip.io` address and updates itself from GitHub every night.
 With that address set as the repository variable `OLYMPUS_SERVER`, the APK joins the server by
