@@ -61,6 +61,16 @@ ok(disc.body?.posts?.some(p => p.id === post.body.post.id), 'the other profile d
 const pic = await call('GET', '/api/social/photo?id=' + up.body.id, { token: a, raw: true });
 const bytes = Buffer.from(await pic.arrayBuffer());
 ok(pic.status === 200 && pic.headers.get('content-type') === 'image/jpeg' && bytes[0] === 0xff && !bytes.includes(Buffer.from('Exif')), 'photo served, metadata stripped', `${pic.status} ${bytes.length}`);
+
+// Profile picture: set by B, seen by A on B's posts and profile, then removed.
+const av = await call('POST', '/api/social/photos', { token: b, body: { data: 'data:image/jpeg;base64,' + jpeg.toString('base64') } });
+const setAv = await call('POST', '/api/social/profile', { token: b, body: { avatar: av.body?.id } });
+ok(setAv.status === 200 && setAv.body?.user?.avatar === av.body?.id, 'profile picture set', JSON.stringify(setAv.body));
+const seenAv = await call('GET', '/api/social/photo?id=' + av.body.id, { token: a, raw: true });
+ok(seenAv.status === 200, 'profile picture seen by another profile', String(seenAv.status));
+const clearAv = await call('POST', '/api/social/profile', { token: b, body: { avatar: null } });
+const goneAv = await call('GET', '/api/social/photo?id=' + av.body.id, { token: b });
+ok(clearAv.body?.user?.avatar === null && goneAv.status === 404, 'profile picture removed and deleted', `${JSON.stringify(clearAv.body?.user?.avatar)} ${goneAv.status}`);
 await call('POST', '/api/social/follow', { token: a, body: { id: bid } });
 await call('POST', '/api/social/posts/like', { token: a, body: { id: post.body.post.id } });
 await call('POST', '/api/social/posts/comment', { token: a, body: { id: post.body.post.id, text: 'strong' } });
