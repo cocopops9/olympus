@@ -22,7 +22,11 @@ export const store = {
       const cur = new Map(rows.map(r => [r.key, r.doc]));
       const pending = new Map();
       const result = await fn({ get: k => (pending.has(k) ? pending.get(k) : (cur.get(k) ?? null)), set: (k, v) => pending.set(k, v) });
-      for (const [k, v] of pending) await tx`update olympus.docs set doc = ${tx.json(v)}, updated_at = now() where key = ${k}`;
+      // A document set to null is removed: a profile deleted takes its training document with it.
+      for (const [k, v] of pending) {
+        if (v == null) await tx`delete from olympus.docs where key = ${k}`;
+        else await tx`update olympus.docs set doc = ${tx.json(v)}, updated_at = now() where key = ${k}`;
+      }
       return result;
     });
   },

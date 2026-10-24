@@ -144,6 +144,6 @@ test('a profile deletes itself with its password, and nothing of it stays', asyn
   assert.equal((await s.call('GET', '/api/me', { token: ana.token })).status, 401);
   assert.deepEqual((await s.call('GET', '/api/social/discover', { token: ben.token })).body.posts, []);
   assert.deepEqual((await s.call('GET', '/api/social/search?q=Ana', { token: ben.token })).body.users, []);
-  assert.equal(s.store.docs.get('state:' + ana.user.id), null);
+  assert.equal(s.store.docs.has('state:' + ana.user.id), false);
   assert.equal((await s.call('GET', '/api/me', { token: ben.token })).body.user.admin, true, 'the admin role passes on');
 });

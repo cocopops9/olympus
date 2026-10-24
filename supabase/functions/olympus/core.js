@@ -396,7 +396,8 @@ export function memoryStore() {
       const run = chain.then(async () => {
         const pending = new Map();
         const r = await fn({ get: k => (pending.has(k) ? pending.get(k) : clone(docs.get(k))), set: (k, v) => pending.set(k, clone(v)) });
-        for (const [k, v] of pending) docs.set(k, v);
+        // As in Postgres (store.js): a document set to null is removed, never stored as null.
+        for (const [k, v] of pending) { if (v == null) docs.delete(k); else docs.set(k, v); }
         return r;
       });
       chain = run.catch(() => {});
