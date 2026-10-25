@@ -101,6 +101,24 @@ const renamed = await call('POST', '/api/account/name', { token: b, body: { name
 const meB = await call('GET', '/api/me', { token: b });
 ok(renamed.status === 200 && meB.body?.user?.name === tag + ' renamed', 'a profile renames itself', JSON.stringify(renamed.body));
 
+// An auto-posted workout posted twice (an offline retry) stays one post.
+const wk = { name: tag + ' Chest', d: '2026-10-25', sets: 3, exercises: [{ n: 'bench press', sets: 3, best: '60 kg x 8' }] };
+const p1 = await call('POST', '/api/social/posts', { token: b, body: { wid: 'e2e' + Date.now().toString(36), workout: wk } });
+const p2 = await call('POST', '/api/social/posts', { token: b, body: { wid: p1.body?.post?.wid, workout: wk } });
+ok(p1.status === 200 && p2.body?.post?.id === p1.body?.post?.id, 'a workout posted twice stays one post', JSON.stringify(p2.body).slice(0, 200));
+if (p1.body?.post?.id) await call('POST', '/api/social/posts/delete', { token: b, body: { id: p1.body.post.id } });
+
+// Hercules: the state is answered; a message only when a provider key is set (it is spent then).
+const hs = await call('GET', '/api/hercules', { token: b });
+ok(hs.status === 200 && typeof hs.body?.on === 'boolean' && hs.body?.perDay > 0, 'Hercules says whether it is on', JSON.stringify(hs.body));
+if (hs.body?.on) {
+  const ans = await call('POST', '/api/hercules', { token: b, body: { messages: [{ role: 'user', content: 'In one sentence: how many sets per muscle per week for a beginner?' }], lang: 'en', context: 'Workouts logged: 0.' } });
+  ok(ans.status === 200 && typeof ans.body?.reply === 'string' && ans.body.reply.length > 0 && ans.body.left === hs.body.left - 1, 'Hercules answers and counts the message', JSON.stringify(ans.body).slice(0, 200));
+} else {
+  const off = await call('POST', '/api/hercules', { token: b, body: { messages: [{ role: 'user', content: 'hi' }] } });
+  ok(off.status === 503 && off.body?.code === 'hercules-off', 'without a key Hercules says it is not set up', JSON.stringify(off.body));
+}
+
 // Leave nothing behind: both test profiles delete themselves.
 for (const [tok, pw, who] of [[a, 'e2e correct horse battery A', 'Ana'], [b, 'e2e correct horse battery B', 'Ben']]) {
   const gone = await call('POST', '/api/account/delete', { token: tok, body: { password: pw } });
