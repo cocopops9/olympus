@@ -109,7 +109,8 @@ ok(p1.status === 200 && p2.body?.post?.id === p1.body?.post?.id, 'a workout post
 const ed = await call('POST', '/api/social/posts/edit', { token: b, body: { id: p1.body?.post?.id, text: 'Felt strong', workout: { ...wk, name: tag + ' Bench day' } } });
 ok(ed.status === 200 && ed.body?.post?.text === 'Felt strong' && ed.body?.post?.workout?.name === tag + ' Bench day', 'the author adds a description and a new title to a workout post', JSON.stringify(ed.body).slice(0, 200));
 const edA = await call('POST', '/api/social/posts/edit', { token: a, body: { id: p1.body?.post?.id, text: 'not mine' } });
-ok(edA.status === 403, 'nobody else can change it', String(edA.status));
+// 404 when the other profile cannot even see it (blocked earlier in this run), 403 otherwise.
+ok(edA.status === 403 || edA.status === 404, 'nobody else can change it', String(edA.status));
 if (p1.body?.post?.id) await call('POST', '/api/social/posts/delete', { token: b, body: { id: p1.body.post.id } });
 
 // Hercules: the state is answered; a message only when a provider key is set (it is spent then).
