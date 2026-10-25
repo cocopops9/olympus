@@ -2663,6 +2663,43 @@ paths:
         '400': { description: 'Nothing to post (`empty`), or following yourself (`self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: 'Too many posts or comments in the last hour (`rate-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/social/posts/edit:
+    post:
+      tags: [social]
+      operationId: socialPostEdit
+      summary: Change a post
+      description: |
+        The author changes the text, the photos or the workout summary of a post (the app uses it
+        for the title, description and photos added after a workout). A field left out stays as
+        it was. `photos` is the whole new list: ids already on the post are kept, new ids from
+        POST /api/social/photos are added, and photos no longer listed are deleted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+                text: { type: string, maxLength: 1000 }
+                photos: { type: array, maxItems: 4, items: { type: string } }
+                workout: { $ref: '#/components/schemas/PostWorkout' }
+            example: { id: "aB3dE5fG7", text: "New bench PR!", photos: ["k2j3h4g5f6d7"] }
+      responses:
+        '200':
+          description: The post as it is now.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post: { $ref: '#/components/schemas/Post' }
+        '400': { description: 'Nothing left in it (`empty`), or a photo that cannot be attached (`bad-photos`, `too-many-photos`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: 'No such post (`no-post`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/social/posts/delete:
     post:
       tags: [social]

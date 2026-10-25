@@ -29,7 +29,7 @@ import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseGuide from './components/ExerciseGuide.jsx'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
-import { composeSheet } from './components/Social.jsx'
+import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
 import { titleWorkout } from './lib/workout-title.js'
 import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn } from './lib/auto-post.js'
 import { socialReady } from './lib/social.js'
@@ -2600,13 +2600,15 @@ function WorkoutDetail({ w, close }) {
     <Button icon="copy" onClick={copyAsText}>{t('Copy as text')}</Button>
     <div style={{ height: 8 }} />
     {/* Olympus: the saved workout as a post in the feed (components/Social.jsx). Needs a server profile. */}
-    {socialReady(user) && <><Button icon="globe" onClick={() => {
+    {socialReady(user) && <><Button icon={postState(S(), w).state === 'posted' || postState(S(), w).state === 'waiting' ? 'pencil' : 'globe'} onClick={() => {
       saveNote()
       initial.current = latest.current.trim().slice(0, NOTE_MAX)
       const rec = S().workouts.find(x => sameWorkout(x, w)) || w
       close()
-      composeSheet({ workout: rec })
-    }}>{t('Post to feed')}</Button>
+      // A workout that is a post already: its title, description and photos. Any other: a new post.
+      if (rec.id && ['posted', 'waiting'].includes(postState(S(), rec).state)) postEditorSheet(rec)
+      else composeSheet({ workout: rec })
+    }}>{['posted', 'waiting'].includes(postState(S(), w).state) ? t('Edit post') : t('Post to feed')}</Button>
     <div style={{ height: 8 }} /></>}
     <Button icon="share" onClick={shareAsImage}>{t('Share as image')}</Button>
     <div style={{ height: 8 }} />
@@ -3379,6 +3381,10 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
       {prs.map(id => <div key={id} className="small accent row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} <span className={exerciseNameClass(EXIDX[id])}>{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span></div>)}
       {e1prs.map(p => <div key={p.id} className="small accent row" style={{ gap: 5 }}><Icon name="chartLine" style={{ fontSize: 13 }} />{t('Best estimated 1RM:')} <span className={exerciseNameClass(EXIDX[p.id])}>{EXIDX[p.id] ? exerciseNameFor(EXIDX[p.id]) : p.id}</span> · {fmtNum(p.est)} {st.unit}</div>)}
     </div>}
+    {/* Olympus: the workout is posted on its own; this says where that stands and can take it back,
+        and the post's title, description and photos are written right here. */}
+    {socialReady(user) && <PostStatus w={w} />}
+    {socialReady(user) && ['waiting', 'posted'].includes(postState(st, w).state) && <PostEditor w={w} />}
     <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>
     <BodyMap load={loadOfWorkouts([w])} body={st.body} />
     <div style={{ height: 14 }} />
@@ -3387,8 +3393,6 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    {/* Olympus: the workout is posted on its own; this says where that stands and can take it back. */}
-    {socialReady(user) && <PostStatus w={w} />}
     <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
   </div>
 }

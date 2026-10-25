@@ -2452,4 +2452,12 @@ export default {
   "{0} messages left today": "Bugün {0} mesaj kaldı",
   "Not posted: no set was checked off.": "Paylaşılmadı: hiçbir set işaretlenmedi.",
   "Not posted: posting every workout is off.": "Paylaşılmadı: her antrenmanı paylaşma kapalı.",
+  "Your post": "Gönderin",
+  "Title": "Başlık",
+  "Description": "Açıklama",
+  "Save post": "Gönderiyi kaydet",
+  "Post saved": "Gönderi kaydedildi",
+  "Saved. It will be sent when you are back online.": "Kaydedildi. Tekrar çevrimiçi olduğunda gönderilecek.",
+  "Photos need a connection. Add them once you are back online.": "Fotoğraflar için bağlantı gerekir. Tekrar çevrimiçi olduğunda ekle.",
+  "Edit post": "Gönderiyi düzenle",
 }

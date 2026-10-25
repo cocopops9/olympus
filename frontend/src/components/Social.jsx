@@ -22,7 +22,7 @@ import { AccountSection } from './AccountEdit.jsx'
 import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
-import { POSTED_EVENT, autoPostOn, forgetPost, flushPosts } from '../lib/auto-post.js'
+import { POSTED_EVENT, autoPostOn, forgetPost, flushPosts, postDetails, setPostDetails } from '../lib/auto-post.js'
 export { POSTED_EVENT }
 const MAX_PHOTOS = 4
 const toast = m => useUI.getState().toast(m)
@@ -242,6 +242,9 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
         <div className="post-name"><Name user={post.author} /></div>
         <div className="post-ago">{fmtAgo(post.ts)}</div>
       </button>
+      {post.mine && post.wid && useStore.getState().S.workouts.some(w => w.id === post.wid) && <button className="iconbtn"
+        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos })}
+        aria-label={t('Edit post')}><Icon name="pencil" /></button>}
       {(post.mine || me?.admin) && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
     </div>
     {post.text && <p className="post-text">{post.text}</p>}
@@ -379,6 +382,90 @@ function Composer({ close, workout, onPosted }) {
     </Button>
   </>
 }
+/* ---------------- a workout's own post: title, description, photos ---------------- */
+
+// A photo already on the post, shown from the server.
+function PostedThumb({ id }) {
+  const { url } = usePhotoUrl(id)
+  return url ? <img src={url} alt="" /> : null
+}
+
+/**
+ * The title, description and photos of logged workout `w`'s post, after the workout (the finish
+ * screen) or later (the post's pencil, the workout's sheet). The title is the workout's name.
+ * Saved into the training document and sent from there (lib/auto-post.js), so text written
+ * offline goes out once the phone is back online; photos are uploaded as they are picked and
+ * need a connection. `initial` is the post as the server has it, when it is open from the feed.
+ */
+export function PostEditor({ w, initial = null, onSaved }) {
+  const S = useStore(s => s.S)
+  const rec = S.workouts.find(x => x.id === w.id) || w
+  const pending = postDetails(S, w)
+  const [title, setTitle] = useState(rec.name || '')
+  const [text, setText] = useState(pending?.text ?? initial?.text ?? '')
+  const [photos, setPhotos] = useState(() => (pending?.photos ?? initial?.photos ?? []).map(id => ({ key: id, id, preview: null })))
+  const [saved, setSaved] = useState(false)
+  const fileRef = useRef(null)
+  const uploading = photos.some(p => !p.id)
+  const offline = () => typeof navigator !== 'undefined' && navigator.onLine === false
+
+  const addPhotos = async files => {
+    if (offline()) { toast(t('Photos need a connection. Add them once you are back online.')); return }
+    const room = MAX_PHOTOS - photos.length
+    const list = [...files].slice(0, Math.max(0, room))
+    if (files.length > room) toast(tn('Up to {0} photo per post.', 'Up to {0} photos per post.', MAX_PHOTOS))
+    for (const file of list) {
+      const key = Math.random().toString(36).slice(2)
+      let data
+      try { data = await preparePhoto(file) } catch (e) { fail(e); continue }
+      setSaved(false)
+      setPhotos(ps => [...ps, { key, preview: data, id: null }])
+      uploadPhoto(data).then(
+        id => setPhotos(ps => ps.map(p => (p.key === key ? { ...p, id } : p))),
+        e => { fail(e); setPhotos(ps => ps.filter(p => p.key !== key)) })
+    }
+  }
+  const save = () => {
+    if (uploading) return
+    useStore.getState().update(s => setPostDetails(s, rec, { title, text, photos: photos.map(p => p.id) }))
+    flushPosts().catch(() => {})
+    setSaved(true)
+    toast(offline() ? t('Saved. It will be sent when you are back online.') : t('Post saved'))
+    onSaved?.()
+  }
+  const change = fn => v => { setSaved(false); fn(v) }
+
+  return <div className="pe">
+    <div className="pe-h"><Icon name="share" />{t('Your post')}</div>
+    <input className="input pe-title" maxLength={80} value={title} placeholder={t('Title')} aria-label={t('Title')}
+      onChange={e => change(setTitle)(e.target.value)} />
+    <textarea className="field area" rows={3} maxLength={1000} value={text} placeholder={t('How did training go?')}
+      aria-label={t('Description')} onChange={e => change(setText)(e.target.value)} />
+    {photos.length > 0 && <div className="cmp-phs">
+      {photos.map(p => <div key={p.key} className={'cmp-ph' + (p.id ? '' : ' busy')}>
+        {p.preview ? <img src={p.preview} alt="" /> : <PostedThumb id={p.id} />}
+        <button className="cmp-ph-x" onClick={() => { setSaved(false); setPhotos(ps => ps.filter(x => x.key !== p.key)) }} aria-label={t('Remove photo')}><Icon name="xmark" /></button>
+      </div>)}
+    </div>}
+    <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+      onChange={e => { const f = e.target.files; if (f && f.length) addPhotos(f); e.target.value = '' }} />
+    <div className="pe-a">
+      <Button size="sm" icon="camera" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
+        {photos.length ? t('Add another photo') : t('Add photos')}
+      </Button>
+      <Button size="sm" variant="primary" icon={saved ? 'check' : undefined} disabled={uploading || saved} onClick={save}>
+        {uploading ? t('Uploading photos…') : saved ? t('Post saved') : t('Save post')}
+      </Button>
+    </div>
+  </div>
+}
+
+/** The editor in a sheet of its own: a workout's post opened from the feed or from the workout. */
+export const postEditorSheet = (w, initial) => useUI.getState().openSheet(close => <>
+  <h3>{t('Edit post')}</h3>
+  <PostEditor w={w} initial={initial} onSaved={close} />
+</>)
+
 /** Write a post; `workout` (a logged workout) is attached when given. */
 export const composeSheet = ({ workout, onPosted } = {}) =>
   useUI.getState().openSheet(close => <Composer close={close} workout={workout} onPosted={onPosted} />)

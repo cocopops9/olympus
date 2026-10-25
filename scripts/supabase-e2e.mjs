@@ -106,6 +106,10 @@ const wk = { name: tag + ' Chest', d: '2026-10-25', sets: 3, exercises: [{ n: 'b
 const p1 = await call('POST', '/api/social/posts', { token: b, body: { wid: 'e2e' + Date.now().toString(36), workout: wk } });
 const p2 = await call('POST', '/api/social/posts', { token: b, body: { wid: p1.body?.post?.wid, workout: wk } });
 ok(p1.status === 200 && p2.body?.post?.id === p1.body?.post?.id, 'a workout posted twice stays one post', JSON.stringify(p2.body).slice(0, 200));
+const ed = await call('POST', '/api/social/posts/edit', { token: b, body: { id: p1.body?.post?.id, text: 'Felt strong', workout: { ...wk, name: tag + ' Bench day' } } });
+ok(ed.status === 200 && ed.body?.post?.text === 'Felt strong' && ed.body?.post?.workout?.name === tag + ' Bench day', 'the author adds a description and a new title to a workout post', JSON.stringify(ed.body).slice(0, 200));
+const edA = await call('POST', '/api/social/posts/edit', { token: a, body: { id: p1.body?.post?.id, text: 'not mine' } });
+ok(edA.status === 403, 'nobody else can change it', String(edA.status));
 if (p1.body?.post?.id) await call('POST', '/api/social/posts/delete', { token: b, body: { id: p1.body.post.id } });
 
 // Hercules: the state is answered; a message only when a provider key is set (it is spent then).

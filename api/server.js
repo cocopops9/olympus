@@ -2673,6 +2673,11 @@ const routes = {
     const body = await readBody(req);
     json(res, 200, { post: SOCIAL.createPost(me, body) });
   },
+  'POST /api/social/posts/edit': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { post: SOCIAL.editPost(me, body) });
+  },
   'POST /api/social/posts/delete': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);

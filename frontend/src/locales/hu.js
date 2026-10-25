@@ -2455,4 +2455,12 @@ export default {
   "{0} messages left today": "Ma még {0} üzenet",
   "Not posted: no set was checked off.": "Nincs közzétéve: egy sorozat sincs kipipálva.",
   "Not posted: posting every workout is off.": "Nincs közzétéve: minden edzés közzététele ki van kapcsolva.",
+  "Your post": "A bejegyzésed",
+  "Title": "Cím",
+  "Description": "Leírás",
+  "Save post": "Bejegyzés mentése",
+  "Post saved": "Bejegyzés mentve",
+  "Saved. It will be sent when you are back online.": "Mentve. Elküldjük, amint újra online leszel.",
+  "Photos need a connection. Add them once you are back online.": "A fotókhoz kapcsolat kell. Add hozzá őket, amikor újra online leszel.",
+  "Edit post": "Bejegyzés szerkesztése",
 }

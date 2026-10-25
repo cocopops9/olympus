@@ -2456,4 +2456,12 @@ export default {
   "{0} messages left today": {"one": "Сегодня осталось {0} сообщение", "few": "Сегодня осталось {0} сообщения", "many": "Сегодня осталось {0} сообщений"},
   "Not posted: no set was checked off.": "Не опубликовано: ни один подход не отмечен.",
   "Not posted: posting every workout is off.": "Не опубликовано: публикация каждой тренировки выключена.",
+  "Your post": "Ваша публикация",
+  "Title": "Название",
+  "Description": "Описание",
+  "Save post": "Сохранить публикацию",
+  "Post saved": "Публикация сохранена",
+  "Saved. It will be sent when you are back online.": "Сохранено. Отправится, когда вы снова будете онлайн.",
+  "Photos need a connection. Add them once you are back online.": "Для фото нужно соединение. Добавьте их, когда снова будете онлайн.",
+  "Edit post": "Изменить публикацию",
 }

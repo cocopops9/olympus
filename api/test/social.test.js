@@ -528,3 +528,20 @@ test('a workout posted twice (an offline retry, a second device) stays one post'
   const d = s.createPost(ANNA, { wid: '../x y', workout: w });
   assert.equal(d.wid, undefined);
 });
+
+test('the author changes a post: text, photos kept, added and removed, the workout renamed', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  const a = s.uploadPhoto(ANNA, jpeg().toString('base64')).id, b = s.uploadPhoto(ANNA, jpeg().toString('base64')).id;
+  const w = { name: 'Chest', d: '2026-10-25', sets: 3, exercises: [{ n: 'bench press', sets: 3, best: '60 kg × 8' }] };
+  const p = s.createPost(ANNA, { wid: 'w1', workout: w, photos: [a] });
+  const edited = s.editPost(ANNA, { id: p.id, text: 'New bench PR!', photos: [a, b], workout: { ...w, name: 'Bench day' } });
+  assert.equal(edited.text, 'New bench PR!');
+  assert.deepEqual(edited.photos, [a, b]);
+  assert.equal(edited.workout.name, 'Bench day');
+  const less = s.editPost(ANNA, { id: p.id, photos: [b] });
+  assert.deepEqual(less.photos, [b]);
+  assert.equal(less.text, 'New bench PR!');
+  assert.throws(() => s.photo(ANNA, a), /photo/);
+  assert.throws(() => s.editPost(BEN, { id: p.id, text: 'mine now' }), e => e.status === 403);
+  assert.throws(() => s.editPost(ANNA, { id: p.id, photos: ['nope'] }), e => e.code === 'bad-photos');
+});

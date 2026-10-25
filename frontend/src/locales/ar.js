@@ -2507,4 +2507,12 @@ export default {
   "{0} messages left today": "تبقّت {0} رسائل اليوم",
   "Not posted: no set was checked off.": "لم يُنشر: لم تُحدَّد أي مجموعة.",
   "Not posted: posting every workout is off.": "لم يُنشر: نشر كل تمرين متوقف.",
+  "Your post": "منشورك",
+  "Title": "العنوان",
+  "Description": "الوصف",
+  "Save post": "حفظ المنشور",
+  "Post saved": "تم حفظ المنشور",
+  "Saved. It will be sent when you are back online.": "تم الحفظ. سيُرسل عند عودتك إلى الإنترنت.",
+  "Photos need a connection. Add them once you are back online.": "تحتاج الصور إلى اتصال. أضفها عند عودتك إلى الإنترنت.",
+  "Edit post": "تعديل المنشور",
 }

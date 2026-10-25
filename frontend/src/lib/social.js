@@ -52,6 +52,7 @@ export const setFollow = (id, follow) => post('/api/social/follow', { id, follow
 export const fetchFeed = before => api('/api/social/feed' + q({ before }))
 export const fetchDiscover = before => api('/api/social/discover' + q({ before }))
 export const createPost = ({ text, workout, photos, wid }) => post('/api/social/posts', { text, workout, photos: photos && photos.length ? photos : undefined, wid }).then(r => r.post)
+export const editPost = ({ id, text, photos, workout }) => post('/api/social/posts/edit', { id, text, photos, workout }).then(r => r.post)
 export const deletePost = id => post('/api/social/posts/delete', { id })
 export const setLike = (id, like) => post('/api/social/posts/like', { id, like }).then(r => r.post)
 export const addComment = (id, text) => post('/api/social/posts/comment', { id, text }).then(r => r.post)

@@ -114,7 +114,8 @@ export default function Feed() {
   useEffect(() => {
     const onPosted = e => {
       const p = e.detail
-      if (p && p.id) setPosts(list => (list && !list.some(x => x.id === p.id) ? [p, ...list] : list))
+      // A post changed after the fact (a title or photos added after the workout) replaces its old copy.
+      if (p && p.id) setPosts(list => (!list ? list : list.some(x => x.id === p.id) ? list.map(x => (x.id === p.id ? { ...x, ...p } : x)) : [p, ...list]))
     }
     window.addEventListener(POSTED_EVENT, onPosted)
     return () => window.removeEventListener(POSTED_EVENT, onPosted)

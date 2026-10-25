@@ -2445,4 +2445,12 @@ export default {
   "{0} messages left today": "今天還剩 {0} 則訊息",
   "Not posted: no set was checked off.": "未發布：沒有勾選任何一組。",
   "Not posted: posting every workout is off.": "未發布：「發布每次訓練」已關閉。",
+  "Your post": "你的貼文",
+  "Title": "標題",
+  "Description": "描述",
+  "Save post": "儲存貼文",
+  "Post saved": "貼文已儲存",
+  "Saved. It will be sent when you are back online.": "已儲存。重新連線後會送出。",
+  "Photos need a connection. Add them once you are back online.": "新增照片需要網路。重新連線後再新增。",
+  "Edit post": "編輯貼文",
 }

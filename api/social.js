@@ -532,6 +532,33 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return view(p, viewer);
     },
 
+    // The author changes a post: its text, its photos (kept, removed or added; a removed photo is
+    // deleted), and the workout summary (a renamed workout). What is not sent stays as it was.
+    editPost(viewer, body) {
+      const p = findPost(viewer, str(body?.id, 40));
+      if (p.uid !== viewer.id) throw new SocialError(403, 'only the author can change a post', 'forbidden');
+      const text = body?.text !== undefined ? str(body.text, LIMITS.postText) : (p.text || '');
+      const workout = body?.workout !== undefined ? cleanWorkout(body.workout) : (p.workout || null);
+      let photos = p.photos || [];
+      let fresh = [];
+      if (body?.photos !== undefined) {
+        if (!Array.isArray(body.photos)) throw new SocialError(400, 'photos must be a list', 'bad-photos');
+        const list = [...new Set(body.photos.filter(x => typeof x === 'string'))];
+        if (list.length > LIMITS.photosPerPost) throw new SocialError(400, `at most ${LIMITS.photosPerPost} photos per post`, 'too-many-photos');
+        fresh = attachable(viewer, list.filter(id => !photos.includes(id)));
+        photos = list;
+      }
+      if (!text && !workout && !photos.length) throw new SocialError(400, 'a post needs text, a workout or a photo', 'empty');
+      const gone = (p.photos || []).filter(id => !photos.includes(id));
+      for (const id of fresh) doc.photos[id].postId = p.id;
+      p.text = text;
+      if (workout) p.workout = workout; else delete p.workout;
+      if (photos.length) p.photos = photos; else delete p.photos;
+      dropPhotos(gone);
+      save();
+      return view(p, viewer);
+    },
+
     deletePost(viewer, id, { asAdmin = false } = {}) {
       const p = findPost(asAdmin ? null : viewer, id);
       if (p.uid !== viewer.id && !asAdmin) throw new SocialError(403, 'only the author can delete a post', 'forbidden');

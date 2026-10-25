@@ -12,17 +12,24 @@ vi.mock('../store/useStore.js', () => {
 })
 vi.mock('./social.js', async orig => ({
   ...(await orig()),
-  createPost: vi.fn(async ({ wid, workout }) => {
+  createPost: vi.fn(async ({ wid, workout, text, photos }) => {
     if (mocks.fail) throw mocks.fail
     const had = mocks.posts.find(p => p.wid === wid)
     if (had) return had
-    const p = { id: 'p' + (mocks.posts.length + 1), wid, workout }
+    const p = { id: 'p' + (mocks.posts.length + 1), wid, workout, text, photos }
     mocks.posts.push(p)
     return p
   }),
   deletePost: vi.fn(async id => { if (mocks.fail) throw mocks.fail; mocks.deleted.push(id); return { ok: true } }),
+  editPost: vi.fn(async ({ id, text, photos, workout }) => {
+    if (mocks.fail) throw mocks.fail
+    const p = mocks.posts.find(x => x.id === id)
+    if (!p) throw Object.assign(new Error('gone'), { status: 404 })
+    Object.assign(p, { text, photos, workout })
+    return p
+  }),
 }))
-import { queuePost, forgetPost, flushPosts, postState, unpost, repost } from './auto-post.js'
+import { queuePost, forgetPost, flushPosts, postState, unpost, repost, setPostDetails, postDetails } from './auto-post.js'
 
 const workout = id => ({ id, name: 'Chest', d: '2026-10-25', start: 1, end: 3600001, entries: [{ id: '0025', sets: [{ w: 60, r: 8, done: true }] }] })
 function setup(extra = {}) {
@@ -114,5 +121,44 @@ describe('auto-posting', () => {
     await flushPosts()
     expect(mocks.posts).toHaveLength(0)
     expect(st.S.postDel || []).toEqual([])
+  })
+
+  it('a title, description and photos written before the post went out go out with it', async () => {
+    const st = setup()
+    const w = st.S.workouts[0]
+    queuePost(st.S, w)
+    mocks.fail = Object.assign(new Error('offline'), { status: 0 })
+    await flushPosts()
+    setPostDetails(st.S, w, { title: 'Bench day', text: 'New PR!', photos: ['ph1'] })
+    expect(st.S.workouts[0].name).toBe('Bench day')
+    mocks.fail = null
+    await flushPosts()
+    expect(mocks.posts[0]).toMatchObject({ text: 'New PR!', photos: ['ph1'] })
+    expect(mocks.posts[0].workout.name).toBe('Bench day')
+    expect(postDetails(st.S, w)).toBe(null)
+  })
+
+  it('written after the post was made, they change the post', async () => {
+    const st = setup()
+    const w = st.S.workouts[0]
+    queuePost(st.S, w)
+    await flushPosts()
+    setPostDetails(st.S, w, { title: 'Chest day', text: 'Felt strong', photos: [] })
+    await flushPosts()
+    expect(mocks.posts).toHaveLength(1)
+    expect(mocks.posts[0]).toMatchObject({ text: 'Felt strong' })
+    expect(mocks.posts[0].workout.name).toBe('Chest day')
+    expect(postDetails(st.S, w)).toBe(null)
+  })
+
+  it('writing a post for a workout that was taken back posts it again', async () => {
+    const st = setup()
+    const w = st.S.workouts[0]
+    queuePost(st.S, w)
+    await flushPosts()
+    unpost(st.S, w)
+    await flushPosts()
+    setPostDetails(st.S, w, { title: 'Again', text: 'x' })
+    expect(postState(st.S, w).state).toBe('waiting')
   })
 })

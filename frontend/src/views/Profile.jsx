@@ -5,7 +5,7 @@
 // measurements, progress photos) and, with a server profile, your Posts. The month calendar
 // opens from the calendar button in the header. The screens that used to be tabs (Plan,
 // Exercises) and Settings are reached from the bottom of it.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
@@ -113,6 +113,8 @@ export default function Profile() {
 
   const [me, setMe] = useState(null)
   const [posts, setPosts] = useState(null)
+  const shownPosts = useRef(null)
+  shownPosts.current = posts
   const [error, setError] = useState(null)
   const load = () => {
     if (!ready) return
@@ -124,6 +126,8 @@ export default function Profile() {
     const onPosted = e => {
       const p = e.detail
       if (!p?.id) return
+      // A post changed after the fact (a title or photos added after the workout) replaces its copy.
+      if (shownPosts.current?.some(x => x.id === p.id)) { setPosts(list => list.map(x => (x.id === p.id ? { ...x, ...p } : x))); return }
       setPosts(list => (list && !list.some(x => x.id === p.id) ? [p, ...list] : list))
       setMe(m => (m ? { ...m, posts: m.posts + 1 } : m))
     }

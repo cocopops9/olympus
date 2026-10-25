@@ -2452,4 +2452,12 @@ export default {
   "{0} messages left today": "오늘 남은 메시지 {0}개",
   "Not posted: no set was checked off.": "게시 안 됨: 체크한 세트가 없어요.",
   "Not posted: posting every workout is off.": "게시 안 됨: 모든 운동 게시가 꺼져 있어요.",
+  "Your post": "내 게시물",
+  "Title": "제목",
+  "Description": "설명",
+  "Save post": "게시물 저장",
+  "Post saved": "게시물 저장됨",
+  "Saved. It will be sent when you are back online.": "저장했어요. 다시 온라인이 되면 보내집니다.",
+  "Photos need a connection. Add them once you are back online.": "사진을 추가하려면 연결이 필요해요. 다시 온라인이 되면 추가하세요.",
+  "Edit post": "게시물 수정",
 }

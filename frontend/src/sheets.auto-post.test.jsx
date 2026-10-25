@@ -54,6 +54,20 @@ describe('finishing a workout posts it', () => {
     expect(useStore.getState().S.wposts).toEqual({ fin1: '' })
     const host = renderTop()
     expect(host.querySelector('.post-status').textContent).toMatch(/Posting to your feed|posted when you are back online/)
+    // the title, description and photos can be written right there
+    const editor = host.querySelector('.pe')
+    expect(editor).toBeTruthy()
+    expect(editor.querySelector('.pe-title').value).toMatch(/^Chest /)
+    const set = (el, v) => {
+      const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
+      act(() => { Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })) })
+    }
+    set(editor.querySelector('.pe-title'), 'Bench PR day')
+    set(editor.querySelector('textarea'), 'Felt strong today')
+    act(() => [...editor.querySelectorAll('button')].find(b => b.textContent.includes('Save post')).click())
+    const S = useStore.getState().S
+    expect(S.workouts.at(-1).name).toBe('Bench PR day')
+    expect(S.wpostEdit.fin1).toEqual({ text: 'Felt strong today', photos: [] })
   })
 
   it('a workout with no set checked off is not posted, and the summary says why', () => {

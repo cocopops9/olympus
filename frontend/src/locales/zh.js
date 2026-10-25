@@ -2452,4 +2452,12 @@ export default {
   "{0} messages left today": "今天还剩 {0} 条消息",
   "Not posted: no set was checked off.": "未发布：没有勾选任何一组。",
   "Not posted: posting every workout is off.": "未发布：“发布每次训练”已关闭。",
+  "Your post": "你的动态",
+  "Title": "标题",
+  "Description": "描述",
+  "Save post": "保存动态",
+  "Post saved": "动态已保存",
+  "Saved. It will be sent when you are back online.": "已保存。重新联网后会发送。",
+  "Photos need a connection. Add them once you are back online.": "添加照片需要网络。重新联网后再添加。",
+  "Edit post": "编辑动态",
 }

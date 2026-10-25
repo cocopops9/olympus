@@ -2463,4 +2463,12 @@ export default {
   "{0} messages left today": "วันนี้เหลือ {0} ข้อความ",
   "Not posted: no set was checked off.": "ยังไม่ได้โพสต์: ไม่มีเซตที่ติ๊กไว้",
   "Not posted: posting every workout is off.": "ยังไม่ได้โพสต์: ปิดการโพสต์ทุกการออกกำลังกายอยู่",
+  "Your post": "โพสต์ของคุณ",
+  "Title": "ชื่อ",
+  "Description": "คำอธิบาย",
+  "Save post": "บันทึกโพสต์",
+  "Post saved": "บันทึกโพสต์แล้ว",
+  "Saved. It will be sent when you are back online.": "บันทึกแล้ว จะส่งเมื่อคุณกลับมาออนไลน์",
+  "Photos need a connection. Add them once you are back online.": "รูปภาพต้องใช้การเชื่อมต่อ เพิ่มเมื่อคุณกลับมาออนไลน์",
+  "Edit post": "แก้ไขโพสต์",
 }

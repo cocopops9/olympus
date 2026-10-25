@@ -2531,4 +2531,12 @@ export default {
   "{0} messages left today": "আজ {0}টি বার্তা বাকি",
   "Not posted: no set was checked off.": "পোস্ট হয়নি: কোনো সেট চিহ্নিত করা হয়নি।",
   "Not posted: posting every workout is off.": "পোস্ট হয়নি: প্রতিটি ওয়ার্কআউট পোস্ট করা বন্ধ আছে।",
+  "Your post": "আপনার পোস্ট",
+  "Title": "শিরোনাম",
+  "Description": "বিবরণ",
+  "Save post": "পোস্ট সেভ করুন",
+  "Post saved": "পোস্ট সেভ হয়েছে",
+  "Saved. It will be sent when you are back online.": "সেভ হয়েছে। আবার অনলাইনে এলে পাঠানো হবে।",
+  "Photos need a connection. Add them once you are back online.": "ছবির জন্য সংযোগ দরকার। আবার অনলাইনে এলে যোগ করুন।",
+  "Edit post": "পোস্ট সম্পাদনা",
 }

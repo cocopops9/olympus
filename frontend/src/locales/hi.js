@@ -2452,4 +2452,12 @@ export default {
   "{0} messages left today": "आज {0} संदेश बचे हैं",
   "Not posted: no set was checked off.": "पोस्ट नहीं हुआ: कोई सेट चेक नहीं किया गया।",
   "Not posted: posting every workout is off.": "पोस्ट नहीं हुआ: हर वर्कआउट पोस्ट करना बंद है।",
+  "Your post": "आपकी पोस्ट",
+  "Title": "शीर्षक",
+  "Description": "विवरण",
+  "Save post": "पोस्ट सेव करें",
+  "Post saved": "पोस्ट सेव हुई",
+  "Saved. It will be sent when you are back online.": "सेव हो गया। वापस ऑनलाइन होने पर भेजा जाएगा।",
+  "Photos need a connection. Add them once you are back online.": "फ़ोटो के लिए कनेक्शन चाहिए। वापस ऑनलाइन होने पर जोड़ें।",
+  "Edit post": "पोस्ट संपादित करें",
 }

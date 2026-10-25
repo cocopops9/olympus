@@ -1,52 +1,63 @@
 // Olympus: the title a workout gets when nobody gave it one. A routine's session keeps the
 // routine's name; an empty workout ("Freestyle") is named after what it trained, the biggest
-// muscles first, with an emoji for each picked at random from a few that fit the muscle (a
-// mountain for shoulders, a trident for the three-headed triceps, a peach for glutes):
-// "Shoulders & Triceps" followed by its two emoji.
-//
-// The emoji are written as code-point escapes, so the source stays plain ASCII. The pick is
-// seeded by the workout's id: the same workout always gets the same title.
+// muscles first, followed by the emoji for what that was. Never random: the same kind of
+// training always gets the same emoji.
+//   lifting for chest, shoulders or back    weightlifter
+//   arms                                    flexed biceps
+//   legs                                    leg
+//   glutes                                  peach
+//   abs and obliques                        chocolate bar (the six-pack)
+//   cardio                                  by the activity: runner, cyclist, rower, swimmer,
+//                                           walker, boxing glove; fire for jumps and intervals
+//   stretching, yoga, mobility              lotus position
+// "Chest & Triceps" is followed by the weightlifter and the biceps; a run after leg day adds the
+// runner. The emoji are written as code-point escapes, so the source stays plain ASCII.
 import { t } from './i18n.js'
 import { EXIDX } from './exercises.js'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from './muscles.js'
 import { isStretch, isCardioEx } from './exercise-guide.js'
 
-const CARDIO = 'cardiovascular system'
+const CARDIO_SYSTEM = 'cardiovascular system'
 
-export const MUSCLE_EMOJI = {
-  chest: ['\u{1F98D}', '\u{1F6E1}\u{FE0F}', '\u{1F3DB}\u{FE0F}'],      // gorilla, shield, temple
-  deltoids: ['\u{1F3D4}\u{FE0F}', '\u{1FAA8}', '\u{1F965}'],           // mountain, boulder, coconut
-  'upper-back': ['\u{1F985}', '\u{1FABD}', '\u{1F409}'],               // eagle, wing, dragon
-  trapezius: ['\u{1F422}', '\u{1F9F1}'],                               // turtle, brick
-  biceps: ['\u{1F4AA}', '\u{1F9BE}'],                                  // flexed biceps, mechanical arm
-  triceps: ['\u{1F531}', '\u{1F40E}'],                                 // trident, horse
-  forearm: ['\u{1F9BE}', '\u{1FAA2}'],                                 // mechanical arm, knot
-  abs: ['\u{1F36B}', '\u{1F9C7}'],                                     // chocolate bar, waffle
-  obliques: ['\u{1F32A}\u{FE0F}', '\u{1F300}'],                        // tornado, cyclone
-  'lower-back': ['\u{1F3DB}\u{FE0F}', '\u{1F9F1}'],                    // pillar, brick
-  serratus: ['\u{1F988}'],                                             // shark
-  gluteal: ['\u{1F351}', '\u{1F680}'],                                 // peach, rocket
-  quadriceps: ['\u{1F333}', '\u{1F98F}', '\u{1F9B5}'],                 // tree trunk, rhino, leg
-  hamstring: ['\u{1F406}', '\u{1F3F9}'],                               // leopard, bow and arrow
-  adductors: ['\u{1F438}', '\u{1F9B5}'],                               // frog, leg
-  'hip-flexors': ['\u{1F938}', '\u{1F9B5}'],                           // cartwheel, leg
-  calves: ['\u{1F402}', '\u{1F98C}'],                                  // ox, deer
-  tibialis: ['\u{1F9B6}'],                                             // foot
+export const EMOJI = {
+  lift: '\u{1F3CB}\u{FE0F}',
+  arms: '\u{1F4AA}',
+  legs: '\u{1F9B5}',
+  glutes: '\u{1F351}',
+  core: '\u{1F36B}',
+  run: '\u{1F3C3}',
+  bike: '\u{1F6B4}',
+  row: '\u{1F6A3}',
+  swim: '\u{1F3CA}',
+  walk: '\u{1F6B6}',
+  box: '\u{1F94A}',
+  jump: '\u{1F525}',
+  stretch: '\u{1F9D8}',
 }
-const CARDIO_EMOJI = ['\u{1F525}', '\u{1FAC0}', '\u{1F3C3}']            // fire, heart, runner
-const STRETCH_EMOJI = ['\u{1F9D8}', '\u{1F33F}']                       // lotus position, herb
 
-// A small deterministic generator, seeded by a string.
-function seeded(seed) {
-  let h = 2166136261
-  for (const c of String(seed || '')) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507)
-    h = Math.imul(h ^ (h >>> 13), 3266489909)
-    return ((h ^= h >>> 16) >>> 0) / 4294967296
-  }
+/** Which kind of training each drawn muscle stands for. */
+export const MUSCLE_REGION = {
+  chest: 'lift', deltoids: 'lift', 'upper-back': 'lift', trapezius: 'lift', 'lower-back': 'lift', serratus: 'lift',
+  biceps: 'arms', triceps: 'arms', forearm: 'arms',
+  quadriceps: 'legs', hamstring: 'legs', adductors: 'legs', calves: 'legs', tibialis: 'legs', 'hip-flexors': 'legs',
+  gluteal: 'glutes',
+  abs: 'core', obliques: 'core',
 }
-const pick = (list, rnd) => list[Math.floor(rnd() * list.length) % list.length]
+
+/** The activity a cardio exercise is, from its name and kind. */
+export function cardioKind(e) {
+  const n = String(e?.n || '').toLowerCase()
+  if (e?.cat === 'combat' || /boxing|boxer|punch|\bjab\b|uppercut|sparr|kickbox|side kick|front kick|roundhouse/.test(n)) return 'box'
+  if (/swim/.test(n)) return 'swim'
+  if (/bike|bicycle|cycl|spin/.test(n)) return 'bike'
+  if (/rowing|rower/.test(n)) return 'row'
+  if (/walk|hike/.test(n)) return 'walk'
+  if (/\brun\b|running|jog|treadmill|sprint/.test(n)) return 'run'
+  if (/jump|burpee|skip|jack|climber|hiit|interval|plyo|hop|rope|battling/.test(n)) return 'jump'
+  if (/stair|step|elliptical/.test(n)) return 'walk'
+  // Drills, circuits and the rest of conditioning.
+  return 'jump'
+}
 
 /** A name that is no title: empty, or the default an empty workout starts with. */
 export function isUntitled(name) {
@@ -59,23 +70,24 @@ const joinNames = names => (names.length < 2 ? names.join('')
 
 /**
  * The title for logged workout `w`: the muscles it trained most (up to three, those with at
- * least half the load of the first), each with its emoji; "Cardio" or "Stretching" when that
- * is all it was. Null when nothing in it says what it trained.
+ * least half the load of the first) and the emoji of what that training was; "Cardio" or
+ * "Stretching" with theirs when that is all it was. Null when nothing in it says what it trained.
  */
 export function autoTitle(w) {
-  const entries = (w?.entries || []).filter(e => EXIDX[e.id])
-  const rnd = seeded(w?.id || w?.start || '')
-  if (entries.length && entries.every(e => isStretch(EXIDX[e.id]))) return t('Stretching') + ' ' + pick(STRETCH_EMOJI, rnd)
+  const known = (w?.entries || []).filter(e => EXIDX[e.id])
+  if (!known.length) return null
+  const exOf = e => EXIDX[e.id]
+  if (known.every(e => isStretch(exOf(e)))) return t('Stretching') + ' ' + EMOJI.stretch
   // Cardio and stretches say nothing about which muscles were trained: a run is not leg day.
-  const cardio = entries.some(e => isCardioEx(EXIDX[e.id]))
-  const lifting = { ...w, entries: (w?.entries || []).filter(e => !EXIDX[e.id] || !(isCardioEx(EXIDX[e.id]) || isStretch(EXIDX[e.id]))) }
+  const cardio = [...new Set(known.filter(e => isCardioEx(exOf(e))).map(e => cardioKind(exOf(e))))]
+  const lifting = { ...w, entries: (w.entries || []).filter(e => !EXIDX[e.id] || !(isCardioEx(exOf(e)) || isStretch(exOf(e)))) }
   const load = loadOfWorkouts([lifting])
-  const ranked = rankOf(load).worked.filter(m => m !== CARDIO && MUSCLE_EMOJI[m])
-  if (!ranked.length) return cardio ? t('Cardio') + ' ' + pick(CARDIO_EMOJI, rnd) : null
+  const ranked = rankOf(load).worked.filter(m => m !== CARDIO_SYSTEM && MUSCLE_REGION[m])
+  const cardioEmoji = cardio.map(k => EMOJI[k])
+  if (!ranked.length) return cardio.length ? t('Cardio') + ' ' + cardioEmoji.slice(0, 2).join('') : null
   const top = load[ranked[0]]
   const chosen = ranked.filter(m => load[m] >= top * 0.5).slice(0, 3)
-  const emoji = [...new Set(chosen.map(m => pick(MUSCLE_EMOJI[m], rnd)))]
-  if (cardio && chosen.length < 3) emoji.push(pick(CARDIO_EMOJI, rnd))
+  const emoji = [...new Set([...chosen.map(m => EMOJI[MUSCLE_REGION[m]]), ...cardioEmoji])].slice(0, 3)
   return joinNames(chosen.map(m => t(MUSCLE_NAME[m]))) + ' ' + emoji.join('')
 }
 

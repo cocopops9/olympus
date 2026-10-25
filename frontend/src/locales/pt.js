@@ -2452,4 +2452,12 @@ export default {
   "{0} messages left today": "Restam {0} mensagens hoje",
   "Not posted: no set was checked off.": "Não publicado: nenhuma série foi marcada.",
   "Not posted: posting every workout is off.": "Não publicado: publicar cada treino está desligado.",
+  "Your post": "A tua publicação",
+  "Title": "Título",
+  "Description": "Descrição",
+  "Save post": "Guardar publicação",
+  "Post saved": "Publicação guardada",
+  "Saved. It will be sent when you are back online.": "Guardado. Será enviado quando voltares a estar online.",
+  "Photos need a connection. Add them once you are back online.": "As fotos precisam de ligação. Adiciona-as quando voltares a estar online.",
+  "Edit post": "Editar publicação",
 }

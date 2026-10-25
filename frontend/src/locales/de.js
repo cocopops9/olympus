@@ -2472,4 +2472,12 @@ export default {
   "{0} messages left today": "Heute noch {0} Nachrichten",
   "Not posted: no set was checked off.": "Nicht gepostet: Es wurde kein Satz abgehakt.",
   "Not posted: posting every workout is off.": "Nicht gepostet: Jedes Workout posten ist aus.",
+  "Your post": "Dein Beitrag",
+  "Title": "Titel",
+  "Description": "Beschreibung",
+  "Save post": "Beitrag speichern",
+  "Post saved": "Beitrag gespeichert",
+  "Saved. It will be sent when you are back online.": "Gespeichert. Wird gesendet, sobald du wieder online bist.",
+  "Photos need a connection. Add them once you are back online.": "Fotos brauchen eine Verbindung. Füge sie hinzu, wenn du wieder online bist.",
+  "Edit post": "Beitrag bearbeiten",
 }

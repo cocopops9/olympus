@@ -2449,4 +2449,12 @@ export default {
   "{0} messages left today": {"one": "Сьогодні залишилося {0} повідомлення", "few": "Сьогодні залишилося {0} повідомлення", "many": "Сьогодні залишилося {0} повідомлень"},
   "Not posted: no set was checked off.": "Не опубліковано: жоден підхід не позначено.",
   "Not posted: posting every workout is off.": "Не опубліковано: публікацію кожного тренування вимкнено.",
+  "Your post": "Ваш допис",
+  "Title": "Назва",
+  "Description": "Опис",
+  "Save post": "Зберегти допис",
+  "Post saved": "Допис збережено",
+  "Saved. It will be sent when you are back online.": "Збережено. Надішлеться, коли ви знову будете онлайн.",
+  "Photos need a connection. Add them once you are back online.": "Для фото потрібне з'єднання. Додайте їх, коли знову будете онлайн.",
+  "Edit post": "Редагувати допис",
 }
