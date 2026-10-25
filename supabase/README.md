@@ -29,3 +29,6 @@ The first profile created is the admin (it may delete anyone's posts).
 traffic and 500,000 function calls a month. A free project is paused after about a week without
 use; resume it from the Supabase dashboard (data is kept for 90 days). Back up with
 *Database → Backups* or `select * from olympus.docs`.
+
+If the deploy fails with jsDelivr answering 403 for one of the files, it is passing: GitHub is
+limiting jsDelivr for a moment. Deploy again a few minutes later.
