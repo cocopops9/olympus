@@ -75,3 +75,24 @@ describe('body-first exercise picker', () => {
     expect(host.querySelector('input.input')).not.toBeNull()
   })
 })
+
+describe('search inside a muscle', () => {
+  it('narrows the list to the name typed, your favourites still first', async () => {
+    const S = structuredClone(DEF)
+    useStore.setState({ S: { ...S, favEx: ['0047'] } })
+    globalThis.__olympusGuide = true
+    exercisePicker(() => {})
+    const host = renderTop()
+    await bodyReady(host)
+    const chest = host.querySelector('.eg-map path[aria-label="Chest"]')
+    await act(async () => { chest.dispatchEvent(new MouseEvent('click', { bubbles: true })); await new Promise(r => setTimeout(r, 250)) })
+    expect(host.querySelector('.eg-sec').textContent).toBe('Your favourites')
+    const input = host.querySelector('.eg-find input')
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    act(() => { setter.call(input, 'incline'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+    const shown = names(host)
+    expect(shown.length).toBeGreaterThan(2)
+    expect(shown.every(n => n.includes('incline'))).toBe(true)
+    expect(shown[0]).toBe(names(host)[0])
+  })
+})

@@ -45,3 +45,4 @@
   background:var(--acc-soft,color-mix(in srgb,var(--acc) 18%,transparent));color:var(--acc);cursor:pointer}
 .eg-add:active{transform:scale(.9)}
 .eg-add .icn{width:18px;height:18px}
+.eg-find{margin-bottom:10px}

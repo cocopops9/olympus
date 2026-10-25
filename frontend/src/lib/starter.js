@@ -50,6 +50,10 @@ const build = routines =>
 // top of exactly these three, so this entry point keeps its shape.
 export const starterRoutines = () => build(PPL)
 
+// Every starter plan with fresh copies of its routines, for Explore routines (views/WorkoutStart.jsx).
+export const starterCatalog = () =>
+  Object.entries(PLANS).map(([id, { routines, schedule }]) => ({ id, days: schedule.length, routines: build(routines) }))
+
 // [{ id, days }] for the chooser. The day count is read off the schedule rather than stored
 // beside it, so the two can never disagree.
 export const starterPlanOptions = () =>

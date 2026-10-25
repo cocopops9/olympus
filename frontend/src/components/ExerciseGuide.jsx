@@ -10,7 +10,7 @@
 // the + adds it at once with the default sets (onPick(ex) and onPick(ex, true)).
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { allExercises, equipmentOf, BODYPARTS } from '../lib/exercises.js'
+import { allExercises, equipmentOf, BODYPARTS, searchExercises } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { MUSCLES, MUSCLE_NAME } from '../lib/muscles.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
@@ -49,6 +49,7 @@ function ExRow({ e, S, onPick }) {
 
 function Choice({ target, catalog, S, usage, onPick, onBack }) {
   const [filter, setFilter] = useState('')
+  const [q, setQ] = useState('')
   const [more, setMore] = useState(0)
   const moreRef = useAutoMore(() => setMore(n => (n ? n + 30 : n)))
   const mine = useMemo(() => new Set([...Object.keys(usage), ...(S.favEx || [])]), [usage, S.favEx])
@@ -57,12 +58,16 @@ function Choice({ target, catalog, S, usage, onPick, onBack }) {
   const byPart = target.kind === 'group' && target.id === 'stretch'
   const opts = byPart ? BODYPARTS.filter(b => b !== 'cardio' && all.some(e => e.bp === b)) : equipmentOf(all).slice(0, 7)
   const on = opts.includes(filter) ? filter : ''
-  const list = on ? all.filter(e => (byPart ? e.bp : e.eq) === on) : all
+  const narrowed = on ? all.filter(e => (byPart ? e.bp : e.eq) === on) : all
+  // A search keeps the order below (yours, then popular, then the rest): it only leaves out what
+  // does not match, and the rest opens on its own, since that is where a typed name often is.
+  const searching = q.trim() !== ''
+  const list = useMemo(() => (searching ? searchExercises(narrowed, q) : narrowed), [narrowed, q, searching])
   const tiers = useMemo(() => arrange(list, {
     usage, favs: new Set(S.favEx || []), nameOf: exerciseNameFor,
     staples: target.kind === 'mine' ? [] : STAPLES[target.id] || [],
   }), [list, usage, S.favEx, target])
-  const shownMore = tiers.more.slice(0, more)
+  const shownMore = tiers.more.slice(0, searching ? Math.max(more, 30) : more)
 
   return <>
     <div className="eg-top">
@@ -72,16 +77,20 @@ function Choice({ target, catalog, S, usage, onPick, onBack }) {
         <div className="small muted">{tn('{0} exercise', '{0} exercises', list.length)}</div>
       </div>
     </div>
+    <div className={'search eg-find' + (q ? ' has-clear' : '')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+      <input className="input" placeholder={t('Search in {0}…', labelOf(target))} value={q} onChange={e => { setQ(e.target.value); setMore(0) }} />
+      {q && <button className="clear" onClick={() => setQ('')} aria-label={t('Clear')}><Icon name="xmark" /></button>}
+    </div>
     {opts.length > 1 && <div className="chips eg-filter">
       <button className={'chip nocap' + (!on ? ' on' : '')} onClick={() => { setFilter(''); setMore(0) }}>{t('All')}</button>
       {opts.map(x => <button key={x} className={'chip' + (on === x ? ' on' : '')} onClick={() => { setFilter(x); setMore(0) }}>{t(x)}</button>)}
     </div>}
     {tiers.yours.length > 0 && <>
-      <h4 className="sec eg-sec"><Icon name="starFill" />{t('Yours')}</h4>
+      <h4 className="sec eg-sec"><Icon name="starFill" />{t('Your favourites')}</h4>
       <div className="list">{tiers.yours.map(e => <ExRow key={e.id} e={e} S={S} onPick={onPick} />)}</div>
     </>}
     {tiers.popular.length > 0 && <>
-      <h4 className="sec eg-sec"><Icon name="flame" />{t('Popular')}</h4>
+      <h4 className="sec eg-sec"><Icon name="flame" />{t('Most popular')}</h4>
       <div className="list">{tiers.popular.map(e => <ExRow key={e.id} e={e} S={S} onPick={onPick} />)}</div>
     </>}
     {shownMore.length > 0 && <>

@@ -133,6 +133,7 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [again, setAgain] = useState('')
+  const [sex, setSex] = useState('')      // optional: '' = not said
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const nameRef = useRef(null)
@@ -154,6 +155,8 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
     setBusy(true); setErr('')
     try {
       await joinServer(DEFAULT_SERVER, signup ? 'signup' : 'login', { name: n, password: pw, email: mail }, askAddDeviceData)
+      // The body figure follows the sex chosen here; not choosing leaves it as it was.
+      if (signup && sex) useStore.getState().update(s => { s.body = sex })
       close()
       useUI.getState().toast(signup ? t('Welcome, {0}', n) : t('Welcome back, {0}', useStore.getState().user?.name || n))
     } catch (e) { setErr(e?.data?.code || e?.status === 429 ? passwordError(e) : (e?.message || t('Could not connect'))) }
@@ -180,6 +183,11 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
         <input className="input" type="password" name="new-password-again" autoComplete="new-password" placeholder={t('Repeat the password')}
           value={again} onChange={e => setAgain(e.target.value)} />
         <div className="dim small" style={{ marginTop: 6 }}>{t('At least {0} characters. A few unrelated words make a good one.', MIN_PASSWORD)}</div>
+        <div className="small muted" style={{ margin: '14px 2px 6px' }}>{t('Sex (optional)')}</div>
+        <div className="chips signup-sex" role="group" aria-label={t('Sex (optional)')}>
+          {[['male', t('Male')], ['female', t('Female')], ['', t('Prefer not to say')]].map(([v, l]) =>
+            <button type="button" key={v || 'none'} className={'chip nocap' + (sex === v ? ' on' : '')} aria-pressed={sex === v} onClick={() => setSex(v)}>{l}</button>)}
+        </div>
       </>}
       {err && <div className="small" role="alert" style={{ color: 'var(--red)', marginTop: 10, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{err}</div>}
       <div style={{ height: 12 }} />

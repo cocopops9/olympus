@@ -147,3 +147,24 @@ test('a profile deletes itself with its password, and nothing of it stays', asyn
   assert.equal(s.store.docs.has('state:' + ana.user.id), false);
   assert.equal((await s.call('GET', '/api/me', { token: ben.token })).body.user.admin, true, 'the admin role passes on');
 });
+
+test('a profile changes its name and its password, and keeps this device signed in', async () => {
+  const s = server();
+  const ana = await signup(s, 'Ana');
+  await signup(s, 'Ben', PW + ' two');
+  assert.equal((await s.call('POST', '/api/account/name', { token: ana.token, body: { name: 'ben' } })).status, 409, 'another profile’s name');
+  assert.equal((await s.call('POST', '/api/account/name', { token: ana.token, body: { name: '   ' } })).body.code, 'missing');
+  const renamed = await s.call('POST', '/api/account/name', { token: ana.token, body: { name: 'Anna Maria' } });
+  assert.equal(renamed.status, 200);
+  assert.equal((await s.call('GET', '/api/me', { token: ana.token })).body.user.name, 'Anna Maria');
+  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'anna maria', password: PW } })).status, 200);
+  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Ana', password: PW } })).status, 401, 'the old name signs in no more');
+
+  const wrong = await s.call('POST', '/api/account/password', { token: ana.token, body: { current: 'not it at all', next: PW + ' new' } });
+  assert.equal(wrong.status, 401);
+  const changed = await s.call('POST', '/api/account/password', { token: ana.token, body: { current: PW, next: PW + ' new' } });
+  assert.equal(changed.status, 200);
+  assert.equal((await s.call('GET', '/api/me', { token: ana.token })).status, 401, 'the old session ended');
+  assert.equal((await s.call('GET', '/api/me', { token: changed.body.token })).status, 200, 'the token handed back works');
+  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Anna Maria', password: PW + ' new' } })).status, 200);
+});

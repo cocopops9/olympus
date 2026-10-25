@@ -47,6 +47,18 @@ describe('joining the built-in server', () => {
     expect(close).toHaveBeenCalled()
   })
 
+  it('an optional sex chosen at signup picks the body drawn in the app', async () => {
+    const { DEF } = await import('../store/useStore.js')
+    useStore.setState({ S: structuredClone(DEF) })
+    await act(async () => root.render(<AccountSheet close={() => {}} mode="signup" />))
+    expect([...host.querySelectorAll('.signup-sex .chip.on')].map(b => b.textContent)).toEqual(['Prefer not to say'])
+    const [name, , pw, again] = inputs()
+    act(() => { type(name, 'Giulia'); type(pw, 'squat bench deadlift'); type(again, 'squat bench deadlift') })
+    act(() => [...host.querySelectorAll('.signup-sex .chip')].find(b => b.textContent === 'Female').click())
+    await submit(); await flush()
+    expect(useStore.getState().S.body).toBe('female')
+  })
+
   it('stops a short or mistyped password before asking the server', async () => {
     await act(async () => root.render(<AccountSheet close={() => {}} mode="signup" />))
     const [name, , pw, again] = inputs()

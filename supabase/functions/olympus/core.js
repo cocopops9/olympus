@@ -244,6 +244,23 @@ export function createApp({ store, photos, now = () => Date.now() }) {
       return { status: 200, body: { ok: true, token } };
     },
 
+    // A new profile name, by the rules of signup: 1 to 40 characters, not another profile's.
+    'POST /api/account/name': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      const name = text(body.name).trim().slice(0, 40);
+      if (!name) return { status: 400, body: { error: 'name required', code: 'missing' } };
+      let out = { status: 200, body: { ok: true, name } };
+      await store.update(['db'], async ({ get, set }) => {
+        const db = get('db'); const users = usersOf(db); const u = users.find(x => x.id === user.id);
+        if (!u || u.name === name) return;
+        if (nameTaken(users, name, u.id)) { out = { status: 409, body: { error: 'another profile already signs in with this name', code: 'name-taken' } }; return; }
+        u.name = name;
+        set('db', db);
+      });
+      return out;
+    },
+
     // Deleting one's own profile, confirmed with its password: the account, its training document,
     // and everything of it in the social layer (posts, photos, likes, comments, follows).
     'POST /api/account/delete': async req => {

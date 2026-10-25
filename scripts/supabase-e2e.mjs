@@ -93,6 +93,14 @@ ok(after.status === 404, 'blocked: their photo is no longer reachable', String(a
 const del = await call('POST', '/api/social/posts/delete', { token: b, body: { id: post.body.post.id } });
 ok(del.status === 200, 'the author deletes the post');
 
+// A new name: taken by the other test profile is refused, a free one is saved and seen.
+const meA2 = await call('GET', '/api/me', { token: a });
+const clash = await call('POST', '/api/account/name', { token: b, body: { name: meA2.body?.user?.name } });
+ok(clash.status === 409, 'renaming to a name in use is refused', String(clash.status));
+const renamed = await call('POST', '/api/account/name', { token: b, body: { name: tag + ' renamed' } });
+const meB = await call('GET', '/api/me', { token: b });
+ok(renamed.status === 200 && meB.body?.user?.name === tag + ' renamed', 'a profile renames itself', JSON.stringify(renamed.body));
+
 // Leave nothing behind: both test profiles delete themselves.
 for (const [tok, pw, who] of [[a, 'e2e correct horse battery A', 'Ana'], [b, 'e2e correct horse battery B', 'Ben']]) {
   const gone = await call('POST', '/api/account/delete', { token: tok, body: { password: pw } });

@@ -984,7 +984,9 @@ const THROTTLED = {
   // budget: the password that may prove them counts its own failures (passwordAttempt).
   'POST /api/device-link/options': 'link', 'POST /api/device-link/verify': 'link',
   'POST /api/account/passkeys/options': null, 'POST /api/account/device-link': null,
-  'DELETE /api/account/passkeys': null
+  'DELETE /api/account/passkeys': null,
+  // A new profile name only spends the budget; a name already taken is not a guessable secret.
+  'POST /api/account/name': null
 };
 
 // Which address the throttle counts against. Unlike clientIp() above, which only labels a log
@@ -1440,6 +1442,23 @@ const passwordRoutes = {
   // already in use is refused only after the proof, and counts against the caller's address and
   // account, so asking whether an address is in use costs a passkey prompt or a password check
   // and runs out after a few tries (see "e-mail as a sign-in name" above).
+  // A new profile name (the name you sign in with and that others see). The rules of signup:
+  // 1 to 40 characters, and no other profile signs in with it.
+  'POST /api/account/name': async (req, res) => {
+    const s = sessionOf(req);
+    if (!s) return json(res, 401, { error: 'not signed in' });
+    const { user } = s;
+    const body = await readBody(req);
+    const name = text(body.name).trim().slice(0, 40);
+    if (!name) return json(res, 400, { error: 'name required', code: 'missing' });
+    if (name === user.name) return json(res, 200, { ok: true, name });
+    if (nameTaken(name, user.id)) return json(res, 409, { error: 'another profile already signs in with this name', code: 'name-taken' });
+    const was = user.name;
+    user.name = name;
+    saveDb();
+    audit(req, 'auth.name.change', { user, msg: was + ' -> ' + name });
+    json(res, 200, { ok: true, name });
+  },
   'POST /api/account/email': async (req, res) => {
     const s = sessionOf(req);
     if (!s) return json(res, 401, { error: 'not signed in' });

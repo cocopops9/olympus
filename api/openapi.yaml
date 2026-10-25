@@ -1032,6 +1032,40 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/Busy' }
 
+  /api/account/name:
+    post:
+      tags: [password]
+      operationId: setAccountName
+      summary: Change the profile's name
+      description: |
+        The name others see and the profile signs in with. The rules of signup: trimmed, 1 to
+        40 characters, and no other password-holding profile signs in with it (compared the
+        way sign-in compares names). Saving the current name answers 200. Audited as
+        `auth.name.change`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 40 }
+            example: { name: "Ada Lovelace" }
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  name: { type: string }
+        '400': { description: 'No name (`missing`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: 'Another profile signs in with this name (`name-taken`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/account/email:
     post:
       tags: [password]

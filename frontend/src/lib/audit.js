@@ -38,6 +38,7 @@ const LABELS = {
   // and the address masked to two characters ("password · a…@e…") — never the address itself.
   'auth.email.set': 'Added a sign-in e-mail',
   'auth.email.change': 'Changed their sign-in e-mail',
+  'auth.name.change': 'Changed their profile name',
   'auth.email.remove': 'Removed their sign-in e-mail',
   'auth.email.fail': 'Changing the sign-in e-mail failed',
   // More than one passkey, and one-time codes for another device (#95). `msg` on an addition or a

@@ -15,6 +15,8 @@ import { dateLocale } from '../lib/i18n-core.js'
 import { api, webauthnOK, passkeyAssertion, passwordLogin, passwordRegister, passwordResetRedeem } from '../lib/api.js'
 import { askAddDeviceData } from '../sheets.jsx'
 import { Row, Button } from './ui.jsx'
+import { adoptToken } from '../lib/remote.js'
+import { MOBILE } from '../lib/mobile.js'
 
 // The server's floor (api/password.js MIN_LENGTH), checked here first so the common mistake is
 // answered without a round trip. The server still decides.
@@ -346,7 +348,9 @@ export function PasswordSheet({ status, close, done }) {
     setBusy(true); setErr(null)
     try {
       const proof = withPasskey ? await passkeyAssertion() : { current }
-      await api('/api/account/password', { method: 'POST', body: JSON.stringify({ next, ...proof }) })
+      const r = await api('/api/account/password', { method: 'POST', body: JSON.stringify({ next, ...proof }) })
+      // The Olympus server answers with this phone's new session (the old one ended with the rest).
+      await adoptToken(r?.token)
       close(); done()
       toast(t('Password saved. You’re now signed out everywhere else.'))
     } catch (e) { if (!dismissed(e)) setErr(passwordError(e)) }
@@ -356,7 +360,8 @@ export function PasswordSheet({ status, close, done }) {
   return <>
     <h3>{status.set ? t('Change password') : t('Set a password')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>
-      {t('Sign in as “{0}” with it on devices where passkeys do not work. Saving signs you out everywhere else, and paired phones have to be paired again.', status.name)}
+      {MOBILE ? t('Saving signs you out on your other devices. This phone stays signed in.')
+        : t('Sign in as “{0}” with it on devices where passkeys do not work. Saving signs you out everywhere else, and paired phones have to be paired again.', status.name)}
     </div>
     <form onSubmit={ev => { ev.preventDefault(); save(!status.set) }} noValidate>
       {/* Tells a password manager which account the new password belongs to. */}

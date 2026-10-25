@@ -1,7 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutineIds, effectiveRoutines } from '../lib/history.js'
-import { todayISO } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
@@ -43,11 +41,8 @@ export default function TabBar({ onStart }) {
 
   const running = !!S.active && cur !== 'workout' && !S.active.editingWorkoutId && !S.active.backfill && S.active.start > 0
   const startWorkout = () => {
-    if (!S.active) {
-      // A weekday can hold several routines; start the combined session if any of them has
-      // exercises, otherwise fall through to the picker.
-      if (effectiveRoutines(S, todayISO()).some(r => r.ex.length)) { onStart(effectiveRoutineIds(S, todayISO())); return }
-    }
+    // Olympus: no session running opens the Workout screen (views/WorkoutStart.jsx), where today's
+    // routine is the first card with its Start button, rather than starting it on the spot.
     nav('/workout')
   }
 

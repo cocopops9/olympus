@@ -18,6 +18,7 @@ import {
 import { preparePhoto, prepareAvatar } from '../lib/social-photo.js'
 import { Button, TextArea, TextField, SelectRow, Section, Row, Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
+import { AccountSection } from './AccountEdit.jsx'
 import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
@@ -389,6 +390,8 @@ function ProfileEditor({ close, me, onSaved }) {
       <Row icon="xmark" iconTint="var(--grey)" title={t('Blocked people')} accessory="chevron" onClick={() => blockedSheet()} />
     </Section>
     <Button variant="primary" disabled={busy} onClick={save}>{t('Save')}</Button>
+    <div style={{ height: 18 }} />
+    <AccountSection onRenamed={n => changed({ name: n })} />
   </>
 }
 /** Bio, private profile, push for social events, blocked people. `me` is your social profile. */

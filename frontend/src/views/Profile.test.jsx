@@ -1,12 +1,14 @@
 // @vitest-environment happy-dom
-// Olympus Profile: the header and its counts, the Calendar / Stats / Body tabs (Posts only with a
-// server profile), and the rows that reach the screens that used to be tabs.
+// Olympus Profile: the header and its counts, the Overview / Stats / Body tabs (Posts only with a
+// server profile), the calendar behind its header button, and the rows that reach the screens
+// that used to be tabs.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
+import { todayISO } from '../lib/format.js'
 
-const mocks = vi.hoisted(() => ({ nav: vi.fn(), params: new URLSearchParams(), profile: vi.fn() }))
+const mocks = vi.hoisted(() => ({ nav: vi.fn(), params: new URLSearchParams(), profile: vi.fn(), calendar: vi.fn() }))
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.nav,
   useSearchParams: () => [mocks.params, next => { mocks.params = new URLSearchParams(next) }],
@@ -17,9 +19,8 @@ vi.mock('./Stats.jsx', () => ({ default: ({ embedded }) => <div data-testid="sta
 vi.mock('./Measurements.jsx', () => ({ default: () => <div data-testid="measurements">measurements</div> }))
 vi.mock('./Home.jsx', () => ({ BodyWeightCard: () => <div data-testid="bw">body weight</div> }))
 vi.mock('../sheets.jsx', () => ({
-  Calendar: () => <div data-testid="calendar">calendar</div>,
   WorkoutRow: ({ w }) => <div className="wrow">{w.name}</div>,
-  workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(),
+  workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), calendarSheet: mocks.calendar,
 }))
 import Profile from './Profile.jsx'
 
@@ -32,7 +33,7 @@ beforeEach(() => {
   root = createRoot(host)
   mocks.params = new URLSearchParams()
   mocks.nav.mockReset(); mocks.profile.mockReset()
-  useStore.setState(s => ({ S: { ...s.S, workouts: [{ id: 'w1', name: 'Push', d: '2026-10-19', start: 0, end: 0, entries: [] }], bodyweight: [] } }))
+  useStore.setState(s => ({ S: { ...s.S, workouts: [{ id: 'w1', name: 'Push', d: todayISO(), start: 0, end: 0, entries: [] }], bodyweight: [] } }))
 })
 afterEach(() => { act(() => root.unmount()); host.remove(); useStore.setState({ user: null }) })
 const button = label => [...host.querySelectorAll('button')].find(b => b.textContent === label || b.textContent.endsWith(label))
@@ -40,12 +41,15 @@ const button = label => [...host.querySelectorAll('button')].find(b => b.textCon
 describe('Profile on a device kept local', () => {
   beforeEach(() => useStore.setState({ user: null }))
 
-  it('shows training counts, the calendar and the latest workouts, and no Posts tab', async () => {
+  it('shows training counts, this week and its workouts, and no Posts tab; the calendar is a button away', async () => {
     await render()
-    expect(host.querySelector('[data-testid="calendar"]')).toBeTruthy()
-    expect(host.textContent).toContain('Push')
+    expect(host.textContent).toContain('This week')
+    expect(host.querySelector('.ov-day.on.now')).toBeTruthy()
+    expect(host.querySelector('.wrow').textContent).toBe('Push')
     expect(host.textContent).toContain('Training on this device only.')
-    expect([...host.querySelectorAll('.seg button')].map(b => b.textContent)).toEqual(['Calendar', 'Stats', 'Body'])
+    expect([...host.querySelectorAll('.seg button')].map(b => b.textContent)).toEqual(['Overview', 'Stats', 'Body'])
+    act(() => host.querySelector('button[aria-label="Calendar"]').click())
+    expect(mocks.calendar).toHaveBeenCalled()
     expect(mocks.profile).not.toHaveBeenCalled()
   })
 

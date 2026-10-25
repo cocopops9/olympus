@@ -55,6 +55,17 @@ export async function forgetRemote() {
 // every request from now on carries it, and the pairing file keeps it for the next start. The
 // old one stays valid until its own expiry, so a write that fails here costs nothing but a
 // renewal on a later start.
+// A token the server handed back after a change that ends every other session (a new password):
+// kept on this phone, so the device that made the change stays signed in. A browser session
+// (cookie) has no token to keep, and nothing happens.
+export async function adoptToken(token) {
+  if (typeof token !== 'string' || !token) return false
+  const remote = await loadRemoteFile()
+  if (remote?.mode !== 'remote') return false
+  await renewToken(remote, token)
+  return true
+}
+
 export async function renewToken(remote, token) {
   setRemoteAuth(remote.base, token)
   await saveRemoteFile({ ...remote, token })

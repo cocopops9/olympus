@@ -201,6 +201,9 @@ export function loadStarterPlan(planId, profile) {
   return true
 }
 
+/** A starter plan's translated name and one-line description, or null. */
+export const planCopy = id => (PLAN_COPY[id] ? PLAN_COPY[id]() : null)
+
 // Intl joins the days the way each language does it — "and" vs "und", "、" in Chinese.
 const dayList = days => new Intl.ListFormat(dateLocale()).format(days.map(d => t(DAYN[d])))
 

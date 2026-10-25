@@ -677,6 +677,14 @@ test('the app routes answer with a working Bearer token, set no cookie, and keep
   const taken = await h.req('POST', '/api/app/signup', { body: { name: 'bea', password: GOOD + ' three' }, ip: '198.51.100.44', headers: app });
   assert.equal(taken.status, 409);
 
+  // A new profile name, with the app's token: the rules of signup.
+  const bearer = { ...app, Authorization: 'Bearer ' + made.body.token };
+  assert.equal((await h.req('POST', '/api/account/name', { body: { name: 'ANA' }, headers: bearer })).status, 409);
+  const renamed = await h.req('POST', '/api/account/name', { body: { name: 'Beatrice' }, headers: bearer });
+  assert.equal(renamed.status, 200);
+  assert.ok(h.db().users.some(u => u.name === 'Beatrice'));
+  assert.equal((await h.req('POST', '/api/app/login', { body: { identifier: 'beatrice', password: GOOD + ' two' }, ip: '198.51.100.46', headers: app })).status, 200);
+
   // The browser route keeps its origin check: the same cross-site request is refused there.
   const browser = await h.req('POST', '/api/login/password', { body: { name: 'Ana', password: GOOD }, ip: '198.51.100.45', headers: app });
   assert.equal(browser.status, 403);
