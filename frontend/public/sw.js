@@ -55,7 +55,7 @@ async function precache() {
   if (!res.ok || res.redirected) throw new Error('precache: index.html ' + res.status + (res.redirected ? ' redirected' : ''))
   const html = await res.text()
   const refs = [...new Set([...html.matchAll(/(?:src|href)="([^"]+)"/g)].map(m => m[1])
-    .filter(u => /\.(?:js|css|png|svg|webmanifest|json)(?:\?|$)/.test(u) && !/^(?:https?:)?\/\//.test(u)))]
+    .filter(u => /\.(?:js|css|png|webp|svg|webmanifest|json)(?:\?|$)/.test(u) && !/^(?:https?:)?\/\//.test(u)))]
   // The scripts and the stylesheets ARE the app. Every sub-resource used to be best-effort, so an
   // install that got index.html and lost one chunk to a flaky connection still activated, still
   // swept the build this device came from, and the next offline open was a shell with no code:

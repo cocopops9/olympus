@@ -245,16 +245,26 @@ into both native projects — re-run it after every web-code change before build
 
 ## App icons & splash screens
 
-`frontend/resources/icon.svg` is the 1024×1024 source (the app's dumbbell glyph on the
-app background). Generate all platform assets from it on a machine with the tooling:
+The Olympus logo (the gold lifter in the ring) is the app icon; the Olympus art (Hercules and
+Athena) is the launch splash. What is in the repo, all made from those two pictures:
 
-```sh
-cd frontend
-npx @capacitor/assets generate --iconBackgroundColor '#0c0e12' --splashBackgroundColor '#0c0e12'
-```
+- `frontend/resources/icon.png`: the 1024×1024 master of the icon.
+- Android launcher icons: `android/app/src/main/res/mipmap-*` (square, round, and the adaptive
+  foreground and background); the logo on white, the foreground kept inside the circle every
+  launcher mask leaves visible.
+- Android launch screen: `drawable*/splash.png` (the art on paper `#FAFAFA`, every density, portrait
+  and landscape) for Android 11 and older; Android 12 and newer draw
+  `drawable-nodpi/splash_icon.png` (the logo) on the same paper, set in `values/styles.xml`.
+- iOS: `AppIcon-512@2x.png` and the `Splash.imageset` pictures.
+- The web build: `public/icon-180.png`, `public/icon-512.png`, and the page's own splash
+  (`#splash` in `index.html`, picture `public/splash.webp`).
 
-(If the generator won't take the SVG directly, export it to `resources/icon.png` at
-1024×1024 first — any image tool can do it.)
+The page's own splash is what people see for most of the launch. It is on screen from the first
+paint and fades out when `boot()` has asked the server who this is and pulled the latest data
+(`lib/splash.js`): never sooner than 2.5 seconds after the page started, never later than 12
+(a server that does not answer does not lock anyone out; the app opens on its own copy).
+
+To change the pictures, regenerate the files above at the same sizes and names.
 
 ## Distribution — deliberately no app stores
 

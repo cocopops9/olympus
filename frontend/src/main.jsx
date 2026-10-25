@@ -5,6 +5,7 @@ import { MOBILE } from './lib/mobile.js'
 import { useStore } from './store/useStore.js'
 import { startMediaSync } from './lib/media-sync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
+import { startSplash } from './lib/splash.js'
 import './index.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
@@ -13,6 +14,9 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 createRoot(document.getElementById('root')).render(
   <StrictMode><App /></StrictMode>
 )
+
+// The launch splash (index.html) stays until boot has answered, then fades out.
+startSplash(useStore)
 
 // The photos and videos of custom exercises, in every build (the phone and the demo included):
 // uploads of what the server lacks, the local clean-up, and the plan's files kept offline.

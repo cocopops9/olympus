@@ -2,7 +2,7 @@
   "appId": "app.olympus.gym",
   "appName": "Olympus",
   "webDir": "dist",
-  "backgroundColor": "#0c0e12",
+  "backgroundColor": "#fafafa",
   "android": {
     "allowMixedContent": true
   }

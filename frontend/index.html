@@ -27,9 +27,32 @@
 <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-180.png">
+<style>
+  /* Launch splash: part of the page itself, so it is on screen from the first paint, before any
+     script has loaded. lib/splash.js fades it out once the app has started and the server has
+     answered; the script below removes it anyway if that never happens. Always light: the
+     picture is drawn on paper. */
+  #splash{position:fixed;inset:0;z-index:2147483000;background:#fafafa;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;transition:opacity .5s ease}
+  #splash.out{opacity:0;pointer-events:none}
+  #splash img{display:block;width:auto;height:auto;max-width:84vw;max-height:60vh;object-fit:contain;
+    animation:splash-in .7s cubic-bezier(.2,.7,.2,1) both}
+  #splash .bar{position:relative;width:132px;height:3px;border-radius:2px;margin-top:34px;overflow:hidden;
+    background:rgba(168,122,28,.18)}
+  #splash .bar i{position:absolute;top:0;bottom:0;width:42%;border-radius:2px;background:#b8892b;
+    animation:splash-bar 1.15s ease-in-out infinite}
+  @keyframes splash-in{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+  @keyframes splash-bar{from{left:-42%}to{left:100%}}
+  @media (prefers-reduced-motion:reduce){#splash img,#splash .bar i{animation:none}#splash .bar i{left:29%}}
+</style>
 </head>
 <body>
+<div id="splash" role="img" aria-label="Olympus"><img src="splash.webp" alt="" decoding="async"><div class="bar"><i></i></div></div>
 <div id="root"></div>
+<script>
+  // Last resort: whatever happens to the app, the splash never stays past this.
+  setTimeout(function () { var e = document.getElementById('splash'); if (e) e.remove(); }, 20000);
+</script>
 <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
