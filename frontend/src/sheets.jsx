@@ -31,7 +31,7 @@ import ExerciseGuide from './components/ExerciseGuide.jsx'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet } from './components/Social.jsx'
 import { titleWorkout } from './lib/workout-title.js'
-import { queuePost, forgetPost, flushPosts, postState, unpost, repost } from './lib/auto-post.js'
+import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn } from './lib/auto-post.js'
 import { socialReady } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
@@ -3342,7 +3342,17 @@ function PostStatus({ w }) {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', on) }
   }, [])
   const { state } = postState(st, w)
-  if (state === 'none') return null
+  // Never silent: a workout that is not posted says why. Only checked-off sets are saved, so a
+  // workout finished without one has nothing to show; with auto-posting off, one tap posts it.
+  if (state === 'none') {
+    const empty = !(w.entries || []).length
+    if (!empty && autoPostOn(st)) return null
+    return <div className="post-status off">
+      <Icon name="xmark" />
+      <span className="grow">{empty ? t('Not posted: no set was checked off.') : t('Not posted: posting every workout is off.')}</span>
+      {!empty && w.id && <button className="chip nocap" onClick={() => { update(s => repost(s, w)); flushPosts().catch(() => {}) }}>{t('Post it')}</button>}
+    </div>
+  }
   const act = fn => { update(s => fn(s, w)); flushPosts().catch(() => {}) }
   return <div className={'post-status ' + state}>
     <Icon name={state === 'posted' ? 'checkCircle' : state === 'off' ? 'xmark' : online ? 'cloud' : 'cloudSlash'} />

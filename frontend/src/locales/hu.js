@@ -2453,4 +2453,6 @@ export default {
   "Your coach": "Az edződ",
   "{0} message left today": "Ma még {0} üzenet",
   "{0} messages left today": "Ma még {0} üzenet",
+  "Not posted: no set was checked off.": "Nincs közzétéve: egy sorozat sincs kipipálva.",
+  "Not posted: posting every workout is off.": "Nincs közzétéve: minden edzés közzététele ki van kapcsolva.",
 }

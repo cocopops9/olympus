@@ -2505,4 +2505,6 @@ export default {
   "Your coach": "مدربك",
   "{0} message left today": "تبقّت {0} رسالة اليوم",
   "{0} messages left today": "تبقّت {0} رسائل اليوم",
+  "Not posted: no set was checked off.": "لم يُنشر: لم تُحدَّد أي مجموعة.",
+  "Not posted: posting every workout is off.": "لم يُنشر: نشر كل تمرين متوقف.",
 }

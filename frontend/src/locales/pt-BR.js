@@ -1511,4 +1511,6 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Your coach": "Seu treinador",
   "{0} message left today": "Resta {0} mensagem hoje",
   "{0} messages left today": "Restam {0} mensagens hoje",
+  "Not posted: no set was checked off.": "Não publicado: nenhuma série foi marcada.",
+  "Not posted: posting every workout is off.": "Não publicado: publicar todo treino está desativado.",
 }

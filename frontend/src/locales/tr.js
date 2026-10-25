@@ -2450,4 +2450,6 @@ export default {
   "Your coach": "Koçun",
   "{0} message left today": "Bugün {0} mesaj kaldı",
   "{0} messages left today": "Bugün {0} mesaj kaldı",
+  "Not posted: no set was checked off.": "Paylaşılmadı: hiçbir set işaretlenmedi.",
+  "Not posted: posting every workout is off.": "Paylaşılmadı: her antrenmanı paylaşma kapalı.",
 }

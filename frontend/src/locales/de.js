@@ -2470,4 +2470,6 @@ export default {
   "Your coach": "Dein Coach",
   "{0} message left today": "Heute noch {0} Nachricht",
   "{0} messages left today": "Heute noch {0} Nachrichten",
+  "Not posted: no set was checked off.": "Nicht gepostet: Es wurde kein Satz abgehakt.",
+  "Not posted: posting every workout is off.": "Nicht gepostet: Jedes Workout posten ist aus.",
 }

@@ -2450,4 +2450,6 @@ export default {
   "Your coach": "आपका कोच",
   "{0} message left today": "आज {0} संदेश बचा है",
   "{0} messages left today": "आज {0} संदेश बचे हैं",
+  "Not posted: no set was checked off.": "पोस्ट नहीं हुआ: कोई सेट चेक नहीं किया गया।",
+  "Not posted: posting every workout is off.": "पोस्ट नहीं हुआ: हर वर्कआउट पोस्ट करना बंद है।",
 }

@@ -2450,4 +2450,6 @@ export default {
   "Your coach": "O teu treinador",
   "{0} message left today": "Resta {0} mensagem hoje",
   "{0} messages left today": "Restam {0} mensagens hoje",
+  "Not posted: no set was checked off.": "Não publicado: nenhuma série foi marcada.",
+  "Not posted: posting every workout is off.": "Não publicado: publicar cada treino está desligado.",
 }

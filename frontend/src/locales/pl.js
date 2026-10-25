@@ -2450,4 +2450,6 @@ export default {
   "Your coach": "Twój trener",
   "{0} message left today": "Dziś została {0} wiadomość",
   "{0} messages left today": {"one": "Dziś została {0} wiadomość", "few": "Dziś zostały {0} wiadomości", "many": "Dziś zostało {0} wiadomości"},
+  "Not posted: no set was checked off.": "Nieopublikowany: nie zaznaczono żadnej serii.",
+  "Not posted: posting every workout is off.": "Nieopublikowany: publikowanie każdego treningu jest wyłączone.",
 }

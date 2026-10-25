@@ -2450,4 +2450,6 @@ export default {
   "Your coach": "你的教练",
   "{0} message left today": "今天还剩 {0} 条消息",
   "{0} messages left today": "今天还剩 {0} 条消息",
+  "Not posted: no set was checked off.": "未发布：没有勾选任何一组。",
+  "Not posted: posting every workout is off.": "未发布：“发布每次训练”已关闭。",
 }

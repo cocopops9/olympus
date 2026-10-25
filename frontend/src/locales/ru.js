@@ -2454,4 +2454,6 @@ export default {
   "Your coach": "Ваш тренер",
   "{0} message left today": "Сегодня осталось {0} сообщение",
   "{0} messages left today": {"one": "Сегодня осталось {0} сообщение", "few": "Сегодня осталось {0} сообщения", "many": "Сегодня осталось {0} сообщений"},
+  "Not posted: no set was checked off.": "Не опубликовано: ни один подход не отмечен.",
+  "Not posted: posting every workout is off.": "Не опубликовано: публикация каждой тренировки выключена.",
 }

@@ -2461,4 +2461,6 @@ export default {
   "Your coach": "โค้ชของคุณ",
   "{0} message left today": "วันนี้เหลือ {0} ข้อความ",
   "{0} messages left today": "วันนี้เหลือ {0} ข้อความ",
+  "Not posted: no set was checked off.": "ยังไม่ได้โพสต์: ไม่มีเซตที่ติ๊กไว้",
+  "Not posted: posting every workout is off.": "ยังไม่ได้โพสต์: ปิดการโพสต์ทุกการออกกำลังกายอยู่",
 }

@@ -2529,4 +2529,6 @@ export default {
   "Your coach": "আপনার কোচ",
   "{0} message left today": "আজ {0}টি বার্তা বাকি",
   "{0} messages left today": "আজ {0}টি বার্তা বাকি",
+  "Not posted: no set was checked off.": "পোস্ট হয়নি: কোনো সেট চিহ্নিত করা হয়নি।",
+  "Not posted: posting every workout is off.": "পোস্ট হয়নি: প্রতিটি ওয়ার্কআউট পোস্ট করা বন্ধ আছে।",
 }

@@ -2450,4 +2450,6 @@ export default {
   "Your coach": "나의 코치",
   "{0} message left today": "오늘 남은 메시지 {0}개",
   "{0} messages left today": "오늘 남은 메시지 {0}개",
+  "Not posted: no set was checked off.": "게시 안 됨: 체크한 세트가 없어요.",
+  "Not posted: posting every workout is off.": "게시 안 됨: 모든 운동 게시가 꺼져 있어요.",
 }
