@@ -4,7 +4,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
-import { accentValue, applyAccent } from './lib/accent.js'
+import { accentValue, applyAccent, moveToGold } from './lib/accent.js'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
 import { setPlayOnSilent, setVibrate, setAlarmBuzzer } from './lib/sound.js'
@@ -77,7 +77,7 @@ function Shell() {
   const navigate = useNavigate()
   const loc = useLocation()
   const navType = useNavigationType()
-  const { S, user, ready } = useStore()
+  const { S, user, ready, update } = useStore()
   // iOS: whether timer sounds get past the ring/silent switch (Settings → Sounds). Page-level,
   // so it is applied here on load and on change rather than at each beep.
   useEffect(() => { setPlayOnSilent(!!S.soundOnSilent) }, [S.soundOnSilent])
@@ -106,6 +106,12 @@ function Shell() {
   // A preset key, or the user's own colour as '#rrggbb' (lib/accent.js), already checked.
   const accent = accentValue(S)
   useEffect(() => { applyPrefs(S.theme, accent) }, [S.theme, accent])
+  // The app's own colour moved from green to gold. Once per profile, a copy still on the old
+  // default becomes gold; `accentGold` marks it done, so a green picked afterwards stays green.
+  useEffect(() => {
+    if (!ready || S.accentGold) return
+    update(moveToGold)
+  }, [ready, S.accentGold, update])
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.

@@ -1196,7 +1196,7 @@ function PushCard({ S, update, toast }) {
 // What the chosen accent is called: a preset's colour name, or the user's own.
 function accentLabel(S) {
   const k = accentKey(S)
-  return k === CUSTOM ? t('Your own color') : t(ACCENT_NAMES[k] || 'Green')
+  return k === CUSTOM ? t('Your own color') : t(ACCENT_NAMES[k] || 'Yellow')
 }
 
 /**
@@ -1257,7 +1257,7 @@ function AccentSwatches({ S, update }) {
   // The input is not controlled (React would put the saved colour back after every drag step);
   // a colour changed elsewhere (sync, another tab) is put in by hand.
   useEffect(() => {
-    if (!pending.current && inputRef.current) inputRef.current.value = own || '#30d158'
+    if (!pending.current && inputRef.current) inputRef.current.value = own || '#f5b50a'
   }, [own])
   const ownLabel = t('Your own color')
   const grey = own && isGrey(own)
@@ -1275,7 +1275,7 @@ function AccentSwatches({ S, update }) {
         ? <button className="swatch swatch-own" style={{ background: own }} onClick={() => pickOwn(own)} aria-label={ownLabel} />
         : <span className={'swatch swatch-own' + (own ? ' on' : ' unset')} style={own ? { background: own, color: inkOn(own) } : undefined}>
           {own ? <Icon name="pencil" /> : <Icon name="plus" />}
-          <input ref={inputRef} type="color" className="swatch-input" defaultValue={own || '#30d158'}
+          <input ref={inputRef} type="color" className="swatch-input" defaultValue={own || '#f5b50a'}
             onChange={e => preview(e.target.value)}
             aria-label={own ? t('Change your own color') : t('Pick your own color')} />
         </span>}

@@ -1,9 +1,9 @@
 // The accent colour: one of the presets (lib/format.js ACCENTS) or a colour of the user's own.
 //
-// Stored as two synced settings: `accent` names the choice ('lime', 'sky', … or 'custom') and
+// Stored as two synced settings: `accent` names the choice ('gold', 'lime', 'sky', … or 'custom') and
 // `accentCustom` keeps the user's own colour as '#rrggbb', also while a preset is picked, so
 // going back to it brings the same colour back. An app from before this knows no 'custom' and
-// draws its default green (App.jsx falls back on any key it does not know), and leaves
+// draws its default accent (App.jsx falls back on any key it does not know), and leaves
 // `accentCustom` alone like any other key it does not read.
 //
 // Nothing here trusts the stored value: it comes from other devices, backups and the server, and
@@ -16,7 +16,7 @@
 // A grey goes further, so it never looks like a switched-off button (THEMES below, accent.test.js).
 import { ACCENTS, ACCENT_INK } from './format.js'
 
-export const DEFAULT_ACCENT = 'lime'
+export const DEFAULT_ACCENT = 'gold'
 export const CUSTOM = 'custom'
 
 const HEX = /^#[0-9a-f]{6}$/i
@@ -40,6 +40,16 @@ export function sanitizeAccent(s) {
     if (hex) s.accentCustom = hex; else delete s.accentCustom
   }
   if ('accent' in s && !(typeof s.accent === 'string' && KEY.test(s.accent))) s.accent = DEFAULT_ACCENT
+  return s
+}
+
+/**
+ * The app's own colour moved from green to gold: a copy still on the old default ('lime') becomes
+ * gold, once. `accentGold` marks it done, so a green picked afterwards stays green. In place.
+ */
+export function moveToGold(s) {
+  if (s.accent === 'lime') s.accent = 'gold'
+  s.accentGold = true
   return s
 }
 

@@ -70,7 +70,7 @@ public class RestAlertPlugin extends Plugin {
             call.reject("at must be in the future");
             return;
         }
-        RestAlert.setAccentColor((int) number(call, "accent", 0xFF30D158L), (int) number(call, "ink", 0xFF000000L));
+        RestAlert.setAccentColor((int) number(call, "accent", 0xFFF5B50AL), (int) number(call, "ink", 0xFF000000L));
         RestAlert.setLabels(
                 call.getString("pause", "Pause"),
                 call.getString("resume", "Resume"),
@@ -173,7 +173,7 @@ public class RestAlertPlugin extends Plugin {
 
     @PluginMethod
     public void setAccent(PluginCall call) {
-        int color = (int) number(call, "accent", 0xFF30D158L);
+        int color = (int) number(call, "accent", 0xFFF5B50AL);
         int ink = (int) number(call, "ink", 0xFF000000L);
         RestAlert.setAccentColor(color, ink);
         Context ctx = getContext();
