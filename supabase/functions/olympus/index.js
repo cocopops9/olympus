@@ -3,5 +3,6 @@
 import { createApp } from './core.js';
 import { store, photos } from './store.js';
 
-const app = createApp({ store, photos });
+// Hercules reads its provider key and model from the function's secrets (HERCULES_API_KEY, ...).
+const app = createApp({ store, photos, env: Deno.env.toObject() });
 Deno.serve(req => app.handle(req));

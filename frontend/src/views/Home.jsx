@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore.js'
 import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
 import { fmtNum, fmtDate, todayISO, isoOf, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
 import { t, tn, dateLocale } from '../lib/i18n.js'
-import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
+import { bwSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
@@ -187,8 +187,6 @@ export default function Home() {
       </div>
     )}
 
-    {S.showWeightCard !== false && <BodyWeightCard S={S} />}
-
     <div className="card tappable" style={{ cursor: 'pointer' }} {...tappable(() => calendarSheet())}>
       <div className="row between">
         <div>
@@ -204,7 +202,8 @@ export default function Home() {
   </div>
 }
 
-// The body-weight card: last weigh-in, how it moved, the goal and the curve. Also on Profile → Body.
+// The body-weight card: last weigh-in, how it moved, and the curve. On the Body tracking page
+// (views/BodyTracking.jsx). No goal: Olympus records body weight, it does not set targets.
 export function BodyWeightCard({ S }) {
   const bw = lastBW(S)
   const prevBW = S.bodyweight.length > 1 ? S.bodyweight[S.bodyweight.length - 2] : null
@@ -214,7 +213,6 @@ export function BodyWeightCard({ S }) {
         <div className="row between bw-head" style={{ marginBottom: 6 }}>
           <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
           <div className="row" style={{ gap: 8 }}>
-            <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
             <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
           </div>
         </div>
@@ -230,13 +228,7 @@ export function BodyWeightCard({ S }) {
             )}
             <span className="dim small" style={{ marginInlineStart: 'auto' }}>{fmtDate(bw.d, true)}</span>
           </div>
-          {S.targetW && (
-            <div className="small row" style={{ color: 'var(--yellow)', marginTop: 4, gap: 5 }}>
-              <Icon name="target" style={{ fontSize: 13 }} />
-              <span>{t('Goal')} {fmtNum(S.targetW)} {S.unit} · {Math.abs(S.targetW - bw.w) < 0.05 ? t('reached!') : t(S.targetW > bw.w ? '{0} to gain' : '{0} to lose', fmtNum(Math.abs(S.targetW - bw.w)) + ' ' + S.unit)}</span>
-            </div>
-          )}
-          <div className="chart" style={{ marginTop: 8 }}><LineChart points={bwPoints} h={130} unit={S.unit} goal={S.targetW} /></div>
+          <div className="chart" style={{ marginTop: 8 }}><LineChart points={bwPoints} h={130} unit={S.unit} /></div>
           {/* every weigh-in, week by week with its average (Discord 'Weight') */}
           <div className="row" style={{ justifyContent: 'flex-end', marginTop: 4 }}>
             <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>

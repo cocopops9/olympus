@@ -39,11 +39,11 @@ describe('insightsFor', () => {
     expect(i.bodyParts.map(b => b.bp)).toContain('back')
     expect(i.bodyParts.reduce((n, b) => n + b.share, 0)).toBeCloseTo(1, 5)
   })
-  it('reads the body weight inside the window with its delta and goal', () => {
+  it('reads the body weight inside the window with its delta, and no goal: Olympus sets none', () => {
     const i = insightsFor(S(), win)
     expect(i.bodyweight.points.map(p => p.y)).toEqual([84, 83])
     expect(i.bodyweight.delta).toBe(-1)
-    expect(i.bodyweight.goal).toBe(80)
+    expect(i.bodyweight.goal).toBe(null)
     expect(i.bodyweight.last).toBe(83)
   })
   it('tracks estimated 1RM first → last for exercises with two or more sessions, most-trained first', () => {

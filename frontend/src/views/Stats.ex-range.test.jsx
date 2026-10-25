@@ -82,11 +82,4 @@ describe('Stats: exercise progress date range', () => {
     expect(card.textContent).not.toContain('Fewer than two workouts')
     expect(exChart().points.map(p => p.y)).toEqual([90, 80])
   })
-
-  it('leaves the body weight range alone', () => {
-    mount([session(400, 100), session(200, 90), session(5, 80)])
-    const bwCard = [...host.querySelectorAll('.card')].find(c => c.querySelector('h2')?.textContent === 'Body weight')
-    press(exCard(), '1M')
-    expect([...bwCard.querySelectorAll('.seg button.on')].map(b => b.textContent)).toEqual(['3M'])
-  })
 })

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Olympus Profile: the header and its counts, the Overview / Stats / Body tabs (Posts only with a
+// Olympus Profile: the header and its counts, the Overview / Stats tabs (Posts only with a
 // server profile), the calendar behind its header button, and the rows that reach the screens
 // that used to be tabs.
 import React, { act } from 'react'
@@ -47,26 +47,27 @@ describe('Profile on a device kept local', () => {
     expect(host.querySelector('.ov-day.on.now')).toBeTruthy()
     expect(host.querySelector('.wrow').textContent).toBe('Push')
     expect(host.textContent).toContain('Training on this device only.')
-    expect([...host.querySelectorAll('.seg button')].map(b => b.textContent)).toEqual(['Overview', 'Stats', 'Body'])
+    expect([...host.querySelectorAll('.seg button')].map(b => b.textContent)).toEqual(['Overview', 'Stats'])
     act(() => host.querySelector('button[aria-label="Calendar"]').click())
     expect(mocks.calendar).toHaveBeenCalled()
     expect(mocks.profile).not.toHaveBeenCalled()
   })
 
-  it('reaches Plan, Exercises and Settings from its Training section', async () => {
+  it('reaches Plan, Exercises, Body tracking and Settings from its Training section', async () => {
     await render()
-    for (const [label, to] of [['Plan', '/plan'], ['Exercises', '/library'], ['Today’s training', '/today']]) {
+    for (const [label, to] of [['Plan', '/plan'], ['Exercises', '/library'], ['Today’s training', '/today'], ['Body tracking', '/body']]) {
       const row = [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
       act(() => row.click())
       expect(mocks.nav).toHaveBeenLastCalledWith(to)
     }
   })
 
-  it('opens the tab the address names', async () => {
+  it('opens the tab the address names; the old Body tab is gone from the profile', async () => {
     mocks.params = new URLSearchParams('tab=body')
     await render()
-    expect(host.querySelector('[data-testid="bw"]')).toBeTruthy()
-    expect(host.querySelector('[data-testid="measurements"]')).toBeTruthy()
+    expect(host.querySelector('[data-testid="bw"]')).toBeNull()
+    expect(host.querySelector('[data-testid="measurements"]')).toBeNull()
+    expect(host.textContent).toContain('This week')
     mocks.params = new URLSearchParams('tab=stats')
     await render()
     expect(host.textContent).toContain('embedded stats')

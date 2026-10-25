@@ -7,19 +7,21 @@
 //   'state:<uid>' one profile's training  (the document GET/PUT /api/data move)
 //   'social'      the social layer        (api/social.js's document)
 //   'secret'      the key that signs sessions
+//   'hercules'    today's count of messages to Hercules, per profile (hercules.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
 // are serialized the way the single Node process serialized them.
 //
 // Shared with the Node server, unchanged: the social layer (social.js), the sync conflict rules
-// (sync-stamps.js) and password hashing (password.js) — copied next to this file by
+// (sync-stamps.js), password hashing (password.js) and the Hercules coach (hercules.js) — copied next to this file by
 // scripts/supabase-bundle.mjs, and a test keeps the copies identical.
 //
 // Not here, on purpose: passkeys and pairing codes (the app signs in with a name and password),
-// Web Push, the AI Coach, exercise media uploads, the admin dashboard.
+// Web Push, the plan-writing AI Coach (Hercules, the chat coach, is), exercise media uploads, the admin dashboard.
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { stampPut } from './sync-stamps.js';
+import { herculesConfig, handleHercules, leftToday, dayOf, HerculesError } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 
 const SESSION_DAYS = 90;
@@ -55,7 +57,8 @@ const sessionVersion = u => u.sv || 0;
  *           holds those documents' locks (fn may be async; what it set is saved when it returns).
  * `photos`: put(name, bytes, contentType), get(name) -> Uint8Array | null, del(name).
  */
-export function createApp({ store, photos, now = () => Date.now() }) {
+export function createApp({ store, photos, now = () => Date.now(), env = {}, fetchImpl = globalThis.fetch }) {
+  const hercules = herculesConfig(env);
   let secret = null;
   async function key() {
     if (secret) return secret;
@@ -329,6 +332,20 @@ export function createApp({ store, photos, now = () => Date.now() }) {
       return out;
     },
 
+    // Hercules, the free coach (hercules.js): whether it is on and how many messages are left today,
+    // and one message with the conversation so far.
+    'GET /api/hercules': async req => {
+      const { user } = await signedIn(req);
+      const doc = await store.read('hercules');
+      return { status: 200, body: { on: !!hercules.key, perDay: hercules.perDay, left: leftToday(doc, user.id, dayOf(now()), hercules.perDay) } };
+    },
+    'POST /api/hercules': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      const quota = fn => store.update(['hercules'], ({ get, set }) => { set('hercules', fn(get('hercules'))); });
+      return { status: 200, body: await handleHercules({ user, body, config: hercules, quota, now: now(), fetchImpl }) };
+    },
+
     // The social layer, route for route as in api/server.js.
     'GET /api/social/search': async (req, q) => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.search(me, q.get('q') || '')) } }; },
     'GET /api/social/profile': async (req, q) => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.profile(me, q.get('id') || '', { before: q.get('before') })) }; },
@@ -394,6 +411,7 @@ export function createApp({ store, photos, now = () => Date.now() }) {
     } catch (e) {
       if (e instanceof HttpError) return json(e.status, { error: e.message, ...(e.code ? { code: e.code } : {}) }, cors(origin));
       if (e instanceof SocialError) return json(e.status, { error: e.message, code: e.code }, cors(origin));
+      if (e instanceof HerculesError) return json(e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) }, cors(origin));
       if (e instanceof BusyError) return json(503, { error: 'the server is busy', code: 'busy' }, { ...cors(origin), 'Retry-After': '2' });
       console.error(`${req.method} ${path}`, e);
       return json(500, { error: 'server error' }, cors(origin));

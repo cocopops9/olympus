@@ -6,7 +6,7 @@ import { lastBW, streakWeeks, setLabel, modeOf, effortOf, entriesForExercise, me
 import { fmtNum, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
 import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
 import { t, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
-import { bwSheet, goalSheet, calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow, bwDeltaColor, weighInsSheet } from '../sheets.jsx'
+import { calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
@@ -408,7 +408,6 @@ export function WeeklyPlanVolume({ S }) {
 export default function Stats({ embedded = false } = {}) {
   const nav = useNavigate()
   const S = useStore(s => s.S)
-  const [range, setRange] = useState(90)
   // Plan's "Weekly muscle volume" row lands here (/stats?focus=weekly-volume). The router is a
   // HashRouter, so the query sits in the hash; the scroll waits a frame for the page's own
   // scroll-to-top on navigation to have happened first.
@@ -428,10 +427,6 @@ export default function Stats({ embedded = false } = {}) {
   const kind = displayScale(S)
   const hd = scaleName(kind)
 
-  const bwPts = S.bodyweight.filter(b => range === 0 || (b.t || new Date(b.d).getTime()) > now - range * 86400000)
-    .map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
-  const bw30 = S.bodyweight.filter(b => (b.t || new Date(b.d).getTime()) > now - 30 * 86400000)
-  const bwDelta30 = bw30.length > 1 ? bw30[bw30.length - 1].w - bw30[0].w : null
   const workouts = S.workouts
   const monthW = workouts.filter(w => workoutDay(w)?.slice(0, 7) === todayISO().slice(0, 7)).length
 
@@ -641,7 +636,7 @@ export default function Stats({ embedded = false } = {}) {
       <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>
       <div className="tile"><div className="l"><Icon name="calendar" />{t('This month')}</div><div className="v">{monthW}</div></div>
       <div className="tile"><div className="l"><Icon name="flame" />{t('Week streak')}</div><div className="v">{streakWeeks(S)}</div></div>
-      <div className="tile"><div className="l"><Icon name="scale" />{t('Weight 30d')}</div><div className="v" style={{ fontSize: 22, color: bwDelta30 === null ? 'inherit' : bwDeltaColor(bwDelta30, (lastBW(S) || {}).w || 0) }}>{bwDelta30 === null ? '–' : (bwDelta30 > 0 ? '+' : '') + fmtNum(bwDelta30) + ' ' + S.unit}</div></div>
+      <div className="tile"><div className="l"><Icon name="trophy" />{t('PRs')}</div><div className="v">{workouts.reduce((n, w) => n + (Array.isArray(w.prs) ? w.prs.length : 0), 0)}</div></div>
 
     </div>
 
@@ -667,33 +662,9 @@ export default function Stats({ embedded = false } = {}) {
         <div className="muted small" style={{ marginTop: 4 }}>{t('Every photo you kept with a workout, lined up by date. Plus a before/after slider.')}</div></div>
       <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/progress-photos')}>{t('Open')}</Button>
     </div>}
-    <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
-      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Body measurements')}</h2>
-        <div className="muted small" style={{ marginTop: 4 }}>{(S.measurements || []).length
-          ? t('Last check-in {0}', fmtDate(S.measurements[S.measurements.length - 1].d, true))
-          : t('Waist, arms, body fat and anything else you measure, each with its own curve.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/measurements')}>{t('Open')}</Button>
-    </div>
     {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
 
     <div className="cols">
-      <div className="card">
-        <div className="row between bw-head" style={{ marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
-          <div className="row" style={{ gap: 8 }}>
-            <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
-            <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
-          </div>
-        </div>
-        <Segmented className="seg-range" value={range} onChange={setRange}
-          options={rangeOptions()} />
-        <div className="chart"><LineChart points={bwPts} h={160} unit={S.unit} goal={S.targetW} /></div>
-        {/* every weigh-in, week by week with its average (Discord 'Weight') */}
-        {S.bodyweight.length > 0 && <div className="row" style={{ justifyContent: 'flex-end', marginTop: 4 }}>
-          <Button size="sm" variant="ghost" trailingIcon="chevronRight" onClick={weighInsSheet}>{t('All weigh-ins')}</Button>
-        </div>}
-      </div>
-
       <div className="card">
         <h2>{t('Exercise progress')}</h2>
         {exHist.length ? <>

@@ -22,7 +22,8 @@ import { AccountSection } from './AccountEdit.jsx'
 import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
-export const POSTED_EVENT = 'olympus:posted'
+import { POSTED_EVENT, autoPostOn, forgetPost, flushPosts } from '../lib/auto-post.js'
+export { POSTED_EVENT }
 const MAX_PHOTOS = 4
 const toast = m => useUI.getState().toast(m)
 // A small confirm of our own: sheets.jsx imports this module, so importing its confirmSheet back
@@ -197,13 +198,41 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
   const removeComment = async c => {
     try { replace(await deleteComment(post.id, c.id)) } catch (e) { fail(e) }
   }
-  const remove = () => confirmAction({
-    title: t('Delete post?'), message: t('It disappears from every feed. Your workout itself stays in your history.'),
-    confirmText: t('Delete'),
-    onConfirm: async () => {
-      try { await deletePost(post.id); onDelete?.(post); toast(t('Post deleted')) } catch (e) { fail(e) }
-    },
-  })
+  const dropPost = async () => {
+    try {
+      await deletePost(post.id)
+      // An auto-posted workout is not posted again once its post is deleted.
+      if (post.wid) useStore.getState().update(s => { if (s.wposts && post.wid in s.wposts) s.wposts = { ...s.wposts, [post.wid]: '-' } })
+      onDelete?.(post); toast(t('Post deleted'))
+    } catch (e) { fail(e) }
+  }
+  const remove = () => {
+    const logged = post.mine && post.wid && useStore.getState().S.workouts.find(w => w.id === post.wid)
+    if (!logged) return confirmAction({
+      title: t('Delete post?'), message: t('It disappears from every feed. Your workout itself stays in your history.'),
+      confirmText: t('Delete'), onConfirm: dropPost,
+    })
+    // Your own workout's post: the post alone, or the workout with it.
+    useUI.getState().openSheet(close => <>
+      <h3>{t('Delete')}</h3>
+      <p className="muted">{t('Delete only the post, or the workout as well? A deleted workout is gone from your history for good.')}</p>
+      <Button variant="danger" onClick={() => { close(); dropPost() }}>{t('Delete post only')}</Button>
+      <div style={{ height: 8 }} />
+      <Button variant="danger" onClick={() => {
+        close()
+        useStore.getState().update(s => {
+          const w = s.workouts.find(x => x.id === post.wid)
+          if (w) forgetPost(s, w)
+          s.workouts = s.workouts.filter(x => x.id !== post.wid)
+        })
+        flushPosts().catch(() => {})
+        onDelete?.(post)
+        toast(t('Workout deleted'))
+      }}>{t('Delete post and workout')}</Button>
+      <div style={{ height: 8 }} />
+      <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
+    </>, { kind: 'center' })
+  }
   const openAuthor = id => nav(id === me?.id ? '/profile' : '/u/' + id)
 
   return <article className="post">
@@ -356,6 +385,17 @@ export const composeSheet = ({ workout, onPosted } = {}) =>
 
 /* ---------------- your profile ---------------- */
 
+// Saved at once in the training document (S.autoPost), not with the server profile below.
+function AutoPostRow() {
+  const on = useStore(s => autoPostOn(s.S))
+  const update = useStore(s => s.update)
+  return <Section footer={t('Each workout you finish is posted to your feed, also when you are offline: it goes out once you are back online. You can delete any post.')}>
+    <Row icon="share" iconTint="var(--acc)" title={t('Post every workout')}>
+      <Switch checked={on} onChange={v => update(s => { s.autoPost = v })} aria-label={t('Post every workout')} />
+    </Row>
+  </Section>
+}
+
 function ProfileEditor({ close, me, onSaved }) {
   const [text, setText] = useState(me?.bio || '')
   const [priv, setPriv] = useState(!!me?.private)
@@ -383,6 +423,7 @@ function ProfileEditor({ close, me, onSaved }) {
         <Switch checked={priv} onChange={setPriv} aria-label={t('Private profile')} />
       </Row>
     </Section>
+    <AutoPostRow />
     <Section footer={t('Likes, comments and new followers are always listed in the app.')}>
       <Row icon="bell" iconTint="var(--red)" title={t('Push notifications for likes, comments and follows')}>
         <Switch checked={push} onChange={setPush} aria-label={t('Push notifications for likes, comments and follows')} />

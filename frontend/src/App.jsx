@@ -4,7 +4,9 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
-import { accentValue, applyAccent, moveToGold } from './lib/accent.js'
+import { accentValue, applyAccent } from './lib/accent.js'
+import { needsDefaults, applyOlympusDefaults } from './lib/olympus-defaults.js'
+import HerculesButton from './components/Hercules.jsx'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
 import { setPlayOnSilent, setVibrate, setAlarmBuzzer } from './lib/sound.js'
@@ -42,6 +44,7 @@ import Plan from './views/Plan.jsx'
 import RoutineEdit from './views/RoutineEdit.jsx'
 import Workout from './views/Workout.jsx'
 import Stats from './views/Stats.jsx'
+import BodyTracking from './views/BodyTracking.jsx'
 import History from './views/History.jsx'
 import Library from './views/Library.jsx'
 import Muscles from './views/Muscles.jsx'
@@ -108,10 +111,11 @@ function Shell() {
   useEffect(() => { applyPrefs(S.theme, accent) }, [S.theme, accent])
   // The app's own colour moved from green to gold. Once per profile, a copy still on the old
   // default becomes gold; `accentGold` marks it done, so a green picked afterwards stays green.
+  // The pre-workout weigh-in question goes off the same way (lib/olympus-defaults.js).
   useEffect(() => {
-    if (!ready || S.accentGold) return
-    update(moveToGold)
-  }, [ready, S.accentGold, update])
+    if (!ready || !needsDefaults(S)) return
+    update(applyOlympusDefaults)
+  }, [ready, S.accentGold, S.weighInQuiet, update])
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.
@@ -245,6 +249,7 @@ function Shell() {
               <Route path="/structural-balance" element={<StructuralBalance />} />
               <Route path="/progress-photos" element={<ProgressPhotos />} />
               <Route path="/measurements" element={<Measurements />} />
+              <Route path="/body" element={<BodyTracking />} />
               <Route path="/settings" element={<SettingsRoute />} />
               <Route path="/settings/:page" element={<SettingsRoute />} />
               {/* The Coach screens gate themselves on the instance config; the routes exist
@@ -265,6 +270,7 @@ function Shell() {
           including on the sign-in screen, when the server has just ended the session. */}
       <SyncBanner />
       {!noTabs && <TabBar onStart={startFlow} />}
+      {authed && !needsMobileOnboarding && <HerculesButton />}
       <RestTimer />
       <Modals />
       <Toast />

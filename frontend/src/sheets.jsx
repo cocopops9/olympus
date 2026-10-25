@@ -30,6 +30,8 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseGuide from './components/ExerciseGuide.jsx'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet } from './components/Social.jsx'
+import { titleWorkout } from './lib/workout-title.js'
+import { queuePost, forgetPost, flushPosts, postState, unpost, repost } from './lib/auto-post.js'
 import { socialReady } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
@@ -391,7 +393,7 @@ function WeighIns() {
   return <>
     <h3 style={{ marginBottom: 2 }}>{t('Weigh-ins')}</h3>
     <div className="muted small" style={{ marginBottom: 10 }}>{tn('{0} weigh-in', '{0} weigh-ins', n)}</div>
-    <div className="chart"><LineChart points={points} h={140} unit={st.unit} goal={st.targetW} /></div>
+    <div className="chart"><LineChart points={points} h={140} unit={st.unit} /></div>
     <div className="small dim" style={{ marginTop: 6 }}>{t('Weekly average')}</div>
     {weeks.map(w => {
       // Only a change the display can show: at one decimal, 0.02 kg is "0", and an arrow over a
@@ -722,33 +724,11 @@ function HevyImportSheet({ close }) {
   </>
 }
 
-/* ============================ target weight ============================ */
-export function bwDeltaColor(delta, currentW) {
-  if (!delta) return 'var(--label-2)'
-  if (!S().targetW) return 'var(--label)'
-  const up = S().targetW > currentW
-  return (delta > 0) === up ? 'var(--acc)' : 'var(--red)'
+/* ============================ body weight change ============================ */
+// Neutral on purpose: there are no weight goals in Olympus, so a change is neither good nor bad.
+export function bwDeltaColor(delta) {
+  return delta ? 'var(--label)' : 'var(--label-2)'
 }
-function GoalSheet({ close }) {
-  const st = S()
-  const bw = lastBW(st)
-  const [v, setV] = useState(st.targetW || (bw ? bw.w : 70))
-  return <>
-    <h3>{t('Target weight')}</h3>
-    <div className="muted small">{t('Your goal is drawn as a line through the weight charts, and gains/losses are colored by whether they move toward it.')}</div>
-    <WeightInput value={v} setValue={setV} unit={st.unit} />
-    <div style={{ height: 14 }} />
-    <Button variant="primary" onClick={() => {
-      const n = Math.round((v || 0) * 10) / 10
-      if (!n || n <= 0) { toast(t('Enter a valid weight')); return }
-      if (bwTooHeavy(n, st.unit)) return
-      update(s => { s.targetW = n }); close()
-      const b = lastBW(S()); toast(t('Goal set: {0}', fmtNum(n) + ' ' + st.unit) + (b ? ' (' + t('{0} to go', fmtNum(Math.abs(n - b.w))) + ')' : ''))
-    }}>{t('Save goal')}</Button>
-    {st.targetW && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { update(s => { s.targetW = null }); close(); toast(t('Goal removed')) }}>{t('Remove goal')}</Button></>}
-  </>
-}
-export const goalSheet = () => ui().openSheet(close => <GoalSheet close={close} />)
 
 /* ============================ plate loading ============================ */
 // One editor for every place an exercise's loading shows up (exercise detail, exercise config,
@@ -2634,7 +2614,7 @@ function WorkoutDetail({ w, close }) {
     <div style={{ height: 10 }} />
     {/* Matched the way the edits above are, not by id: a workout from before ids has none, and
         filtering on `x.id !== undefined` took every other one of them with it. */}
-    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
+    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { const gone = s.workouts.find(x => sameWorkout(x, w)); if (gone) forgetPost(s, gone); s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); flushPosts().catch(() => {}); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
   </>
 }
 // "Share as image" (#453): the card lib/workout-card.js lays out, painted in the theme and accent
@@ -3351,6 +3331,28 @@ function CardioDone({ st, w }) {
   </div>
 }
 
+// Where a finished workout's post stands: on its way (or waiting for a network), in the feed with
+// an Undo, or not posted with a way to post it after all.
+function PostStatus({ w }) {
+  const st = useStore(s => s.S)
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false)
+  useEffect(() => {
+    const on = () => setOnline(navigator.onLine !== false)
+    window.addEventListener('online', on); window.addEventListener('offline', on)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', on) }
+  }, [])
+  const { state } = postState(st, w)
+  if (state === 'none') return null
+  const act = fn => { update(s => fn(s, w)); flushPosts().catch(() => {}) }
+  return <div className={'post-status ' + state}>
+    <Icon name={state === 'posted' ? 'checkCircle' : state === 'off' ? 'xmark' : online ? 'cloud' : 'cloudSlash'} />
+    <span className="grow">{state === 'posted' ? t('Posted to your feed')
+      : state === 'off' ? t('Not posted')
+        : online ? t('Posting to your feed…') : t('No connection: it will be posted when you are back online.')}</span>
+    {state === 'posted' && <button className="chip nocap" onClick={() => act(unpost)}>{t('Undo')}</button>}
+    {state === 'off' && <button className="chip nocap" onClick={() => act(repost)}>{t('Post it')}</button>}
+  </div>
+}
 function FinishSummary({ w, prs, e1prs = [], close }) {
   const st = useStore(s => s.S)
   const user = useStore(s => s.user)
@@ -3375,11 +3377,8 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    {/* Olympus: straight from the finish line to the feed, the workout already attached. */}
-    {socialReady(user) && <><Button variant="tinted" icon="globe" onClick={() => {
-      closeThenNav(close, '/home')
-      setTimeout(() => composeSheet({ workout: w }), 0)
-    }}>{t('Share to feed')}</Button><div style={{ height: 8 }} /></>}
+    {/* Olympus: the workout is posted on its own; this says where that stands and can take it back. */}
+    {socialReady(user) && <PostStatus w={w} />}
     <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
   </div>
 }
@@ -3440,6 +3439,8 @@ function doFinishWorkout() {
     snapshotFor: e => isCustomEx(EXIDX[e.id]) ? exerciseMuscleSnapshot(EXIDX[e.id]) : null,
   })
   w.vol = workoutVolume(w)
+  // A workout nobody named is named after what it trained (lib/workout-title.js).
+  titleWorkout(w)
   let shown = w
   update(s => {
     if (past) {
@@ -3462,7 +3463,10 @@ function doFinishWorkout() {
     // A rotation pass this app manages starts its next pass the moment the last session lands
     // (lib/rotation.js). A planner's queue is left alone: it completes and waits for its writer.
     refillAfter(s, w)
+    // Olympus: every workout becomes a post, now or once the phone is back online (lib/auto-post.js).
+    if (socialReady(useStore.getState().user)) queuePost(s, shown)
   })
+  flushPosts().catch(() => {})
   useStore.getState().autoBackupNow()
   useUI.getState().stopRest()
   // A hold still counting (a plank left unchecked, then Finish early) goes with the workout, as

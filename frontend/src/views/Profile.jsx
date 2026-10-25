@@ -1,6 +1,7 @@
 // Profile: who you are on Olympus and everything about your own training in one place.
 // Overview (this week at a glance: the days you trained, totals against last week, the muscles
-// worked and the week's workouts), Stats (the full Stats screen), Body (body weight,
+// worked and the week's workouts), Stats (the full Stats screen), Posts. Body weight, measurements
+// and photos are on their own page (views/BodyTracking.jsx, Body tracking under Training). Was: Body (body weight,
 // measurements, progress photos) and, with a server profile, your Posts. The month calendar
 // opens from the calendar button in the header. The screens that used to be tabs (Plan,
 // Exercises) and Settings are reached from the bottom of it.
@@ -23,11 +24,9 @@ import { loadOfWorkouts } from '../lib/muscles.js'
 import { todayISO, fmtNum, fmtDur, fmtVol, DAYS } from '../lib/format.js'
 import '../profile.css'
 import Stats from './Stats.jsx'
-import Measurements from './Measurements.jsx'
-import { BodyWeightCard } from './Home.jsx'
 import '../social.css'
 
-const TABS = ['overview', 'stats', 'body', 'posts']
+const TABS = ['overview', 'stats', 'posts']
 
 // "+12%" against last week, or nothing when there is nothing to compare with.
 function Delta({ now, before }) {
@@ -86,17 +85,6 @@ function OverviewTab({ S }) {
   </>
 }
 
-function BodyTab({ S }) {
-  const nav = useNavigate()
-  return <>
-    <BodyWeightCard S={S} />
-    <Measurements embedded />
-    <Section>
-      <Row icon="camera" iconTint="var(--pink)" title={t('Progress photos')} accessory="chevron" onClick={() => nav('/progress-photos')} />
-    </Section>
-  </>
-}
-
 function PostsTab({ posts, setPosts, error, onRetry }) {
   if (error) return <div className="empty">{error}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={onRetry}>{t('Try again')}</Button></div></div>
   if (posts === null) return <div className="empty">{t('Loading…')}</div>
@@ -150,12 +138,11 @@ export default function Profile() {
       [me.posts, t('Posts'), () => setTab('posts')]]
     : [[S.workouts.length, t('Workouts'), () => nav('/history')],
       [streakWeeks(S), t('Week streak'), () => setTab('overview')],
-      [S.bodyweight.length, t('Weigh-ins'), () => setTab('body')]]
+      [S.bodyweight.length, t('Weigh-ins'), () => nav('/body')]]
 
   const options = [
     { value: 'overview', label: t('Overview') },
     { value: 'stats', label: t('Stats') },
-    { value: 'body', label: t('Body') },
     ...(ready ? [{ value: 'posts', label: t('Posts') }] : []),
   ]
 
@@ -197,7 +184,6 @@ export default function Profile() {
 
     {tab === 'overview' && <OverviewTab S={S} />}
     {tab === 'stats' && <Stats embedded />}
-    {tab === 'body' && <BodyTab S={S} />}
     {tab === 'posts' && <PostsTab posts={posts} setPosts={setPosts} error={error} onRetry={load} />}
 
     <div style={{ height: 18 }} />
@@ -205,6 +191,7 @@ export default function Profile() {
       <Row icon="sun" iconTint="var(--orange)" title={t('Today’s training')} subtitle={t('This week, today’s session, check-in')} accessory="chevron" onClick={() => nav('/today')} />
       <Row icon="calendar" iconTint="var(--acc)" title={t('Plan')} subtitle={t('Your routines and weekly schedule')} accessory="chevron" onClick={() => nav('/plan')} />
       <Row icon="dumbbell" iconTint="var(--blue)" title={t('Exercises')} subtitle={t('The library, by muscle and equipment')} accessory="chevron" onClick={() => nav('/library')} />
+      <Row icon="scale" iconTint="var(--teal)" title={t('Body tracking')} subtitle={t('Weight, measurements and photos')} accessory="chevron" onClick={() => nav('/body')} />
       <Row icon="gear" iconTint="var(--grey)" title={t('Settings')} accessory="chevron" onClick={() => nav('/settings')} />
     </Section>
   </div>

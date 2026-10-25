@@ -757,11 +757,6 @@ export default function Settings({ page = null, find = null, via = null }) {
           subtitle={t('Show a card on Home with your membership QR codes.')}>
           <Switch checked={S.checkIn !== false} onChange={v => update(s => { s.checkIn = v })} />
         </Row>
-        {/* The Home summary is optional; hiding it leaves weight logging, history and Stats intact. */}
-        <Row icon="scale" iconTint="var(--green)" title={t('Body weight')}
-          subtitle={t('Show the body weight card on Home.')}>
-          <Switch checked={S.showWeightCard !== false} onChange={v => update(s => { s.showWeightCard = v })} />
-        </Row>
         {/* The bar at the top that says the app is offline, kept local, or not synced (#369, #330).
             Here and not under Server & sync, which a phone kept local never shows. Switching it on
             also brings back the no-server line its × hid (#454). */}

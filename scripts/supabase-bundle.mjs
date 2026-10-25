@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copies the server modules the Supabase function shares with the Node server (social layer,
-// sync conflict rules, password hashing) next to it, so the function deploys as one folder.
+// sync conflict rules, password hashing, the Hercules coach) next to it, so the function deploys as one folder.
 //   node scripts/supabase-bundle.mjs           copy
 //   node scripts/supabase-bundle.mjs --check   fail when a copy differs from api/
 import fs from 'node:fs';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'supabase/functions/olympus');
-export const SHARED = ['social.js', 'sync-stamps.js', 'password.js'];
+export const SHARED = ['social.js', 'sync-stamps.js', 'password.js', 'hercules.js'];
 const check = process.argv.includes('--check');
 let stale = 0;
 for (const f of SHARED) {

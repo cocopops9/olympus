@@ -510,3 +510,21 @@ test('social pushes speak the profile’s language and fall back to English', as
   assert.equal(socialPush('pt-BR', { kind: 'comment', fromName: 'Bia', text: 'boa!' }).body, 'Bia comentou: boa!');
   assert.equal(socialPush('ja', { kind: 'request', fromName: 'Ken' }).body, 'Ken wants to follow you');
 });
+
+test('a workout posted twice (an offline retry, a second device) stays one post', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  const w = { name: 'Chest & Triceps', d: '2026-10-25', sets: 12, exercises: [{ n: 'bench press', sets: 4, best: '80 kg × 6' }] };
+  const a = s.createPost(ANNA, { wid: 'mh3k2abc12', workout: w });
+  const b = s.createPost(ANNA, { wid: 'mh3k2abc12', workout: w });
+  assert.equal(a.id, b.id);
+  assert.equal(a.wid, 'mh3k2abc12');
+  assert.equal(s.discover(ANNA).posts.length, 1);
+  // only the author is told which workout a post came from
+  assert.equal(s.discover(BEN).posts[0].wid, undefined);
+  // another profile's workout id is its own
+  const c = s.createPost(BEN, { wid: 'mh3k2abc12', workout: w });
+  assert.notEqual(c.id, a.id);
+  // junk is not an id
+  const d = s.createPost(ANNA, { wid: '../x y', workout: w });
+  assert.equal(d.wid, undefined);
+});

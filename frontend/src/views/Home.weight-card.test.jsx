@@ -29,19 +29,13 @@ const mountWith = showWeightCard => {
 }
 const weightHeading = () => [...host.querySelectorAll('h2')].find(el => el.textContent === 'Body weight')
 
-describe('Home body-weight card preference', () => {
-  it('shows the card for legacy profiles without the preference', () => {
-    mountWith(undefined)
-    expect(weightHeading()).toBeTruthy()
-  })
-
-  it('shows the card when enabled', () => {
-    mountWith(true)
-    expect(weightHeading()).toBeTruthy()
-  })
-
-  it('hides only the Home card when disabled', () => {
-    mountWith(false)
-    expect(weightHeading()).toBeFalsy()
+describe('Home has no body-weight card', () => {
+  // Olympus: body weight lives on its own page (Profile, Body tracking), never on the front
+  // screens, whatever an older profile saved for the old Home card switch.
+  it('shows no card, whatever the old preference says', () => {
+    for (const v of [undefined, true, false]) {
+      mountWith(v)
+      expect(weightHeading()).toBeFalsy()
+    }
   })
 })

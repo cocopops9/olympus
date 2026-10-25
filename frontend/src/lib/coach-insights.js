@@ -52,7 +52,7 @@ export function insightsFor(S, win = {}, { topN = 3 } = {}) {
     points: bw,
     delta: bw.length > 1 ? Math.round((bw[bw.length - 1].y - bw[0].y) * 10) / 10 : null,
     last: bw.length ? bw[bw.length - 1].y : null,
-    goal: Number.isFinite(S.targetW) ? S.targetW : null
+    goal: null
   }
 
   const series = new Map()

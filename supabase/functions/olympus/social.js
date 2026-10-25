@@ -254,6 +254,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     const likes = (p.likes || []).filter(userById);
     return {
       id: p.id, ts: p.ts, text: p.text || '', workout: p.workout || null, photos: p.photos || [], author,
+      ...(p.uid === viewer.id && p.wid ? { wid: p.wid } : {}),
       likes: likes.length, liked: likes.includes(viewer.id), comments, mine: p.uid === viewer.id,
     };
   }
@@ -502,6 +503,14 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     },
 
     createPost(viewer, body) {
+      // `wid`: the logged workout the post is made from (the app posts every finished workout,
+      // and retries while offline). A second post of the same workout returns the first one, so a
+      // retry whose answer was lost, or a second device posting the same queue, never doubles it.
+      const wid = typeof body?.wid === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(body.wid) ? body.wid : null;
+      if (wid) {
+        const had = doc.posts.find(x => x.uid === viewer.id && x.wid === wid);
+        if (had) return view(had, viewer);
+      }
       const text = str(body?.text, LIMITS.postText);
       const workout = cleanWorkout(body?.workout);
       const photos = attachable(viewer, body?.photos);
@@ -512,7 +521,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const last = doc.posts.length ? doc.posts[doc.posts.length - 1].ts : 0;
       const p = {
         id: rid(9), uid: viewer.id, ts: Math.max(now(), last + 1), text,
-        ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), likes: [], comments: [],
+        ...(wid ? { wid } : {}), ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), likes: [], comments: [],
       };
       for (const id of photos) doc.photos[id].postId = p.id;
       doc.posts.push(p);

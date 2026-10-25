@@ -1066,6 +1066,71 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { description: 'Another profile signs in with this name (`name-taken`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/hercules:
+    get:
+      tags: [coach]
+      operationId: herculesStatus
+      summary: Whether Hercules is on, and today's messages left
+      description: |
+        Hercules is the free chat coach. It is on when the server has a provider key
+        (`HERCULES_API_KEY`; an OpenAI-compatible chat API, Groq by default). Every profile gets
+        `perDay` messages a day (UTC).
+      responses:
+        '200':
+          description: The state.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  on: { type: boolean }
+                  perDay: { type: integer }
+                  left: { type: integer }
+              example: { on: true, perDay: 20, left: 17 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [coach]
+      operationId: herculesAsk
+      summary: Ask Hercules
+      description: |
+        One message, with the conversation so far (the last 12 turns are used, 2000 characters
+        each) and the app's written summary of the profile's training (up to 9000 characters).
+        A message the model did not answer is not counted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [user, assistant] }
+                      content: { type: string }
+                lang: { type: string, description: The app's language; the answer is in it. }
+                context: { type: string, description: The training summary. }
+            example: { messages: [{ role: user, content: "How many sets for chest per week?" }], lang: en, context: "Workouts (last 6 weeks): ..." }
+      responses:
+        '200':
+          description: The answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+                  left: { type: integer }
+                  perDay: { type: integer }
+        '400': { description: 'No message (`empty`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { description: 'No messages left today (`hercules-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/account/email:
     post:
       tags: [password]
@@ -2584,6 +2649,7 @@ paths:
                 text: { type: string, maxLength: 1000 }
                 workout: { $ref: '#/components/schemas/PostWorkout' }
                 photos: { type: array, maxItems: 4, items: { type: string }, description: Ids from POST /api/social/photos. }
+                wid: { type: string, maxLength: 40, pattern: '^[A-Za-z0-9_-]+$', description: 'The logged workout the post is made from. A second post with the same wid returns the first one, so a retried auto-post never doubles. Shown back to the author only.' }
       responses:
         '200':
           description: OK.

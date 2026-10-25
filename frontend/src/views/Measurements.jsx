@@ -191,7 +191,7 @@ export default function Measurements({ embedded = false } = {}) {
       <h3 style={{ margin: 0 }}>{t('Body measurements')}</h3>
       <button className="iconbtn" onClick={manageMeasurementsSheet} aria-label={t('Choose measurements')}><Icon name="gear" /></button>
     </div> : <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/profile?tab=body')} aria-label={t('Profile')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={() => nav('/body')} aria-label={t('Profile')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginLeft: 10 }}><h1>{t('Body measurements')}</h1><div className="sub">{t('Circumference & composition')}</div></div>
       <button className="iconbtn" onClick={manageMeasurementsSheet} aria-label={t('Choose measurements')}><Icon name="gear" /></button>
     </div>}

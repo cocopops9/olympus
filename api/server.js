@@ -32,6 +32,7 @@ import {
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
+import { herculesConfig, handleHercules, leftToday, dayOf, HerculesError } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
@@ -176,6 +177,16 @@ const SOCIAL = createSocial({
 // Photos uploaded and never posted are removed after a day; checked hourly and at start.
 setInterval(() => { try { SOCIAL.sweepOrphans(); } catch (e) { console.error('social: photo sweep failed', e.message); } }, 3600000).unref();
 setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ } }, 5000).unref();
+// Hercules, the free chat coach (hercules.js): the provider from HERCULES_API_KEY and friends,
+// today's message counts in DATA_DIR/hercules.json.
+const HERCULES = herculesConfig(process.env);
+const HERCULES_FILE = path.join(DATA, 'hercules.json');
+let herculesDoc = null;
+try { herculesDoc = JSON.parse(fs.readFileSync(HERCULES_FILE, 'utf8')); } catch { herculesDoc = null; }
+const herculesQuota = async fn => {
+  herculesDoc = fn(herculesDoc);
+  try { atomicWrite(HERCULES_FILE, JSON.stringify(herculesDoc), 0o600); } catch (e) { console.error('hercules: count not saved', e.message); }
+};
 // How many earlier write ids a document keeps (`_wids`, see PUT /api/data): a device that last
 // synced more writes ago than this merges on its next pull instead of taking the server's copy.
 const WID_KEEP = 50;
@@ -1444,6 +1455,22 @@ const passwordRoutes = {
   // and runs out after a few tries (see "e-mail as a sign-in name" above).
   // A new profile name (the name you sign in with and that others see). The rules of signup:
   // 1 to 40 characters, and no other profile signs in with it.
+  // Hercules: whether it is on and how many messages are left today; one message.
+  'GET /api/hercules': async (req, res) => {
+    const s = sessionOf(req);
+    if (!s) return json(res, 401, { error: 'not signed in' });
+    json(res, 200, { on: !!HERCULES.key, perDay: HERCULES.perDay, left: leftToday(herculesDoc, s.user.id, dayOf(Date.now()), HERCULES.perDay) });
+  },
+  'POST /api/hercules': async (req, res) => {
+    const s = sessionOf(req);
+    if (!s) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    try { json(res, 200, await handleHercules({ user: s.user, body, config: HERCULES, quota: herculesQuota })); }
+    catch (e) {
+      if (!(e instanceof HerculesError)) throw e;
+      json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
+    }
+  },
   'POST /api/account/name': async (req, res) => {
     const s = sessionOf(req);
     if (!s) return json(res, 401, { error: 'not signed in' });
