@@ -30,7 +30,7 @@ traffic and 500,000 function calls a month. A free project is paused after about
 use; resume it from the Supabase dashboard (data is kept for 90 days). Back up with
 *Database → Backups* or `select * from olympus.docs`.
 
-## Hercules, the free coach
+## Hercules and Athena, the free coaches
 
 Hercules answers through any OpenAI-compatible chat API with one key that only the server has;
 nobody using the app sets anything up. Every profile gets 20 messages a day (UTC); a message the
@@ -52,6 +52,17 @@ on the fallback, for everyone together; Groq does not train on what is sent by d
 Gemini works too (`HERCULES_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai`,
 a Gemini model name), but its free tier is much smaller and Google uses free-tier messages to
 improve its products.
+
+Athena is the second coach: another model, her own style and her own 20 messages a day, on the
+same key. She is on whenever Hercules is, and these secrets are optional:
+
+| Secret | Default | |
+|---|---|---|
+| `ATHENA_MODEL` | `qwen/qwen3.6-27b` | Her main model (another family than Hercules's). |
+| `ATHENA_FALLBACK_MODEL` | `openai/gpt-oss-20b` | Answers when her main model is out of its quota; empty for none. |
+| `ATHENA_PER_DAY` | `20` | Messages per profile per day. |
+| `ATHENA_API_KEY` | (Hercules's key) | A key of her own, for another provider; with it `ATHENA_BASE_URL` defaults to Groq's address. |
+| `ATHENA_BASE_URL` | (Hercules's) | Her provider's OpenAI-compatible address. |
 
 If the deploy fails with jsDelivr answering 403 for one of the files, it is passing: GitHub is
 limiting jsDelivr for a moment. Deploy again a few minutes later.

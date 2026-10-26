@@ -2,7 +2,7 @@
    the fallback model, and the two servers' routes with a stand-in provider. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, LIMITS, DEFAULTS } from '../hercules.js';
+import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS } from '../hercules.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const fakeFetch = (answers, seen = []) => async (url, init) => {
@@ -13,7 +13,7 @@ const fakeFetch = (answers, seen = []) => async (url, init) => {
 };
 
 test('the provider comes from the environment, Groq by default, and is off without a key', () => {
-  assert.deepEqual(herculesConfig({}), { key: '', baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, fallback: DEFAULTS.fallback, perDay: 20 });
+  assert.deepEqual(herculesConfig({}), { coach: 'hercules', key: '', baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, fallback: DEFAULTS.fallback, perDay: 20 });
   const c = herculesConfig({ HERCULES_API_KEY: ' k ', HERCULES_BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/openai/', HERCULES_MODEL: 'gemini-flash', HERCULES_PER_DAY: '5' });
   assert.equal(c.key, 'k');
   assert.equal(c.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
@@ -105,4 +105,59 @@ test('Supabase: the routes count per profile and report the limit', async () => 
   const t2 = (await r.json()).token;
   const st = await off.handle(new Request('https://x/api/hercules', { headers: { Authorization: 'Bearer ' + t2 } }));
   assert.equal((await st.json()).on, false);
+});
+
+test('Athena is another coach: her own model, allowance and voice, on Hercules\'s key unless she has one', () => {
+  const env = { HERCULES_API_KEY: 'k', HERCULES_BASE_URL: 'https://p.example/v1' };
+  const a = herculesConfig(env, 'athena');
+  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20 });
+  assert.notEqual(ATHENA_DEFAULTS.model, DEFAULTS.model);
+  const own = herculesConfig({ ...env, ATHENA_API_KEY: 'k2', ATHENA_MODEL: 'gemini-x', ATHENA_PER_DAY: '7', ATHENA_BASE_URL: 'https://g.example/openai/' }, 'athena');
+  assert.equal(own.key, 'k2'); assert.equal(own.model, 'gemini-x'); assert.equal(own.perDay, 7); assert.equal(own.baseUrl, 'https://g.example/openai');
+  assert.equal(herculesConfig({ ...env, ATHENA_API_KEY: 'k2' }, 'athena').baseUrl, DEFAULTS.baseUrl);
+  // Hercules does not read Athena's settings
+  assert.equal(herculesConfig({ ...env, ATHENA_MODEL: 'x', ATHENA_PER_DAY: '3' }).model, DEFAULTS.model);
+  assert.match(systemPrompt({ coach: 'athena' }), /You are Athena/);
+  assert.doesNotMatch(systemPrompt({ coach: 'athena' }), /You are Hercules/);
+  assert.match(systemPrompt({ coach: 'athena' }), /not a doctor/);
+  assert.match(systemPrompt({}), /You are Hercules/);
+});
+
+test('what a reasoning model thought is cut from its answer, and a refused parameter is dropped', async () => {
+  assert.equal(withoutThinking('<think>hmm\nlong</think>\nDo 3 sets.'), 'Do 3 sets.');
+  assert.equal(withoutThinking('<think>cut off while thinking'), '');
+  assert.equal(withoutThinking('plain'), 'plain');
+  const seen = [];
+  const f = async (url, init) => {
+    const body = JSON.parse(init.body); seen.push(body);
+    if ('reasoning_effort' in body) return { ok: false, status: 400, statusText: 'bad', json: async () => ({ error: { message: 'unsupported' } }) };
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: '<think>x</think>Answer' } }] }) };
+  };
+  const r = await askHercules({ config: herculesConfig({ HERCULES_API_KEY: 'k' }, 'athena'), messages: [{ role: 'user', content: 'hi' }], fetchImpl: f });
+  assert.equal(r.reply, 'Answer');
+  assert.equal(seen.length, 2);
+  assert.equal(seen[0].model, ATHENA_DEFAULTS.model);
+  assert.ok('reasoning_effort' in seen[0] && !('reasoning_effort' in seen[1]));
+});
+
+test('both servers\' routes: Athena has her own count, and her own model answers', async () => {
+  const seen = [];
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env: { HERCULES_API_KEY: 'k' }, fetchImpl: fakeFetch([{ status: 200, reply: 'Hercules here.' }, { status: 200, reply: 'Athena here.' }], seen) });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const signup = await call('POST', '/api/app/signup', { name: 'Ada', password: 'correct horse battery staple' });
+  const token = signup.body?.token;
+  assert.ok(token, JSON.stringify(signup));
+  const msg = { messages: [{ role: 'user', content: 'hi' }], lang: 'en' };
+  assert.deepEqual(await call('GET', '/api/athena', null, token).then(r => r.body), { on: true, perDay: 20, left: 20 });
+  const h = await call('POST', '/api/hercules', msg, token);
+  assert.equal(h.body.reply, 'Hercules here.'); assert.equal(h.body.left, 19);
+  const a = await call('POST', '/api/athena', msg, token);
+  assert.equal(a.body.reply, 'Athena here.'); assert.equal(a.body.left, 19);
+  assert.equal(seen[0].model, DEFAULTS.model);
+  assert.equal(seen[1].model, ATHENA_DEFAULTS.model);
+  assert.match(seen[1].messages[0].content, /You are Athena/);
+  assert.equal((await call('GET', '/api/hercules', null, token)).body.left, 19);
 });

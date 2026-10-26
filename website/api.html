@@ -246,7 +246,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>97 endpoints</span>
+    <span>99 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -3161,7 +3161,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">Whether Hercules is on, and today's messages left</span>
   </summary>
   <div class="ep-body">
-<p>Hercules is the free chat coach. It is on when the server has a provider key (<code>HERCULES_API_KEY</code>; an OpenAI-compatible chat API, Groq by default). Every profile gets <code>perDay</code> messages a day (UTC).</p>
+<p>Hercules is the free chat coach (Athena, <code>/api/athena</code>, is the second one). It is on when the server has a provider key (<code>HERCULES_API_KEY</code>; an OpenAI-compatible chat API, Groq by default). Every profile gets <code>perDay</code> messages a day (UTC).</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
 
@@ -3185,6 +3185,110 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-path"><code>/api/hercules</code></span>
     <span class="ep-chev" aria-hidden="true"></span>
     <span class="ep-sum">Ask Hercules</span>
+  </summary>
+  <div class="ep-body">
+<p>One message, with the conversation so far (the last 12 turns are used, 2000 characters each) and the app's written summary of the profile's training (up to 9000 characters). A message the model did not answer is not counted.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">messages<em class="p-req" title="required">required</em></span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].role</span>
+    <span class="p-type">&quot;user&quot; | &quot;assistant&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].content</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The app's language; the answer is in it.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">context</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The training summary.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;How many sets for chest per week?&quot;
+    }
+  ],
+  &quot;lang&quot;: &quot;en&quot;,
+  &quot;context&quot;: &quot;Workouts (last 6 weeks): ...&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The answer.<span class="r-sig">{ reply: string, left: integer, perDay: integer }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">No message (<code>empty</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">No messages left today (<code>hercules-limit</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The model did not answer (<code>hercules-failed</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">Not set up (<code>hercules-off</code>), or the provider is out of quota for the day (<code>hercules-busy</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-athenaStatus">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/athena</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whether Athena is on, and today's messages left</span>
+  </summary>
+  <div class="ep-body">
+<p>Athena is the second free chat coach: the same as Hercules (<code>/api/hercules</code>), with another model (<code>ATHENA_MODEL</code>), her own style and her own allowance, so a profile has <code>perDay</code> messages a day for each of the two (UTC). She uses Hercules's provider key unless <code>ATHENA_API_KEY</code> is set.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The state.<span class="r-sig">{ on: boolean, perDay: integer, left: integer }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-athenaAsk">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/athena</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Ask Athena</span>
   </summary>
   <div class="ep-body">
 <p>One message, with the conversation so far (the last 12 turns are used, 2000 characters each) and the app's written summary of the profile's training (up to 9000 characters). A message the model did not answer is not counted.</p>

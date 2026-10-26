@@ -7,7 +7,7 @@
 //   'state:<uid>' one profile's training  (the document GET/PUT /api/data move)
 //   'social'      the social layer        (api/social.js's document)
 //   'secret'      the key that signs sessions
-//   'hercules'    today's count of messages to Hercules, per profile (hercules.js)
+//   'hercules', 'athena'   today's count of messages to each coach, per profile (hercules.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
 // are serialized the way the single Node process serialized them.
 //
@@ -58,7 +58,7 @@ const sessionVersion = u => u.sv || 0;
  * `photos`: put(name, bytes, contentType), get(name) -> Uint8Array | null, del(name).
  */
 export function createApp({ store, photos, now = () => Date.now(), env = {}, fetchImpl = globalThis.fetch }) {
-  const hercules = herculesConfig(env);
+  const coaches = { hercules: herculesConfig(env, 'hercules'), athena: herculesConfig(env, 'athena') };
   let secret = null;
   async function key() {
     if (secret) return secret;
@@ -189,6 +189,20 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     for (const name of deletes) { try { await photos.del(name); } catch { /* best effort */ } }
     return result;
   }
+
+  // Hercules and Athena, the free coaches (hercules.js): whether each is on and how many messages
+  // are left today, and one message with the conversation so far.
+  const coachStatus = id => async req => {
+    const { user } = await signedIn(req);
+    const doc = await store.read(id);
+    return { status: 200, body: { on: !!coaches[id].key, perDay: coaches[id].perDay, left: leftToday(doc, user.id, dayOf(now()), coaches[id].perDay) } };
+  };
+  const coachAsk = id => async req => {
+    const { user } = await signedIn(req);
+    const body = await readJson(req);
+    const quota = fn => store.update([id], ({ get, set }) => { set(id, fn(get(id))); });
+    return { status: 200, body: await handleHercules({ user, body, config: coaches[id], quota, now: now(), fetchImpl }) };
+  };
 
   async function readJson(req) {
     const raw = await req.text();
@@ -332,19 +346,12 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       return out;
     },
 
-    // Hercules, the free coach (hercules.js): whether it is on and how many messages are left today,
-    // and one message with the conversation so far.
-    'GET /api/hercules': async req => {
-      const { user } = await signedIn(req);
-      const doc = await store.read('hercules');
-      return { status: 200, body: { on: !!hercules.key, perDay: hercules.perDay, left: leftToday(doc, user.id, dayOf(now()), hercules.perDay) } };
-    },
-    'POST /api/hercules': async req => {
-      const { user } = await signedIn(req);
-      const body = await readJson(req);
-      const quota = fn => store.update(['hercules'], ({ get, set }) => { set('hercules', fn(get('hercules'))); });
-      return { status: 200, body: await handleHercules({ user, body, config: hercules, quota, now: now(), fetchImpl }) };
-    },
+    // Hercules and Athena, the free coaches (hercules.js): whether each is on and how many messages
+    // are left today, and one message with the conversation so far.
+    'GET /api/hercules': coachStatus('hercules'),
+    'POST /api/hercules': coachAsk('hercules'),
+    'GET /api/athena': coachStatus('athena'),
+    'POST /api/athena': coachAsk('athena'),
 
     // The social layer, route for route as in api/server.js.
     'GET /api/social/search': async (req, q) => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.search(me, q.get('q') || '')) } }; },

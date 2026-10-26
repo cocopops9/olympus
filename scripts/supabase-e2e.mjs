@@ -113,15 +113,17 @@ const edA = await call('POST', '/api/social/posts/edit', { token: a, body: { id:
 ok(edA.status === 403 || edA.status === 404, 'nobody else can change it', String(edA.status));
 if (p1.body?.post?.id) await call('POST', '/api/social/posts/delete', { token: b, body: { id: p1.body.post.id } });
 
-// Hercules: the state is answered; a message only when a provider key is set (it is spent then).
-const hs = await call('GET', '/api/hercules', { token: b });
-ok(hs.status === 200 && typeof hs.body?.on === 'boolean' && hs.body?.perDay > 0, 'Hercules says whether it is on', JSON.stringify(hs.body));
-if (hs.body?.on) {
-  const ans = await call('POST', '/api/hercules', { token: b, body: { messages: [{ role: 'user', content: 'In one sentence: how many sets per muscle per week for a beginner?' }], lang: 'en', context: 'Workouts logged: 0.' } });
-  ok(ans.status === 200 && typeof ans.body?.reply === 'string' && ans.body.reply.length > 0 && ans.body.left === hs.body.left - 1, 'Hercules answers and counts the message', JSON.stringify(ans.body).slice(0, 200));
-} else {
-  const off = await call('POST', '/api/hercules', { token: b, body: { messages: [{ role: 'user', content: 'hi' }] } });
-  ok(off.status === 503 && off.body?.code === 'hercules-off', 'without a key Hercules says it is not set up', JSON.stringify(off.body));
+// Hercules and Athena: the state is answered; a message only when a provider key is set (it is spent then).
+for (const [coach, route] of [['Hercules', '/api/hercules'], ['Athena', '/api/athena']]) {
+  const hs = await call('GET', route, { token: b });
+  ok(hs.status === 200 && typeof hs.body?.on === 'boolean' && hs.body?.perDay > 0, `${coach} says whether it is on`, JSON.stringify(hs.body));
+  if (hs.body?.on) {
+    const ans = await call('POST', route, { token: b, body: { messages: [{ role: 'user', content: 'In one sentence: how many sets per muscle per week for a beginner?' }], lang: 'en', context: 'Workouts logged: 0.' } });
+    ok(ans.status === 200 && typeof ans.body?.reply === 'string' && ans.body.reply.length > 0 && ans.body.left === hs.body.left - 1, `${coach} answers and counts the message`, JSON.stringify(ans.body).slice(0, 200));
+  } else {
+    const off = await call('POST', route, { token: b, body: { messages: [{ role: 'user', content: 'hi' }] } });
+    ok(off.status === 503 && off.body?.code === 'hercules-off', `without a key ${coach} says it is not set up`, JSON.stringify(off.body));
+  }
 }
 
 // Leave nothing behind: both test profiles delete themselves.

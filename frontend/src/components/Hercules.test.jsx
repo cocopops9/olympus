@@ -6,12 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 
-const mocks = vi.hoisted(() => ({ status: { on: true, perDay: 20, left: 20 }, sent: [], answer: null }))
+const mocks = vi.hoisted(() => ({ status: { on: true, perDay: 20, left: 20 }, sent: [], coaches: [], answer: null, off: [] }))
 vi.mock('../lib/hercules.js', async orig => ({
   ...(await orig()),
-  herculesStatus: vi.fn(async () => mocks.status),
-  askHercules: vi.fn(async list => {
-    mocks.sent.push(list)
+  herculesStatus: vi.fn(async coach => (mocks.off.includes(coach) ? { ...mocks.status, on: false } : mocks.status)),
+  askHercules: vi.fn(async (list, coach = 'hercules') => {
+    mocks.sent.push(list); mocks.coaches.push(coach)
     if (mocks.answer instanceof Error) throw mocks.answer
     return mocks.answer || { reply: 'Do **3 sets** of 8.\n\n- Rest 2 min\n- Add 2.5 kg', left: 19, perDay: 20 }
   }),
@@ -37,7 +37,7 @@ function renderTopSheet() {
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  mocks.status = { on: true, perDay: 20, left: 20 }; mocks.sent = []; mocks.answer = null
+  mocks.status = { on: true, perDay: 20, left: 20 }; mocks.sent = []; mocks.coaches = []; mocks.off = []; mocks.answer = null
   localStorage.clear()
   resetGreetingForTests()
   useUI.setState({ sheets: [] })
@@ -170,5 +170,53 @@ describe('Hercules', () => {
       expect(again.querySelector('.hc-fab')).not.toBeNull()
       expect(again.querySelector('.hc-bubble')).toBeNull()
     } finally { vi.useRealTimers() }
+  })
+
+  it('Athena is the other coach: pills to switch, her own conversations, and the button remembers her', async () => {
+    const uid = useStore.getState().user.id
+    herculesSheet()
+    const chat = renderTopSheet()
+    await flush(); await flush()
+    expect(chat.querySelectorAll('.hc-pill')).toHaveLength(2)
+    expect(chat.querySelector('.hc-name').textContent).toBe('Hercules')
+    type(chat, 'Question for Hercules'); await flush(); await flush()
+    act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Athena').click())
+    await flush()
+    expect(chat.querySelector('.hc-name').textContent).toBe('Athena')
+    expect(chat.textContent).toContain('Hi, I am Athena.')
+    expect(chat.textContent).toContain('Analyze my last 4 weeks of training')
+    expect(chat.querySelector('.hc-m.me')).toBeNull()
+    type(chat, 'Question for Athena'); await flush(); await flush()
+    expect(mocks.coaches).toEqual(['hercules', 'athena'])
+    expect(chat.querySelector('.hc-m.me').textContent).toBe('Question for Athena')
+    expect(JSON.parse(localStorage.getItem('olympus_athena_chats_' + uid)).chats[0].title).toBe('Question for Athena')
+    expect(JSON.parse(localStorage.getItem('olympus_hercules_chats_' + uid)).chats[0].title).toBe('Question for Hercules')
+    expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('athena')
+    // back to the first: his conversation is still his
+    act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Hercules').click())
+    await flush()
+    expect(chat.querySelector('.hc-m.me').textContent).toBe('Question for Hercules')
+    // the chat is closed: the button shows the coach talked to last (Hercules was picked again)
+    useUI.setState({ sheets: [] })
+    const fab = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
+    await flush(); await flush()
+    expect(fab.querySelector('.hc-fab').getAttribute('aria-label')).toContain('Hercules')
+    expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('hercules')
+    localStorage.setItem('olympus_coach_last_' + uid, 'athena')
+    const again = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
+    await flush(); await flush()
+    expect(again.querySelector('.hc-fab').getAttribute('aria-label')).toContain('Athena')
+  })
+
+  it('without a second coach on the server there are no pills, and Athena alone fills the button', async () => {
+    mocks.off = ['hercules']
+    const fab = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
+    await flush(); await flush()
+    expect(fab.querySelector('.hc-fab').getAttribute('aria-label')).toContain('Athena')
+    act(() => fab.querySelector('.hc-fab').click())
+    const chat = renderTopSheet()
+    await flush(); await flush()
+    expect(chat.querySelector('.hc-name').textContent).toBe('Athena')
+    expect(chat.querySelector('.hc-switch')).toBeNull()
   })
 })

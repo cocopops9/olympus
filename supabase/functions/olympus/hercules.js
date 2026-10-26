@@ -1,5 +1,5 @@
 // Copied from api/hercules.js by scripts/supabase-bundle.mjs. Edit that file, then run the script.
-// Olympus: Hercules, the coach every profile can talk to for free.
+// Olympus: Hercules and Athena, the two coaches every profile can talk to for free.
 //
 // The app sends the conversation so far and a short written summary of the person's own training
 // (frontend/src/lib/hercules-context.js); the server adds the coach's instructions and asks a
@@ -29,19 +29,54 @@ export const DEFAULTS = {
   fallback: 'openai/gpt-oss-20b',
 };
 
+// Athena answers from another model family than Hercules, so the two can disagree.
+export const ATHENA_DEFAULTS = {
+  model: 'qwen/qwen3.6-27b',
+  fallback: 'openai/gpt-oss-20b',
+};
+
+/** The coaches: who they are, and how they talk. The rest of the instructions is shared. */
+export const COACHES = {
+  hercules: {
+    name: 'Hercules',
+    who: 'You are Hercules, the coach inside Olympus, a gym and training app.',
+    style: 'Be warm, direct and motivating, never preachy.',
+  },
+  athena: {
+    name: 'Athena',
+    who: 'You are Athena, a coach inside Olympus, a gym and training app. The other coach there is Hercules; you are the strategist.',
+    style: 'Be calm, precise and analytical: say the reason behind each recommendation in one sentence, think in programming, data and trade-offs, and give concrete numbers.',
+  },
+};
+export const coachOf = id => (Object.hasOwn(COACHES, id) ? id : 'hercules');
+
 export class HerculesError extends Error {
   constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
 
-/** The provider settings from an environment (process.env or Deno.env.toObject()). */
-export function herculesConfig(env = {}) {
-  const key = String(env.HERCULES_API_KEY || env.GROQ_API_KEY || '').trim();
-  const perDay = Number.parseInt(env.HERCULES_PER_DAY, 10);
-  return {
-    key,
+/**
+ * The provider settings of `coach` from an environment (process.env or Deno.env.toObject()).
+ * Athena uses Hercules's key and provider unless ATHENA_API_KEY (and ATHENA_BASE_URL) say
+ * otherwise, with her own model and her own daily allowance.
+ */
+export function herculesConfig(env = {}, coach = 'hercules') {
+  const base = {
+    key: String(env.HERCULES_API_KEY || env.GROQ_API_KEY || '').trim(),
     baseUrl: String(env.HERCULES_BASE_URL || DEFAULTS.baseUrl).trim().replace(/\/+$/, ''),
-    model: String(env.HERCULES_MODEL || DEFAULTS.model).trim(),
-    fallback: env.HERCULES_FALLBACK_MODEL === '' ? '' : String(env.HERCULES_FALLBACK_MODEL || DEFAULTS.fallback).trim(),
+  };
+  const own = coach === 'athena'
+  const defaults = own ? ATHENA_DEFAULTS : DEFAULTS
+  const P = own ? 'ATHENA_' : 'HERCULES_'
+  const perDay = Number.parseInt(env[P + 'PER_DAY'], 10);
+  const ownKey = own ? String(env.ATHENA_API_KEY || '').trim() : ''
+  return {
+    coach: coachOf(coach),
+    key: ownKey || base.key,
+    baseUrl: own && ownKey
+      ? String(env.ATHENA_BASE_URL || DEFAULTS.baseUrl).trim().replace(/\/+$/, '')
+      : (own && env.ATHENA_BASE_URL ? String(env.ATHENA_BASE_URL).trim().replace(/\/+$/, '') : base.baseUrl),
+    model: String(env[P + 'MODEL'] || defaults.model).trim(),
+    fallback: env[P + 'FALLBACK_MODEL'] === '' ? '' : String(env[P + 'FALLBACK_MODEL'] || defaults.fallback).trim(),
     perDay: Number.isFinite(perDay) && perDay > 0 ? Math.min(perDay, 500) : LIMITS.perDay,
   };
 }
@@ -99,15 +134,16 @@ const LANGS = {
 export const languageName = lang => LANGS[lang] || LANGS[String(lang || '').split('-')[0]] || 'English';
 
 /** The coach's instructions, with the person's name, language and training summary in them. */
-export function systemPrompt({ name = '', lang = 'en', context = '' } = {}) {
+export function systemPrompt({ name = '', lang = 'en', context = '', coach = 'hercules' } = {}) {
+  const c = COACHES[coachOf(coach)];
   const who = clip(name, 40);
   const data = clip(context, LIMITS.context);
   return [
-    'You are Hercules, the coach inside Olympus, a gym and training app.',
+    c.who,
     'You are an experienced strength and conditioning coach and sports nutritionist: exercise science, biomechanics and exercise technique, hypertrophy, strength, power, conditioning and cardio, mobility, programming and periodization, recovery and sleep, and nutrition for training.',
     'Coach like a real expert who knows this person: use their training data below, refer to their actual exercises, sessions, volume and progress, and give concrete, practical answers (exercises, sets, reps, effort as RIR or RPE, rest, progression, substitutions, technique cues, food examples and amounts).',
     'Base what you say on current evidence and well-established practice; when the evidence is mixed or individual, say so in one line. Do not invent facts about the person: if something you need is missing, ask one short question.',
-    'Be warm, direct and motivating, never preachy. Keep answers short: usually under 160 words, short paragraphs or a few bullet points, unless the person asks for a full plan or more detail.',
+    c.style + ' Keep answers short: usually under 160 words, short paragraphs or a few bullet points, unless the person asks for a full plan or more detail.',
     'Safety: you are not a doctor. For pain, injury, numbness, dizziness, chest pain, or a medical condition, pregnancy or medication question, give general guidance at most and tell them to see a doctor or physiotherapist; never diagnose. Never give protocols for anabolic steroids or other performance-enhancing drugs.',
     'Be body-neutral. Do not push weight loss, weight targets or aesthetics, and never comment negatively on anyone\'s body; focus on strength, health, performance and how training feels. Talk about body weight or calories only when the person asks.',
     'If the person shows signs of disordered eating, compulsive exercise or self-harm, do not give calorie targets, numbers or plans; answer with care and encourage them to talk to a professional or someone they trust.',
@@ -119,25 +155,37 @@ export function systemPrompt({ name = '', lang = 'en', context = '' } = {}) {
   ].filter(Boolean).join('\n\n');
 }
 
+/** What the model thought before answering is not part of the answer. */
+export const withoutThinking = text => String(text).replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim();
+
+// Parameters some models take and some refuse; the request is repeated without them when refused.
+const extrasFor = model => (/gpt-oss/.test(model) ? { reasoning_effort: 'low' } : /qwen/.test(model) ? { reasoning_effort: 'none' } : {});
+
+async function post(config, model, messages, extras, fetchImpl, signal) {
+  const res = await fetchImpl(config.baseUrl + '/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + config.key },
+    body: JSON.stringify({ model, messages, temperature: 0.6, max_tokens: LIMITS.replyTokens, ...extras }),
+    signal,
+  });
+  let body = null;
+  try { body = await res.json(); } catch { body = null; }
+  return { res, body };
+}
+
 async function call(config, model, messages, fetchImpl, timeoutMs) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const res = await fetchImpl(config.baseUrl + '/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + config.key },
-      body: JSON.stringify({
-        model, messages, temperature: 0.6, max_tokens: LIMITS.replyTokens,
-        // The gpt-oss models think before they answer: keep that short, it counts against the limit.
-        ...(/gpt-oss/.test(model) ? { reasoning_effort: 'low' } : {}),
-      }),
-      signal: ctl.signal,
-    });
-    let body = null;
-    try { body = await res.json(); } catch { body = null; }
+    // The reasoning models think before they answer, and that counts against the reply limit:
+    // keep it short where the provider lets us.
+    const extras = extrasFor(model);
+    let { res, body } = await post(config, model, messages, extras, fetchImpl, ctl.signal);
+    if (res.status === 400 && Object.keys(extras).length) ({ res, body } = await post(config, model, messages, {}, fetchImpl, ctl.signal));
     if (!res.ok) return { status: res.status, error: body?.error?.message || res.statusText || 'error' };
     const reply = body?.choices?.[0]?.message?.content;
-    return typeof reply === 'string' && reply.trim() ? { reply: reply.trim() } : { status: 502, error: 'empty answer' };
+    const clean = typeof reply === 'string' ? withoutThinking(reply) : '';
+    return clean ? { reply: clean } : { status: 502, error: 'empty answer' };
   } catch (e) {
     return { status: e?.name === 'AbortError' ? 504 : 502, error: e?.message || 'no answer' };
   } finally { clearTimeout(timer); }
@@ -148,22 +196,22 @@ async function call(config, model, messages, fetchImpl, timeoutMs) {
  * when the main one is rate-limited, overloaded or gone. Throws HerculesError on failure.
  */
 export async function askHercules({ config, messages, name, lang, context, fetchImpl = globalThis.fetch, timeoutMs = LIMITS.timeoutMs }) {
-  if (!config?.key) throw new HerculesError(503, 'Hercules is not set up on this server', 'hercules-off');
-  const full = [{ role: 'system', content: systemPrompt({ name, lang, context }) }, ...messages];
+  if (!config?.key) throw new HerculesError(503, COACHES[coachOf(config?.coach)].name + ' is not set up on this server', 'hercules-off');
+  const full = [{ role: 'system', content: systemPrompt({ name, lang, context, coach: config.coach }) }, ...messages];
   const first = await call(config, config.model, full, fetchImpl, timeoutMs);
   if (first.reply) return { reply: first.reply, model: config.model };
   // Only the provider's status and message: never the key or the person's text.
-  console.error('hercules: ' + config.model + ' answered ' + first.status + ': ' + String(first.error).slice(0, 300));
+  console.error(coachOf(config.coach) + ': ' + config.model + ' answered ' + first.status + ': ' + String(first.error).slice(0, 300));
   const retry = config.fallback && config.fallback !== config.model && [404, 408, 429, 500, 502, 503, 504].includes(first.status);
   if (retry) {
     const second = await call(config, config.fallback, full, fetchImpl, timeoutMs);
     if (second.reply) return { reply: second.reply, model: config.fallback };
-    console.error('hercules: ' + config.fallback + ' answered ' + second.status + ': ' + String(second.error).slice(0, 300));
-    if (second.status === 429) throw new HerculesError(503, 'Hercules is resting: too many questions today', 'hercules-busy');
+    console.error(coachOf(config.coach) + ': ' + config.fallback + ' answered ' + second.status + ': ' + String(second.error).slice(0, 300));
+    if (second.status === 429) throw new HerculesError(503, COACHES[coachOf(config.coach)].name + ' is resting: too many questions today', 'hercules-busy');
   }
-  if (first.status === 429) throw new HerculesError(503, 'Hercules is resting: too many questions today', 'hercules-busy');
-  if (first.status === 401 || first.status === 403) throw new HerculesError(503, 'Hercules is not set up on this server', 'hercules-off');
-  throw new HerculesError(502, 'Hercules could not answer', 'hercules-failed');
+  if (first.status === 429) throw new HerculesError(503, COACHES[coachOf(config.coach)].name + ' is resting: too many questions today', 'hercules-busy');
+  if (first.status === 401 || first.status === 403) throw new HerculesError(503, COACHES[coachOf(config?.coach)].name + ' is not set up on this server', 'hercules-off');
+  throw new HerculesError(502, COACHES[coachOf(config.coach)].name + ' could not answer', 'hercules-failed');
 }
 
 /**
@@ -173,11 +221,11 @@ export async function askHercules({ config, messages, name, lang, context, fetch
  */
 export async function handleHercules({ user, body, config, quota, now = Date.now(), fetchImpl }) {
   const messages = cleanChat(body?.messages);
-  if (!config?.key) throw new HerculesError(503, 'Hercules is not set up on this server', 'hercules-off');
+  if (!config?.key) throw new HerculesError(503, COACHES[coachOf(config?.coach)].name + ' is not set up on this server', 'hercules-off');
   const day = dayOf(now);
   let allowed = false, left = 0;
   await quota(doc => { const r = spend(doc, user.id, day, config.perDay); allowed = r.ok; left = r.left; return r.doc; });
-  if (!allowed) throw Object.assign(new HerculesError(429, 'no Hercules messages left today', 'hercules-limit'), { left: 0 });
+  if (!allowed) throw Object.assign(new HerculesError(429, 'no ' + COACHES[coachOf(config.coach)].name + ' messages left today', 'hercules-limit'), { left: 0 });
   try {
     const { reply } = await askHercules({ config, messages, name: user.name, lang: clip(body?.lang, 10) || 'en', context: clip(body?.context, LIMITS.context), fetchImpl });
     return { reply, left, perDay: config.perDay };

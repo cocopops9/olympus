@@ -1,4 +1,5 @@
-// Olympus: talking to Hercules (api/hercules.js), and the conversations kept on this device.
+// Olympus: talking to the coaches, Hercules and Athena (api/hercules.js), and the conversations kept on
+// this device. Each coach has her or his own conversations and her or his own messages for the day.
 //
 // Conversations are not part of the training document: they stay on the device, per profile,
 // up to MAX_CHATS of them with the last MAX_KEPT messages each, so they are there when the chat
@@ -14,8 +15,19 @@ const MAX_CHATS = 20
 const TITLE_LEN = 48
 const ANSWER_MS = 75000   // the model, and its fallback when the first is busy
 
+export const COACH_IDS = ['hercules', 'athena']
+const coachOf = id => (COACH_IDS.includes(id) ? id : 'hercules')
 const oldKeyOf = uid => 'olympus_hercules_' + (uid || 'local')
-const keyOf = uid => 'olympus_hercules_chats_' + (uid || 'local')
+const keyOf = (uid, coach = 'hercules') => 'olympus_' + coachOf(coach) + '_chats_' + (uid || 'local')
+const lastKeyOf = uid => 'olympus_coach_last_' + (uid || 'local')
+
+/** The coach this profile talked to last (the one on the button), or null. */
+export function lastCoach(uid) {
+  try { const v = localStorage.getItem(lastKeyOf(uid)); return COACH_IDS.includes(v) ? v : null } catch { return null }
+}
+export function setLastCoach(uid, coach) {
+  try { localStorage.setItem(lastKeyOf(uid), coachOf(coach)) } catch { /* the button shows Hercules again */ }
+}
 
 const cleanMessages = v => (Array.isArray(v)
   ? v.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
@@ -30,16 +42,16 @@ export function chatTitle(messages) {
 
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
-/** All the conversations of profile `uid`: { current, chats }. */
-export function loadChats(uid) {
+/** All the conversations of profile `uid` with `coach`: { current, chats }. */
+export function loadChats(uid, coach = 'hercules') {
   let data = null
-  try { data = JSON.parse(localStorage.getItem(keyOf(uid)) || 'null') } catch { data = null }
+  try { data = JSON.parse(localStorage.getItem(keyOf(uid, coach)) || 'null') } catch { data = null }
   let chats = Array.isArray(data?.chats)
     ? data.chats.filter(c => c && typeof c.id === 'string').map(c => ({
       id: c.id, ts: Number(c.ts) || 0, messages: cleanMessages(c.messages), title: String(c.title || ''),
     }))
     : []
-  if (!data) {
+  if (!data && coachOf(coach) === 'hercules') {
     // The one conversation an older version kept.
     let old = []
     try { old = cleanMessages(JSON.parse(localStorage.getItem(oldKeyOf(uid)) || '[]')) } catch { old = [] }
@@ -49,15 +61,15 @@ export function loadChats(uid) {
   return { current, chats }
 }
 
-export function saveChats(uid, data) {
+export function saveChats(uid, data, coach = 'hercules') {
   const chats = data.chats
     .filter(c => c.messages.length)
     .sort((a, b) => b.ts - a.ts)
     .slice(0, MAX_CHATS)
     .map(c => ({ ...c, messages: c.messages.slice(-MAX_KEPT) }))
   try {
-    localStorage.setItem(keyOf(uid), JSON.stringify({ current: data.current, chats }))
-    localStorage.removeItem(oldKeyOf(uid))
+    localStorage.setItem(keyOf(uid, coach), JSON.stringify({ current: data.current, chats }))
+    if (coachOf(coach) === 'hercules') localStorage.removeItem(oldKeyOf(uid))
   } catch { /* the conversations are a convenience */ }
 }
 
@@ -75,14 +87,14 @@ export function dropChat(data, id) {
   return { current: data.current === id ? null : data.current, chats }
 }
 
-/** { on, perDay, left } */
-export const herculesStatus = () => api('/api/hercules')
+/** { on, perDay, left } for `coach` */
+export const herculesStatus = (coach = 'hercules') => api('/api/' + coachOf(coach))
 
-/** Sends the conversation (ending with the new message); resolves with { reply, left, perDay }. */
-export function askHercules(list) {
+/** Sends the conversation (ending with the new message) to `coach`; resolves with { reply, left, perDay }. */
+export function askHercules(list, coach = 'hercules') {
   const S = useStore.getState().S
   const messages = list.map(m => ({ role: m.role, content: m.content }))
-  return api('/api/hercules', {
+  return api('/api/' + coachOf(coach), {
     method: 'POST',
     timeout: ANSWER_MS,
     body: JSON.stringify({ messages, lang: getLang(), context: herculesContext(S) }),

@@ -101,3 +101,12 @@ export const SUGGESTIONS = () => [
   t('What should I eat after training?'),
   t('Give me tips for a better squat'),
 ]
+
+// What Athena is asked: the analysis side of coaching.
+export const ATHENA_SUGGESTIONS = () => [
+  t('Analyze my last 4 weeks of training'),
+  t('Is my weekly volume right for each muscle?'),
+  t('How should I plan a deload week?'),
+  t('Find the weak points in my plan'),
+]
+export const suggestionsFor = coach => (coach === 'athena' ? ATHENA_SUGGESTIONS() : SUGGESTIONS())

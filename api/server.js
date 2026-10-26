@@ -177,15 +177,36 @@ const SOCIAL = createSocial({
 // Photos uploaded and never posted are removed after a day; checked hourly and at start.
 setInterval(() => { try { SOCIAL.sweepOrphans(); } catch (e) { console.error('social: photo sweep failed', e.message); } }, 3600000).unref();
 setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ } }, 5000).unref();
-// Hercules, the free chat coach (hercules.js): the provider from HERCULES_API_KEY and friends,
-// today's message counts in DATA_DIR/hercules.json.
-const HERCULES = herculesConfig(process.env);
-const HERCULES_FILE = path.join(DATA, 'hercules.json');
-let herculesDoc = null;
-try { herculesDoc = JSON.parse(fs.readFileSync(HERCULES_FILE, 'utf8')); } catch { herculesDoc = null; }
-const herculesQuota = async fn => {
-  herculesDoc = fn(herculesDoc);
-  try { atomicWrite(HERCULES_FILE, JSON.stringify(herculesDoc), 0o600); } catch (e) { console.error('hercules: count not saved', e.message); }
+// Hercules and Athena, the free chat coaches (hercules.js): the provider from HERCULES_API_KEY and
+// friends (Athena: ATHENA_*, and Hercules's key unless she has her own), each one's message counts
+// for today in DATA_DIR/hercules.json and DATA_DIR/athena.json.
+const COACH_STATE = {};
+for (const id of ['hercules', 'athena']) {
+  const file = path.join(DATA, id + '.json');
+  const st = { config: herculesConfig(process.env, id), doc: null };
+  try { st.doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { st.doc = null; }
+  st.quota = async fn => {
+    st.doc = fn(st.doc);
+    try { atomicWrite(file, JSON.stringify(st.doc), 0o600); } catch (e) { console.error(id + ': count not saved', e.message); }
+  };
+  COACH_STATE[id] = st;
+}
+const coachStatus = id => async (req, res) => {
+  const st = COACH_STATE[id];
+  const s = sessionOf(req);
+  if (!s) return json(res, 401, { error: 'not signed in' });
+  json(res, 200, { on: !!st.config.key, perDay: st.config.perDay, left: leftToday(st.doc, s.user.id, dayOf(Date.now()), st.config.perDay) });
+};
+const coachAsk = id => async (req, res) => {
+  const st = COACH_STATE[id];
+  const s = sessionOf(req);
+  if (!s) return json(res, 401, { error: 'not signed in' });
+  const body = await readBody(req);
+  try { json(res, 200, await handleHercules({ user: s.user, body, config: st.config, quota: st.quota })); }
+  catch (e) {
+    if (!(e instanceof HerculesError)) throw e;
+    json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
+  }
 };
 // How many earlier write ids a document keeps (`_wids`, see PUT /api/data): a device that last
 // synced more writes ago than this merges on its next pull instead of taking the server's copy.
@@ -2644,22 +2665,12 @@ const routes = {
     const body = await readBody(req);
     json(res, 200, { user: SOCIAL.follow(me, text(body.id), body.follow !== false) });
   },
-  // Hercules (on any instance, with or without password login): whether it is on and how many messages are left today; one message.
-  'GET /api/hercules': async (req, res) => {
-    const s = sessionOf(req);
-    if (!s) return json(res, 401, { error: 'not signed in' });
-    json(res, 200, { on: !!HERCULES.key, perDay: HERCULES.perDay, left: leftToday(herculesDoc, s.user.id, dayOf(Date.now()), HERCULES.perDay) });
-  },
-  'POST /api/hercules': async (req, res) => {
-    const s = sessionOf(req);
-    if (!s) return json(res, 401, { error: 'not signed in' });
-    const body = await readBody(req);
-    try { json(res, 200, await handleHercules({ user: s.user, body, config: HERCULES, quota: herculesQuota })); }
-    catch (e) {
-      if (!(e instanceof HerculesError)) throw e;
-      json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
-    }
-  },
+  // Hercules and Athena (on any instance, with or without password login): whether each is on and
+  // how many messages are left today; one message.
+  'GET /api/hercules': coachStatus('hercules'),
+  'POST /api/hercules': coachAsk('hercules'),
+  'GET /api/athena': coachStatus('athena'),
+  'POST /api/athena': coachAsk('athena'),
   'GET /api/social/feed': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, SOCIAL.feed(me, { before: qs(req).get('before') }));
