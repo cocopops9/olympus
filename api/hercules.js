@@ -147,10 +147,13 @@ export async function askHercules({ config, messages, name, lang, context, fetch
   const full = [{ role: 'system', content: systemPrompt({ name, lang, context }) }, ...messages];
   const first = await call(config, config.model, full, fetchImpl, timeoutMs);
   if (first.reply) return { reply: first.reply, model: config.model };
+  // Only the provider's status and message: never the key or the person's text.
+  console.error('hercules: ' + config.model + ' answered ' + first.status + ': ' + String(first.error).slice(0, 300));
   const retry = config.fallback && config.fallback !== config.model && [404, 408, 429, 500, 502, 503, 504].includes(first.status);
   if (retry) {
     const second = await call(config, config.fallback, full, fetchImpl, timeoutMs);
     if (second.reply) return { reply: second.reply, model: config.fallback };
+    console.error('hercules: ' + config.fallback + ' answered ' + second.status + ': ' + String(second.error).slice(0, 300));
     if (second.status === 429) throw new HerculesError(503, 'Hercules is resting: too many questions today', 'hercules-busy');
   }
   if (first.status === 429) throw new HerculesError(503, 'Hercules is resting: too many questions today', 'hercules-busy');
