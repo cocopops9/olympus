@@ -1,0 +1,17 @@
+/* Olympus: the moving icons of Profile's Training rows (components/LiveIcons.jsx). */
+.live-cal-top{fill:currentColor}
+.live-cal-n{fill:currentColor;stroke:none;font:800 10.4px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:-.5px}
+
+.live-bar-lift{animation:live-lift 3.2s ease-in-out infinite;transform-box:view-box}
+.live-bar-floor{opacity:.45}
+@keyframes live-lift{0%,18%{transform:translateY(3px)}38%,58%{transform:translateY(-3.2px)}78%,100%{transform:translateY(3px)}}
+
+.live-flip-page{transform-box:view-box;transform-origin:12px 10.2px;animation:live-flip 4.2s ease-in-out infinite}
+.live-flip-page path{fill:var(--tint,var(--acc));stroke:currentColor}
+@keyframes live-flip{0%,55%{transform:scaleY(1);opacity:1}72%{transform:scaleY(-.25);opacity:1}80%{transform:scaleY(-.6);opacity:0}81%{transform:scaleY(1);opacity:0}100%{transform:scaleY(1);opacity:1}}
+
+.live-gear{animation:live-spin 9s linear infinite}
+@keyframes live-spin{to{transform:rotate(360deg)}}
+
+.live-pulse-line{stroke-dasharray:22;stroke-dashoffset:22;animation:live-beat 2.6s ease-out infinite}
+@keyframes live-beat{0%{stroke-dashoffset:22}45%,80%{stroke-dashoffset:0}100%{stroke-dashoffset:-22}}

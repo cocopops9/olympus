@@ -91,6 +91,10 @@ export const DEF = {
   // A note per day off (#261): { [iso]: { tag, text, _ts } } (lib/day-notes.js). A noted day is
   // excused from the missed-day nudge; each day merges on its own stamp (lib/sync-merge.js).
   dayNotes: {},
+  // How you feel, one check-in a day (lib/feel.js): { [iso]: { energy, sleep, soreness, _ts } }, merged per day.
+  feel: {},
+  // Whether body weight shows on the Body & wellbeing page and goes to the AI coach (views/BodyTracking.jsx).
+  bodyWeightOn: true,
   // Body measurements (#82): one check-in per day, values in cm whatever the weight unit
   // (lib/measurements.js); merged across devices like weigh-ins (lib/sync-merge.js).
   measurements: [], measurementEnabled: null, customMeasurements: [],
@@ -106,6 +110,8 @@ export const DEF = {
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Stats activity heatmap metric. Profiles without this key continue to open on time.
   heatmapMetric: 'time',
+  // Which cards the Stats page shows, in order (lib/stats-cards.js); null = never chosen, the default set.
+  statsCards: null,
   // How the active workout is laid out — 'cards' (one exercise at a time with Prev/Next),
   // 'list' (every exercise stacked and scrollable) or 'compact' (that stack stripped to just
   // names and set rows — no media, tags, notes, last-time or progression line). Purely

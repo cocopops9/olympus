@@ -26,7 +26,9 @@ export const PAGES = {
 export const PAGE_IDS = Object.keys(PAGES)
 
 // The root, top to bottom. Whether a row shows is pageVisible's call.
-export const ROOT_GROUPS = [['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look', 'coach'], ['data', 'about']]
+// Olympus: the plan-writing AI Coach is not listed; Hercules, Athena and your own coaches live in
+// the AI coach screen (views/CoachAI.jsx).
+export const ROOT_GROUPS = [['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['data', 'about']]
 
 /**
  * Whether a page exists for this device and profile. Reminders need a push server (signed in) or
@@ -35,7 +37,7 @@ export const ROOT_GROUPS = [['workout', 'alerts', 'reminders'], ['plan', 'units'
  */
 export function pageVisible(page, ctx) {
   if (page === 'reminders') return !!(ctx.user || ctx.mobile)
-  if (page === 'coach') return !!ctx.mobile
+  if (page === 'coach') return false
   return page in PAGES
 }
 

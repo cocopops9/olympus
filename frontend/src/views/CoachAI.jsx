@@ -9,7 +9,9 @@ import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
 import { socialReady } from '../lib/social.js'
 import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS } from '../lib/hercules.js'
-import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden } from '../components/Hercules.jsx'
+import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches } from '../components/Hercules.jsx'
+import { ownCoachSheet } from '../components/OwnCoach.jsx'
+import { isOwn, ownCoach, providerOf } from '../lib/own-coach.js'
 import { Switch } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import '../coach-ai.css'
@@ -24,10 +26,11 @@ const hello = name => {
   return h < 12 ? t('Good morning, {0}', name) : h < 18 ? t('Good afternoon, {0}', name) : t('Good evening, {0}', name)
 }
 
-function ModelMenu({ coach, ons, pick, close }) {
+function ModelMenu({ coach, ons, pick, close, own }) {
+  const uid = useStore.getState().user?.id
   return <div className="cai-models" role="menu">
     {COACH_IDS.map(id => {
-      const st = statusOf(useStore.getState().user?.id, id)
+      const st = statusOf(uid, id)
       return <button key={id} role="menuitem" className={'cai-model' + (id === coach ? ' on' : '')} disabled={!ons[id]}
         onClick={() => { close(); pick(id) }}>
         <Avatar size="md" coach={id} />
@@ -39,14 +42,26 @@ function ModelMenu({ coach, ons, pick, close }) {
         {id === coach && <Icon name="check" />}
       </button>
     })}
+    {own.map(c => <button key={c.id} role="menuitem" className={'cai-model' + (c.id === coach ? ' on' : '')} onClick={() => { close(); pick(c.id) }}>
+      <Avatar size="md" coach={c.id} />
+      <span className="grow">
+        <b>{c.name}</b>
+        <span className="small muted">{providerOf(c.provider).name} · {c.model}</span>
+      </span>
+      {c.id === coach && <Icon name="check" />}
+    </button>)}
+    <button role="menuitem" className="cai-model cai-add" onClick={() => { close(); ownCoachSheet(null, saved => saved && pick(saved.id)) }}>
+      <span className="cai-add-i"><Icon name="plus" /></span>
+      <span className="grow"><b>{t('Add your own AI coach')}</b><span className="small muted">{t('Your model and API key: OpenAI, Claude, Gemini, Groq, a model on your computer…')}</span></span>
+    </button>
   </div>
 }
 
-function Drawer({ coach, current, open, onOpen, onNew, onClose, version, bump }) {
+function Drawer({ coach, current, open, onOpen, onNew, onClose, version, bump, own }) {
   const uid = useStore(s => s.user?.id)
   const [hidden, setHidden] = useState(() => fabHidden())
   // Both coaches' conversations, read again whenever one changes (`version`).
-  const lists = useMemo(() => COACH_IDS.map(id => [id, loadChats(uid, id).chats]), [uid, version, open])
+  const lists = useMemo(() => [...COACH_IDS, ...own.map(c => c.id)].map(id => [id, loadChats(uid, id).chats]), [uid, version, open, own])
   const remove = (id, chatId) => {
     saveChats(uid, dropChat(loadChats(uid, id), chatId), id)
     // The conversation on screen is gone: a new one takes its place.
@@ -98,7 +113,7 @@ function Conversation({ coach, chatId, onChange }) {
         {!list.length && <div className="cai-hi">
           <Avatar size="xl" coach={coach} />
           <h2>{first ? hello(first) : t('Hi, I am {0}.', name)}</h2>
-          <p className="muted">{ROLE[coach]()}</p>
+          <p className="muted">{ROLE[coach] ? ROLE[coach]() : t('Your own AI coach')}</p>
           <div className="cai-sugg">
             {suggestions.map(s => <button key={s} className="cai-card" onClick={() => send(s)}><Icon name="sparkles" /><span>{s}</span></button>)}
           </div>
@@ -133,7 +148,7 @@ export default function CoachAI() {
   const user = useStore(s => s.user)
   const ready = socialReady(user)
   const asked = params.get('c')
-  const [coach, setCoach] = useState(() => (COACH_IDS.includes(asked) ? asked : lastCoach(user?.id) || 'hercules'))
+  const [coach, setCoach] = useState(() => (COACH_IDS.includes(asked) || (isOwn(asked) && ownCoach(user?.id, asked)) ? asked : lastCoach(user?.id) || 'hercules'))
   const [chat, setChat] = useState(() => params.get('chat') || null)
   const [drawer, setDrawer] = useState(false)
   const [models, setModels] = useState(false)
@@ -149,6 +164,7 @@ export default function CoachAI() {
   }, [ready, user?.id])
   useEffect(() => { if (!models) return; const off = e => { if (!e.target.closest?.('.cai-models, .cai-pick')) setModels(false) }; document.addEventListener('pointerdown', off); return () => document.removeEventListener('pointerdown', off) }, [models])
 
+  const own = useOwnCoaches()
   const pick = id => { setCoach(id); setChat(null); setLastCoach(user?.id, id); setParams({ c: id }, { replace: true }) }
   const openChat = (id, chatId) => { setCoach(id); setChat(chatId); setLastCoach(user?.id, id); setDrawer(false); setParams({ c: id, chat: chatId }, { replace: true }); bump() }
   const newChat = () => { setChat('new'); setDrawer(false); setParams({ c: coach }, { replace: true }); bump() }
@@ -156,17 +172,19 @@ export default function CoachAI() {
 
   if (!ready) return <div className="cai cai-off"><div className="cai-col"><p className="muted">{t('{0} is not available on this server.', t('AI coach'))}</p></div></div>
   return <div className="cai">
-    <Drawer coach={coach} current={chat} open={drawer} onOpen={openChat} onNew={newChat} onClose={() => setDrawer(false)} version={version} bump={bump} />
+    <Drawer coach={coach} current={chat} open={drawer} onOpen={openChat} onNew={newChat} onClose={() => setDrawer(false)} version={version} bump={bump} own={own} />
     <div className="cai-body">
       <header className="cai-top">
         <button className="iconbtn cai-only-narrow" onClick={() => setDrawer(true)} aria-label={t('Conversations')}><Icon name="list" /></button>
         <button className="cai-pick" onClick={() => setModels(m => !m)} aria-expanded={models}>
           <Avatar size="xs" badge={false} coach={coach} /><b>{coachName(coach)}</b><Icon name="chevronDown" />
         </button>
+        <button className="iconbtn cai-plus" onClick={() => ownCoachSheet(null, saved => saved && pick(saved.id))} aria-label={t('Add your own AI coach')} title={t('Add your own AI coach')}><Icon name="plus" /></button>
         <span className="grow" />
+        {isOwn(coach) && <button className="iconbtn" onClick={() => ownCoachSheet(ownCoach(user?.id, coach), saved => pick(saved ? saved.id : 'hercules'))} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
         <button className="iconbtn" onClick={newChat} aria-label={t('New conversation')}><Icon name="pencil" /></button>
         <button className="iconbtn" onClick={leave} aria-label={t('Close')}><Icon name="xmark" /></button>
-        {models && <ModelMenu coach={coach} ons={ons} pick={pick} close={() => setModels(false)} />}
+        {models && <ModelMenu coach={coach} ons={ons} pick={pick} close={() => setModels(false)} own={own} />}
       </header>
       <Conversation key={coach} coach={coach} chatId={chat}
         onChange={id => { if (id && id !== chat) { setChat(id); setParams({ c: coach, chat: id }, { replace: true }) } bump() }} />

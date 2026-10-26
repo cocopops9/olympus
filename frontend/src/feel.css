@@ -1,0 +1,25 @@
+/* Olympus: the Body & wellbeing page (views/BodyTracking.jsx) and its daily check-in (components/FeelCard.jsx). */
+.body-intro{margin:-4px 2px 12px;line-height:1.45}
+.body-care{margin:4px 4px 24px;line-height:1.45;text-align:center}
+.feel-q{margin-top:14px}
+.feel-h{display:flex;align-items:center;gap:7px;font-weight:600;font-size:15px;margin-bottom:8px}
+.feel-h .icn{color:var(--acc);font-size:17px}
+.feel-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.feel-step{height:34px;border:0;border-radius:10px;padding:0;background:var(--surface-2);cursor:pointer;position:relative;
+  display:flex;align-items:center;justify-content:center;transition:background .18s,transform .12s}
+.feel-step i{width:8px;height:8px;border-radius:50%;background:var(--label-2);opacity:.45;transition:all .18s}
+.feel-step:active{transform:scale(.94)}
+.feel-step.fill{background:color-mix(in srgb,var(--acc) calc(14% + var(--k,0) * 1%),var(--surface-2))}
+.feel-step.s1{--k:0}.feel-step.s2{--k:8}.feel-step.s3{--k:16}.feel-step.s4{--k:24}.feel-step.s5{--k:32}
+.feel-step.fill i{background:var(--acc);opacity:.8}
+.feel-step.on{background:var(--acc)}
+.feel-step.on i{background:var(--on-acc);opacity:1;width:10px;height:10px}
+.feel-ends{display:flex;justify-content:space-between;margin-top:4px}
+.feel-line{display:grid;grid-template-columns:18px repeat(14,1fr);gap:4px;align-items:center;margin-bottom:5px}
+.feel-line .icn{font-size:13px;color:var(--label-2)}
+.feel-dot{aspect-ratio:1;max-width:16px;border-radius:50%;background:var(--surface-2);justify-self:center;width:100%}
+.feel-dot.v1{background:color-mix(in srgb,var(--acc) 20%,var(--surface-2))}
+.feel-dot.v2{background:color-mix(in srgb,var(--acc) 40%,var(--surface-2))}
+.feel-dot.v3{background:color-mix(in srgb,var(--acc) 60%,var(--surface-2))}
+.feel-dot.v4{background:color-mix(in srgb,var(--acc) 80%,var(--surface-2))}
+.feel-dot.v5{background:var(--acc)}

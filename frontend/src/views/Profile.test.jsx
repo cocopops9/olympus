@@ -53,9 +53,9 @@ describe('Profile on a device kept local', () => {
     expect(mocks.profile).not.toHaveBeenCalled()
   })
 
-  it('reaches Plan, Exercises, Body tracking and Settings from its Training section', async () => {
+  it('reaches Plan, Exercises, Body & wellbeing and Settings from its Training section', async () => {
     await render()
-    for (const [label, to] of [['Plan', '/plan'], ['Exercises', '/library'], ['Today’s training', '/today'], ['Body tracking', '/body']]) {
+    for (const [label, to] of [['Plan', '/plan'], ['Exercises', '/library'], ['Today’s training', '/today'], ['Body & wellbeing', '/body']]) {
       const row = [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
       act(() => row.click())
       expect(mocks.nav).toHaveBeenLastCalledWith(to)

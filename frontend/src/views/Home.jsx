@@ -202,7 +202,7 @@ export default function Home() {
   </div>
 }
 
-// The body-weight card: last weigh-in, how it moved, and the curve. On the Body tracking page
+// The body-weight card: last weigh-in, how it moved, and the curve. On the Body & wellbeing page
 // (views/BodyTracking.jsx). No goal: Olympus records body weight, it does not set targets.
 export function BodyWeightCard({ S }) {
   const bw = lastBW(S)

@@ -134,8 +134,12 @@ const LANGS = {
 export const languageName = lang => LANGS[lang] || LANGS[String(lang || '').split('-')[0]] || 'English';
 
 /** The coach's instructions, with the person's name, language and training summary in them. */
-export function systemPrompt({ name = '', lang = 'en', context = '', coach = 'hercules' } = {}) {
-  const c = COACHES[coachOf(coach)];
+// `persona`: a coach the person set up with their own model (frontend lib/own-coach.js): its
+// name and, if they wrote one, how it should talk. The rest of the instructions is the same.
+export function systemPrompt({ name = '', lang = 'en', context = '', coach = 'hercules', persona = null } = {}) {
+  const c = persona
+    ? { who: `You are ${clip(persona.name, 40) || 'Coach'}, a coach inside Olympus, a gym and training app.`, style: clip(persona.style, 300) || COACHES.hercules.style }
+    : COACHES[coachOf(coach)];
   const who = clip(name, 40);
   const data = clip(context, LIMITS.context);
   return [

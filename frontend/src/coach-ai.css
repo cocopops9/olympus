@@ -78,3 +78,7 @@
   .cai-drawer{position:relative;transform:none;flex:none}
   .cai .cai-scrim,.cai .cai-only-narrow{display:none}
 }
+.cai-add{border-top:var(--hair) solid var(--sep);border-radius:0 0 12px 12px;margin-top:4px}
+.cai-add-i{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc);font-size:22px;--icon-stroke:2.4}
+.cai-plus{color:var(--acc)}

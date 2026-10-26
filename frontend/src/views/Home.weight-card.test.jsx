@@ -30,7 +30,7 @@ const mountWith = showWeightCard => {
 const weightHeading = () => [...host.querySelectorAll('h2')].find(el => el.textContent === 'Body weight')
 
 describe('Home has no body-weight card', () => {
-  // Olympus: body weight lives on its own page (Profile, Body tracking), never on the front
+  // Olympus: body weight lives on its own page (Profile, Body & wellbeing), never on the front
   // screens, whatever an older profile saved for the old Home card switch.
   it('shows no card, whatever the old preference says', () => {
     for (const v of [undefined, true, false]) {

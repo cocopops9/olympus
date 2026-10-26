@@ -1,7 +1,7 @@
 // Profile: who you are on Olympus and everything about your own training in one place.
 // Overview (this week at a glance: the days you trained, totals against last week, the muscles
 // worked and the week's workouts), Stats (the full Stats screen), Posts. Body weight, measurements
-// and photos are on their own page (views/BodyTracking.jsx, Body tracking under Training). Was: Body (body weight,
+// and photos are on their own page (views/BodyTracking.jsx, Body & wellbeing under Training). Was: Body (body weight,
 // measurements, progress photos) and, with a server profile, your Posts. The month calendar
 // opens from the calendar button in the header. The screens that used to be tabs (Plan,
 // Exercises) and Settings are reached from the bottom of it.
@@ -27,6 +27,7 @@ import { todayISO, fmtNum, fmtDur, fmtVol, DAYS } from '../lib/format.js'
 import '../profile.css'
 import Stats from './Stats.jsx'
 import '../social.css'
+import { CalendarDayIcon, BarbellIcon, FlipCalendarIcon, SpinningGearIcon, PulseIcon } from '../components/LiveIcons.jsx'
 
 const TABS = ['overview', 'stats', 'posts']
 
@@ -148,7 +149,7 @@ export default function Profile() {
       [me.posts, t('Posts'), () => setTab('posts')]]
     : [[S.workouts.length, t('Workouts'), () => nav('/history')],
       [streakWeeks(S), t('Week streak'), () => setTab('overview')],
-      [S.bodyweight.length, t('Weigh-ins'), () => nav('/body')]]
+      [S.workouts.reduce((n, w) => n + (Array.isArray(w.prs) ? w.prs.length : 0), 0), t('PRs'), () => nav('/history')]]
 
   const options = [
     { value: 'overview', label: t('Overview') },
@@ -204,11 +205,11 @@ export default function Profile() {
       <Icon name="chevronRight" className="chev" />
     </button>}
     <Section title={t('Training')}>
-      <Row icon="sun" iconTint="var(--orange)" title={t('Today’s training')} subtitle={t('This week, today’s session, check-in')} accessory="chevron" onClick={() => nav('/today')} />
-      <Row icon="calendar" iconTint="var(--acc)" title={t('Plan')} subtitle={t('Your routines and weekly schedule')} accessory="chevron" onClick={() => nav('/plan')} />
-      <Row icon="dumbbell" iconTint="var(--blue)" title={t('Exercises')} subtitle={t('The library, by muscle and equipment')} accessory="chevron" onClick={() => nav('/library')} />
-      <Row icon="scale" iconTint="var(--teal)" title={t('Body tracking')} subtitle={t('Weight, measurements and photos')} accessory="chevron" onClick={() => nav('/body')} />
-      <Row icon="gear" iconTint="var(--grey)" title={t('Settings')} accessory="chevron" onClick={() => nav('/settings')} />
+      <Row icon={<CalendarDayIcon />} iconTint="var(--orange)" title={t('Today’s training')} subtitle={t('This week, today’s session, check-in')} accessory="chevron" onClick={() => nav('/today')} />
+      <Row icon={<FlipCalendarIcon />} iconTint="var(--acc)" title={t('Plan')} subtitle={t('Your routines and weekly schedule')} accessory="chevron" onClick={() => nav('/plan')} />
+      <Row icon={<BarbellIcon />} iconTint="var(--blue)" title={t('Exercises')} subtitle={t('The library, by muscle and equipment')} accessory="chevron" onClick={() => nav('/library')} />
+      <Row icon={<PulseIcon />} iconTint="var(--teal)" title={t('Body & wellbeing')} subtitle={t('How you feel, measurements and photos')} accessory="chevron" onClick={() => nav('/body')} />
+      <Row icon={<SpinningGearIcon />} iconTint="var(--grey)" title={t('Settings')} accessory="chevron" onClick={() => nav('/settings')} />
     </Section>
   </div>
 }

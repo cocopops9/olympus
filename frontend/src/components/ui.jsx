@@ -317,7 +317,8 @@ export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none'
   const Tag = onClick ? 'button' : 'div'
   return (
     <Tag className={'lrow' + (onClick ? ' tap' : '') + (danger ? ' danger' : '') + ' ' + className} onClick={onClick}>
-      {icon && <span className="lrow-i" style={iconTint ? { '--tint': iconTint } : null}><Icon name={icon} /></span>}
+      {/* `icon`: a name from the icon set, or an element of its own (components/LiveIcons.jsx). */}
+      {icon && <span className="lrow-i" style={iconTint ? { '--tint': iconTint } : null}>{typeof icon === 'string' ? <Icon name={icon} /> : icon}</span>}
       <span className="lrow-m">
         <span className="lrow-t">{title}</span>
         {subtitle && <span className="lrow-s">{subtitle}</span>}

@@ -16,14 +16,15 @@ const TITLE_LEN = 48
 const ANSWER_MS = 75000   // the model, and its fallback when the first is busy
 
 export const COACH_IDS = ['hercules', 'athena']
-const coachOf = id => (COACH_IDS.includes(id) ? id : 'hercules')
+// Hercules, Athena, or a coach of your own (lib/own-coach.js, ids own_...).
+const coachOf = id => (COACH_IDS.includes(id) || /^own_[a-z0-9]+$/.test(String(id)) ? id : 'hercules')
 const oldKeyOf = uid => 'olympus_hercules_' + (uid || 'local')
 const keyOf = (uid, coach = 'hercules') => 'olympus_' + coachOf(coach) + '_chats_' + (uid || 'local')
 const lastKeyOf = uid => 'olympus_coach_last_' + (uid || 'local')
 
 /** The coach this profile talked to last (the one on the button), or null. */
 export function lastCoach(uid) {
-  try { const v = localStorage.getItem(lastKeyOf(uid)); return COACH_IDS.includes(v) ? v : null } catch { return null }
+  try { const v = localStorage.getItem(lastKeyOf(uid)); return v && coachOf(v) === v ? v : null } catch { return null }
 }
 export function setLastCoach(uid, coach) {
   try { localStorage.setItem(lastKeyOf(uid), coachOf(coach)) } catch { /* the button shows Hercules again */ }

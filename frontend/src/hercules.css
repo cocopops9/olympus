@@ -151,3 +151,4 @@ body.no-tabbar .hc-bubble{bottom:calc(var(--sab) + 94px)}
 .hc-bubble.at-left{border-radius:18px 18px 18px 6px;transform-origin:0 100%}
 .hc-bubble.at-left::after{inset-inline-end:auto;inset-inline-start:22px}
 .hc-av img{-webkit-user-drag:none;user-select:none}
+.hc-av-letter{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:#f6efe0;color:#8a6200;font-weight:800;font-size:calc(var(--sz) * .42);border:2px solid var(--bg,#111)}

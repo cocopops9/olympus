@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { EXIDX, matchExercise, betterWeight, isAssisted } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf, entriesForExercise, metricEntriesForExercise, metricModeForEntry, bestWeightForEntry, completedRepsOf, workoutDay, workoutAt } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
 import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
-import { t, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
+import { t, tn, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
+import { STATS_CARDS, statsCardsOf } from '../lib/stats-cards.js'
+import { StatsPickerButton, statsPickerSheet } from '../components/StatsPicker.jsx'
 import { calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
@@ -628,10 +630,8 @@ export default function Stats({ embedded = false } = {}) {
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
   if (showMax) exOpts.push({ value: 'max', label: t('Max reps') })
 
-  return <>
-    {!embedded && <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
-      <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div>}
-
+  const cards = {
+    summary: () => <>
     <div className="tiles">
       <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>
       <div className="tile"><div className="l"><Icon name="calendar" />{t('This month')}</div><div className="v">{monthW}</div></div>
@@ -639,7 +639,8 @@ export default function Stats({ embedded = false } = {}) {
       <div className="tile"><div className="l"><Icon name="trophy" />{t('PRs')}</div><div className="v">{workouts.reduce((n, w) => n + (Array.isArray(w.prs) ? w.prs.length : 0), 0)}</div></div>
 
     </div>
-
+    </>,
+    activity: () => <>
     <div className="card">
       <h2>{t('Activity (last 12 months)')}</h2>
       <Heatmap
@@ -649,21 +650,8 @@ export default function Stats({ embedded = false } = {}) {
         onDay={iso => { const ws = workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }}
       />
     </div>
-
-    {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} />}
-    {S.routines.length > 0 && <WeeklyPlanVolume S={S} />}
-    {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
-      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Structural balance')}</h2>
-        <div className="muted small" style={{ marginTop: 4 }}>{t('See which lift is holding back the rest.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/structural-balance')}>{t('Open')}</Button>
-    </div>}
-    {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
-      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Progress photos')}</h2>
-        <div className="muted small" style={{ marginTop: 4 }}>{t('Every photo you kept with a workout, lined up by date. Plus a before/after slider.')}</div></div>
-      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/progress-photos')}>{t('Open')}</Button>
-    </div>}
-    {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
-
+    </>,
+    progress: () => <>
     <div className="cols">
       <div className="card">
         <h2>{t('Exercise progress')}</h2>
@@ -716,7 +704,31 @@ export default function Stats({ embedded = false } = {}) {
         </> : <div className="muted small">{t('Finish your first workout and your progress curves will show up here.')}</div>}
       </div>
     </div>
-
+    </>,
+    muscles: () => <>
+    {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} />}
+    </>,
+    weekly: () => <>
+    {S.routines.length > 0 && <WeeklyPlanVolume S={S} />}
+    </>,
+    effort: () => <>
+    {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
+    </>,
+    structural: () => <>
+    {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
+      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Structural balance')}</h2>
+        <div className="muted small" style={{ marginTop: 4 }}>{t('See which lift is holding back the rest.')}</div></div>
+      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/structural-balance')}>{t('Open')}</Button>
+    </div>}
+    </>,
+    photos: () => <>
+    {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
+      <div style={{ minWidth: 0 }}><h2 style={{ margin: 0 }}>{t('Progress photos')}</h2>
+        <div className="muted small" style={{ marginTop: 4 }}>{t('Every photo you kept with a workout, lined up by date. Plus a before/after slider.')}</div></div>
+      <Button size="sm" variant="tinted" trailingIcon="chevronRight" style={{ flexShrink: 0 }} onClick={() => nav('/progress-photos')}>{t('Open')}</Button>
+    </div>}
+    </>,
+    recent: () => <>
     {workouts.length > 0 && <>
       <div className="row between" style={{ marginBottom: 10 }}>
         <h4 className="sec" style={{ margin: 0 }}>{t('Recent workouts')}</h4>
@@ -724,5 +736,27 @@ export default function Stats({ embedded = false } = {}) {
       </div>
       <div className="list">{[...workouts].reverse().slice(0, 6).map(w => <WorkoutRow key={w.id} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
     </>}
+    </>,
+  }
+  // A link from Plan to the weekly volume shows that card even when it is off the page.
+  const focusWeekly = /[?&]focus=weekly-volume\b/.test(window.location.hash || '')
+  const chosen = statsCardsOf(S)
+  const order = focusWeekly && !chosen.includes('weekly') ? [...chosen, 'weekly'] : chosen
+  const left = STATS_CARDS.filter(c => !order.includes(c.id))
+
+  return <>
+    {!embedded && <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
+      <div className="row" style={{ gap: 8 }}><StatsPickerButton compact />
+        <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div></div>}
+    {embedded && <div className="stats-top"><StatsPickerButton /></div>}
+
+    {order.map(id => <Fragment key={id}>{cards[id]()}</Fragment>)}
+
+    {left.length > 0 && <button className="stats-more" onClick={statsPickerSheet}>
+      <span className="sp-glyphs" aria-hidden="true">{left.slice(0, 4).map(c => <span key={c.id} className={'sp-glyph tone-' + c.tone}><Icon name={c.icon} /></span>)}</span>
+      <span className="grow"><b>{tn('{0} more statistic', '{0} more statistics', left.length)}</b>
+        <span className="small muted" style={{ display: 'block' }}>{left.slice(0, 3).map(c => c.name()).join(', ')}{left.length > 3 ? '…' : ''}</span></span>
+      <Icon name="plusCircle" />
+    </button>}
   </>
 }

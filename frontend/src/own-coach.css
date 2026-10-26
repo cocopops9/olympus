@@ -1,0 +1,23 @@
+/* Olympus: setting up a coach of your own (components/OwnCoach.jsx). */
+.oc .oc-l{display:block;font-size:13px;font-weight:650;color:var(--label-2);margin:14px 2px 6px}
+.oc .oc-req{color:var(--red)}
+.oc-avs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.oc-av{aspect-ratio:1;border-radius:50%;padding:0;border:2.5px solid transparent;background:var(--surface-2);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;color:var(--label-2);font-size:22px;cursor:pointer}
+.oc-av img{width:100%;height:100%;object-fit:cover;display:block}
+.oc-av.on{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
+.oc-wrap{flex-wrap:wrap;overflow:visible}
+.oc-style{margin-top:8px;resize:vertical}
+.oc-hint{margin:6px 2px 0}
+.oc-keyrow{display:flex;gap:8px;align-items:center}
+.oc-keyrow .input{flex:1;min-width:0}
+.oc-models{margin-top:8px;max-height:150px;overflow-y:auto}
+.oc-note{margin:14px 0 0;padding:10px 12px;border-radius:12px;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.oc-note.good{background:color-mix(in srgb,var(--green,#34c759) 14%,transparent)}
+.oc-note.bad{background:color-mix(in srgb,var(--red,#e5484d) 14%,transparent);color:var(--label)}
+.oc-acts{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:16px}
+
+/* The + beside the coaches. */
+.hc-pill.hc-add{flex:none;width:40px;padding:6px 0;font-size:18px;color:var(--acc)}
+.hc-switch{overflow-x:auto;scrollbar-width:none}
+.hc-switch .hc-pill{flex:1 0 auto}

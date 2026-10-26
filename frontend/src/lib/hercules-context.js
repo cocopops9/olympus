@@ -9,6 +9,7 @@ import { todayISO, isoOf } from './format.js'
 import { effectiveRoutineIds, lastBW } from './history.js'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from './muscles.js'
 import { summaryFor } from './auto-post.js'
+import { feelSummary } from './feel.js'
 
 export const MAX_CONTEXT = 9000
 const DAY = 86400000
@@ -87,8 +88,11 @@ export function herculesContext(S, today = todayISO()) {
   }
   const b = bests(S)
   if (b.length) lines.push('Heaviest weights lifted: ' + b.join('; ') + '.')
-  const bw = lastBW(S)
+  // Body weight only while the person keeps it on their Body page: hidden there, not talked about.
+  const bw = S.bodyWeightOn === false ? null : lastBW(S)
   if (bw) lines.push(`Latest body weight: ${bw.w} ${S.unit} (${bw.d}).`)
+  const feel = feelSummary(S, today)
+  if (feel) lines.push(feel)
   let out = lines.join('\n')
   if (out.length > MAX_CONTEXT) out = out.slice(0, MAX_CONTEXT)
   return out

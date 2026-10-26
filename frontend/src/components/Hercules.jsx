@@ -16,6 +16,9 @@ import { socialReady } from '../lib/social.js'
 import { herculesStatus, askHercules, loadChats, saveChats, putChat, dropChat, lastCoach, setLastCoach, COACH_IDS } from '../lib/hercules.js'
 import { suggestionsFor } from '../lib/hercules-context.js'
 import { takeGreeting } from '../lib/hercules-greeting.js'
+import { isOwn, ownCoach, askOwnCoach, loadOwnCoaches } from '../lib/own-coach.js'
+import { ownCoachSheet } from './OwnCoach.jsx'
+import { avatarUrl } from '../lib/god-avatars.js'
 import hercules from '../assets/hercules.webp'
 import athena from '../assets/athena.webp'
 import Icon from './Icon.jsx'
@@ -29,7 +32,10 @@ export const COACHES = {
   hercules: { name: 'Hercules', portrait: hercules },
   athena: { name: 'Athena', portrait: athena },
 }
-export const coachName = id => (COACHES[id] || COACHES.hercules).name
+// A coach of your own (lib/own-coach.js): its name and portrait, read from this device.
+const ownOf = id => (isOwn(id) ? ownCoach(useStore.getState().user?.id, id) : null)
+export const coachName = id => (isOwn(id) ? ownOf(id)?.name || 'Coach' : (COACHES[id] || COACHES.hercules).name)
+export const coachPortrait = id => (isOwn(id) ? avatarUrl(ownOf(id)?.avatar) : (COACHES[id] || COACHES.hercules).portrait)
 
 // The status of each coach is asked once per profile and session, and again after each answer.
 let cached = { uid: null, status: {} }
@@ -48,8 +54,9 @@ export const resetGreetingForTests = () => { greetedFor = null; cached = { uid: 
 
 /** The coach's portrait in the gold ring, with the AI badge. `size` is 'sm', 'md', 'lg' or 'xl'. */
 export function Avatar({ size = 'md', live = false, badge = true, coach = 'hercules' }) {
+  const src = coachPortrait(coach)
   return <span className={'hc-av hc-av-' + size + (live ? ' live' : '')} aria-hidden="true">
-    <img src={(COACHES[coach] || COACHES.hercules).portrait} alt="" draggable={false} />
+    {src ? <img src={src} alt="" draggable={false} /> : <span className="hc-av-letter">{coachName(coach).slice(0, 1).toUpperCase()}</span>}
     {badge && <span className="hc-ai">AI</span>}
   </span>
 }
@@ -73,6 +80,11 @@ export function Rich({ text }) {
 
 export const errorText = (e, name) => {
   const code = e?.data?.code
+  // A coach of your own: what its provider said.
+  if (code === 'own-key') return t('{0}: the provider refused the API key. Check it in the coach settings.', name)
+  if (code === 'own-limit') return t('{0}: your provider says you are over its limit for now.', name)
+  if (code === 'own-network') return t('{0}: the provider could not be reached. Check the address, and your connection.', name)
+  if (code === 'own-failed') return t('{0} could not answer: {1}', name, String(e?.data?.message || '').slice(0, 160))
   if (code === 'hercules-limit') return t('That was your last message for today. {0} is back tomorrow.', name)
   if (code === 'hercules-busy') return t('{0} is resting: many people asked today. Try again later.', name)
   if (code === 'hercules-off') return t('{0} is not available on this server.', name)
@@ -107,14 +119,28 @@ function Menu({ data, busy, open, start, remove }) {
   </div>
 }
 
-/** The two coaches as pills, to talk to the other one. */
-function Switch({ coach, ons, pick }) {
+/** The coaches as pills, to talk to another one, and + to set up one of your own. */
+function Switch({ coach, ons, pick, own, onAdd }) {
   return <div className="hc-switch" role="tablist">
-    {COACH_IDS.map(id => <button key={id} role="tab" aria-selected={id === coach} className={'hc-pill' + (id === coach ? ' on' : '')}
-      onClick={() => id !== coach && pick(id)} disabled={!ons[id]}>
+    {[...COACH_IDS.filter(id => ons[id]), ...own.map(c => c.id)].map(id => <button key={id} role="tab" aria-selected={id === coach} className={'hc-pill' + (id === coach ? ' on' : '')}
+      onClick={() => id !== coach && pick(id)}>
       <Avatar size="xs" badge={false} coach={id} />{coachName(id)}
     </button>)}
+    <button className="hc-pill hc-add" onClick={onAdd} aria-label={t('Add your own AI coach')} title={t('Add your own AI coach')}><Icon name="plus" /></button>
   </div>
+}
+
+/** The coaches of your own on this device, kept up to date when one is added or changed. */
+export function useOwnCoaches() {
+  const uid = useStore(s => s.user?.id)
+  const [list, setList] = useState(() => loadOwnCoaches(uid))
+  useEffect(() => {
+    const sync = () => setList(loadOwnCoaches(uid))
+    sync()
+    window.addEventListener('olympus:own-coaches', sync)
+    return () => window.removeEventListener('olympus:own-coaches', sync)
+  }, [uid])
+  return list
 }
 
 /**
@@ -141,9 +167,11 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   const commit = d => { latest.current = d; setData(d); saveChats(uid, d, coach) }
   const list = data.chats.find(c => c.id === data.current)?.messages || []
 
-  useEffect(() => { herculesStatus(coach).then(s => { setCached(uid, coach, s); setStatus(s) }, () => {}) }, [uid, coach])
+  const own = isOwn(coach)
+  useEffect(() => { if (!own) herculesStatus(coach).then(s => { setCached(uid, coach, s); setStatus(s) }, () => {}) }, [uid, coach])
 
-  const left = status ? status.left : null
+  // Your own coach has no daily limit: your provider decides.
+  const left = own ? null : status ? status.left : null
   const send = async text => {
     const msg = String(text ?? draft).trim()
     if (!msg || busy) return
@@ -153,10 +181,9 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)
     onSent?.()
     try {
-      const r = await askHercules(next, coach)
+      const r = own ? await askOwnCoach(ownCoach(uid, coach) || {}, next) : await askHercules(next, coach)
       commit(putChat(latest.current, sent.current, [...next, { role: 'assistant', content: r.reply, ts: Date.now() }]))
-      const s = { on: true, left: r.left, perDay: r.perDay }
-      setCached(uid, coach, s); setStatus(s)
+      if (!own) { const s = { on: true, left: r.left, perDay: r.perDay }; setCached(uid, coach, s); setStatus(s) }
     } catch (e) {
       setErr(errorText(e, name))
       if (e?.data?.code === 'hercules-limit') { const s = { ...(status || {}), left: 0 }; setCached(uid, coach, s); setStatus(s) }
@@ -172,7 +199,7 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   return { uid, name, data, list, draft, setDraft, busy, err, left, status, input, send, start, open, remove, suggestions }
 }
 
-function Chat({ close, ask, coach, ons, pick }) {
+function Chat({ close, ask, coach, ons, pick, own }) {
   const c = useCoachChat({ coach, ask })
   const { name, data, list, draft, setDraft, busy, err, left, input, send, remove, suggestions } = c
   const [menu, setMenu] = useState(false)
@@ -184,26 +211,28 @@ function Chat({ close, ask, coach, ons, pick }) {
   const expand = () => { close(); setTimeout(() => { window.location.hash = '#/ai?c=' + coach + (data.current ? '&chat=' + data.current : '') }, 0) }
 
   const sub = left == null ? t('Online') : t('Online') + ' · ' + tn('{0} message left today', '{0} messages left today', left)
-  const both = COACH_IDS.every(id => ons[id])
+  const addOwn = () => ownCoachSheet(null, saved => { if (saved) pick(saved.id) })
+  const editOwn = () => ownCoachSheet(ownCoach(useStore.getState().user?.id, coach), saved => pick(saved ? saved.id : 'hercules'))
 
   return <div className="hc" data-coach={coach}>
     <div className="hc-h">
       <Avatar size="md" live={busy} coach={coach} />
       <div className="grow" style={{ minWidth: 0 }}>
         <div className="hc-name-row"><span className="hc-name">{name}</span><span className="hc-tag"><Icon name="sparkles" />{t('AI coach')}</span></div>
-        <div className="hc-sub"><i className="hc-dot" />{sub}</div>
+        <div className="hc-sub"><i className="hc-dot" />{isOwn(coach) ? t('Your own model') + ' · ' + (ownCoach(useStore.getState().user?.id, coach)?.model || '') : sub}</div>
       </div>
+      {isOwn(coach) && <button className="iconbtn" onClick={editOwn} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
       <button className={'iconbtn' + (menu ? ' hc-on' : '')} onClick={() => setMenu(m => !m)} aria-label={t('Conversations')} aria-expanded={menu}><Icon name="list" /></button>
       <button className="iconbtn" onClick={expand} aria-label={t('Full screen')}><Icon name="expand" /></button>
       <button className="iconbtn" onClick={close} aria-label={t('Close')}><Icon name="xmark" /></button>
     </div>
-    {both && <Switch coach={coach} ons={ons} pick={pick} />}
+    <Switch coach={coach} ons={ons} pick={pick} own={own} onAdd={addOwn} />
     {menu
       ? <Menu data={data} busy={busy} open={open} start={start} remove={remove} />
       : <div className="hc-list" data-nodrag>
         {!list.length && <div className="hc-hi">
           <Avatar size="xl" coach={coach} />
-          <div className="hc-role">{coach === 'athena' ? t('Your strategist: the data, the plan and the why.') : t('Your motivator: training, technique and nutrition.')}</div>
+          <div className="hc-role">{isOwn(coach) ? t('Your own AI coach') : coach === 'athena' ? t('Your strategist: the data, the plan and the why.') : t('Your motivator: training, technique and nutrition.')}</div>
           <div className="hc-m him hc-hello">
             <strong>{t('Hi, I am {0}.', name)}</strong>{' '}
             {t('Ask me anything about training, technique, nutrition or recovery. I know your workouts and your plan.')}
@@ -246,9 +275,10 @@ function CoachSheet({ close, ask, first, ons: initial }) {
     for (const id of COACH_IDS) if (!(id in ons)) herculesStatus(id).then(s => { setCached(user?.id, id, s); if (!gone) setOns(o => ({ ...o, [id]: !!s.on })) }, () => {})
     return () => { gone = true }
   }, [])
+  const own = useOwnCoaches()
   const pick = id => { setCoach(id); setLastCoach(user?.id, id) }
   // `ask` is a question for the coach it was offered by, and only for the first conversation.
-  return <Chat key={coach} close={close} ask={coach === first ? ask : undefined} coach={coach} ons={ons} pick={pick} />
+  return <Chat key={coach} close={close} ask={coach === first ? ask : undefined} coach={coach} ons={ons} pick={pick} own={own} />
 }
 
 /** Opens the chat on `coach` (the one talked to last by default). */
@@ -298,7 +328,7 @@ export default function HerculesButton() {
 
   // The one on the button: the one talked to last, when it is on.
   const last = lastCoach(user?.id)
-  const coach = last && ons[last] ? last : COACH_IDS.find(id => ons[id]) || 'hercules'
+  const coach = last && (ons[last] || (isOwn(last) && ownCoach(user?.id, last))) ? last : COACH_IDS.find(id => ons[id]) || 'hercules'
   const on = COACH_IDS.some(id => ons[id])
   const here = SHOWN_ON.includes(loc.pathname) && !(loc.pathname === '/workout' && active)
   const visible = on && here && sheets === 0

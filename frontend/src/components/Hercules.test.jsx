@@ -186,7 +186,7 @@ describe('Hercules', () => {
     herculesSheet()
     const chat = renderTopSheet()
     await flush(); await flush()
-    expect(chat.querySelectorAll('.hc-pill')).toHaveLength(2)
+    expect(chat.querySelectorAll('.hc-pill:not(.hc-add)')).toHaveLength(2)
     expect(chat.querySelector('.hc-name').textContent).toBe('Hercules')
     type(chat, 'Question for Hercules'); await flush(); await flush()
     act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Athena').click())
@@ -217,7 +217,7 @@ describe('Hercules', () => {
     expect(again.querySelector('.hc-fab').getAttribute('aria-label')).toContain('Athena')
   })
 
-  it('without a second coach on the server there are no pills, and Athena alone fills the button', async () => {
+  it('without a second coach on the server there is no pill to switch, only the + for one of your own, and Athena alone fills the button', async () => {
     mocks.off = ['hercules']
     const fab = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
     await flush(); await flush()
@@ -226,6 +226,7 @@ describe('Hercules', () => {
     const chat = renderTopSheet()
     await flush(); await flush()
     expect(chat.querySelector('.hc-name').textContent).toBe('Athena')
-    expect(chat.querySelector('.hc-switch')).toBeNull()
+    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Athena'])
+    expect(chat.querySelector('.hc-add').getAttribute('aria-label')).toBe('Add your own AI coach')
   })
 })
