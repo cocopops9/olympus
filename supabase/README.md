@@ -43,8 +43,8 @@ Set these as the function's secrets (Supabase dashboard: Edge Functions, Secrets
 |---|---|---|
 | `HERCULES_API_KEY` | (none) | The provider key. Required. |
 | `HERCULES_BASE_URL` | `https://api.groq.com/openai/v1` | The provider's OpenAI-compatible address. |
-| `HERCULES_MODEL` | `llama-3.3-70b-versatile` | The main model. |
-| `HERCULES_FALLBACK_MODEL` | `llama-3.1-8b-instant` | Answers when the main model is out of its quota; empty for none. |
+| `HERCULES_MODEL` | `openai/gpt-oss-120b` | The main model. |
+| `HERCULES_FALLBACK_MODEL` | `openai/gpt-oss-20b` | Answers when the main model is out of its quota; empty for none. |
 | `HERCULES_PER_DAY` | `20` | Messages per profile per day. |
 
 The default is Groq's free tier: no card, about 1,000 answers a day on the main model and 14,400

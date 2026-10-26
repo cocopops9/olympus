@@ -19,14 +19,14 @@ export const LIMITS = {
   history: 12,         // earlier turns sent along with a message
   message: 2000,       // characters per turn
   context: 9000,       // characters of training summary
-  replyTokens: 900,
+  replyTokens: 1600,       // includes the model's own reasoning tokens
   timeoutMs: 30000,
 };
 
 export const DEFAULTS = {
   baseUrl: 'https://api.groq.com/openai/v1',
-  model: 'llama-3.3-70b-versatile',
-  fallback: 'llama-3.1-8b-instant',
+  model: 'openai/gpt-oss-120b',
+  fallback: 'openai/gpt-oss-20b',
 };
 
 export class HerculesError extends Error {
@@ -126,7 +126,11 @@ async function call(config, model, messages, fetchImpl, timeoutMs) {
     const res = await fetchImpl(config.baseUrl + '/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + config.key },
-      body: JSON.stringify({ model, messages, temperature: 0.6, max_tokens: LIMITS.replyTokens }),
+      body: JSON.stringify({
+        model, messages, temperature: 0.6, max_tokens: LIMITS.replyTokens,
+        // The gpt-oss models think before they answer: keep that short, it counts against the limit.
+        ...(/gpt-oss/.test(model) ? { reasoning_effort: 'low' } : {}),
+      }),
       signal: ctl.signal,
     });
     let body = null;
