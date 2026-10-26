@@ -30,7 +30,7 @@ export const DEFAULTS = {
 
 // Athena answers from another model family than Hercules, so the two can disagree.
 export const ATHENA_DEFAULTS = {
-  model: 'qwen/qwen3.6-27b',
+  model: 'qwen/qwen3.8-27b',
   fallback: 'openai/gpt-oss-20b',
 };
 

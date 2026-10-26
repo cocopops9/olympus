@@ -58,7 +58,7 @@ same key. She is on whenever Hercules is, and these secrets are optional:
 
 | Secret | Default | |
 |---|---|---|
-| `ATHENA_MODEL` | `qwen/qwen3.6-27b` | Her main model (another family than Hercules's). |
+| `ATHENA_MODEL` | `qwen/qwen3.8-27b` | Her main model (another family than Hercules's). |
 | `ATHENA_FALLBACK_MODEL` | `openai/gpt-oss-20b` | Answers when her main model is out of its quota; empty for none. |
 | `ATHENA_PER_DAY` | `20` | Messages per profile per day. |
 | `ATHENA_API_KEY` | (Hercules's key) | A key of her own, for another provider; with it `ATHENA_BASE_URL` defaults to Groq's address. |
