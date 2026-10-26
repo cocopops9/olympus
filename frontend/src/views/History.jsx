@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
-import { WorkoutRow, DayNoteRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
+import { DayNoteRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
+import WorkoutCard, { MonthHead } from '../components/WorkoutCard.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { dayNoteOf } from '../lib/day-notes.js'
@@ -16,6 +17,17 @@ export function historyRows(S) {
   return rows.map((r, i) => [r, i]).sort((a, b) => (a[0].d < b[0].d ? 1 : a[0].d > b[0].d ? -1 : b[1] - a[1])).map(([r]) => r)
 }
 
+// The rows by month, newest first: [['2026-10', rows], ...].
+function months(rows) {
+  const out = []
+  for (const r of rows) {
+    const ym = String(r.d || '').slice(0, 7)
+    if (!out.length || out[out.length - 1][0] !== ym) out.push([ym, []])
+    out[out.length - 1][1].push(r)
+  }
+  return out
+}
+
 export default function History() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
@@ -24,9 +36,12 @@ export default function History() {
     <div className="hdr"><button className="iconbtn" onClick={() => nav('/profile')} aria-label={t('Profile')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('History')}</h1><div className="sub">{tn('{0} workout', '{0} workouts', S.workouts.length)}</div></div></div>
     <Button icon="plus" onClick={logPastWorkoutSheet} style={{ marginBottom: 12 }}>{t('Log a past workout')}</Button>
-    {rows.length ? <div className="list">{rows.map(r => r.w
-      ? <WorkoutRow key={r.w.id} w={r.w} onClick={() => workoutDetailSheet(r.w)} />
-      : <DayNoteRow key={'note-' + r.d} iso={r.d} note={r.note} />)}</div>
+    {rows.length ? months(rows).map(([ym, list]) => <section key={ym} className="wmonth-s">
+      <MonthHead ym={ym} list={list.filter(r => r.w).map(r => r.w)} />
+      {list.map(r => r.w
+        ? <WorkoutCard key={r.w.id} w={r.w} onClick={() => workoutDetailSheet(r.w)} />
+        : <div key={'note-' + r.d} className="list" style={{ marginBottom: 10 }}><DayNoteRow iso={r.d} note={r.note} /></div>)}
+    </section>)
       : <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No workouts yet. Your first one will land here.')}</div>}
   </>
 }

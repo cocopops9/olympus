@@ -175,6 +175,58 @@ export function WorkoutSummary({ workout, limit = 5 }) {
 
 /* ---------------- a post ---------------- */
 
+// The reactions, as the server names them (api/social.js REACTIONS), and how they look.
+export const REACTION_EMOJI = { heart: '\u2764\uFE0F', strong: '\u{1F4AA}', fire: '\u{1F525}', clap: '\u{1F44F}', trophy: '\u{1F3C6}', wow: '\u{1F62E}' }
+const REACTION_LABEL = {
+  heart: () => t('Love'), strong: () => t('Strong'), fire: () => t('On fire'),
+  clap: () => t('Applause'), trophy: () => t('Champion'), wow: () => t('Wow'),
+}
+const HOLD_MS = 420
+
+/** The like button: a tap gives a heart (or takes a reaction back), holding it opens the reactions. */
+function ReactButton({ post, onTap, onPick }) {
+  const [open, setOpen] = useState(false)
+  const timer = useRef(null), held = useRef(false), start = useRef(null)
+  const cancel = () => { clearTimeout(timer.current); timer.current = null }
+  const down = e => {
+    held.current = false
+    start.current = { x: e.clientX, y: e.clientY }
+    cancel()
+    timer.current = setTimeout(() => { held.current = true; timer.current = null; try { navigator.vibrate?.(12) } catch { /* no haptics */ } setOpen(true) }, HOLD_MS)
+  }
+  const move = e => { if (timer.current && start.current && Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) cancel() }
+  const tap = () => { if (held.current) { held.current = false; return } onTap() }
+  useEffect(() => {
+    if (!open) return
+    const off = e => { if (!e.target.closest?.('.react-pick')) setOpen(false) }
+    const tm = setTimeout(() => document.addEventListener('pointerdown', off), 0)
+    return () => { clearTimeout(tm); document.removeEventListener('pointerdown', off) }
+  }, [open])
+  const mine = post.reaction || (post.liked ? 'heart' : null)
+  return <span className="react-wrap">
+    {open && <span className="react-pick" role="menu" aria-label={t('Reactions')}>
+      {Object.keys(REACTION_EMOJI).map((k, i) => <button key={k} role="menuitem" className={'react-opt' + (mine === k ? ' on' : '')}
+        style={{ animationDelay: i * 30 + 'ms' }} aria-label={REACTION_LABEL[k]()} title={REACTION_LABEL[k]()}
+        onClick={() => { setOpen(false); onPick(mine === k ? null : k) }}>{REACTION_EMOJI[k]}</button>)}
+    </span>}
+    <button className={'react-btn' + (mine ? ' liked' : '')} onClick={tap} aria-pressed={!!mine}
+      onPointerDown={down} onPointerMove={move} onPointerUp={cancel} onPointerLeave={cancel} onPointerCancel={cancel}
+      onContextMenu={e => { e.preventDefault(); cancel(); held.current = true; setOpen(true) }}
+      aria-label={mine ? t('Unlike') : t('Like')} title={t('Hold for more reactions')}>
+      {mine && mine !== 'heart' ? <span className="react-emoji">{REACTION_EMOJI[mine]}</span>
+        : <Icon name="heart" style={mine ? { fill: 'currentColor' } : undefined} />}
+      {post.likes > 0 && <span>{post.likes}</span>}
+    </button>
+  </span>
+}
+
+/** Who reacted how: the most given reactions, with their counts. */
+function ReactionSummary({ post }) {
+  const counts = Object.entries(post.reactions || {}).filter(([k, n]) => n > 0 && REACTION_EMOJI[k]).sort((a, b) => b[1] - a[1])
+  if (!counts.length || (counts.length === 1 && counts[0][0] === 'heart')) return null
+  return <div className="react-sum">{counts.slice(0, 4).map(([k, n]) => <span key={k}>{REACTION_EMOJI[k]} {n}</span>)}</div>
+}
+
 export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
   const nav = useNavigate()
   const me = useStore(s => s.user)
@@ -183,12 +235,18 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
   const [busy, setBusy] = useState(false)
   const replace = p => p && onChange?.(p)
 
-  const toggleLike = async () => {
+  // Tap: a heart, or take back whatever reaction you gave. Press and hold: pick another one.
+  const react = async kind => {
+    const was = post.reaction
+    const on = kind != null
+    const reactions = { ...(post.reactions || {}) }
+    if (was) { reactions[was] = Math.max(0, (reactions[was] || 1) - 1); if (!reactions[was]) delete reactions[was] }
+    if (on) reactions[kind] = (reactions[kind] || 0) + 1
     // Shown at once; put back if the server says no.
-    const optimistic = { ...post, liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) }
-    onChange?.(optimistic)
-    try { replace(await setLike(post.id, !post.liked)) } catch (e) { onChange?.(post); fail(e) }
+    onChange?.({ ...post, liked: on, reaction: on ? kind : null, likes: post.likes + (on ? 1 : 0) - (was ? 1 : 0), reactions })
+    try { replace(await setLike(post.id, on, kind || 'heart')) } catch (e) { onChange?.(post); fail(e) }
   }
+  const toggleLike = () => react(post.liked ? null : 'heart')
   const send = async () => {
     const text = draft.trim()
     if (!text || busy) return
@@ -251,14 +309,12 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
     <PostPhotos ids={post.photos} />
     <WorkoutSummary workout={post.workout} />
     <div className="post-a">
-      <button className={post.liked ? 'liked' : ''} onClick={toggleLike} aria-pressed={post.liked}
-        aria-label={post.liked ? t('Unlike') : t('Like')}>
-        <Icon name="heart" style={post.liked ? { fill: 'currentColor' } : undefined} />{post.likes > 0 && <span>{post.likes}</span>}
-      </button>
+      <ReactButton post={post} onTap={toggleLike} onPick={react} />
       <button onClick={() => setShowComments(v => !v)} aria-expanded={showComments} aria-label={t('Comments')}>
         <Icon name="chat" />{post.comments.length > 0 && <span>{post.comments.length}</span>}
       </button>
     </div>
+    <ReactionSummary post={post} />
     {showComments && <div className="post-c">
       {post.comments.map(c => <div key={c.id} className="cmt">
         <Avatar user={c.author} size="sm" />

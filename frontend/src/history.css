@@ -1,0 +1,21 @@
+/* Olympus: History as cards (components/WorkoutCard.jsx), by month. */
+.wmonth{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:18px 2px 8px}
+.wmonth h3{margin:0;font-size:19px}
+.wmonth-s:first-of-type .wmonth{margin-top:4px}
+.wcard{background:var(--surface);border-radius:var(--r-card);padding:14px 14px 10px;margin-bottom:10px;cursor:pointer}
+.wcard:active{background:var(--surface-2)}
+.wcard-h{display:flex;align-items:center;gap:10px}
+.wcard-n{font-size:17px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wcard-d{font-size:13.5px;color:var(--label-2)}
+.wcard-rec{display:inline-flex;align-items:center;gap:3px;font-weight:700;font-size:14px}
+.wcard-rec .medal{font-size:17px}
+.wcard-tot{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0 6px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.wcard-tot span{display:inline-flex;align-items:center;gap:5px}
+.wcard-tot .icn{color:var(--acc);font-size:15px}
+.wcard-ex{border-top:var(--hair) solid var(--sep);padding-top:4px}
+.wcard-row{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;padding:5px 0}
+.wcard-en{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wcard-best{flex:none;color:var(--label-2);font-variant-numeric:tabular-nums}
+.wcard-more{font-size:13px;color:var(--label-2);padding:3px 0 1px}
+.wcard-h>.grow{flex:1}
+.wcard-h .chev{color:var(--label-3)}

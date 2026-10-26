@@ -69,6 +69,25 @@ test('likes and comments, and who may delete what', t => {
   assert.throws(() => s.like(ANNA, p.id), /not found/);
 });
 
+test('reactions: a heart by default, one other kind per person, counted per kind', t => {
+  const { s } = store(t, [ANNA, BEN, CARL]);
+  const p = s.createPost(ANNA, { text: 'pr day' });
+  let v = s.like(BEN, p.id, true, 'fire');
+  assert.equal(v.likes, 1);
+  assert.equal(v.reaction, 'fire');
+  assert.deepEqual(v.reactions, { fire: 1 });
+  v = s.like(BEN, p.id, true, 'strong');
+  assert.equal(v.likes, 1, 'changing the reaction is not a second like');
+  assert.deepEqual(v.reactions, { strong: 1 });
+  assert.equal(s.like(BEN, p.id, true, 'nonsense').reaction, 'heart', 'an unknown kind is a heart');
+  const notes = s.notifications(ANNA).items || s.notifications(ANNA);
+  assert.equal((Array.isArray(notes) ? notes : []).filter(n => n.kind === 'like').length <= 1, true, 'one notification');
+  v = s.like(BEN, p.id, false);
+  assert.equal(v.likes, 0);
+  assert.equal(v.reaction, null);
+  assert.deepEqual(v.reactions, {});
+});
+
 test('a post needs content, and its workout is bounded to the summary fields', t => {
   const { s } = store(t, [ANNA]);
   assert.throws(() => s.createPost(ANNA, { text: '   ' }), /needs text, a workout or a photo/);

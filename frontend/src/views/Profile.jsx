@@ -20,6 +20,7 @@ import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet, calendarSheet } from '../sheets.jsx'
 import BodyMap from '../components/BodyMap.jsx'
 import StrengthLevels from '../components/StrengthLevels.jsx'
+import { Avatar as CoachAvatar } from '../components/Hercules.jsx'
 import { weekSummary } from '../lib/week-summary.js'
 import { loadOfWorkouts } from '../lib/muscles.js'
 import { todayISO, fmtNum, fmtDur, fmtVol, DAYS } from '../lib/format.js'
@@ -61,7 +62,8 @@ function OverviewTab({ S }) {
         </div>)}
       </div>
       <div className="ov-tiles">
-        {tiles.map(([l, v, n, b]) => <div key={l} className="ov-tile"><div className="ov-l">{l}</div><div className="ov-v">{v}</div><Delta now={n} before={b} /></div>)}
+        {/* Every tile opens the workouts themselves (History), newest first. */}
+        {tiles.map(([l, v, n, b]) => <button key={l} className="ov-tile" onClick={() => nav('/history')}><div className="ov-l">{l}</div><div className="ov-v">{v}</div><Delta now={n} before={b} /></button>)}
       </div>
       {before.count > 0 && <div className="ov-vs small muted">{t('Compared with last week')}</div>}
     </div>
@@ -140,7 +142,8 @@ export default function Profile() {
 
   const name = user?.name || t('You')
   const counts = ready && me
-    ? [[me.followers, t('Followers'), () => connectionsSheet(me.id, 'followers', true)],
+    ? [[S.workouts.length, t('Workouts'), () => nav('/history')],
+      [me.followers, t('Followers'), () => connectionsSheet(me.id, 'followers', true)],
       [me.following, t('Following'), () => connectionsSheet(me.id, 'following', true)],
       [me.posts, t('Posts'), () => setTab('posts')]]
     : [[S.workouts.length, t('Workouts'), () => nav('/history')],
@@ -194,6 +197,12 @@ export default function Profile() {
     {tab === 'posts' && <PostsTab posts={posts} setPosts={setPosts} error={error} onRetry={load} />}
 
     <div style={{ height: 18 }} />
+    {/* Olympus: the AI coaches, full screen (views/CoachAI.jsx). */}
+    {ready && <button className="prof-ai" onClick={() => nav('/ai')}>
+      <span className="prof-ai-avs"><CoachAvatar coach="hercules" size="md" badge={false} /><CoachAvatar coach="athena" size="md" /></span>
+      <span className="grow"><b>{t('AI coach')}</b><span className="small muted">{t('Hercules and Athena: your conversations, full screen')}</span></span>
+      <Icon name="chevronRight" className="chev" />
+    </button>}
     <Section title={t('Training')}>
       <Row icon="sun" iconTint="var(--orange)" title={t('Today’s training')} subtitle={t('This week, today’s session, check-in')} accessory="chevron" onClick={() => nav('/today')} />
       <Row icon="calendar" iconTint="var(--acc)" title={t('Plan')} subtitle={t('Your routines and weekly schedule')} accessory="chevron" onClick={() => nav('/plan')} />

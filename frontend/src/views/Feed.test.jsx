@@ -89,8 +89,21 @@ describe('Feed with a server profile', () => {
     await flush()
     await act(async () => button('Like').click())
     await flush()
-    expect(mocks.like).toHaveBeenCalledWith('p1', true)
+    expect(mocks.like).toHaveBeenCalledWith('p1', true, 'heart')
     expect(button('Unlike')).toBeTruthy()
+  })
+
+  it('holding the like opens the reactions, and one is sent as the reaction', async () => {
+    mocks.feed.mockResolvedValue({ posts: [post('p1')], next: null })
+    mocks.like.mockResolvedValue(post('p1', { likes: 1, liked: true, reaction: 'fire', reactions: { fire: 1 } }))
+    await act(async () => root.render(<Feed />))
+    await flush()
+    await act(async () => { button('Like').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })) })
+    expect(document.querySelectorAll('.react-opt')).toHaveLength(6)
+    await act(async () => button('On fire').click())
+    await flush()
+    expect(mocks.like).toHaveBeenCalledWith('p1', true, 'fire')
+    expect(document.querySelector('.react-btn .react-emoji').textContent).toBe('\u{1F525}')
   })
 
   it('says why it could not load, with a way to try again', async () => {

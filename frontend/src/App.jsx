@@ -54,6 +54,7 @@ import ProgressPhotos from './views/ProgressPhotos.jsx'
 import { SettingsRoute } from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
 import CoachChat from './views/CoachChat.jsx'
+import CoachAI from './views/CoachAI.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
@@ -218,7 +219,7 @@ function Shell() {
   }, [inWorkout])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding
+  const noTabs = inWorkout || loc.pathname === '/coach' || loc.pathname === '/ai' || needsMobileOnboarding
 
   const authed = user || isGuest
   if (!ready && !authed) return (
@@ -264,6 +265,7 @@ function Shell() {
                   unconditionally so a deep link from a notification lands somewhere sane
                   rather than on the catch-all. */}
               <Route path="/coach" element={<CoachChat />} />
+              <Route path="/ai" element={<CoachAI />} />
               <Route path="/coach/intake" element={<CoachIntake />} />
               <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />
               <Route path="/coach/setup" element={<CoachSetup />} />

@@ -25,6 +25,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
+// The reactions a post can get: a heart (the plain like, also what older apps send) or one of
+// these. One per person and post; picking another changes it.
+export const REACTIONS = Object.freeze(['heart', 'strong', 'fire', 'clap', 'trophy', 'wow']);
+
 export const LIMITS = Object.freeze({
   postText: 1000,
   commentText: 500,
@@ -251,10 +255,14 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       .map(c => ({ id: c.id, ts: c.ts, text: c.text, author: authorOf(c.uid), mine: c.uid === viewer.id }))
       .filter(c => c.author);
     const likes = (p.likes || []).filter(userById);
+    const kindOf = uid => (p.reacts && REACTIONS.includes(p.reacts[uid]) ? p.reacts[uid] : 'heart');
+    const reactions = {};
+    for (const uid of likes) { const k = kindOf(uid); reactions[k] = (reactions[k] || 0) + 1; }
+    const liked = likes.includes(viewer.id);
     return {
       id: p.id, ts: p.ts, text: p.text || '', workout: p.workout || null, photos: p.photos || [], author,
       ...(p.uid === viewer.id && p.wid ? { wid: p.wid } : {}),
-      likes: likes.length, liked: likes.includes(viewer.id), comments, mine: p.uid === viewer.id,
+      likes: likes.length, liked, reaction: liked ? kindOf(viewer.id) : null, reactions, comments, mine: p.uid === viewer.id,
     };
   }
 
@@ -569,12 +577,18 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return { ok: true };
     },
 
-    like(viewer, id, on = true) {
+    // `kind`: one of REACTIONS; a heart by default. A second reaction replaces the first and
+    // sends no second notification.
+    like(viewer, id, on = true, kind = 'heart') {
       const p = findPost(viewer, id);
+      const react = REACTIONS.includes(kind) ? kind : 'heart';
       const set = new Set(p.likes || []);
       if (on && !set.has(viewer.id)) { set.add(viewer.id); notify(p.uid, 'like', viewer.id, { postId: p.id }); }
       if (!on && set.has(viewer.id)) { set.delete(viewer.id); unnotify(p.uid, 'like', viewer.id, p.id); }
       p.likes = [...set];
+      const reacts = { ...(p.reacts || {}) };
+      if (on && react !== 'heart') reacts[viewer.id] = react; else delete reacts[viewer.id];
+      if (Object.keys(reacts).length) p.reacts = reacts; else delete p.reacts;
       save();
       return view(p, viewer);
     },
@@ -674,6 +688,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       dropPhotos([...theirs.flatMap(p => p.photos || []), ...Object.keys(doc.photos).filter(id => doc.photos[id].uid === uid)]);
       for (const p of doc.posts) {
         p.likes = (p.likes || []).filter(x => x !== uid);
+        if (p.reacts && uid in p.reacts) { const r = { ...p.reacts }; delete r[uid]; if (Object.keys(r).length) p.reacts = r; else delete p.reacts; }
         p.comments = (p.comments || []).filter(c => c.uid !== uid);
       }
       save();

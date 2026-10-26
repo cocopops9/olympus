@@ -137,3 +137,17 @@ body.no-tabbar .hc-bubble{bottom:calc(var(--sab) + 94px)}
   background:var(--acc);color:var(--on-acc);font-size:18px;--icon-stroke:2.6}
 .hc-send:disabled{opacity:.4}
 .hc-note{font-size:11.5px;color:var(--label-3);text-align:center;padding:6px 4px 0}
+
+/* Dragging the button (components/Hercules.jsx useFabDrag), and the X to drop it on. */
+.hc-fab{touch-action:none;-webkit-touch-callout:none;user-select:none}
+.hc-fab.dragging{transition:none;transform:scale(1.12);z-index:62;filter:drop-shadow(0 14px 22px rgba(0,0,0,.6))}
+.hc-fab.dragging::after{animation:none}
+.hc-fab.over{transform:scale(.8);opacity:.75}
+.hc-drop{position:fixed;z-index:61;left:50%;bottom:112px;width:64px;height:64px;margin-left:-32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;
+  background:rgba(40,40,44,.85);border:2px solid rgba(255,255,255,.35);
+  box-shadow:0 10px 30px -8px rgba(0,0,0,.6);animation:hc-pop .25s ease-out both;transition:transform .15s ease,background .15s ease}
+.hc-drop.on{transform:scale(1.22);background:var(--red,#e5484d);border-color:transparent}
+.hc-bubble.at-left{border-radius:18px 18px 18px 6px;transform-origin:0 100%}
+.hc-bubble.at-left::after{inset-inline-end:auto;inset-inline-start:22px}
+.hc-av img{-webkit-user-drag:none;user-select:none}

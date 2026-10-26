@@ -2698,7 +2698,7 @@ const routes = {
   'POST /api/social/posts/like': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
-    json(res, 200, { post: SOCIAL.like(me, text(body.id), body.like !== false) });
+    json(res, 200, { post: SOCIAL.like(me, text(body.id), body.like !== false, text(body.kind) || 'heart') });
   },
   'POST /api/social/posts/comment': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;

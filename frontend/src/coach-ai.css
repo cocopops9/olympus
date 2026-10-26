@@ -1,0 +1,80 @@
+/* Olympus: the AI coaches full screen (views/CoachAI.jsx). */
+.cai{position:fixed;inset:0;z-index:55;display:flex;background:var(--bg);color:var(--label)}
+.cai-off{align-items:center;justify-content:center;text-align:center}
+.cai-body{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+
+.cai-top{display:flex;align-items:center;gap:6px;padding:calc(var(--sat,0px) + 8px) 10px 8px;
+  border-bottom:var(--hair) solid var(--sep);position:relative}
+.cai-pick{display:inline-flex;align-items:center;gap:8px;padding:7px 12px 7px 8px;border-radius:999px;border:0;
+  background:var(--surface-2);color:var(--label);font:inherit;font-size:16px;--icon-stroke:2.4}
+.cai-pick b{font-weight:700}
+.cai-pick .icn{font-size:13px;opacity:.7}
+.cai-models{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:3;width:min(92vw,380px);
+  background:var(--surface);border:1px solid var(--sep);border-radius:18px;padding:6px;box-shadow:0 18px 40px -12px rgba(0,0,0,.6);
+  animation:hc-pop .2s ease-out both}
+.cai-model{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:0;border-radius:12px;background:none;color:inherit;text-align:start;font:inherit}
+.cai-model.on{background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.cai-model .grow{display:flex;flex-direction:column;gap:1px}
+.cai-model b{font-size:16px}
+.cai-model>.icn{color:var(--acc)}
+.cai-model:disabled{opacity:.45}
+
+.cai-main{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.cai-col{max-width:760px;margin:0 auto;padding:18px 18px 10px;display:flex;flex-direction:column;gap:16px}
+.cai-me{align-self:flex-end;max-width:85%;padding:10px 15px;border-radius:20px;background:var(--surface-2);
+  font-size:16px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.cai-him{display:flex;flex-direction:column;gap:6px}
+.cai-who{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px}
+.cai-text{font-size:16.5px;line-height:1.6}
+.cai-text p{margin:0}
+.cai-text p+p,.cai-text p+ul,.cai-text p+ol,.cai-text ul+p,.cai-text ol+p{margin-top:10px}
+.cai-text ul,.cai-text ol{margin:0;padding-inline-start:22px}
+.cai-text li+li{margin-top:4px}
+.cai-text strong{font-weight:700}
+
+.cai-hi{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:7vh 0 10px}
+.cai-hi .hc-av-xl{filter:drop-shadow(0 12px 28px color-mix(in srgb,var(--acc) 45%,transparent));margin-bottom:8px}
+.cai-hi h2{margin:4px 0 0;font-family:Georgia,'Iowan Old Style','Times New Roman',serif;font-weight:500;font-size:30px;letter-spacing:-.01em}
+.cai-hi p{margin:0 0 14px}
+.cai-sugg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;width:100%}
+.cai-card{display:flex;align-items:flex-start;gap:10px;text-align:start;padding:13px 14px;border-radius:16px;border:1px solid var(--sep);
+  background:var(--surface);color:var(--label);font:inherit;font-size:15px;line-height:1.35}
+.cai-card .icn{color:var(--acc);flex:none;margin-top:2px}
+.cai-card:active{background:var(--surface-2)}
+
+.cai-in{padding:8px 14px calc(var(--sab,0px) + 10px);background:linear-gradient(transparent,var(--bg) 30%)}
+.cai-box{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;padding:8px 8px 8px 16px;border-radius:26px;
+  background:var(--surface);border:1px solid var(--sep);box-shadow:0 8px 24px -14px rgba(0,0,0,.6)}
+.cai-box textarea{flex:1;min-width:0;resize:none;max-height:180px;border:0;outline:none;background:none;color:var(--label);
+  font:inherit;font-size:16.5px;line-height:1.4;padding:8px 0;field-sizing:content}
+.cai-note{max-width:760px;margin:6px auto 0;text-align:center;font-size:11.5px;color:var(--label-3)}
+
+/* The conversations: a drawer from the left on a phone, a column of its own on a wide screen. */
+.cai-scrim{position:fixed;inset:0;z-index:56;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .2s}
+.cai-scrim.on{opacity:1;pointer-events:auto}
+.cai-drawer{position:fixed;z-index:57;top:0;bottom:0;left:0;width:min(86vw,320px);display:flex;flex-direction:column;
+  background:var(--surface);border-inline-end:var(--hair) solid var(--sep);transform:translateX(-102%);transition:transform .22s ease;
+  padding:calc(var(--sat,0px) + 10px) 10px calc(var(--sab,0px) + 10px)}
+.cai-drawer.on{transform:none}
+.cai-dh{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 10px}
+.cai-brand{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:17px}
+.cai-brand .hc-av+.hc-av{margin-inline-start:-8px}
+.cai-brand .hc-av:last-of-type{margin-inline-end:6px}
+.cai-new{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;border-radius:14px;border:0;
+  background:var(--acc);color:var(--on-acc);font:inherit;font-size:15.5px;font-weight:650;--icon-stroke:2.2}
+.cai-dl{flex:1;min-height:0;overflow-y:auto;margin:10px -4px 0;padding:0 4px}
+.cai-dempty{padding:10px 6px}
+.cai-dgroup+.cai-dgroup{margin-top:12px}
+.cai-dgh{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--label-3);padding:6px 6px}
+.cai-ditem{display:flex;align-items:center;border-radius:10px}
+.cai-ditem.on{background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.cai-dopen{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;padding:9px 8px;border:0;background:none;color:inherit;font:inherit;text-align:start}
+.cai-dt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.cai-dd{flex:none;font-size:12px;color:var(--label-3)}
+.cai-ditem .iconbtn{opacity:.6}
+.cai-dfoot{display:flex;align-items:center;gap:10px;padding:10px 6px 2px;border-top:var(--hair) solid var(--sep);margin-top:8px}
+
+@media (min-width:900px){
+  .cai-drawer{position:relative;transform:none;flex:none}
+  .cai .cai-scrim,.cai .cai-only-narrow{display:none}
+}

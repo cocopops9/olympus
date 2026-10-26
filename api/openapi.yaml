@@ -2796,8 +2796,8 @@ paths:
     post:
       tags: [social]
       operationId: socialLike
-      summary: Like or unlike
-      description: 'Likes post `id`, or takes the like back with `like: false`.'
+      summary: React, or take the reaction back
+      description: 'Likes post `id` with a reaction (`kind`, a heart by default), or takes it back with `like: false`. One reaction per person and post: another kind replaces it, without a second notification.'
       requestBody:
         required: true
         content:
@@ -2808,6 +2808,7 @@ paths:
               properties:
                 id: { type: string }
                 like: { type: boolean, default: true }
+                kind: { type: string, enum: [heart, strong, fire, clap, trophy, wow], default: heart }
       responses:
         '200':
           description: OK.
@@ -4423,6 +4424,8 @@ components:
         author: { type: object, properties: { id: { type: string }, name: { type: string } } }
         likes: { type: integer }
         liked: { type: boolean }
+        reaction: { type: string, nullable: true, description: 'The viewer''s own reaction (`heart`, `strong`, `fire`, `clap`, `trophy`, `wow`), or null.' }
+        reactions: { type: object, additionalProperties: { type: integer }, description: 'How many of each reaction, by kind.' }
         mine: { type: boolean }
         comments:
           type: array

@@ -391,7 +391,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/social/posts': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { post: await withSocial(s => s.createPost(me, b)) } }; },
     'POST /api/social/posts/edit': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { post: await withSocial(s => s.editPost(me, b)) } }; },
     'POST /api/social/posts/delete': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: await withSocial(s => s.deletePost(me, text(b.id), { asAdmin: !!me.admin })) }; },
-    'POST /api/social/posts/like': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { post: await withSocial(s => s.like(me, text(b.id), b.like !== false)) } }; },
+    'POST /api/social/posts/like': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { post: await withSocial(s => s.like(me, text(b.id), b.like !== false, text(b.kind) || 'heart')) } }; },
     'POST /api/social/posts/comment': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { post: await withSocial(s => s.comment(me, text(b.id), text(b.text))) } }; },
     'POST /api/social/posts/comment/delete': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { post: await withSocial(s => s.deleteComment(me, text(b.id), text(b.commentId))) } }; },
   };

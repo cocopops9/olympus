@@ -83,7 +83,7 @@ describe('Profile with a server profile', () => {
     expect(mocks.profile).toHaveBeenCalledWith('')
     expect(host.textContent).toContain('Powerlifting')
     const counts = [...host.querySelectorAll('.prof-counts button')].map(b => b.textContent)
-    expect(counts).toEqual(['3Followers', '2Following', '1Posts'])
+    expect(counts).toEqual(['1Workouts', '3Followers', '2Following', '1Posts'])
     expect([...host.querySelectorAll('.seg button')].map(b => b.textContent)).toContain('Posts')
     expect(host.querySelector('.avatar').textContent).toBe('AR')
   })

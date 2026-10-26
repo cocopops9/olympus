@@ -54,7 +54,7 @@ export const fetchDiscover = before => api('/api/social/discover' + q({ before }
 export const createPost = ({ text, workout, photos, wid }) => post('/api/social/posts', { text, workout, photos: photos && photos.length ? photos : undefined, wid }).then(r => r.post)
 export const editPost = ({ id, text, photos, workout }) => post('/api/social/posts/edit', { id, text, photos, workout }).then(r => r.post)
 export const deletePost = id => post('/api/social/posts/delete', { id })
-export const setLike = (id, like) => post('/api/social/posts/like', { id, like }).then(r => r.post)
+export const setLike = (id, like, kind = 'heart') => post('/api/social/posts/like', { id, like, kind }).then(r => r.post)
 export const addComment = (id, text) => post('/api/social/posts/comment', { id, text }).then(r => r.post)
 export const deleteComment = (id, commentId) => post('/api/social/posts/comment/delete', { id, commentId }).then(r => r.post)
 

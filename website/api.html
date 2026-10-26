@@ -2674,10 +2674,10 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="m post">POST</span>
     <span class="ep-path"><code>/api/social/posts/like</code></span>
     <span class="ep-chev" aria-hidden="true"></span>
-    <span class="ep-sum">Like or unlike</span>
+    <span class="ep-sum">React, or take the reaction back</span>
   </summary>
   <div class="ep-body">
-<p>Likes post <code>id</code>, or takes the like back with <code>like: false</code>.</p>
+<p>Likes post <code>id</code> with a reaction (<code>kind</code>, a heart by default), or takes it back with <code>like: false</code>. One reaction per person and post: another kind replaces it, without a second notification.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
 <p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
@@ -2689,6 +2689,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">like</span>
     <span class="p-type">boolean <span class="p-hint">(default true)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">kind</span>
+    <span class="p-type">&quot;heart&quot; | &quot;strong&quot; | &quot;fire&quot; | &quot;clap&quot; | &quot;trophy&quot; | &quot;wow&quot;</span>
     <span class="p-desc"></span>
   </div>
 </div>
@@ -5638,6 +5643,16 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">liked</span>
     <span class="p-type">boolean</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">reaction</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The viewer's own reaction (<code>heart</code>, <code>strong</code>, <code>fire</code>, <code>clap</code>, <code>trophy</code>, <code>wow</code>), or null.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">reactions</span>
+    <span class="p-type">object</span>
+    <span class="p-desc">How many of each reaction, by kind.</span>
   </div>
   <div class="prow">
     <span class="p-name">mine</span>

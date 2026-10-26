@@ -29,12 +29,19 @@ export const COACHES = {
   hercules: { name: 'Hercules', portrait: hercules },
   athena: { name: 'Athena', portrait: athena },
 }
-const coachName = id => (COACHES[id] || COACHES.hercules).name
+export const coachName = id => (COACHES[id] || COACHES.hercules).name
 
 // The status of each coach is asked once per profile and session, and again after each answer.
 let cached = { uid: null, status: {} }
-const statusOf = (uid, coach) => (cached.uid === uid ? cached.status[coach] || null : null)
-const setCached = (uid, coach, status) => { cached = { uid, status: { ...(cached.uid === uid ? cached.status : {}), [coach]: status } } }
+export const statusOf = (uid, coach) => (cached.uid === uid ? cached.status[coach] || null : null)
+export const setCached = (uid, coach, status) => { cached = { uid, status: { ...(cached.uid === uid ? cached.status : {}), [coach]: status } } }
+// The floating button can be put away (dragged onto the X) and brought back from the full-screen
+// coach (views/CoachAI.jsx); where it was dragged to is kept too. Both per device.
+const FAB_KEY = 'olympus_coach_fab'
+const readFab = () => { try { return JSON.parse(localStorage.getItem(FAB_KEY) || '{}') || {} } catch { return {} } }
+const writeFab = v => { try { localStorage.setItem(FAB_KEY, JSON.stringify({ ...readFab(), ...v })) } catch { /* a convenience */ } window.dispatchEvent(new Event('olympus:fab')) }
+export const fabHidden = () => readFab().hidden === true
+export const setFabHidden = on => writeFab({ hidden: !!on })
 // The speech bubble is considered once per app start and profile.
 let greetedFor = null
 export const resetGreetingForTests = () => { greetedFor = null; cached = { uid: null, status: {} } }
@@ -42,13 +49,13 @@ export const resetGreetingForTests = () => { greetedFor = null; cached = { uid: 
 /** The coach's portrait in the gold ring, with the AI badge. `size` is 'sm', 'md', 'lg' or 'xl'. */
 export function Avatar({ size = 'md', live = false, badge = true, coach = 'hercules' }) {
   return <span className={'hc-av hc-av-' + size + (live ? ' live' : '')} aria-hidden="true">
-    <img src={(COACHES[coach] || COACHES.hercules).portrait} alt="" />
+    <img src={(COACHES[coach] || COACHES.hercules).portrait} alt="" draggable={false} />
     {badge && <span className="hc-ai">AI</span>}
   </span>
 }
 
 /** **bold**, line breaks, and "- " or "1. " lists: the little formatting the model uses. */
-function Rich({ text }) {
+export function Rich({ text }) {
   const blocks = String(text).split(/\n{2,}/)
   const inline = s => s.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith('**') && part.endsWith('**') && part.length > 4
     ? <strong key={i}>{part.slice(2, -2)}</strong> : part))
@@ -64,7 +71,7 @@ function Rich({ text }) {
   })
 }
 
-const errorText = (e, name) => {
+export const errorText = (e, name) => {
   const code = e?.data?.code
   if (code === 'hercules-limit') return t('That was your last message for today. {0} is back tomorrow.', name)
   if (code === 'hercules-busy') return t('{0} is resting: many people asked today. Try again later.', name)
@@ -74,7 +81,7 @@ const errorText = (e, name) => {
   return t('{0} could not answer. Try again.', name)
 }
 
-const whenOf = ts => {
+export const whenOf = ts => {
   const d = new Date(ts), now = new Date()
   try {
     if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString(getLang(), { hour: '2-digit', minute: '2-digit' })
@@ -110,26 +117,31 @@ function Switch({ coach, ons, pick }) {
   </div>
 }
 
-function Chat({ close, ask, coach, ons, pick }) {
+/**
+ * One coach's conversations and the sending of a message, shared by the chat sheet and the full
+ * screen (views/CoachAI.jsx). `ask`: open on a fresh conversation (a question offered by the
+ * bubble). `chatId`: open on that conversation.
+ */
+export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   const user = useStore(s => s.user)
   const uid = user?.id
   const name = coachName(coach)
-  // Opened from the bubble with a question to offer: a fresh conversation, so it is the first chip.
-  const [data, setData] = useState(() => { const d = loadChats(uid, coach); return ask ? { ...d, current: null } : d })
-  const [menu, setMenu] = useState(false)
+  const [data, setData] = useState(() => {
+    const d = loadChats(uid, coach)
+    if (ask) return { ...d, current: null }
+    if (chatId && d.chats.some(c => c.id === chatId)) return { ...d, current: chatId }
+    return d
+  })
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [status, setStatus] = useState(() => statusOf(uid, coach))
-  const end = useRef(null)
   const input = useRef(null)
   const latest = useRef(data)
   const commit = d => { latest.current = d; setData(d); saveChats(uid, d, coach) }
-
   const list = data.chats.find(c => c.id === data.current)?.messages || []
 
   useEffect(() => { herculesStatus(coach).then(s => { setCached(uid, coach, s); setStatus(s) }, () => {}) }, [uid, coach])
-  useEffect(() => { if (!menu) end.current?.scrollIntoView?.({ block: 'end' }) }, [list.length, busy, err, menu, data.current])
 
   const left = status ? status.left : null
   const send = async text => {
@@ -139,6 +151,7 @@ function Chat({ close, ask, coach, ons, pick }) {
     const next = [...list, { role: 'user', content: msg, ts: Date.now() }]
     const sent = putChat(latest.current, latest.current.current, next)
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)
+    onSent?.()
     try {
       const r = await askHercules(next, coach)
       commit(putChat(latest.current, sent.current, [...next, { role: 'assistant', content: r.reply, ts: Date.now() }]))
@@ -152,11 +165,24 @@ function Chat({ close, ask, coach, ons, pick }) {
       input.current?.focus()
     }
   }
-  const start = () => { commit({ ...latest.current, current: null }); setMenu(false); setErr('') }
-  const open = id => { commit({ ...latest.current, current: id }); setMenu(false); setErr('') }
+  const start = () => { commit({ ...latest.current, current: null }); setErr('') }
+  const open = id => { commit({ ...latest.current, current: id }); setErr('') }
   const remove = id => commit(dropChat(latest.current, id))
+  const suggestions = [...(ask ? [ask] : []), ...suggestionsFor(coach)].filter((x, i, a) => a.indexOf(x) === i).slice(0, 4)
+  return { uid, name, data, list, draft, setDraft, busy, err, left, status, input, send, start, open, remove, suggestions }
+}
 
-  const suggestions = [...(ask ? [ask] : []), ...suggestionsFor(coach)].filter((s, i, a) => a.indexOf(s) === i).slice(0, 4)
+function Chat({ close, ask, coach, ons, pick }) {
+  const c = useCoachChat({ coach, ask })
+  const { name, data, list, draft, setDraft, busy, err, left, input, send, remove, suggestions } = c
+  const [menu, setMenu] = useState(false)
+  const end = useRef(null)
+  const start = () => { c.start(); setMenu(false) }
+  const open = id => { c.open(id); setMenu(false) }
+  useEffect(() => { if (!menu) end.current?.scrollIntoView?.({ block: 'end' }) }, [list.length, busy, err, menu, data.current])
+  // The same conversation, full screen (views/CoachAI.jsx).
+  const expand = () => { close(); setTimeout(() => { window.location.hash = '#/ai?c=' + coach + (data.current ? '&chat=' + data.current : '') }, 0) }
+
   const sub = left == null ? t('Online') : t('Online') + ' · ' + tn('{0} message left today', '{0} messages left today', left)
   const both = COACH_IDS.every(id => ons[id])
 
@@ -168,6 +194,7 @@ function Chat({ close, ask, coach, ons, pick }) {
         <div className="hc-sub"><i className="hc-dot" />{sub}</div>
       </div>
       <button className={'iconbtn' + (menu ? ' hc-on' : '')} onClick={() => setMenu(m => !m)} aria-label={t('Conversations')} aria-expanded={menu}><Icon name="list" /></button>
+      <button className="iconbtn" onClick={expand} aria-label={t('Full screen')}><Icon name="expand" /></button>
       <button className="iconbtn" onClick={close} aria-label={t('Close')}><Icon name="xmark" /></button>
     </div>
     {both && <Switch coach={coach} ons={ons} pick={pick} />}
@@ -241,6 +268,19 @@ export default function HerculesButton() {
   const [ons, setOns] = useState(() => Object.fromEntries(COACH_IDS.map(id => [id, !!statusOf(user?.id, id)?.on])))
   const [greet, setGreet] = useState(null)
   const can = socialReady(user) && ready
+  const [hidden, setHidden] = useState(() => fabHidden())
+  const [pos, setPos] = useState(() => readFab().pos || null)
+  useEffect(() => {
+    const sync = () => { setHidden(fabHidden()); setPos(readFab().pos || null) }
+    window.addEventListener('olympus:fab', sync)
+    return () => window.removeEventListener('olympus:fab', sync)
+  }, [])
+  const [, relayout] = useState(0)
+  useEffect(() => { const r = () => relayout(n => n + 1); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [])
+  const { drag, dragged, handlers: dragHandlers } = useFabDrag({
+    onHide: () => { setGreet(null); setFabHidden(true); useUI.getState().toast(t('Coach hidden. Turn it back on in Profile, AI coach.')) },
+    onMove: p => { setPos(p); writeFab({ pos: p }) },
+  })
   // Read when the bubble is due: the second coach's state may arrive after the first's.
   const onsRef = useRef(ons)
   onsRef.current = ons
@@ -280,15 +320,77 @@ export default function HerculesButton() {
     return () => clearTimeout(hide)
   }, [greet])
 
-  if (!visible) return null
+  if (!visible || hidden) return null
   const openChat = (ask, c) => { setGreet(null); herculesSheet({ ask, coach: c || coach }) }
+  const shown = greet?.coach || coach
+  // Where the button is: dragged somewhere, or the corner above the tab bar.
+  const place = drag ? { left: drag.x - FAB / 2, top: drag.y - FAB / 2 } : pos ? fabPlace(pos) : null
+  const left = place ? place.left + FAB / 2 < window.innerWidth / 2 : false
+  const bubbleAt = place ? { bottom: window.innerHeight - place.top + 14, ...(left ? { left: 12, right: 'auto' } : { right: 12, left: 'auto' }) } : null
   return <>
-    {greet && <div className="hc-bubble" role="status">
+    {greet && !drag && <div className={'hc-bubble' + (left ? ' at-left' : '')} role="status" style={bubbleAt || undefined}>
       <button className="hc-bubble-t" onClick={() => openChat(greet.ask, greet.coach)}>{greet.text}</button>
       <button className="hc-bubble-x" onClick={() => setGreet(null)} aria-label={t('Close')}><Icon name="xmark" /></button>
     </div>}
-    <button className="hc-fab" onClick={() => openChat(greet?.ask, greet?.coach)} aria-label={t('Ask {0}, your coach', coachName(greet?.coach || coach))}>
-      <Avatar size="lg" coach={greet?.coach || coach} />
+    {drag && <div className={'hc-drop' + (drag.over ? ' on' : '')} aria-hidden="true"><Icon name="xmark" /></div>}
+    <button className={'hc-fab' + (drag ? ' dragging' : '') + (drag?.over ? ' over' : '')} {...dragHandlers} onDragStart={e => e.preventDefault()}
+      style={place ? { left: place.left, top: place.top, right: 'auto', bottom: 'auto' } : undefined}
+      onClick={() => { if (dragged.current) { dragged.current = false; return } openChat(greet?.ask, greet?.coach) }}
+      aria-label={t('Ask {0}, your coach', coachName(shown)) + '. ' + t('Hold and drag to move it, or onto the X to hide it.')}>
+      <Avatar size="lg" coach={shown} />
     </button>
   </>
+}
+
+const FAB = 62
+const EDGE = 12
+// The button's spot from what was kept ({ side, fy }: the side it sits on, and how far down the
+// screen, as a fraction), so it lands in the same place after a rotation.
+function fabPlace(pos) {
+  const w = window.innerWidth, h = window.innerHeight
+  const top = Math.max(70, Math.min(h - FAB - 90, pos.fy * h))
+  return { left: pos.side === 'left' ? EDGE : w - FAB - EDGE, top }
+}
+// The X to drop the button on, a little above the tab bar in the middle.
+const dropCenter = () => ({ x: window.innerWidth / 2, y: window.innerHeight - 140 })
+const DROP_R = 56
+const HOLD = 280
+
+/** Press, hold (or just move) and drag the button; let go on the X to put it away. */
+function useFabDrag({ onHide, onMove }) {
+  const [drag, setDrag] = useState(null)
+  const dragged = useRef(false)
+  const st = useRef(null)
+  const begin = (x, y) => { dragged.current = true; try { navigator.vibrate?.(15) } catch { /* no haptics */ } setDrag({ x, y, over: false }) }
+  const handlers = {
+    onPointerDown: e => {
+      dragged.current = false
+      st.current = { x: e.clientX, y: e.clientY, id: e.pointerId, on: false }
+      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* old browsers */ }
+      clearTimeout(st.current.tm)
+      st.current.tm = setTimeout(() => { if (st.current && !st.current.on) { st.current.on = true; begin(st.current.x, st.current.y) } }, HOLD)
+    },
+    onPointerMove: e => {
+      const s0 = st.current
+      if (!s0) return
+      if (!s0.on && Math.hypot(e.clientX - s0.x, e.clientY - s0.y) > 6) { s0.on = true; clearTimeout(s0.tm); begin(e.clientX, e.clientY) }
+      if (!s0.on) { s0.x = e.clientX; s0.y = e.clientY; return }
+      const d = dropCenter()
+      setDrag({ x: e.clientX, y: e.clientY, over: Math.hypot(e.clientX - d.x, e.clientY - d.y) < DROP_R })
+    },
+    onPointerUp: e => {
+      const s0 = st.current
+      st.current = null
+      if (!s0) return
+      clearTimeout(s0.tm)
+      if (!s0.on) return
+      const d = dropCenter()
+      const over = Math.hypot(e.clientX - d.x, e.clientY - d.y) < DROP_R
+      setDrag(null)
+      if (over) onHide()
+      else onMove({ side: e.clientX < window.innerWidth / 2 ? 'left' : 'right', fy: (e.clientY - FAB / 2) / window.innerHeight })
+    },
+  }
+  handlers.onPointerCancel = () => { if (st.current) clearTimeout(st.current.tm); st.current = null; setDrag(null) }
+  return { drag, dragged, handlers }
 }
