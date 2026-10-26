@@ -84,6 +84,8 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
       // The superset the exercise was done in, so the history can show the pairing. Without it
       // the workout forgot at finish what it had been all session.
       ...(entry.sg ? { sg: entry.sg } : {}),
+      // The records it set during the session (lib/records.js), for the medals in the history.
+      ...(Array.isArray(entry.rec) && entry.rec.length ? { rec: [...entry.rec] } : {}),
     }
     const snapshot = typeof snapshotFor === 'function' ? snapshotFor(entry) : null
     if (snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) && Object.keys(snapshot).length) {

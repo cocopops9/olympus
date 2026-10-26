@@ -45,7 +45,7 @@ const matches = q => searchExercises(EXDB, q).length
 
 describe('exercise search result count', () => {
   for (const [where, open] of [
-    ['Library', () => mount(<MemoryRouter><Library /></MemoryRouter>)],
+    ['Library', () => mount(<MemoryRouter><Library start="search" /></MemoryRouter>)],
     ['exercise picker', () => { exercisePicker(vi.fn()); return renderTopSheet() }],
   ]) {
     it(`${where}: appears with a search, follows it, and goes when the search is cleared`, () => {

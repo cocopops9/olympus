@@ -161,14 +161,23 @@ describe('Hercules', () => {
       act(() => host.querySelector('.hc-bubble-t').click())
       expect(useUI.getState().sheets).toHaveLength(1)
       expect(host.querySelector('.hc-bubble')).toBeNull()
-      // the same day, after a restart: no second bubble
-      act(() => { roots.splice(0).forEach(r => r.unmount()) })
-      useUI.setState({ sheets: [] })
-      resetGreetingForTests()
-      const again = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
-      await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
-      expect(again.querySelector('.hc-fab')).not.toBeNull()
-      expect(again.querySelector('.hc-bubble')).toBeNull()
+      // the same day, after a restart: Athena introduces herself, from her own portrait
+      const restart = async () => {
+        act(() => { roots.splice(0).forEach(r => r.unmount()) })
+        useUI.setState({ sheets: [] })
+        resetGreetingForTests()
+        const host = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
+        await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+        await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+        return host
+      }
+      const again = await restart()
+      expect(again.querySelector('.hc-bubble').textContent).toContain('I am Athena')
+      expect(again.querySelector('.hc-fab').getAttribute('aria-label')).toContain('Athena')
+      // and then nobody else that day
+      const third = await restart()
+      expect(third.querySelector('.hc-fab')).not.toBeNull()
+      expect(third.querySelector('.hc-bubble')).toBeNull()
     } finally { vi.useRealTimers() }
   })
 

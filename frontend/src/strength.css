@@ -1,0 +1,25 @@
+/* Olympus: strength levels (components/StrengthLevels.jsx). */
+.sl h3{margin:0}
+.sl-missing{margin-top:8px}
+.sl-missing p{margin:0 0 10px}
+.sl-who{margin:4px 0 6px}
+.sl-row{padding:10px 0;border-top:var(--hair) solid var(--sep)}
+.sl-row:first-of-type{border-top:0}
+.sl-name{font-weight:600;font-size:15.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sl-badge{flex:none;font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.sl-badge.lvl-beginner{color:var(--label-2);background:var(--surface-2)}
+.sl-badge.lvl-intermediate{color:#1f6fd1;background:color-mix(in srgb,#1f6fd1 16%,transparent)}
+.sl-badge.lvl-advanced{color:#8a4fd6;background:color-mix(in srgb,#8a4fd6 18%,transparent)}
+.sl-badge.lvl-elite{color:#1a1200;background:linear-gradient(135deg,#ffe58a,#f5b50a)}
+.sl-bar{height:6px;border-radius:3px;background:var(--surface-2);margin:7px 0 5px;overflow:hidden}
+.sl-bar i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.lvl-elite .sl-bar i{background:linear-gradient(90deg,#c48f00,#ffe58a)}
+
+/* A level reached, in the finish summary. */
+.lvlup{display:flex;align-items:center;gap:10px;text-align:start;margin:0 0 10px;padding:10px 12px;border-radius:14px;
+  background:linear-gradient(135deg,color-mix(in srgb,#f5b50a 22%,transparent),color-mix(in srgb,#f5b50a 6%,transparent));
+  border:1px solid color-mix(in srgb,#f5b50a 50%,transparent);animation:lvl-in .6s cubic-bezier(.2,1.4,.4,1) both}
+.lvlup .medal{font-size:30px}
+.lvlup b{display:block;font-size:15px}
+@keyframes lvl-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.lvlup{animation:none}}

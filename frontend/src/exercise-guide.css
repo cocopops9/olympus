@@ -46,3 +46,15 @@
 .eg-add:active{transform:scale(.9)}
 .eg-add .icn{width:18px;height:18px}
 .eg-find{margin-bottom:10px}
+
+/* An equipment family chip (components/EquipChips.jsx): its small arrow opens the kinds inside,
+   as pressing and holding the chip does. */
+.chip.eq-fam{display:inline-flex;align-items:center;gap:4px;-webkit-touch-callout:none;user-select:none}
+.chip.eq-fam .eq-more{display:inline-flex;align-items:center;margin-inline-end:-4px;padding:2px;border-radius:50%;
+  font-size:11px;opacity:.75;--icon-stroke:2.6}
+.chip.eq-fam.on .eq-more{opacity:1}
+
+/* The same exercise with other equipment, in the exercise's sheet. */
+.eqv{margin:6px 0 10px}
+.eqv-h{margin:0 2px 6px}
+.eqv .chips{flex-wrap:wrap;overflow:visible}

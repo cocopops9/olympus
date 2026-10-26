@@ -56,7 +56,7 @@ afterEach(() => {
 
 describe('lists load their next page as you scroll', () => {
   it('Library: the button coming into view loads the next 40', () => {
-    const host = render(<Library />)
+    const host = render(<Library start="search" />)
     expect(rows(host)).toBe(40)
     comeIntoView()
     expect(rows(host)).toBe(80)
@@ -88,7 +88,7 @@ describe('lists load their next page as you scroll', () => {
     // a body part with a few pages, not the whole catalogue
     const count = bp => EXDB.filter(e => e.bp === bp).length
     const bp = BODYPARTS.filter(b => count(b) > 40).sort((a, b) => count(a) - count(b))[0]
-    const host = render(<Library />)
+    const host = render(<Library start="search" />)
     act(() => [...host.querySelectorAll('.chips .chip')].find(c => c.textContent === bp).click())
     for (let i = 0; i < 10 && showMore(host); i++) comeIntoView()
     expect(rows(host)).toBe(count(bp))
@@ -98,7 +98,7 @@ describe('lists load their next page as you scroll', () => {
 
   it('without IntersectionObserver the button still loads more, and nothing breaks', () => {
     vi.stubGlobal('IntersectionObserver', undefined)
-    const host = render(<Library />)
+    const host = render(<Library start="search" />)
     expect(rows(host)).toBe(40)
     act(() => showMore(host).click())
     expect(rows(host)).toBe(80)

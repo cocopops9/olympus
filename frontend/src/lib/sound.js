@@ -189,3 +189,69 @@ export function alertBuzz(p) {
   try { asked = Promise.resolve(native(p)) } catch (e) { asked = Promise.resolve(false) }
   asked.then(ok => { if (!ok) vibrate(p) }, () => vibrate(p))
 }
+
+// A record (lib/records.js): a short triumph in the manner of ancient Greece. A lyre runs up the
+// Dorian mode (D E F G A, the mode the Greeks held for manly and steady music), then a salpinx,
+// the bronze war trumpet, calls the fifth and the octave above. About a second and a half.
+// The lyre is a plucked string (Karplus-Strong: a burst of noise fed back through a delay one
+// period long, losing a little each pass); the salpinx two slightly detuned saws through a
+// low-pass filter, with a slow vibrato. Gated by the Sounds setting like every other tone.
+const pluckBuffer = (ctx, freq, dur) => {
+  const sr = ctx.sampleRate
+  const n = Math.max(1, Math.round(sr * dur))
+  const period = Math.max(2, Math.round(sr / freq))
+  const data = new Float32Array(n)
+  let seed = 7
+  const noise = () => { seed = (seed * 16807) % 2147483647; return (seed / 2147483647) * 2 - 1 }
+  for (let i = 0; i < period && i < n; i++) data[i] = noise()
+  // Each sample is the average of the two a period back, a hair under 1: the string's decay.
+  for (let i = period; i < n; i++) data[i] = 0.4985 * (data[i - period] + data[i - period - 1 >= 0 ? i - period - 1 : i - period])
+  const buf = ctx.createBuffer(1, n, sr)
+  buf.getChannelData(0).set(data)
+  return buf
+}
+const pluck = (ctx, freq, when, dur = 1.1, peak = 0.5) => {
+  const src = ctx.createBufferSource(), g = ctx.createGain()
+  src.buffer = pluckBuffer(ctx, freq, dur)
+  src.connect(g); g.connect(ctx.destination)
+  const t0 = ctx.currentTime + when
+  g.gain.setValueAtTime(peak, t0)
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur)
+  src.start(t0); src.stop(t0 + dur + 0.05)
+}
+const horn = (ctx, freq, when, dur, peak = 0.16) => {
+  const g = ctx.createGain(), lp = ctx.createBiquadFilter()
+  lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 0.8
+  lp.connect(g); g.connect(ctx.destination)
+  const t0 = ctx.currentTime + when
+  const lfo = ctx.createOscillator(), depth = ctx.createGain()
+  lfo.frequency.value = 5.5; depth.gain.value = freq * 0.006
+  lfo.connect(depth)
+  const oscs = [0, 7].map(cents => {
+    const o = ctx.createOscillator()
+    o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = cents
+    depth.connect(o.frequency)
+    o.connect(lp)
+    o.start(t0); o.stop(t0 + dur + 0.1)
+    return o
+  })
+  lfo.start(t0); lfo.stop(t0 + dur + 0.1)
+  g.gain.setValueAtTime(0.0001, t0)
+  g.gain.exponentialRampToValueAtTime(peak, t0 + 0.05)
+  g.gain.setValueAtTime(peak, t0 + dur * 0.7)
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+  return oscs
+}
+export const TRIUMPH = {
+  lyre: [[293.66, 0], [329.63, 0.08], [349.23, 0.16], [392.0, 0.24], [440.0, 0.32]],
+  salpinx: [[440.0, 0.48, 0.24], [587.33, 0.74, 0.75]],
+}
+export function triumph(enabled) {
+  if (!enabled) return
+  try {
+    const ctx = wake()
+    for (const [f, w] of TRIUMPH.lyre) pluck(ctx, f, w)
+    for (const [f, w, d] of TRIUMPH.salpinx) horn(ctx, f, w, d)
+    sleepAfter(1.6)
+  } catch (e) { /* a record without its sound is still a record */ }
+}

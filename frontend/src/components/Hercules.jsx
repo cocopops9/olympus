@@ -241,6 +241,9 @@ export default function HerculesButton() {
   const [ons, setOns] = useState(() => Object.fromEntries(COACH_IDS.map(id => [id, !!statusOf(user?.id, id)?.on])))
   const [greet, setGreet] = useState(null)
   const can = socialReady(user) && ready
+  // Read when the bubble is due: the second coach's state may arrive after the first's.
+  const onsRef = useRef(ons)
+  onsRef.current = ons
 
   useEffect(() => {
     if (!can) { setOns({}); return }
@@ -265,8 +268,9 @@ export default function HerculesButton() {
     if (!visible || greetedFor === user?.id) return
     const show = setTimeout(() => {
       greetedFor = user?.id
-      const g = takeGreeting(user?.id, useStore.getState().S, undefined, coachName(coach))
-      if (g) setGreet({ ...g, coach })
+      const coaches = COACH_IDS.filter(id => onsRef.current[id])
+      const g = takeGreeting(user?.id, useStore.getState().S, undefined, { coaches, names: Object.fromEntries(coaches.map(id => [id, coachName(id)])) })
+      if (g) setGreet(g)
     }, GREET_AFTER_MS)
     return () => clearTimeout(show)
   }, [visible, user?.id])
@@ -283,8 +287,8 @@ export default function HerculesButton() {
       <button className="hc-bubble-t" onClick={() => openChat(greet.ask, greet.coach)}>{greet.text}</button>
       <button className="hc-bubble-x" onClick={() => setGreet(null)} aria-label={t('Close')}><Icon name="xmark" /></button>
     </div>}
-    <button className="hc-fab" onClick={() => openChat()} aria-label={t('Ask {0}, your coach', coachName(coach))}>
-      <Avatar size="lg" coach={coach} />
+    <button className="hc-fab" onClick={() => openChat(greet?.ask, greet?.coach)} aria-label={t('Ask {0}, your coach', coachName(greet?.coach || coach))}>
+      <Avatar size="lg" coach={greet?.coach || coach} />
     </button>
   </>
 }

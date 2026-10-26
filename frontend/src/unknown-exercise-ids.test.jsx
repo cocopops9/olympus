@@ -111,7 +111,7 @@ describe('exercise ids this build does not know', () => {
     render(<Plan />)
     const edit = render(<Routes><Route path="/plan/r/:id" element={<RoutineEdit />} /></Routes>, '/plan/r/r1')
     expect(edit.textContent).toContain('Unknown exercise')
-    render(<Library />)
+    render(<Library start="search" />)
     render(<StructuralBalance />)
     expectKept(useStore.getState().S)
   })

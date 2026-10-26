@@ -31,7 +31,7 @@ function render() {
   document.body.appendChild(host)
   const root = createRoot(host)
   mounted.push(root)
-  act(() => root.render(<Library />))
+  act(() => root.render(<Library start="search" />))
   return host
 }
 const names = host => [...host.querySelectorAll('.item .tt')].map(el => el.textContent).slice(1)   // drop "Create your own"

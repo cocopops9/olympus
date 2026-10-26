@@ -11,23 +11,38 @@ const keyOf = uid => 'olympus_hercules_greet_' + (uid || 'local')
 const dayMs = iso => new Date(iso + 'T12:00:00').getTime()
 
 /** The line for training document `S` on day `today`, and what tapping it should ask. */
-export function greetingFor(S, today = todayISO(), first = false, name = 'Hercules') {
+export function greetingFor(S, today = todayISO(), first = false, name = 'Hercules', coach = 'hercules') {
   const days = (S?.workouts || []).map(w => w?.d).filter(Boolean).sort()
   const last = days.at(-1)
-  if (first || !last) return { kind: 'hello', text: t('Hi, I am {0}, your AI coach. Tap me whenever you need help.', name) }
+  if (first || !last) {
+    return { kind: 'hello', text: coach === 'athena'
+      ? t('Hi, I am Athena, your AI strategist. I read your training data and plan your progress: tap me whenever you want an analysis.')
+      : t('Hi, I am {0}, your AI coach. Tap me whenever you need help.', name) }
+  }
   if (last === today) return { kind: 'done', text: t('Nice workout today! Want my feedback on it?'), ask: t('Give me feedback on my workout today') }
   if (dayMs(today) - dayMs(last) >= IDLE_DAYS * DAY) return { kind: 'idle', text: t("Ready to train? I can plan today's session for you."), ask: t('Plan my session for today') }
-  return { kind: 'tip', text: t('Questions about technique, nutrition or recovery? Ask me.') }
+  return { kind: 'tip', text: coach === 'athena' ? t('Want to know what your numbers say? Ask me.') : t('Questions about technique, nutrition or recovery? Ask me.') }
 }
 
 /**
- * The greeting to show now for profile `uid`, or null when one was already shown today.
- * Showing it is recorded, so the next call the same day returns null.
+ * The greeting to show now for profile `uid`, or null when there is none: which coach says it
+ * ({ coach, kind, text, ask }). Each coach in `coaches` introduces herself or himself once, the
+ * first time there is a chance, even on a day another coach already spoke; after that one coach
+ * speaks a day, taking turns. Showing it is recorded.
  */
-export function takeGreeting(uid, S, today = todayISO(), name = 'Hercules') {
+export function takeGreeting(uid, S, today = todayISO(), { coaches = ['hercules'], names = {} } = {}) {
   let seen = null
   try { seen = JSON.parse(localStorage.getItem(keyOf(uid)) || 'null') } catch { seen = null }
-  if (seen?.day === today) return null
-  try { localStorage.setItem(keyOf(uid), JSON.stringify({ day: today })) } catch { /* shown again tomorrow at worst */ }
-  return greetingFor(S, today, !seen, name)
+  // Older versions kept only the day: Hercules had said hello then.
+  const hello = Array.isArray(seen?.hello) ? seen.hello : seen ? ['hercules'] : []
+  const save = v => { try { localStorage.setItem(keyOf(uid), JSON.stringify(v)) } catch { /* shown again at worst */ } }
+  const fresh = coaches.find(c => !hello.includes(c))
+  if (fresh) {
+    save({ day: today, hello: [...hello, fresh] })
+    return { coach: fresh, ...greetingFor(S, today, true, names[fresh] || 'Hercules', fresh) }
+  }
+  if (seen?.day === today || !coaches.length) return null
+  const coach = coaches[Math.floor(dayMs(today) / DAY) % coaches.length]
+  save({ day: today, hello })
+  return { coach, ...greetingFor(S, today, false, names[coach] || 'Hercules', coach) }
 }

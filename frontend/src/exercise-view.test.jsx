@@ -48,7 +48,7 @@ afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) 
 
 describe('exercise list or cards', () => {
   it('Library: a list until the button beside the search turns the cards on, and back', () => {
-    const host = render(<Library />)
+    const host = render(<Library start="search" />)
     expect(isCards(host)).toBe(false)
     expect(besideSearch(toggle(host))).toBe(true)
     expect(toggle(host).closest('.hdr')).toBeNull()
@@ -64,12 +64,12 @@ describe('exercise list or cards', () => {
 
   it('reads a profile saved before the setting existed as the list', () => {
     useStore.setState(s => { const S = { ...s.S }; delete S.exerciseView; return { S } })
-    expect(isCards(render(<Library />))).toBe(false)
+    expect(isCards(render(<Library start="search" />))).toBe(false)
   })
 
   it('keeps "Create your own exercise" a full-width row above the cards', () => {
     setView('cards')
-    const first = render(<Library />).querySelector('.list.ex-grid > .item')
+    const first = render(<Library start="search" />).querySelector('.list.ex-grid > .item')
     expect(first.classList.contains('ex-new')).toBe(true)
   })
 

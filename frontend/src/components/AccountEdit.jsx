@@ -60,14 +60,19 @@ export const SEX_OPTIONS = () => [
 export function AccountSection({ onRenamed }) {
   const user = useStore(s => s.user)
   const body = useStore(s => s.S.body)
+  const birth = useStore(s => s.S.birth)
   const update = useStore(s => s.update)
-  return <Section title={t('Account')} footer={t('Sex is optional. It only chooses the body drawn in the app: the muscle maps and the body you tap to pick exercises.')}>
+  return <Section title={t('Account')} footer={t('Sex and date of birth are optional. Sex chooses the body drawn in the app; with your body weight, both give your strength level at the main lifts.')}>
     <Row icon="person" iconTint="var(--blue)" title={t('Name')} subtitle={user?.name} accessory="chevron"
       onClick={() => useUI.getState().openSheet(close => <NameSheet close={close} onSaved={onRenamed} />)} />
     <Row icon="key" iconTint="var(--orange)" title={t('Change password')} accessory="chevron" onClick={openPassword} />
     <Row icon="figureStrength" iconTint="var(--pink)" title={t('Sex')}>
       <Segmented className="acct-sex" value={body === 'female' ? 'female' : 'male'} options={SEX_OPTIONS()}
         onChange={v => update(s => { s.body = v })} />
+    </Row>
+    <Row icon="calendar" iconTint="var(--teal)" title={t('Date of birth')}>
+      <input className="input acct-birth" type="date" min="1920-01-01" max={new Date().toISOString().slice(0, 10)} value={birth || ''}
+        aria-label={t('Date of birth')} onChange={e => update(s => { s.birth = e.target.value || null })} />
     </Row>
   </Section>
 }

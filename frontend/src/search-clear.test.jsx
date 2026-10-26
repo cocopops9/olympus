@@ -43,7 +43,7 @@ afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) 
 
 describe('exercise search clear button', () => {
   for (const [where, open] of [
-    ['Library', () => mount(<MemoryRouter><Library /></MemoryRouter>)],
+    ['Library', () => mount(<MemoryRouter><Library start="search" /></MemoryRouter>)],
     ['exercise picker', () => { exercisePicker(vi.fn()); return renderTopSheet() }],
   ]) {
     it(`${where}: shows with text, and one tap empties the search`, () => {

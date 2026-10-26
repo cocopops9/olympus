@@ -19,6 +19,7 @@ import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet, calendarSheet } from '../sheets.jsx'
 import BodyMap from '../components/BodyMap.jsx'
+import StrengthLevels from '../components/StrengthLevels.jsx'
 import { weekSummary } from '../lib/week-summary.js'
 import { loadOfWorkouts } from '../lib/muscles.js'
 import { todayISO, fmtNum, fmtDur, fmtVol, DAYS } from '../lib/format.js'
@@ -64,6 +65,8 @@ function OverviewTab({ S }) {
       </div>
       {before.count > 0 && <div className="ov-vs small muted">{t('Compared with last week')}</div>}
     </div>
+
+    <StrengthLevels />
 
     {wk.workouts.length > 0 && <div className="ov-card">
       <h3>{t('Muscles this week')}</h3>

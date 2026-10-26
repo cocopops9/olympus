@@ -1,18 +1,23 @@
-import { Fragment, useEffect, useId, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react'
 import SwipeCards from '../components/SwipeCards.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { useUI } from '../store/useUI.js'
-import { exOr, betterWeight } from '../lib/exercises.js'
+import { exOr, betterWeight, allExercises } from '../lib/exercises.js'
+import { equipmentVariants } from '../lib/equipment-groups.js'
+
+const capFirst = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 import { usesBar } from '../lib/bar.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad, sameLoad, plateDelta, dropGrid } from '../lib/plates.js'
 import { effectiveRoutines, effectiveRoutineIds, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, repStep, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, barFloor, makeWarmupAt, canBeWarmup, makeWorkAt, removeRowAt, removeLastSet, setSpanAt, copyRowAt, copySpanAt, insertRowAt, pairAdjacent, unpairSuperset, cleanupSg, applyIntensifierPlan, pinnedNoteFor, exNoteFor, setsRepsOf } from '../lib/history.js'
 import { fmtNum, fmtPlate, exerciseNameText, fmtDate, fmtDaysAgo, todayISO, exCount, DAYN } from '../lib/format.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from '../lib/incline.js'
-import { beep, vibrate, unlock } from '../lib/sound.js'
+import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
+import { newRecords, recordsOf } from '../lib/records.js'
+import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
 import { pinState } from '../lib/queue.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { api, beacon } from '../lib/api.js'
@@ -75,7 +80,7 @@ const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/
 // enough to turn over, far shorter than the rest the set earns once both sides are held.
 const SWITCH_SIDES_SEC = 10
 
-function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onCopySetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onRest, onNoProg, routineUpdate, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
+function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onCopySetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onRest, onNoProg, routineUpdate, onSwap, onSwapTo, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const working = useUI(s => s.work)
@@ -366,12 +371,18 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // The exercise's own rest, or the default it falls back to (lib/supersetFlow.js restSecFor).
   const ownRest = entry.target?.restSec > 0 ? entry.target.restSec : 0
   const restSub = ownRest ? fmtRest(ownRest) : t('Default ({0})', fmtRest(S.restSec))
+  // The same movement with other equipment, for "Change equipment" (lib/equipment-groups.js).
+  const variants = useMemo(() => (onSwapTo ? equipmentVariants(ex, allExercises(S)) : []), [ex.id, !!onSwapTo, S.customEx])
   const openMore = () => menuSheet({
     title: exerciseNameFor(ex),
     titleClass: exerciseNameClass(ex),
     sections: [
       { title: t('Today'), items: [
         onSwap && { icon: 'swap', label: t('Swap exercise'), onClick: onSwap, disabled: busy },
+        onSwapTo && variants.length > 0 && { icon: 'barbell', label: t('Change equipment'), sub: capFirst(variants.map(v => t(v.eq)).slice(0, 4).join(', ')), disabled: busy, onClick: () => setTimeout(() => menuSheet({
+          title: t('Change equipment'), subtitle: exerciseNameFor(ex),
+          items: variants.map(v => ({ label: capFirst(t(v.eq)), sub: capFirst(exerciseNameFor(v)), onClick: () => onSwapTo(v) })),
+        }), 0) },
         { icon: 'sunrise', label: t('Add warm-up set'), onClick: onAddWarmup },
         { icon: 'note', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet(entryIdx) },
         onNoProg && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('This exercise, this session only'), on: entry.noProg === true, onClick: () => onNoProg(entry.noProg !== true) },
@@ -614,6 +625,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {/* Kept out of progression: by hand for this session (the ⋯ menu, with its undo right here),
         or by a deload or rehab routine, which owns that choice and offers no undo. On in every
         view, compact included: it changes what the next session is built from. */}
+    {entry.rec?.length > 0 && <RecordMedals kinds={entry.rec} />}
     {entry.noProg === true && <div className="noprog">
       <Icon name="chartLineSlash" /><span>{t('Not counted for progression')}</span>
       {onNoProg && <button type="button" className="chip" onClick={() => onNoProg(false)}>{t('Undo')}</button>}
@@ -1250,6 +1262,7 @@ function ActiveWorkout() {
   const blockProps = idx => ({
     editing,
     onSwap: () => swapExercise(idx),
+    onSwapTo: to => { if (focusMode) focusPointerEpoch.current++; swapActiveWorkoutExercise(idx, { to }) },
     onMoveUp: () => moveUnitAt(idx, -1, true),
     onMoveDown: () => moveUnitAt(idx, 1, true),
     canMoveUp: canMoveActiveWorkoutEntry(A, idx, -1),
@@ -1593,6 +1606,26 @@ function ActiveWorkout() {
   // `quiet`: the hold that ticks this set has just ended with the chime and its buzz pattern
   // (store/useUI.js). The tick's own beep would sound over the chime's first note and clip it,
   // and its short buzz would cut the pattern off: a new vibrate call replaces the running one.
+  // A set that makes a record (lib/records.js): the medal on the card, the fanfare, a toast,
+  // once per kind and session. Unchecking takes back a medal the sets no longer earn.
+  const celebrateRecords = (idx, checked) => {
+    const st = useStore.getState().S
+    const e = st.active?.entries?.[idx]
+    if (!e) return
+    if (!checked) {
+      if (!e.rec?.length) return
+      const still = new Set(recordsOf(st, e))
+      if (e.rec.every(k => still.has(k))) return
+      update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = (en.rec || []).filter(k => still.has(k)) })
+      return
+    }
+    const fresh = newRecords(st, e)
+    if (!fresh.length) return
+    update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = [...new Set([...(en.rec || []), ...fresh])] })
+    triumph(st.sound)
+    vibrate([30, 50, 30, 50, 80])
+    useUI.getState().toast(t('New record: {0}', fresh.map(recordLabel).join(', ')))
+  }
   const toggle = (idx, i, side, { quiet = false, onFocusProgress } = {}) => {
     // Ticking a set ends the typing in that row: drop the keyboard before the rest timer, the
     // effort sheet or the next exercise moves in. WebKit keeps the input focused across the
@@ -1630,6 +1663,7 @@ function ActiveWorkout() {
       }
     }, true)
     if (editing) return
+    celebrateRecords(idx, checked)
     if (workoutDone) workoutCompleteSheet()
     else if (exJustDone && cardioEntry) useUI.getState().toast(t('Cardio logged'))
     else if (exJustDone && m === 'time') useUI.getState().toast(t('Hold logged'))

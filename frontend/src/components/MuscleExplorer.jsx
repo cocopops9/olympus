@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { BODYPARTS, allExercises, equipmentOf, searchExercises } from '../lib/exercises.js'
+import EquipChips from './EquipChips.jsx'
+import { equipFamilies, liveEquip, matchesEquip } from '../lib/equipment-groups.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { bestWeightFor } from '../lib/history.js'
 import { fmtNum, exCount } from '../lib/format.js'
@@ -39,10 +41,10 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan }) {
   const pick = muscle => { setSelected(muscle === selected ? null : muscle); setEq(''); setShown(40) }
   const targeted = selected ? catalog.filter(e => musclesOf(e)[selected]) : []
   const base = searchExercises(targeted.filter(e => !bp || e.bp === bp), q)
-  const eqOpts = equipmentOf(base)
-  const eqOn = eqOpts.includes(eq) ? eq : ''
+  const eqOpts = equipFamilies(base)
+  const eqOn = liveEquip(eqOpts, eq)
   // Favourites float to the top of whatever the filters left (issue #6), the rest keeps its order.
-  const exercises = sortFavouritesFirst(eqOn ? base.filter(e => e.eq === eqOn) : base, S)
+  const exercises = sortFavouritesFirst(eqOn ? base.filter(e => matchesEquip(e, eqOn)) : base, S)
   const choose = ex => onPick ? onPick(ex) : onDetail(ex)
   // The live count and the × of the Library's search (#338): the count while a search or a
   // filter narrows the muscle's list, the × while there is text.
@@ -85,10 +87,7 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan }) {
         <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setEq(''); setShown(40) }}>{t('All')}</button>
         {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setShown(40) }}>{t(b)}</button>)}
       </div>
-      {eqOpts.length > 1 && <div className="chips" style={{ marginBottom: 12 }}>
-        <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(40) }}>{t('Any equipment')}</button>
-        {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(40) }}>{t(x)}</button>)}
-      </div>}
+      <EquipChips list={base} value={eqOn} onChange={v => { setEq(v); setShown(40) }} style={{ marginBottom: 12 }} />
       <div className={'list' + (S.exerciseView === 'cards' ? ' ex-grid' : '')}>
         {exercises.slice(0, shown).map(e => {
           const best = bestWeightFor(S, e.id)

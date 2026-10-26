@@ -10,7 +10,7 @@
 // the + adds it at once with the default sets (onPick(ex) and onPick(ex, true)).
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { allExercises, equipmentOf, BODYPARTS, searchExercises } from '../lib/exercises.js'
+import { allExercises, BODYPARTS, searchExercises } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { MUSCLES, MUSCLE_NAME } from '../lib/muscles.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
@@ -19,6 +19,8 @@ import { isFav } from '../lib/favourites.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import BodyMap from './BodyMap.jsx'
+import EquipChips from './EquipChips.jsx'
+import { equipFamilies, liveEquip, matchesEquip } from '../lib/equipment-groups.js'
 import { Thumb } from './Media.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -56,9 +58,10 @@ function Choice({ target, catalog, S, usage, onPick, onBack }) {
   const all = useMemo(() => exercisesFor(catalog, target, mine), [catalog, target, mine])
   // Stretches are told apart by where they stretch; everything else by what you need for it.
   const byPart = target.kind === 'group' && target.id === 'stretch'
-  const opts = byPart ? BODYPARTS.filter(b => b !== 'cardio' && all.some(e => e.bp === b)) : equipmentOf(all).slice(0, 7)
-  const on = opts.includes(filter) ? filter : ''
-  const narrowed = on ? all.filter(e => (byPart ? e.bp : e.eq) === on) : all
+  // Stretches by where they stretch; everything else by equipment family (lib/equipment-groups.js).
+  const opts = byPart ? BODYPARTS.filter(b => b !== 'cardio' && all.some(e => e.bp === b)) : []
+  const on = byPart ? (opts.includes(filter) ? filter : '') : liveEquip(equipFamilies(all), filter)
+  const narrowed = on ? all.filter(e => (byPart ? e.bp === on : matchesEquip(e, on))) : all
   // A search keeps the order below (yours, then popular, then the rest): it only leaves out what
   // does not match, and the rest opens on its own, since that is where a typed name often is.
   const searching = q.trim() !== ''
@@ -81,6 +84,7 @@ function Choice({ target, catalog, S, usage, onPick, onBack }) {
       <input className="input" placeholder={t('Search in {0}…', labelOf(target))} value={q} onChange={e => { setQ(e.target.value); setMore(0) }} />
       {q && <button className="clear" onClick={() => setQ('')} aria-label={t('Clear')}><Icon name="xmark" /></button>}
     </div>
+    {!byPart && <EquipChips className="eg-filter" list={all} value={on} onChange={v => { setFilter(v); setMore(0) }} />}
     {opts.length > 1 && <div className="chips eg-filter">
       <button className={'chip nocap' + (!on ? ' on' : '')} onClick={() => { setFilter(''); setMore(0) }}>{t('All')}</button>
       {opts.map(x => <button key={x} className={'chip' + (on === x ? ' on' : '')} onClick={() => { setFilter(x); setMore(0) }}>{t(x)}</button>)}
@@ -142,7 +146,7 @@ export default function ExerciseGuide({ onPick, title, onSearch, onCreate, start
   </>
 
   return <>
-    <h3 style={{ marginBottom: 10 }}>{title || t('Add exercise')}</h3>
+    {title !== false && <h3 style={{ marginBottom: 10 }}>{title || t('Add exercise')}</h3>}
     <button className="eg-search" onClick={onSearch}>
       <Icon name="magnifier" /><span>{t('Search by name')}</span>
     </button>

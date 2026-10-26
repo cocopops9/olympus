@@ -8,7 +8,7 @@ import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRo
 import { usesBar, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { PLATE_SIZES, pairsOf, ownsPlates, withPlatePairs, withStandardPlates, withLoadKind, loadKindFor, baseWeightFor, dropGrid } from './lib/plates.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
-import { beep, vibrate } from './lib/sound.js'
+import { beep, vibrate, triumph } from './lib/sound.js'
 import { t, tn, dateLocale, instrFor, instrTranslated, descFor, exerciseNameFor, exerciseNameClass, getLang, useLang } from './lib/i18n.js'
 import { nav, closeThenNav, navToWorkout } from './lib/nav.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/starter.js'
@@ -28,6 +28,12 @@ import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseGuide from './components/ExerciseGuide.jsx'
+import EquipChips from './components/EquipChips.jsx'
+import RecordMedals, { Medal } from './components/RecordMedals.jsx'
+import { levelLabel } from './components/StrengthLevels.jsx'
+import { levelUps, liftOf, strengthLevels } from './lib/strength-level.js'
+import './strength.css'
+import { equipFamilies, liveEquip, matchesEquip, equipmentVariants } from './lib/equipment-groups.js'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
 import { titleWorkout } from './lib/workout-title.js'
@@ -969,6 +975,29 @@ export function detailTags(ex) {
   return out
 }
 
+// A main lift's strength level (lib/strength-level.js), under its description.
+function LiftLevel({ ex }) {
+  const st = useStore(s => s.S)
+  const lift = liftOf(ex.id)
+  const lv = useMemo(() => (lift ? strengthLevels(st).find(x => x.lift.key === lift.key) : null), [lift, st])
+  if (!lv) return null
+  return <div className="small row" style={{ gap: 6, margin: '2px 0 8px', alignItems: 'center' }}>
+    <span className={'sl-badge lvl-' + lv.level}>{levelLabel(lv.level)}</span>
+    <span className="muted">{t('stronger than {0}%', Math.round(Math.max(1, Math.min(99, lv.percentile * 100))))}{lv.next ? ' · ' + t('{0} from {1}', levelLabel(lv.next.level), fmtNum(Math.ceil(lv.next.weight)) + ' ' + st.unit) : ''}</span>
+  </div>
+}
+
+// The same movement with other equipment (barbell curl: EZ bar, cable), one chip each.
+function EquipVariants({ ex, onOpen }) {
+  const st = useStore(s => s.S)
+  const list = useMemo(() => equipmentVariants(ex, allExercises(st)), [ex.id, st.customEx])
+  if (!list.length) return null
+  return <div className="eqv">
+    <div className="eqv-h small muted">{t('Same exercise with other equipment')}</div>
+    <div className="chips">{list.map(v => <button key={v.id} className="chip" onClick={() => onOpen(v)}>{t(v.eq)}</button>)}</div>
+  </div>
+}
+
 function ExerciseDetail({ ex, close }) {
   useLang() // the description and steps arrive in their own chunk the first time a sheet asks
   const st = useStore(s => s.S)
@@ -993,6 +1022,8 @@ function ExerciseDetail({ ex, close }) {
       {detailTags(ex).map(tg => <span key={tg.key} className={'tag' + (tg.acc ? ' acc' : '')}>{tg.icon && <Icon name={tg.icon} />}{tg.label}</span>)}
     </div>
     {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
+    <EquipVariants ex={ex} onOpen={v => { close(); exerciseDetailSheet(v) }} />
+    <LiftLevel ex={ex} />
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
     {last && <Button icon="history" style={{ marginTop: 4 }} onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
@@ -1317,14 +1348,14 @@ function ExerciseSearch({ onPick, title, close, like, onBody }) {
   // narrowed away is ignored for this view, not forgotten.
   const { opts: catOpts, on: catOn, list: base } = byCategory(inPart, cat)
   const eqFiltered = (profile && !showAll) ? base.filter(e => exAvailable(st, e)) : base
-  const eqOpts = equipmentOf(eqFiltered)
+  const eqOpts = equipFamilies(eqFiltered)
   // Drop the equipment filter if the search narrowed it away, so you never hit a dead end.
-  const eqOn = eqOpts.includes(eq) ? eq : ''
+  const eqOn = liveEquip(eqOpts, eq)
   // Favourites float to the top of whatever the filters left (issue #6), the rest keeps its order.
   // On the same-muscle list the equipment order wins: what is on the same kit comes first,
   // favourites leading within each half.
   // While searching, what you have logged or planned follows right after them.
-  const narrowedList = eqOn ? eqFiltered.filter(e => e.eq === eqOn) : eqFiltered
+  const narrowedList = eqOn ? eqFiltered.filter(e => matchesEquip(e, eqOn)) : eqFiltered
   const ranked = q.trim() ? sortYoursFirst(narrowedList, st, usage) : sortFavouritesFirst(narrowedList, st)
   const f = bp === SAME ? sameMuscleFirst(ranked, likeEx) : ranked
   const chosenCount = Object.keys(usage).length
@@ -1397,10 +1428,7 @@ function ExerciseSearch({ onPick, title, close, like, onBody }) {
       <button className={'chip nocap' + (!catOn ? ' on' : '')} onClick={() => { setCat(''); setShown(50) }}>{t('Any type')}</button>
       {catOpts.map(x => <button key={x} className={'chip' + (catOn === x ? ' on' : '')} onClick={() => { setCat(x); setShown(50) }}>{t(x)}</button>)}
     </div>}
-    {eqOpts.length > 1 && <div className="chips" ref={eqStrip} style={{ marginBottom: 10 }}>
-      <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(50) }}>{t('Any equipment')}</button>
-      {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(50) }}>{t(x)}</button>)}
-    </div>}
+    <EquipChips list={eqFiltered} value={eqOn} onChange={v => { setEq(v); setShown(50) }} stripRef={eqStrip} style={{ marginBottom: 10 }} />
     <div className={'list' + (st.exerciseView === 'cards' ? ' ex-grid' : '')}>
       {!special && <div className="item ex-new" {...tappable(() => customExSheet(null, ex => onPick(ex), q.trim()))}>
         <div className="thumb thumb-x"><Icon name="plusCircle" /></div>
@@ -1421,14 +1449,17 @@ function ExerciseSearch({ onPick, title, close, like, onBody }) {
 export const exercisePicker = (onPick, { title, like } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} close={close} />)
 
 /** Start a safe swap for one exact active-workout occurrence. */
-export function swapActiveWorkoutExercise(index) {
+// `to`: swap straight to that exercise with its default sets, no picker (the same movement with
+// other equipment, from the exercise's menu: lib/equipment-groups.js equipmentVariants).
+export function swapActiveWorkoutExercise(index, { to } = {}) {
   const active = S().active
   if (!active?.entries?.[index]) return
 
   // The "+" on a picker row commits with the default config, exactly as it does in the add
   // flows; tapping the row still opens the config sheet first.
   // Worded for the session, not the routine: a swap changes today's workout only.
-  const picker = exercisePicker((ex, quick) => quick ? swapTo(ex, defaultConfig(ex.id)) : exConfigSheet(ex, null, cfg => swapTo(ex, cfg), null, null, null, null, t('Use in this workout')), { title: t('Swap exercise'), like: active.entries[index].id })
+  const picker = to ? { close() {} } : exercisePicker((ex, quick) => quick ? swapTo(ex, defaultConfig(ex.id)) : exConfigSheet(ex, null, cfg => swapTo(ex, cfg), null, null, null, null, t('Use in this workout')), { title: t('Swap exercise'), like: active.entries[index].id })
+  if (to) { swapTo(to, defaultConfig(to.id)); return }
   function swapTo(ex, cfg) {
     // The picker is a chooser here, not a stack you keep adding from: one swap, then back to
     // the workout. (The add flow deliberately leaves it open.)
@@ -2489,7 +2520,7 @@ function WorkoutDetail({ w, close }) {
     const ex = EXIDX[e.id]
     return <div key={i} className="row wd-ex" style={{ alignItems: 'flex-start' }} {...tappable(() => exerciseHistorySheet(e.id))}>
       {ex && <Thumb ex={ex} />}
-      <div className="grow"><div className={`tt ${exerciseNameClass(ex)}`} style={{ fontWeight: 600 }}>{nameOf(e)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}</div>
+      <div className="grow"><div className={`tt ${exerciseNameClass(ex)}`} style={{ fontWeight: 600 }}>{nameOf(e)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}<RecordMedals kinds={e.rec} compact /></div>
         <div className="ss">{e.sets.filter(hasCompletedWork).map(s => setLabel(e.id, s, e.target, speedUnitOf(st))).join('  ·  ') || t('no sets')}</div>
         {e.note && <div className="small dim" style={{ marginTop: 3 }}>
           {e.notePin && <Icon name="pin" style={{ fontSize: 12, marginInlineEnd: 4, verticalAlign: '-1px', color: 'var(--yellow)' }} />}{e.note}
@@ -3365,10 +3396,17 @@ function PostStatus({ w }) {
     {state === 'off' && <button className="chip nocap" onClick={() => act(repost)}>{t('Post it')}</button>}
   </div>
 }
-function FinishSummary({ w, prs, e1prs = [], close }) {
+function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
   const st = useStore(s => s.S)
   const user = useStore(s => s.user)
+  // A new strength level gets the fanfare as the summary opens.
+  useEffect(() => { if (ups.length) triumph(st.sound) }, [])
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
+    {ups.map(u => <div key={u.lift.key} className="lvlup" role="status">
+      <Medal />
+      <div><b>{t('New level: {0}', levelLabel(u.to))}</b>
+        <span className="small">{EXIDX[u.lift.id] ? exerciseNameFor(EXIDX[u.lift.id]) : u.lift.name}{u.from ? ' · ' + t('was {0}', levelLabel(u.from)) : ''}</span></div>
+    </div>)}
     <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
     <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
     <div className="tiles" style={{ textAlign: 'start' }}>
@@ -3488,5 +3526,8 @@ function doFinishWorkout() {
   // into s.active, which is gone. What it held is not logged, like any set left unchecked.
   useUI.getState().stopWork()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+  // A main lift that moved up a strength level with this workout (lib/strength-level.js).
+  let ups = []
+  try { ups = past ? [] : levelUps(st, S()) } catch { ups = [] }
+  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} ups={ups} close={close} />, { kind: 'center', locked: true })
 }

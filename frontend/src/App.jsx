@@ -6,6 +6,7 @@ import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
 import { accentValue, applyAccent } from './lib/accent.js'
 import { needsDefaults, applyOlympusDefaults } from './lib/olympus-defaults.js'
+import { aboutYouSheet } from './components/AboutYou.jsx'
 import HerculesButton from './components/Hercules.jsx'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
@@ -116,6 +117,13 @@ function Shell() {
     if (!ready || !needsDefaults(S)) return
     update(applyOlympusDefaults)
   }, [ready, S.accentGold, S.weighInQuiet, update])
+  // Sex, birth date and body weight, for the strength levels: asked once per profile, a moment
+  // after it is ready (components/AboutYou.jsx), never over a workout or another sheet.
+  useEffect(() => {
+    if (!ready || !user || S.aboutAsked || S.birth || S.active || import.meta.env?.MODE === 'test') return
+    const tm = setTimeout(() => { if (!useUI.getState().sheets.length && !useStore.getState().S.aboutAsked) aboutYouSheet() }, 2500)
+    return () => clearTimeout(tm)
+  }, [ready, user?.id, S.aboutAsked, S.birth, !!S.active])
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.

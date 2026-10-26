@@ -24,4 +24,22 @@ describe('Hercules greeting', () => {
     expect(takeGreeting('u', S(['2026-10-26']), '2026-10-27').kind).toBe('tip')
     expect(takeGreeting('other', S([]), '2026-10-27').kind).toBe('hello')
   })
+
+  it('each coach introduces herself or himself once, then they take turns, one a day', () => {
+    const both = { coaches: ['hercules', 'athena'], names: { hercules: 'Hercules', athena: 'Athena' } }
+    const a = takeGreeting('v', S([]), '2026-10-26', both)
+    expect(a.coach).toBe('hercules'); expect(a.kind).toBe('hello')
+    const b = takeGreeting('v', S([]), '2026-10-26', both)
+    expect(b.coach).toBe('athena'); expect(b.text).toMatch(/Athena/)
+    expect(takeGreeting('v', S([]), '2026-10-26', both)).toBeNull()
+    const d1 = takeGreeting('v', S(['2026-10-25']), '2026-10-27', both)
+    const d2 = takeGreeting('v', S(['2026-10-25']), '2026-10-28', both)
+    expect(new Set([d1.coach, d2.coach])).toEqual(new Set(['hercules', 'athena']))
+  })
+
+  it('reads the record older versions kept: Hercules had said hello', () => {
+    localStorage.setItem('olympus_hercules_greet_w', JSON.stringify({ day: '2026-10-25' }))
+    const g = takeGreeting('w', S([]), '2026-10-26', { coaches: ['hercules', 'athena'], names: {} })
+    expect(g.coach).toBe('athena')
+  })
 })
