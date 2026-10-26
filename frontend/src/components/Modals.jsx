@@ -58,10 +58,18 @@ function Sheet({ sheet }) {
   // the sheet's swipe-to-dismiss — so it keeps working while you drag. Horizontal strips are
   // opted out too: a sideways scroll must never wobble or pull down the sheet.
   const NODRAG = 'input[type=range], [data-nodrag], .chips, .hm-wrap'
+  // A gesture that begins inside a box that scrolls on its own (a chat's message list) and is
+  // not at its top belongs to that box: pulling down there scrolls back, it does not close.
+  const innerScrolled = (target, el) => {
+    for (let n = target; n && n !== el && n.nodeType === 1; n = n.parentNode) {
+      if (n.scrollTop > 0 && n.scrollHeight > n.clientHeight) return true
+    }
+    return false
+  }
   const begin = (target, x, y) => {
     const el = ref.current
     if (target.closest && target.closest(NODRAG)) { drag.current = idle(); return }
-    if (el.scrollTop > 0) { drag.current = idle(); return }
+    if (el.scrollTop > 0 || innerScrolled(target, el)) { drag.current = idle(); return }
     drag.current = { ...idle(), startX: x, startY: y, lastY: y, lastT: performance.now() }
   }
   const move = (e, x, y) => {

@@ -18,7 +18,7 @@ vi.mock('../lib/hercules.js', async orig => ({
 }))
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import HerculesButton from './Hercules.jsx'
+import HerculesButton, { herculesSheet, resetGreetingForTests } from './Hercules.jsx'
 
 const roots = []
 const flush = () => act(() => new Promise(r => setTimeout(r, 0)))
@@ -39,6 +39,7 @@ beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   mocks.status = { on: true, perDay: 20, left: 20 }; mocks.sent = []; mocks.answer = null
   localStorage.clear()
+  resetGreetingForTests()
   useUI.setState({ sheets: [] })
   useStore.setState({ S: structuredClone(DEF), user: { id: 'u' + Math.random(), name: 'Ada' }, ready: true })
   document.body.innerHTML = ''
@@ -84,8 +85,12 @@ describe('Hercules', () => {
     expect(chat.querySelectorAll('.hc-m.him li')).toHaveLength(2)
     expect(chat.textContent).toContain('19 messages left today')
     // kept on the device for next time
-    const kept = JSON.parse(localStorage.getItem('olympus_hercules_' + useStore.getState().user.id))
-    expect(kept.map(m => m.role)).toEqual(['user', 'assistant'])
+    const kept = JSON.parse(localStorage.getItem('olympus_hercules_chats_' + useStore.getState().user.id))
+    expect(kept.chats).toHaveLength(1)
+    expect(kept.chats[0].title).toBe('Plan my training for next week')
+    expect(kept.chats[0].messages.map(m => m.role)).toEqual(['user', 'assistant'])
+    // his answer comes with his avatar
+    expect(chat.querySelector('.hc-row .hc-av')).not.toBeNull()
   })
 
   it('says so when the messages for today are used up', async () => {
@@ -102,5 +107,68 @@ describe('Hercules', () => {
     act(() => chat.querySelector('.hc-send').click())
     await flush(); await flush()
     expect(chat.querySelector('.hc-err').textContent).toContain('last message for today')
+  })
+
+  const type = (chat, text) => {
+    const box = chat.querySelector('textarea')
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+    act(() => { setter.call(box, text); box.dispatchEvent(new Event('input', { bubbles: true })) })
+    act(() => chat.querySelector('.hc-send').click())
+  }
+
+  it('keeps several conversations: start a new one, go back to the first, delete one', async () => {
+    herculesSheet()
+    const chat = renderTopSheet()
+    await flush()
+    type(chat, 'How much protein?'); await flush(); await flush()
+    const menuBtn = () => chat.querySelector('[aria-label="Conversations"]')
+    act(() => menuBtn().click())
+    expect(chat.querySelectorAll('.hc-conv')).toHaveLength(1)
+    act(() => chat.querySelector('.hc-new').click())
+    expect(chat.textContent).toContain('Hi, I am Hercules.')
+    type(chat, 'Fix my deadlift'); await flush(); await flush()
+    act(() => menuBtn().click())
+    const titles = [...chat.querySelectorAll('.hc-conv-t')].map(e => e.textContent)
+    expect(titles).toEqual(['Fix my deadlift', 'How much protein?'])
+    act(() => chat.querySelectorAll('.hc-conv-open')[1].click())
+    expect(chat.querySelector('.hc-m.me').textContent).toBe('How much protein?')
+    act(() => menuBtn().click())
+    act(() => chat.querySelector('.hc-conv [aria-label="Delete conversation"]').click())
+    expect([...chat.querySelectorAll('.hc-conv-t')].map(e => e.textContent)).toEqual(['How much protein?'])
+    const kept = JSON.parse(localStorage.getItem('olympus_hercules_chats_' + useStore.getState().user.id))
+    expect(kept.chats.map(c => c.title)).toEqual(['How much protein?'])
+  })
+
+  it('turns the one conversation older versions kept into the first of the list', async () => {
+    const uid = useStore.getState().user.id
+    localStorage.setItem('olympus_hercules_' + uid, JSON.stringify([{ role: 'user', content: 'Old question', ts: 1 }, { role: 'assistant', content: 'Old answer', ts: 2 }]))
+    herculesSheet()
+    const chat = renderTopSheet()
+    await flush()
+    expect(chat.querySelector('.hc-m.me').textContent).toBe('Old question')
+    expect(chat.textContent).toContain('Old answer')
+  })
+
+  it('says hello from his portrait once a day, and a tap opens the chat', async () => {
+    vi.useFakeTimers()
+    try {
+      const host = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
+      await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+      expect(host.querySelector('.hc-fab .hc-ai').textContent).toBe('AI')
+      expect(host.querySelector('.hc-bubble')).toBeNull()
+      await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+      expect(host.querySelector('.hc-bubble').textContent).toContain('your AI coach')
+      act(() => host.querySelector('.hc-bubble-t').click())
+      expect(useUI.getState().sheets).toHaveLength(1)
+      expect(host.querySelector('.hc-bubble')).toBeNull()
+      // the same day, after a restart: no second bubble
+      act(() => { roots.splice(0).forEach(r => r.unmount()) })
+      useUI.setState({ sheets: [] })
+      resetGreetingForTests()
+      const again = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
+      await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+      expect(again.querySelector('.hc-fab')).not.toBeNull()
+      expect(again.querySelector('.hc-bubble')).toBeNull()
+    } finally { vi.useRealTimers() }
   })
 })

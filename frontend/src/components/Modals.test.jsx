@@ -227,6 +227,25 @@ describe('Modals mouse dragging', () => {
 })
 
 describe('Modals drag axis lock and dismiss', () => {
+  it('leaves a pull inside a scrolled inner list to that list: it scrolls, the sheet stays', async () => {
+    await setSheets([sheet('chat', {
+      render: () => React.createElement('div', { className: 'inner' }, React.createElement('p', null, 'answer')),
+    })])
+    const sheetEl = container.querySelector('.sheet')
+    const inner = container.querySelector('.inner')
+    sheetEl.scrollTop = 0
+    Object.defineProperties(inner, { scrollHeight: { value: 900 }, clientHeight: { value: 300 } })
+    inner.scrollTop = 200
+
+    await act(async () => {
+      mouse(container.querySelector('p'), 'mousedown', 10)
+      mouse(sheetEl, 'mousemove', 200)
+      window.dispatchEvent(new dom.Event('mouseup'))
+    })
+    expect(sheetEl.style.transform).toBe('')
+    expect(mocks.state.sheets).toHaveLength(1)
+  })
+
   it('ignores a sideways gesture instead of wobbling the sheet', async () => {
     await setSheets([sheet('x')])
     const sheetEl = container.querySelector('.sheet')

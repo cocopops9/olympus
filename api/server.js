@@ -1455,22 +1455,6 @@ const passwordRoutes = {
   // and runs out after a few tries (see "e-mail as a sign-in name" above).
   // A new profile name (the name you sign in with and that others see). The rules of signup:
   // 1 to 40 characters, and no other profile signs in with it.
-  // Hercules: whether it is on and how many messages are left today; one message.
-  'GET /api/hercules': async (req, res) => {
-    const s = sessionOf(req);
-    if (!s) return json(res, 401, { error: 'not signed in' });
-    json(res, 200, { on: !!HERCULES.key, perDay: HERCULES.perDay, left: leftToday(herculesDoc, s.user.id, dayOf(Date.now()), HERCULES.perDay) });
-  },
-  'POST /api/hercules': async (req, res) => {
-    const s = sessionOf(req);
-    if (!s) return json(res, 401, { error: 'not signed in' });
-    const body = await readBody(req);
-    try { json(res, 200, await handleHercules({ user: s.user, body, config: HERCULES, quota: herculesQuota })); }
-    catch (e) {
-      if (!(e instanceof HerculesError)) throw e;
-      json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
-    }
-  },
   'POST /api/account/name': async (req, res) => {
     const s = sessionOf(req);
     if (!s) return json(res, 401, { error: 'not signed in' });
@@ -2659,6 +2643,22 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
     json(res, 200, { user: SOCIAL.follow(me, text(body.id), body.follow !== false) });
+  },
+  // Hercules (on any instance, with or without password login): whether it is on and how many messages are left today; one message.
+  'GET /api/hercules': async (req, res) => {
+    const s = sessionOf(req);
+    if (!s) return json(res, 401, { error: 'not signed in' });
+    json(res, 200, { on: !!HERCULES.key, perDay: HERCULES.perDay, left: leftToday(herculesDoc, s.user.id, dayOf(Date.now()), HERCULES.perDay) });
+  },
+  'POST /api/hercules': async (req, res) => {
+    const s = sessionOf(req);
+    if (!s) return json(res, 401, { error: 'not signed in' });
+    const body = await readBody(req);
+    try { json(res, 200, await handleHercules({ user: s.user, body, config: HERCULES, quota: herculesQuota })); }
+    catch (e) {
+      if (!(e instanceof HerculesError)) throw e;
+      json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
+    }
   },
   'GET /api/social/feed': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
