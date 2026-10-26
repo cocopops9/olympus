@@ -58,7 +58,7 @@ export default function TabBar({ onStart }) {
       <button className={'start' + (S.active ? ' rec' : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}
         aria-label={running ? t('Resume') : undefined}>
         <span className="cir"><Icon name="play" /></span>
-        {running ? <span className="tab-time"><Elapsed start={S.active.start} /></span>
+        {running ? <span className="tab-time"><Elapsed active={S.active} /></span>
           : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Workout')}</span>}
       </button>
       {/* With the connection banner switched off, a sync problem shows as a dot on Profile, the

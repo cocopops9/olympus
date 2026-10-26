@@ -40,3 +40,15 @@ export function avatarUrl(value) {
   if (String(value).startsWith('god:')) return GOD_AVATARS.find(g => g.id === value.slice(4))?.url || null
   return String(value).startsWith('data:image/') ? value : null
 }
+
+/**
+ * The portrait of a profile that has not picked a picture: one of the gods, chosen from its id
+ * so it is the same one on every screen and every device (a simple string hash; it only has to
+ * spread profiles evenly over the eight).
+ */
+export function godFor(seed) {
+  const s = String(seed ?? '')
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return GOD_AVATARS[(h >>> 0) % GOD_AVATARS.length]
+}

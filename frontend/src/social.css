@@ -175,3 +175,9 @@ button.prof-av .prof-av-cam .icn{width:15px;height:15px}
 @keyframes react-in{from{opacity:0;transform:translateY(10px) scale(.5)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.post-a .react-pick button.react-opt{animation:none}}
 .react-sum{display:flex;flex-wrap:wrap;gap:10px;font-size:14px;color:var(--label-2);padding:2px 8px 8px}
+
+/* The gods' portraits to pick as a profile picture (avatarSheet). */
+.av-gods{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.av-god{aspect-ratio:1;border-radius:50%;padding:0;border:2.5px solid transparent;background:var(--surface-2);overflow:hidden;cursor:pointer}
+.av-god img{width:100%;height:100%;object-fit:cover;display:block}
+.av-god.on{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}

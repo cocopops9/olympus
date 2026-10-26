@@ -235,3 +235,36 @@ export function deleteEditedWorkout(state) {
   lowerKeptWeights(state, [...new Set(list(current.entries).map(e => e?.id).filter(id => id != null))], current, null)
   return true
 }
+
+/**
+ * Picks up a finished workout again (Olympus): a copy of it becomes the running session, the
+ * clock carrying on from the time it had (the hours between its end and now count as a pause,
+ * lib/workout-clock.js), with rest timers and everything else of a live session. The saved
+ * record stays in history until the session is finished again, which replaces it in place
+ * (`resumeOf`); discarding the continuation leaves the record as it was. Throws while another
+ * session is running, or when the workout is gone.
+ */
+export function resumeCompletedSession(state, ref, now = Date.now()) {
+  if (state.active) throw new Error('Finish the current workout first.')
+  const key = ref && typeof ref === 'object' ? keyOf(ref) : ref
+  const original = key == null ? null : list(state.workouts).find(w => keyOf(w) === key)
+  if (!original) throw new Error('Workout deleted')
+  const active = clone(original)
+  for (const k of ['vol', 'prs', '_ts', 'media', 'end', 'excludeFromProgression']) delete active[k]
+  if (original.excludeFromProgression === true) {
+    for (const entry of list(active.entries)) if (entry && entry.noProg !== true) entry.noProg = true
+  }
+  if (active.id == null) active.id = key
+  active.resumeOf = key
+  active.workoutView = state.workoutView || 'cards'
+  const end = Number.isFinite(original.end) ? original.end : now
+  active.pausedMs = Math.max(0, now - end)
+  // Back on the first exercise with a set still to do, or the last one.
+  const open = list(active.entries).findIndex(e => list(e?.sets).some(s => !s?.done))
+  active.cur = open >= 0 ? open : Math.max(0, list(active.entries).length - 1)
+  state.active = active
+  return active
+}
+
+/** The saved record a resumed session replaces, matched the way resumeCompletedSession keyed it. */
+export const resumedKeyOf = keyOf

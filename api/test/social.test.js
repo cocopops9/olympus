@@ -376,6 +376,18 @@ test('a profile picture: shown on the profile and its posts, seen past private, 
   assert.equal(s.post(DANA, p.id).author.avatar, undefined);
 });
 
+test('a god of Olympus as the profile picture: named, not uploaded, and replacing it deletes nothing', t => {
+  const { s, dir } = store(t, [ANNA, BEN]);
+  const photo = s.uploadPhoto(ANNA, jpeg().toString('base64')).id;
+  s.setProfile(ANNA, { avatar: photo });
+  assert.equal(s.setProfile(ANNA, { avatar: 'god:hermes' }).avatar, 'god:hermes');
+  assert.ok(!fs.existsSync(path.join(dir, 'social-photos', photo + '.jpg')), 'the photo it replaced is gone');
+  assert.equal(s.profile(BEN, ANNA.id).user.avatar, 'god:hermes');
+  assert.throws(() => s.setProfile(ANNA, { avatar: 'god:zeus' }), /unknown portrait/);
+  assert.equal(s.setProfile(ANNA, { avatar: 'god:ares' }).avatar, 'god:ares');
+  assert.equal(s.setProfile(ANNA, { avatar: null }).avatar, null);
+});
+
 test('the founder mark comes from the user record and shows wherever the name does', t => {
   const FOUNDER = { id: 'u_found', name: 'Giuseppe', founder: true };
   const { s } = store(t, [FOUNDER, BEN]);

@@ -23,6 +23,7 @@ import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
 import { POSTED_EVENT, autoPostOn, forgetPost, flushPosts, postDetails, setPostDetails } from '../lib/auto-post.js'
+import { GOD_AVATARS, godFor, avatarUrl as godAvatarUrl } from '../lib/god-avatars.js'
 export { POSTED_EVENT }
 const MAX_PHOTOS = 4
 const toast = m => useUI.getState().toast(m)
@@ -43,19 +44,23 @@ const nameOfEntry = e => (EXIDX[e.id] ? exerciseNameFor(EXIDX[e.id]) : (e.n || e
 /** A logged workout as the summary a post carries, in the profile's own units and names. */
 export const summaryOf = (w, S) => workoutPostSummary(w, { unit: S.unit, nameOf: nameOfEntry, speedUnit: speedUnitOf(S) })
 
-// The profile picture when there is one and it has loaded; the coloured initials until then,
-// and for good if it cannot be fetched.
+// The profile picture when there is one and it has loaded: an uploaded photo, or one of the
+// gods' portraits (lib/god-avatars.js, 'god:<id>'). A profile without one shows a god as well,
+// picked from its id (godFor), so nobody is a bare pair of initials; the initials are left for
+// the moment a photo is loading.
 export function Avatar({ user, size }) {
   const id = user?.avatar || null
+  const god = id && String(id).startsWith('god:') ? godAvatarUrl(id) : !id ? godAvatarUrl('god:' + godFor(user?.id ?? user?.name)) : null
   const [url, setUrl] = useState(null)
   useEffect(() => {
     let live = true
     setUrl(null)
-    if (id) avatarUrl(id).then(u => { if (live) setUrl(u) }, () => {})
+    if (id && !god) avatarUrl(id).then(u => { if (live) setUrl(u) }, () => {})
     return () => { live = false }
-  }, [id])
-  return <span className={'avatar' + (size ? ' ' + size : '') + (url ? ' ph' : '')} style={{ '--h': hueOf(user?.id) }} aria-hidden="true">
-    {url ? <img src={url} alt="" /> : initialsOf(user?.name)}
+  }, [id, god])
+  const src = god || url
+  return <span className={'avatar' + (size ? ' ' + size : '') + (src ? ' ph' : '')} style={{ '--h': hueOf(user?.id) }} aria-hidden="true">
+    {src ? <img src={src} alt="" /> : initialsOf(user?.name)}
   </span>
 }
 
@@ -79,8 +84,12 @@ export function Name({ user }) {
     : <>{user.name}</>
 }
 
-/** Pick a new profile picture (or remove it); `onSaved` gets your profile as it now is. */
+/**
+ * The profile picture: a photo of your own, or one of the gods' portraits; removing it goes back
+ * to the god picked for you. `onSaved` gets your profile as it now is.
+ */
 export function avatarSheet(me, onSaved) {
+  const save = (avatar, done) => saveProfile({ avatar }).then(u => { onSaved?.(u); toast(done) }, fail)
   const pick = () => {
     // In the page while the picker is open: some WebViews ignore a click on a detached input.
     const input = document.createElement('input')
@@ -101,16 +110,21 @@ export function avatarSheet(me, onSaved) {
     }
     input.click()
   }
-  if (!me?.avatar) { pick(); return }
+  const cur = me?.avatar || null
   useUI.getState().openSheet(close => <>
     <h3>{t('Profile picture')}</h3>
-    <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 16px' }}><Avatar user={me} size="xl" /></div>
-    <Button variant="primary" icon="camera" onClick={() => { close(); pick() }}>{t('Choose a new photo')}</Button>
-    <div style={{ height: 8 }} />
-    <Button variant="danger" icon="trash" onClick={() => {
-      close()
-      saveProfile({ avatar: null }).then(u => { onSaved?.(u); toast(t('Profile picture removed')) }, fail)
-    }}>{t('Remove photo')}</Button>
+    <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}><Avatar user={me} size="xl" /></div>
+    <div className="oc-l" style={{ fontSize: 13, fontWeight: 650, color: 'var(--label-2)', margin: '0 2px 8px' }}>{t('A god of Olympus')}</div>
+    <div className="av-gods">
+      {GOD_AVATARS.map(g => <button key={g.id} className={'av-god' + (cur === 'god:' + g.id ? ' on' : '')} aria-label={g.name} title={g.name}
+        onClick={() => { close(); save('god:' + g.id, t('Profile picture updated')) }}><img src={g.url} alt="" /></button>)}
+    </div>
+    <div style={{ height: 14 }} />
+    <Button variant="primary" icon="camera" onClick={() => { close(); pick() }}>{t('Choose a photo')}</Button>
+    {cur && <>
+      <div style={{ height: 8 }} />
+      <Button variant="ghost" className="danger" icon="trash" onClick={() => { close(); save(null, t('Profile picture removed')) }}>{t('Remove picture')}</Button>
+    </>}
   </>)
 }
 

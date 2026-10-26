@@ -26,6 +26,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
+// The portraits a profile can take without uploading anything (frontend lib/god-avatars.js).
+export const GOD_AVATARS = ['apollo', 'artemis', 'hermes', 'ares', 'poseidon', 'hephaestus', 'nike', 'demeter'];
+
 // The reactions a post can get: a heart (the plain like, also what older apps send) or one of
 // these. One per person and post; picking another changes it.
 export const REACTIONS = Object.freeze(['heart', 'strong', 'fire', 'clap', 'trophy', 'wow']);
@@ -377,12 +380,15 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       // it. The picture it replaces is deleted.
       if (body.avatar !== undefined && (body.avatar || null) !== (cur.avatar || null)) {
         const id = body.avatar || null;
-        if (id !== null) {
+        // Or one of the app's portraits of the gods, named rather than uploaded ('god:apollo').
+        const god = typeof id === 'string' && id.startsWith('god:');
+        if (god && !GOD_AVATARS.includes(id.slice(4))) throw new SocialError(400, 'unknown portrait', 'bad-photos');
+        if (id !== null && !god) {
           const meta = typeof id === 'string' && ID_RE.test(id) ? doc.photos[id] : null;
           if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar) throw new SocialError(400, 'unknown photo', 'bad-photos');
           meta.avatar = true;
         }
-        if (cur.avatar) dropPhotos([cur.avatar]);
+        if (cur.avatar && !String(cur.avatar).startsWith('god:')) dropPhotos([cur.avatar]);
         if (id) cur.avatar = id; else delete cur.avatar;
       }
       if (body.private !== undefined) {

@@ -19,8 +19,9 @@ import { hasCompletedWork, isSideSet } from './workout-model.js'
 function finishedRow(set) {
   if (!set) return set
   const sideMarked = isSideSet(set) && (set.sides.L.weightOrigin != null || set.sides.R.weightOrigin != null)
-  if (set.planSec == null && set.weightOrigin == null && !sideMarked) return set
-  const { planSec, weightOrigin, ...rest } = set
+  if (set.planSec == null && set.weightOrigin == null && set.sug == null && !sideMarked) return set
+  // `sug` (lib/suggested.js) marks numbers the app offered and nobody changed yet: bookkeeping too.
+  const { planSec, weightOrigin, sug, ...rest } = set
   if (sideMarked) {
     const side = ({ weightOrigin: _, ...kept }) => kept
     rest.sides = { ...rest.sides, L: side(rest.sides.L), R: side(rest.sides.R) }

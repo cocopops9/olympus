@@ -1,0 +1,24 @@
+/* Olympus: the workout clock in the header and its sheet (components/WorkoutClock.jsx). */
+.wclock{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
+.wclock button{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer}
+.wclock-pp{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--acc) 18%,transparent)!important;color:var(--acc)!important;font-size:12px!important}
+.wclock-pp.paused{background:var(--acc)!important;color:var(--on-acc)!important}
+.wclock-t{text-decoration:underline dotted color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px;font-variant-numeric:tabular-nums}
+.clock-paused{animation:clock-blink 1.6s ease-in-out infinite}
+@keyframes clock-blink{50%{opacity:.4}}
+.wclock-big{font-size:46px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;margin:8px 0 0;letter-spacing:-.5px}
+.wclock-big.paused{color:var(--acc)}
+.wclock-state{text-align:center;margin-bottom:14px}
+.wclock-start{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;font-weight:500}
+.wclock-start .input{width:auto;min-width:120px;text-align:center}
+
+/* Add exercise in the workout: the big dashed card after the exercises. */
+.wadd{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:var(--r-card);
+  border:1.5px dashed color-mix(in srgb,var(--acc) 55%,transparent);background:color-mix(in srgb,var(--acc) 8%,transparent);
+  color:var(--acc);font:inherit;font-weight:650;font-size:16px;cursor:pointer;margin:4px 0 8px}
+.wadd:active{transform:scale(.99)}
+.wadd .wadd-i{width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--on-acc);display:flex;align-items:center;justify-content:center;font-size:16px}
+
+/* Numbers the app offered (last time's, or 0 kg and 10 reps) and nobody changed yet (lib/suggested.js). */
+.stp.sug .val input{color:color-mix(in srgb,var(--label) 38%,transparent);font-style:italic}

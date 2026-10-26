@@ -34,7 +34,7 @@ import { REST_MAX, fmtRest } from '../lib/duration.js'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
 import { effortColor } from '../lib/effort.js'
-import Elapsed from '../components/Elapsed.jsx'
+import { HeaderClock } from '../components/WorkoutClock.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
@@ -52,6 +52,7 @@ import { MUSCLE_NAME } from '../lib/muscles.js'
 import FocusView from './FocusView.jsx'
 import WorkoutStart from './WorkoutStart.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
+import { markSuggested, isSuggested, clearSuggested } from '../lib/suggested.js'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
 // that bounces, or a double press, sends two presses a moment apart: the first starts the hold,
@@ -132,11 +133,12 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // stays right. The done tick goes through onToggleSide → toggle() instead, so ticking a side
   // still fires the rest timer / auto-advance / workout-complete flow.
   const setSide = (i, side, field, v) => {
-    if (field !== 'w') return mutSet(i, row => setSideField(row, side, field, v))
+    if (field !== 'w') return mutSet(i, row => clearSuggested(setSideField(row, side, field, v), field))
     update(s => {
       const e = s.active.entries[entryIdx]
       const row = setSideField(e.sets[i], side, field, v)
       row.sides[side].weightOrigin = WEIGHT_ORIGIN_MANUAL
+      clearSuggested(row, 'w')
       e.sets[i] = row
       e.sets = cascadeWeight(e.sets, i, v, side, e.target?.backoffStep)
     }, true)
@@ -300,7 +302,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // switch brings one of the old always-visible button rows back.
   const wc = workoutControls(S)
   const cell = (s, i, col, cls) => (
-    <div className={'stp ' + cls + (wc.steppers ? '' : ' plain')}>
+    <div className={'stp ' + cls + (wc.steppers ? '' : ' plain') + (isSuggested(s, col.f) ? ' sug' : '')}>
       {wc.steppers && <button aria-label={t('Decrease')} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>}
       <span className="val"><NumberField decimal={col.dec} nullable={col.opt} value={viewOf(col, s[col.f]) ?? ''}
         onChange={v => onField(i, col.f, col.store ? col.store(v) : v)} /></span>
@@ -492,7 +494,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     setSide(i, side, col.f, Math.max(0, Math.round(((cur || 0) + dir * step) * 100) / 100))
   }
   const sideCell = (sd, i, side, col, cls) => (
-    <div className={'stp ' + cls + (wc.steppers ? '' : ' plain')}>
+    <div className={'stp ' + cls + (wc.steppers ? '' : ' plain') + (isSuggested(entry.sets[i], col.f) && !sd.done ? ' sug' : '')}>
       {wc.steppers && <button aria-label={t('Decrease')} onClick={() => sideBump(i, side, col, -1)}><Icon name="minus" /></button>}
       <span className="val"><NumberField decimal={col.dec} value={sd[col.f] ?? ''}
         onChange={v => setSide(i, side, col.f, v)} /></span>
@@ -1115,6 +1117,7 @@ function ActiveWorkout() {
   // what was actually logged — in the session, in history and in a backup.
   const setField = (idx, i, field, v) => mutEntry(idx, e => {
     if (v == null) delete e.sets[i][field]; else e.sets[i][field] = v
+    clearSuggested(e.sets[i], field)
     // Typing a duration IS the new plan, the same way ticking the row ends it: a plan a displaced
     // hold put aside must not outrank what you just typed, or the field would read 45 and the ▶
     // would still hold the 30 the row was asking for before.
@@ -1386,6 +1389,8 @@ function ActiveWorkout() {
           }), full, dropGrid(s, full)) }
           : buildPlannedEntry(past, full, routine, { noProg })
         const insertAt = insertionIndexAfterCurrentUnit(supersetUnits(s.active.entries), s.active.cur, s.active.entries.length)
+        // Last time's numbers (or 0 kg and 10 reps) are offered faded until changed (lib/suggested.js).
+        built.sets = markSuggested(built.sets)
         s.active.entries.splice(insertAt, 0, joinSessionNoProg(s.active, { id: ex.id, ...built, ...(curRid ? { rid: curRid } : {}), ...(noProg ? { noProg: true } : {}) }))
         s.active.cur = insertAt
         useUI.getState().shiftRestOwner(insertAt, 1)
@@ -1403,7 +1408,9 @@ function ActiveWorkout() {
   // Ending the session without saving it. The ⋯ menu's last item since the header's ✕ became the
   // ⌄ that only leaves the screen (v1.3.11).
   const discardWorkout = () => confirmSheet({
-    title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true,
+    title: t('Discard workout?'),
+    message: A.resumeOf != null ? t('What you added since picking it up again is dropped; the workout you finished before stays as it was.') : t('The sets you logged in this session will be lost.'),
+    confirmText: t('Discard'), danger: true,
     onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') },
   })
   // The header ⋯, in groups: the settings you change at the gym first (their own sheet, the same
@@ -1642,6 +1649,8 @@ function ActiveWorkout() {
       if (side) e.sets[i] = toggleSide(e.sets[i], side)
       else e.sets[i].done = !e.sets[i].done
       checked = e.sets[i].done
+      // Ticked, the numbers on the row are what was done, not a suggestion any more.
+      if (checked) clearSuggested(e.sets[i])
       // When the work happened, for the session's end (lib/finish-workout.js sessionEnd).
       if (!editing && (side ? e.sets[i].sides[side].done : checked)) e.sets[i].at = Date.now()
       // A finished row has no use for a plan set aside by a hold that did not finish.
@@ -1921,7 +1930,7 @@ function ActiveWorkout() {
       {editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
-      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · {t('{0} sets', done + '/' + total)}</div></div>
+      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <HeaderClock active={A} />} · {t('{0} sets', done + '/' + total)}</div></div>
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
         onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
@@ -1933,6 +1942,7 @@ function ActiveWorkout() {
     </div>
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
+    {A.resumeOf != null && <div className="muted small" style={{ marginBottom: 8 }}>{t('Picked up again: finishing saves it over the workout you finished before. Discard keeps that one as it was.')}</div>}
 
     {A.entries.length ? (listMode ? (
       <div className="workout-list" data-testid="workout-list" ref={listRef}>
@@ -2051,7 +2061,7 @@ function ActiveWorkout() {
     </div>}
     {!listMode && <div style={{ height: 10 }} />}
     {wc.exerciseButtons && listMode && A.entries.length > 0 && <div className="muted small" style={{ marginBottom: 6 }}>{t('Move, swap and remove below act on the exercise marked {0}.', t('Current'))}</div>}
-    <Button onClick={addExercise} icon="plus">{t('Add exercise')}</Button>
+    <button className="wadd" onClick={addExercise}><span className="wadd-i" aria-hidden="true"><Icon name="plus" /></span>{t('Add exercise')}</button>
     {wc.exerciseButtons && A.entries.length > 0 && <>
       <div style={{ height: 6 }} />
       <div className="row">
@@ -2081,8 +2091,11 @@ function ActiveWorkout() {
     {(() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
-      return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={finishWorkout}>
-        {editing ? t('Save changes') : allDone ? t('Finish workout') : t('Finish workout early · {0} exercises', exDone + '/' + A.entries.length)}
+      // Finishing before the end is the header's Finish; down here the button only shows once
+      // every exercise is done, when finishing is the obvious next step.
+      if (!editing && !allDone) return null
+      return <button className="btn primary" onClick={finishWorkout}>
+        {editing ? t('Save changes') : t('Finish workout')}
       </button>
     })()}
     <div className="workout-end-spacer" />

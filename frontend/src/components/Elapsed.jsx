@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
+import { elapsedOf, fmtClock, isPaused } from '../lib/workout-clock.js'
 
-// A session's running time, "12:34" since `start`. Its own little component so the only thing
-// that re-renders every second is this text: the workout header and the tab bar's Resume button
-// both show it.
-export default function Elapsed({ start }) {
-  const [t, setT] = useState('0:00')
+// A session's trained time, "12:34" (lib/workout-clock.js: pauses left out). Its own little
+// component so the only thing that re-renders every second is this text: the workout header and
+// the tab bar's Resume button both show it. `active` is the session; `start` alone still works
+// for a clock without pauses. Paused, it stands still and blinks softly.
+export default function Elapsed({ active, start }) {
+  const a = active || { start }
+  const paused = isPaused(a)
+  const [text, setText] = useState(() => fmtClock(elapsedOf(a)))
   useEffect(() => {
-    const tick = () => { const s = Math.max(0, Math.floor((Date.now() - start) / 1000)); setT(Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0')) }
-    tick(); const iv = setInterval(tick, 1000); return () => clearInterval(iv)
-  }, [start])
-  return <span>{t}</span>
+    const tick = () => setText(fmtClock(elapsedOf(a)))
+    tick()
+    if (paused) return undefined
+    const iv = setInterval(tick, 1000)
+    return () => clearInterval(iv)
+  }, [a.start, a.pausedAt, a.pausedMs, paused])
+  return <span className={paused ? 'clock-paused' : undefined}>{text}</span>
 }

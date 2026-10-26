@@ -55,6 +55,7 @@ import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeig
 import { MOBILE, shareExport, shareExportBlob, printHtml } from './lib/mobile.js'
 import { speedUnitOf, toSpeed, fromSpeed } from './lib/speed.js'
 import { buildCompletedWorkout, sessionEnd } from './lib/finish-workout.js'
+import { trainedEnd } from './lib/workout-clock.js'
 import { refillAfter } from './lib/rotation.js'
 import { isWarmupRow, hasCompletedWork } from './lib/workout-model.js'
 import { saveSessionAsRoutine } from './lib/session-routines.js'
@@ -70,8 +71,8 @@ import { joinSessionNoProg } from './lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, sessionHistory } from './lib/backfill.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from './lib/workout-date.js'
-import { editCompletedSession, editLeftEmpty, editedRecord, editChangesNothing } from './lib/session-edit.js'
-import { stampWorkout } from './lib/sync-merge.js'
+import { editCompletedSession, editLeftEmpty, editedRecord, editChangesNothing, resumeCompletedSession, resumedKeyOf } from './lib/session-edit.js'
+import { stampWorkout, mergeWorkoutMedia } from './lib/sync-merge.js'
 import { weeklyWeights } from './lib/bodyweight.js'
 import { workoutText } from './lib/workout-text.js'
 import { workoutCardModel, layoutWorkoutCard, drawWorkoutCard, viewAspect, CARD_FONT } from './lib/workout-card.js'
@@ -2598,6 +2599,13 @@ function WorkoutDetail({ w, close }) {
     <div style={{ height: 8 }} />
     {/* The same exercises again, today, as a new session (#58): the rows read what was logged
         in this workout. The record itself stays as it is. */}
+    {/* Picks this very workout up again, clock and all: finishing it again replaces it. */}
+    <Button icon="play" variant="tinted" disabled={!!st.active} style={{ marginBottom: 8 }} onClick={() => {
+      saveNote()
+      initial.current = latest.current.trim().slice(0, NOTE_MAX)
+      try { update(state => { resumeCompletedSession(state, w) }); useUI.getState().stopRest(); closeThenNav(close, '/workout') }
+      catch (error) { toast(t(error.message)) }
+    }}>{t('Resume workout')}</Button>
     <Button icon="reset" disabled={!!st.active} style={{ marginBottom: 8 }} onClick={() => {
       saveNote()
       initial.current = latest.current.trim().slice(0, NOTE_MAX)
@@ -3432,6 +3440,11 @@ function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
     <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
+    {/* Finished too soon: back into the same workout, clock and all (lib/session-edit.js). */}
+    <Button variant="ghost" icon="play" style={{ marginTop: 6 }} onClick={() => {
+      try { update(state => { resumeCompletedSession(state, w) }); closeThenNav(close, '/workout') }
+      catch (error) { toast(t(error.message)) }
+    }}>{t('Resume workout')}</Button>
   </div>
 }
 export function finishWorkout() {
@@ -3469,6 +3482,10 @@ function doFinishWorkout() {
   const A = st.active
   if (!A) return
   const past = !!A.backfill
+  // A finished workout picked up again (lib/session-edit.js resumeCompletedSession) replaces its
+  // saved record; its records are held against the history without that record.
+  const resumed = A.resumeOf != null ? A.resumeOf : null
+  const hist = resumed != null ? { ...st, workouts: st.workouts.filter(x => resumedKeyOf(x) !== resumed) } : st
   const prs = []
   const e1prs = []
   // A workout logged into the past is held against the history before it, the way an edit of a
@@ -3479,14 +3496,14 @@ function doFinishWorkout() {
     const loads = e.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w).filter(w => w > 0)
     const mx = loads.length ? loads.reduce((a, b) => betterWeight(e.id, a, b)) : 0
     // Held against history read the way this session logged a dumbbell weight (lib/dumbbells.js).
-    if (beatsWeight(e.id, mx, bestWeightFor(st, e.id, entryDbLoad(e)))) prs.push(e.id)
+    if (beatsWeight(e.id, mx, bestWeightFor(hist, e.id, entryDbLoad(e)))) prs.push(e.id)
     // A heavier estimate without a heavier top set is its own kind of progress —
     // same weight for more reps. Reported separately so it can't be read as a load PR.
-    const rec = is1RMRecord(st, e.id, e)
+    const rec = is1RMRecord(hist, e.id, e)
     if (rec && !prs.includes(e.id)) e1prs.push({ id: e.id, ...rec })
   })
   const w = buildCompletedWorkout(A, {
-    end: past ? backfillEnd(A) : sessionEnd(A),
+    end: past ? backfillEnd(A) : trainedEnd(A, sessionEnd(A)),
     prs,
     snapshotFor: e => isCustomEx(EXIDX[e.id]) ? exerciseMuscleSnapshot(EXIDX[e.id]) : null,
   })
@@ -3509,14 +3526,21 @@ function doFinishWorkout() {
         const mx = bestWeightForEntry(e)
         if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
       })
-      s.workouts.push(w)
+      const at = resumed != null ? s.workouts.findIndex(x => resumedKeyOf(x) === resumed) : -1
+      if (at >= 0) {
+        // Its photos stay with it, and the sync takes this copy over the one it replaces.
+        mergeWorkoutMedia(w, s.workouts[at])
+        stampWorkout(w)
+        s.workouts[at] = w
+      } else s.workouts.push(w)
     }
     s.active = null
     // A rotation pass this app manages starts its next pass the moment the last session lands
     // (lib/rotation.js). A planner's queue is left alone: it completes and waits for its writer.
     refillAfter(s, w)
     // Olympus: every workout becomes a post, now or once the phone is back online (lib/auto-post.js).
-    if (socialReady(useStore.getState().user)) queuePost(s, shown)
+    // A workout picked up again was posted the first time it was finished.
+    if (resumed == null && socialReady(useStore.getState().user)) queuePost(s, shown)
   })
   flushPosts().catch(() => {})
   useStore.getState().autoBackupNow()
@@ -3528,6 +3552,6 @@ function doFinishWorkout() {
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
   // A main lift that moved up a strength level with this workout (lib/strength-level.js).
   let ups = []
-  try { ups = past ? [] : levelUps(st, S()) } catch { ups = [] }
+  try { ups = past ? [] : levelUps(hist, S()) } catch { ups = [] }
   ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} ups={ups} close={close} />, { kind: 'center', locked: true })
 }
