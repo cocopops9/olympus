@@ -1,6 +1,5 @@
 /* Olympus: the Body & wellbeing page (views/BodyTracking.jsx) and its daily check-in (components/FeelCard.jsx). */
 .body-intro{margin:-4px 2px 12px;line-height:1.45}
-.body-care{margin:4px 4px 24px;line-height:1.45;text-align:center}
 .feel-q{margin-top:14px}
 .feel-h{display:flex;align-items:center;gap:7px;font-weight:600;font-size:15px;margin-bottom:8px}
 .feel-h .icn{color:var(--acc);font-size:17px}

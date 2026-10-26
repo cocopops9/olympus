@@ -53,6 +53,7 @@ import FocusView from './FocusView.jsx'
 import WorkoutStart from './WorkoutStart.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
 import { markSuggested, isSuggested, clearSuggested } from '../lib/suggested.js'
+import { WorkoutCoachButton } from '../components/Hercules.jsx'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
 // that bounces, or a double press, sends two presses a moment apart: the first starts the hold,
@@ -1435,6 +1436,10 @@ function ActiveWorkout() {
         { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
         noProgSwitchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A), onClick: toggleSessionNoProg },
       ] },
+      !editing && !A.backfill && { title: t('AI coach'), items: [
+        { icon: 'sparkles', label: t('Coach during workouts'), sub: t('Hercules and Athena in the header, knowing this workout'),
+          on: S.coachInWorkout !== false, onClick: () => update(s => { s.coachInWorkout = s.coachInWorkout === false }) },
+      ] },
       { items: [
         !editing && { icon: 'trash', label: t('Discard workout'), danger: true, onClick: discardWorkout },
       ] },
@@ -1931,6 +1936,7 @@ function ActiveWorkout() {
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <HeaderClock active={A} />} · {t('{0} sets', done + '/' + total)}</div></div>
+      <WorkoutCoachButton />
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
         onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>

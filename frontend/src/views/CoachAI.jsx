@@ -9,7 +9,7 @@ import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
 import { socialReady } from '../lib/social.js'
 import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS } from '../lib/hercules.js'
-import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches } from '../components/Hercules.jsx'
+import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine } from '../components/Hercules.jsx'
 import { ownCoachSheet } from '../components/OwnCoach.jsx'
 import { isOwn, ownCoach, providerOf } from '../lib/own-coach.js'
 import { Switch } from '../components/ui.jsx'
@@ -117,6 +117,7 @@ function Conversation({ coach, chatId, onChange }) {
           <div className="cai-sugg">
             {suggestions.map(s => <button key={s} className="cai-card" onClick={() => send(s)}><Icon name="sparkles" /><span>{s}</span></button>)}
           </div>
+          <div style={{ width: '100%', maxWidth: 560 }}><GoalsLine /></div>
         </div>}
         {list.map((m, i) => (m.role === 'user'
           ? <div key={i} className="cai-me">{m.content}</div>

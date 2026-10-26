@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
+import { isPaused } from '../lib/workout-clock.js'
 import { useConnectionTrouble } from './SyncBanner.jsx'
 import { useSocial } from '../store/useSocial.js'
 
@@ -57,7 +58,8 @@ export default function TabBar({ onStart }) {
           Resume; a past workout being edited or logged after the fact has no clock to run. */}
       <button className={'start' + (S.active ? ' rec' : '') + (S.active && cur === 'workout' ? ' on' : '')} onClick={startWorkout}
         aria-label={running ? t('Resume') : undefined}>
-        <span className="cir"><Icon name="play" /></span>
+        {/* Paused (lib/workout-clock.js), the button says so: the pause glyph instead of play. */}
+        <span className="cir"><Icon name={running && isPaused(S.active) ? 'pause' : 'play'} /></span>
         {running ? <span className="tab-time"><Elapsed active={S.active} /></span>
           : <span>{S.active ? (cur === 'workout' ? t('Workout') : S.active.editingWorkoutId ? t('Edit workout') : t('Resume')) : t('Workout')}</span>}
       </button>

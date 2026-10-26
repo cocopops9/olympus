@@ -1,0 +1,19 @@
+/* Olympus: what you train for, for the AI coaches (components/CoachGoals.jsx). */
+.cg .cg-l{display:block;font-size:13px;font-weight:650;color:var(--label-2);margin:16px 2px 8px}
+.cg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cg-tile{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1.5px solid transparent;background:var(--surface-2);
+  color:var(--label);font:inherit;font-weight:600;font-size:14px;text-align:start;cursor:pointer}
+.cg-tile .icn{font-size:20px;color:var(--acc);flex:none}
+.cg-tile.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--surface-2))}
+.cg textarea{resize:vertical;line-height:1.4}
+
+/* The line in the coach chat about what you train for. */
+.hc-goals{display:flex;align-items:center;gap:8px;width:100%;margin:10px 0 0;padding:10px 12px;border-radius:14px;border:1px dashed color-mix(in srgb,var(--acc) 50%,transparent);
+  background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--label);font:inherit;font-size:13.5px;text-align:start;cursor:pointer}
+.hc-goals .icn{color:var(--acc);flex:none}
+.hc-goals .grow{flex:1;min-width:0}
+
+/* The coach in the workout header. */
+.whdr-coach{width:40px;height:40px;padding:0;border:0;background:transparent;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}
+/* Long questions wrap rather than run off the chat. */
+.hc .hc-sugg .chip{white-space:normal;max-width:100%;min-width:0;flex:0 1 auto;text-align:center;overflow-wrap:anywhere}

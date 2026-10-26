@@ -23,6 +23,8 @@ import hercules from '../assets/hercules.webp'
 import athena from '../assets/athena.webp'
 import Icon from './Icon.jsx'
 import '../hercules.css'
+import { coachGoalsSheet } from './CoachGoals.jsx'
+import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -119,6 +121,21 @@ function Menu({ data, busy, open, start, remove }) {
   </div>
 }
 
+/** What the coaches know you train for (lib/coach-profile.js), and the way to tell or change it. */
+export function GoalsLine() {
+  const S = useStore(st => st.S)
+  const p = coachProfileOf(S)
+  const parts = [...p.styles.map(id => t(TRAINING_STYLES.find(x => x.id === id).label)), ...(p.phase ? [t(PHASES.find(x => x.id === p.phase).label)] : [])]
+  const said = parts.length || p.goals
+  return <button className="hc-goals" onClick={coachGoalsSheet}>
+    <Icon name="target" />
+    <span className="grow">{said
+      ? <><b>{t('Training for')}:</b> {parts.join(' · ') || p.goals.slice(0, 60) + (p.goals.length > 60 ? '…' : '')}</>
+      : t('Tell your coaches what you train for: style, phase, goals, what is coming up.')}</span>
+    <Icon name="chevronRight" />
+  </button>
+}
+
 /** The coaches as pills, to talk to another one, and + to set up one of your own. */
 function Switch({ coach, ons, pick, own, onAdd }) {
   return <div className="hc-switch" role="tablist">
@@ -195,7 +212,10 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   const start = () => { commit({ ...latest.current, current: null }); setErr('') }
   const open = id => { commit({ ...latest.current, current: id }); setErr('') }
   const remove = id => commit(dropChat(latest.current, id))
-  const suggestions = [...(ask ? [ask] : []), ...suggestionsFor(coach)].filter((x, i, a) => a.indexOf(x) === i).slice(0, 4)
+  // Between sets the questions are about the workout in progress (lib/coach-profile.js gives the
+  // coach its sets as they stand).
+  const live = useStore(st => !!st.S.active && !st.S.active.backfill && !st.S.active.editingWorkoutId)
+  const suggestions = [...(ask ? [ask] : []), ...suggestionsFor(coach, { live })].filter((x, i, a) => a.indexOf(x) === i).slice(0, 4)
   return { uid, name, data, list, draft, setDraft, busy, err, left, status, input, send, start, open, remove, suggestions }
 }
 
@@ -222,6 +242,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
         <div className="hc-sub"><i className="hc-dot" />{isOwn(coach) ? t('Your own model') + ' · ' + (ownCoach(useStore.getState().user?.id, coach)?.model || '') : sub}</div>
       </div>
       {isOwn(coach) && <button className="iconbtn" onClick={editOwn} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
+      <button className="iconbtn" onClick={coachGoalsSheet} aria-label={t('What you train for')} title={t('What you train for')}><Icon name="target" /></button>
       <button className={'iconbtn' + (menu ? ' hc-on' : '')} onClick={() => setMenu(m => !m)} aria-label={t('Conversations')} aria-expanded={menu}><Icon name="list" /></button>
       <button className="iconbtn" onClick={expand} aria-label={t('Full screen')}><Icon name="expand" /></button>
       <button className="iconbtn" onClick={close} aria-label={t('Close')}><Icon name="xmark" /></button>
@@ -240,6 +261,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
           <div className="hc-sugg">
             {suggestions.map(s => <button key={s} className="chip nocap" onClick={() => send(s)}>{s}</button>)}
           </div>
+          <GoalsLine />
         </div>}
         {list.map((m, i) => (m.role === 'user'
           ? <div key={i} className="hc-m me">{m.content}</div>
@@ -287,6 +309,35 @@ export const herculesSheet = ({ ask, coach } = {}) => {
   const first = COACH_IDS.includes(coach) ? coach : (lastCoach(uid) || 'hercules')
   const ons = Object.fromEntries(COACH_IDS.map(id => [id, statusOf(uid, id)?.on]).filter(([, v]) => v !== undefined && v !== null))
   return useUI.getState().openSheet(close => <CoachSheet close={close} ask={ask} first={first} ons={ons} />)
+}
+
+/**
+ * The coach in the workout header (Olympus): between sets Hercules or Athena is one tap away, and
+ * knows the workout as it stands (lib/coach-profile.js liveWorkoutLines). Hidden for a past
+ * workout being logged or edited, and when switched off in the workout's ⋯ menu
+ * (S.coachInWorkout). The free daily messages are the same as anywhere else.
+ */
+export function WorkoutCoachButton() {
+  const user = useStore(s => s.user)
+  const ready = useStore(s => s.ready)
+  const allowed = useStore(s => s.S.coachInWorkout !== false && !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
+  const can = socialReady(user) && ready
+  const [ons, setOns] = useState(() => Object.fromEntries(COACH_IDS.map(id => [id, !!statusOf(user?.id, id)?.on])))
+  useEffect(() => {
+    if (!can) return
+    let gone = false
+    for (const id of COACH_IDS) {
+      if (statusOf(user.id, id)) continue
+      herculesStatus(id).then(st => { setCached(user.id, id, st); if (!gone) setOns(o => ({ ...o, [id]: !!st.on })) }, () => {})
+    }
+    return () => { gone = true }
+  }, [can, user?.id])
+  if (!can || !allowed || !COACH_IDS.some(id => ons[id])) return null
+  const last = lastCoach(user?.id)
+  const coach = last && (ons[last] || (isOwn(last) && ownCoach(user?.id, last))) ? last : COACH_IDS.find(id => ons[id])
+  return <button className="whdr-coach" onClick={() => herculesSheet({ coach })} aria-label={t('Ask {0}, your coach', coachName(coach))} title={coachName(coach)}>
+    <Avatar size="sm" coach={coach} />
+  </button>
 }
 
 export default function HerculesButton() {

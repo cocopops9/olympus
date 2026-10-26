@@ -27,7 +27,7 @@ export default function BodyTracking() {
       <button className="iconbtn" onClick={() => nav('/profile')} aria-label={t('Profile')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 10 }}><h1>{t('Body & wellbeing')}</h1><div className="sub">{t('How you feel, measurements and photos')}</div></div>
     </div>
-    <p className="small muted body-intro">{t('A record of how your body feels and changes, with no targets and no judgement. Keep what helps you and switch off what does not.')}</p>
+    <p className="small muted body-intro">{t('A record of how your body feels and changes. Keep what helps you and switch off what does not.')}</p>
     <FeelCard />
     <Measurements embedded />
     <Section>
@@ -41,6 +41,5 @@ export default function BodyTracking() {
         <Switch checked={weightOn} onChange={setWeightOn} aria-label={t('Body weight')} />
       </Row>
     </Section>
-    <p className="small dim body-care">{t('If keeping track of your body starts to feel stressful, it is fine to step back from it. Talking to a doctor or someone you trust can help.')}</p>
   </div>
 }

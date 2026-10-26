@@ -10,6 +10,7 @@ import { effectiveRoutineIds, lastBW } from './history.js'
 import { loadOfWorkouts, rankOf, MUSCLE_NAME } from './muscles.js'
 import { summaryFor } from './auto-post.js'
 import { feelSummary } from './feel.js'
+import { profileLines, liveWorkoutLines } from './coach-profile.js'
 
 export const MAX_CONTEXT = 9000
 const DAY = 86400000
@@ -75,6 +76,8 @@ export function herculesContext(S, today = todayISO()) {
   const lines = []
   const first = S.workouts.length ? S.workouts.map(w => w.d).filter(Boolean).sort()[0] : null
   // Sex only when it is female: male is the default an untouched profile also has, so it says nothing.
+  // What they train for and the workout in progress come first: the summary is cut from the end.
+  lines.push(...profileLines(S), ...liveWorkoutLines(S))
   lines.push(`Today: ${today}. Units: ${S.unit === 'lb' ? 'lb' : 'kg'}.${S.body === 'female' ? ' Sex: female.' : ''}`)
   lines.push(`Workouts logged: ${S.workouts.length}${first ? ' since ' + first : ''}.`)
   const wk = weekMuscles(S, today)
@@ -113,4 +116,12 @@ export const ATHENA_SUGGESTIONS = () => [
   t('How should I plan a deload week?'),
   t('Find the weak points in my plan'),
 ]
-export const suggestionsFor = coach => (coach === 'athena' ? ATHENA_SUGGESTIONS() : SUGGESTIONS())
+// What to ask between sets, while a workout is running.
+export const LIVE_SUGGESTIONS = () => [
+  t('What weight should I use for my next set?'),
+  t('I feel tired today. How should I adjust the rest of this workout?'),
+  t('Swap this exercise for one that trains the same muscles'),
+  t('How long should I rest before the next set?'),
+]
+/** The first things to ask `coach`; between sets (`live`), the questions of the moment. */
+export const suggestionsFor = (coach, { live = false } = {}) => (live ? LIVE_SUGGESTIONS() : coach === 'athena' ? ATHENA_SUGGESTIONS() : SUGGESTIONS())
