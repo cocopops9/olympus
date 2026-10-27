@@ -29,11 +29,11 @@ ok(cfg.headers.get('access-control-allow-origin') === 'https://localhost', 'CORS
 const pre = await fetch(BASE + '/api/data', { method: 'OPTIONS', headers: { Origin: 'https://localhost', 'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'authorization,content-type' } });
 ok(pre.status === 204 && /authorization/i.test(pre.headers.get('access-control-allow-headers') || ''), 'preflight allows Authorization', String(pre.status));
 
-const A = await call('POST', '/api/app/signup', { body: { name: tag + ' Ana', password: 'e2e correct horse battery A' } });
-const B = await call('POST', '/api/app/signup', { body: { name: tag + ' Ben', password: 'e2e correct horse battery B' } });
+const A = await call('POST', '/api/app/signup', { body: { name: tag + '_ana', email: tag + '.ana@example.com', password: 'e2e correct horse battery A' } });
+const B = await call('POST', '/api/app/signup', { body: { name: tag + '_ben', email: tag + '.ben@example.com', password: 'e2e correct horse battery B' } });
 ok(A.status === 200 && A.body.token && B.status === 200, 'two profiles sign up', JSON.stringify([A.body, B.body]));
 const a = A.body.token, b = B.body.token, aid = A.body.user.id, bid = B.body.user.id;
-const login = await call('POST', '/api/app/login', { body: { identifier: tag + ' ana', password: 'e2e correct horse battery A' } });
+const login = await call('POST', '/api/app/login', { body: { identifier: tag + '_ANA', password: 'e2e correct horse battery A' } });
 ok(login.status === 200 && login.body.token, 'sign in by name, any case');
 ok((await call('GET', '/api/me', { token: a })).body?.user?.id === aid, '/api/me knows the token');
 
@@ -97,9 +97,9 @@ ok(del.status === 200, 'the author deletes the post');
 const meA2 = await call('GET', '/api/me', { token: a });
 const clash = await call('POST', '/api/account/name', { token: b, body: { name: meA2.body?.user?.name } });
 ok(clash.status === 409, 'renaming to a name in use is refused', String(clash.status));
-const renamed = await call('POST', '/api/account/name', { token: b, body: { name: tag + ' renamed' } });
+const renamed = await call('POST', '/api/account/name', { token: b, body: { name: tag + '_renamed' } });
 const meB = await call('GET', '/api/me', { token: b });
-ok(renamed.status === 200 && meB.body?.user?.name === tag + ' renamed', 'a profile renames itself', JSON.stringify(renamed.body));
+ok(renamed.status === 200 && meB.body?.user?.name === tag + '_renamed', 'a profile renames itself', JSON.stringify(renamed.body));
 
 // An auto-posted workout posted twice (an offline retry) stays one post.
 const wk = { name: tag + ' Chest', d: '2026-10-25', sets: 3, exercises: [{ n: 'bench press', sets: 3, best: '60 kg x 8' }] };
