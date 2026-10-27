@@ -70,8 +70,8 @@ jobs:
           # On a failure, Gradle's own explanation becomes an annotation of the run: readable from
           # the run's summary and the checks API without downloading the whole log.
           if ! ./gradlew --no-daemon assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER)) 2>&1 | tee "$RUNNER_TEMP/gradle.log"; then
-            why=$( { grep -A14 'What went wrong' "$RUNNER_TEMP/gradle.log"; grep -E 'error:|Duplicate class|AAPT: error' "$RUNNER_TEMP/gradle.log"; } | head -60 \
-              | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN{ORS="%0A"} {print}')
+            why=$( { grep -A14 'What went wrong' "$RUNNER_TEMP/gradle.log" || true; grep -E 'error:|Duplicate class|AAPT: error|FAILED' "$RUNNER_TEMP/gradle.log" || true; echo '--- last lines ---'; tail -25 "$RUNNER_TEMP/gradle.log"; } \
+              | head -90 | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN{ORS="%0A"} {print}' || true)
             echo "::error title=Gradle build failed::$why"
             exit 1
           fi
