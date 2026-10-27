@@ -34,8 +34,8 @@ describe('Stats mixed-entry metric contract', () => {
     expect(source).not.toContain('(en.topW || 0)')
   })
 
-  it('stacks the Stats exercise selector value without changing shared SelectRow defaults', () => {
-    expect(source).toContain("onChange={setExId} stackedValue")
+  it('keeps the shared SelectRow stacked-value defaults (Stats has a picker of its own now)', () => {
+    expect(source).toContain('<ProgressPicker value={curEx} onChange={setExId}')
     expect(uiSource).toContain('sheetTitle, stackedValue = false')
     expect(uiSource).toContain("className={stackedValue ? 'lrow-stack-value' : ''}")
     expect(cssSource).toContain('.lrow.lrow-stack-value .lrow-m{grid-column:1;grid-row:1}')

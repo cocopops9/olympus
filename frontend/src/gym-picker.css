@@ -1,0 +1,11 @@
+/* Olympus: the gym of a workout (components/GymPicker.jsx). */
+.gym{text-align:start;margin:14px 0 4px;padding:12px;border-radius:16px;background:var(--surface-2)}
+.gym-h{display:flex;align-items:center;gap:6px;font-weight:650}
+.gym-h .icn{color:var(--acc)}
+.gym-h .dim{margin-inline-start:auto;font-weight:400}
+.gym-why{margin:4px 0 10px;line-height:1.4}
+.gym-chips{flex-wrap:wrap;overflow:visible}
+.gym-chips .chip{background:var(--surface)}
+.gym-chips .chip.on{background:var(--acc)}
+.gym-add{display:inline-flex;align-items:center;gap:4px;color:var(--acc)}
+.gym-new .input{height:34px;padding:4px 12px;min-width:160px}

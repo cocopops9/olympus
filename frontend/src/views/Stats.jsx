@@ -26,9 +26,11 @@ import {
   effortHistogram, isHardSet, HARD_RIR, MIN_RATED
 } from '../lib/effort.js'
 import { anchorsByWorkout, resolveSetRir } from '../lib/recovery.js'
-import { Button, Segmented, SelectRow } from '../components/ui.jsx'
+import { Button, Segmented } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { isWarmupRow } from '../lib/workout-model.js'
+import ProgressPicker from '../components/ProgressPicker.jsx'
+import { gymsForExercise, cleanGym } from '../lib/gyms.js'
 
 // Set 1 to 5 on the per-set chart — system colours, so each line keeps its hue in dark mode.
 const SET_COLORS = ['var(--blue)', 'var(--green)', 'var(--orange)', 'var(--purple)', 'var(--pink)']
@@ -175,22 +177,31 @@ function MuscleBalance({ S }) {
   const max = worked.length ? load[worked[0]] : 0
   const sets = m => fmtNum(Math.round((load[m] || 0) * 10) / 10)
   const visibleComparisonMuscles = sel ? [sel] : weeklyExpanded ? comparisonMuscles : comparisonMuscles.slice(0, 4)
+  // Sets done this week against the weekly plan. A plan with nothing for a muscle reads "not
+  // planned" rather than "3/0", and without any plan the rows are just the sets, the bar against
+  // the week's most trained muscle (Olympus: "7,2/0" told nobody anything).
+  const hasPlan = Object.values(planned).some(v => v > 0)
   const comparisonRows = visibleComparisonMuscles.map(muscle => {
     const completed = Math.round((load[muscle] || 0) * 10) / 10
     const target = Math.round((planned[muscle] || 0) * 10) / 10
     const percentage = target > 0 ? Math.round(completed / target * 100) : null
-    const fill = target > 0 ? Math.round(Math.min(completed / target, 1) * 100) : completed > 0 ? 100 : 0
+    const fill = target > 0 ? Math.round(Math.min(completed / target, 1) * 100) : max > 0 ? Math.round(completed / max * 100) : 0
     const completedSets = t('{0} sets', fmtNum(completed))
     const plannedSets = t('{0} sets', fmtNum(target))
     return <div className="mrow" data-muscle-volume={muscle} key={muscle}>
       <span className="nm">{sel === muscle ? <b>{t(MUSCLE_NAME[muscle])}</b> : t(MUSCLE_NAME[muscle])}</span>
-      <span className="bar"><i style={{ width: fill + '%' }} /></span>
+      <span className={'bar' + (target > 0 && completed >= target ? ' full' : '')}><i style={{ width: fill + '%' }} /></span>
       <span className="v" style={{ textAlign: 'end' }}
         aria-label={`${t('Completed')} ${completedSets} · ${t('Planned')} ${plannedSets}`}>
-        {fmtNum(completed)}/{fmtNum(target)}{percentage == null ? '' : ` · ${percentage}%`}
+        {target > 0 ? t('{0} of {1} sets', fmtNum(completed), fmtNum(target)) : completedSets}
+        {percentage != null ? <span className="dim"> · {percentage}%</span> : hasPlan ? <span className="dim"> · {t('not planned')}</span> : null}
       </span>
     </div>
   })
+  const setsNote = <div className="small dim" style={{ marginTop: 8 }}>
+    {hasPlan ? t('Sets done this week, against what your weekly plan asks for.') : t('Sets done this week.')}
+    {' '}{t('A set counts fully for the muscle it targets and partly for the muscles that help, so totals can have decimals.')}
+  </div>
   const completionSummary = <>
     {missed.length > 0 && <>
       <h4 className="sec" style={{ marginTop: 12 }}>{on ? t('No hard sets in this period') : t('Not trained in this period')}</h4>
@@ -243,7 +254,7 @@ function MuscleBalance({ S }) {
         <BodyMap className="tappable" load={load} body={S.body} selected={sel} onMuscle={toggleSel} />
         <BodyMapLegend />
         {weekOffset === 0
-          ? comparisonRows.length ? <>{comparisonRows}{weeklyToggle(comparisonMuscles.length)}{completionSummary}</> : <div className="muted small">{t('No workouts in this period yet.')}</div>
+          ? comparisonRows.length ? <>{comparisonRows}{weeklyToggle(comparisonMuscles.length)}{setsNote}{completionSummary}</> : <div className="muted small">{t('No workouts in this period yet.')}</div>
           : inWin.length ? completedRows : <div className="muted small">{t('No workouts in this period yet.')}</div>}
       </div> : inWin.length ? <>
         <BodyMap className="tappable" load={load} body={S.body} selected={sel}
@@ -423,6 +434,7 @@ export default function Stats({ embedded = false } = {}) {
   // Exercise progress over a date range (issue #511), All by default. Only the chart follows it:
   // "Best:" and the recent sessions under it stay all-time.
   const [exRange, setExRange] = useState(0)
+  const [exGym, setExGym] = useState(null)
   const exFrom = useMemo(() => rangeStart(exRange), [exRange])
   const inExRange = p => p.t >= exFrom
   const now = Date.now()
@@ -501,15 +513,24 @@ export default function Stats({ embedded = false } = {}) {
   }
   const exHist = [...new Set(workouts.flatMap(w => w.entries.map(e => e.id)))].filter(id => EXIDX[id] || nameOf(id) !== id)
   const exCurrent = Object.fromEntries(exHist.map(id => [id, currentOf(id)]))
+  // When each exercise was last trained, for the picker's "recently" and its "2 days ago".
+  const lastTrained = {}
+  for (const w of workouts) for (const e of w.entries || []) { const at = workoutAt(w); if (Number.isFinite(at) && !(lastTrained[e.id] >= at)) lastTrained[e.id] = at }
   exHist.sort((a, b) => exCurrent[b].mx - exCurrent[a].mx || nameOf(a).localeCompare(nameOf(b)))
   const curEx = exId && exHist.includes(exId) ? exId : exHist[0] || null
+  // Progress in one gym at a time (lib/gyms.js): the same machine can read very differently in
+  // two gyms. Offered once the exercise has workouts with a gym on them.
+  const exGyms = curEx ? gymsForExercise(S, curEx) : []
+  const gymOn = exGym && exGyms.includes(exGym) ? exGym : null
+  const pw = useMemo(() => (gymOn ? S.workouts.filter(w => cleanGym(w.gym) === gymOn) : S.workouts), [S.workouts, gymOn])
+  const PS = useMemo(() => (gymOn ? { ...S, workouts: pw } : S), [S, pw, gymOn])
   // A completed reps work row is authoritative for strength metrics, even when the parent
   // target also contains timed/cardio work. Entries without reps rows use their selected mode.
   const curMode = curEx ? (() => {
-    for (let i = workouts.length - 1; i >= 0; i--) {
-      const data = metricDataOf(workouts[i], curEx)
+    for (let i = pw.length - 1; i >= 0; i--) {
+      const data = metricDataOf(pw[i], curEx)
       if (data.mode) return data.mode
-      const entries = entriesForExercise(workouts[i], curEx)
+      const entries = entriesForExercise(pw[i], curEx)
       for (let j = entries.length - 1; j >= 0; j--) {
         const mode = metricModeForEntry(entries[j])
         if (mode) return mode
@@ -524,13 +545,13 @@ export default function Stats({ embedded = false } = {}) {
   // them (issue #5). When nothing in an exercise's history was ever loaded, the progress IS
   // the rep count, so plot that. Add a weighted set later and it switches back to weight on
   // its own, which is also the honest reading: that is when load became the thing improving.
-  const repsOnly = curEx && curMode === 'reps' && !workouts.some(w =>
+  const repsOnly = curEx && curMode === 'reps' && !pw.some(w =>
     entriesForExercise(w, curEx).some(en => bestWeightForEntry(en) > 0))
   const metric = s => curCardio ? toSpeed(s.speed || 0, speedUnit) : curTimed ? (s.sec || 0) : (s.w || 0)
   const exUnit = curCardio ? speedLabel(speedUnit) : curTimed ? 's' : repsOnly ? t('reps') : S.unit
   let exPts = [], exList = [], exBest = 0
   if (curEx) {
-    workouts.forEach(w => {
+    pw.forEach(w => {
       const data = metricDataOf(w, curEx)
       if (data.mode === curMode) {
         const doneSets = data.rows
@@ -556,11 +577,11 @@ export default function Stats({ embedded = false } = {}) {
   // tooltip vanish under your finger the moment anything else on this screen re-rendered.
   // Memoising only the .map() would not have helped — its dependency was itself rebuilt each time.
   const e1Pts = useMemo(
-    () => (curEx && curMode === 'reps' ? e1rmSeries(S, curEx) : []),
-    [S, curEx, curMode],
+    () => (curEx && curMode === 'reps' ? e1rmSeries(PS, curEx) : []),
+    [PS, curEx, curMode],
   )
   const e1ChartPts = useMemo(() => e1Pts.filter(p => p.t >= exFrom).map(p => ({ t: p.t, y: p.y, d: p.d })), [e1Pts, exFrom])
-  const e1Best = curEx && curMode === 'reps' ? best1RM(S, curEx) : null
+  const e1Best = curEx && curMode === 'reps' ? best1RM(PS, curEx) : null
   const showE1 = e1Pts.length > 0
   // Effort on this exercise, per session. It rides on the top-set curve as well as having a
   // curve of its own, because the two only mean something together: the same weight moved
@@ -571,8 +592,8 @@ export default function Stats({ embedded = false } = {}) {
   // Pyramid sets' Max sets: the most reps in one, per workout — the point of a Max set is seeing
   // that number climb, which the top-set weight line does not show.
   const maxPts = useMemo(
-    () => (curEx && curMode === 'reps' ? maxRepsSeries(workouts, curEx).map(p => ({ t: p.t, y: p.y, d: p.d, note: p.w > 0 ? fmtNum(p.w) + ' ' + S.unit : undefined })) : []),
-    [workouts, curEx, curMode, S.unit],
+    () => (curEx && curMode === 'reps' ? maxRepsSeries(pw, curEx).map(p => ({ t: p.t, y: p.y, d: p.d, note: p.w > 0 ? fmtNum(p.w) + ' ' + S.unit : undefined })) : []),
+    [pw, curEx, curMode, S.unit],
   )
   const showMax = maxPts.length > 0
   const maxBest = showMax ? Math.max(...maxPts.map(p => p.y)) : 0
@@ -588,8 +609,8 @@ export default function Stats({ embedded = false } = {}) {
     if (!curEx || curMode !== 'reps') return null
     const usable = list => list.length >= 2 && list.some(s => s.sets.length >= 2)
     let metric = repsOnly || isAssisted(curEx) ? 'reps' : 'e1rm'
-    let sessions = perSetSessions(workouts, curEx, { metric, formula: oneRmFormula })
-    if (metric === 'e1rm' && !usable(sessions)) sessions = perSetSessions(workouts, curEx, { metric: metric = 'reps' })
+    let sessions = perSetSessions(pw, curEx, { metric, formula: oneRmFormula })
+    if (metric === 'e1rm' && !usable(sessions)) sessions = perSetSessions(pw, curEx, { metric: metric = 'reps' })
     if (!usable(sessions)) return null
     const { lines, hidden } = perSetLines(sessions)
     const shown = new Set(lines.map(l => l.n))
@@ -604,7 +625,7 @@ export default function Stats({ embedded = false } = {}) {
       metric,
       drop: dropOffSet(sessions),
     }
-  }, [workouts, curEx, curMode, repsOnly, oneRmFormula])
+  }, [pw, curEx, curMode, repsOnly, oneRmFormula])
   // The same sessions cut to the range; a set number with nothing left in it drops out of the legend.
   const perSetChart = useMemo(() => {
     if (!perSet) return null
@@ -656,16 +677,14 @@ export default function Stats({ embedded = false } = {}) {
       <div className="card">
         <h2>{t('Exercise progress')}</h2>
         {exHist.length ? <>
-          <div className="sect-b" style={{ marginBottom: 10 }}>
-            <SelectRow title={t('Exercise')} sheetTitle={t('Exercise progress')} value={curEx} onChange={setExId} stackedValue
-              options={exHist.map(id => ({ value: id, label: (EXIDX[id] ? exerciseNameText(EXIDX[id]) : nameOf(id)) + (exCurrent[id].mx ? ' · ' + fmtNum(exCurrent[id].mx) + ' ' + exCurrent[id].unit : '') }))}
-              search={{
-                placeholder: t('Search…'),
-                label: t('Search…'),
-                emptyLabel: t('No match'),
-                match: (option, query) => matchExercise(matcherOf(option.value), query),
-              }} />
-          </div>
+          <ProgressPicker value={curEx} onChange={setExId} matcherOf={matcherOf}
+            items={exHist.map(id => ({ id, name: EXIDX[id] ? exerciseNameText(EXIDX[id]) : nameOf(id), last: lastTrained[id] || 0,
+              best: exCurrent[id].mx ? fmtNum(exCurrent[id].mx) + ' ' + exCurrent[id].unit : '' }))} />
+          {exGyms.length > 0 && <div className="chips gym-filter" role="group" aria-label={t('Gym')}>
+            <Icon name="pin" />
+            <button className={'chip nocap' + (!gymOn ? ' on' : '')} onClick={() => setExGym(null)}>{t('All gyms')}</button>
+            {exGyms.map(g => <button key={g} className={'chip nocap' + (gymOn === g ? ' on' : '')} onClick={() => setExGym(g)}>{g}</button>)}
+          </div>}
           {exOpts.length > 1 && <Segmented className="seg-range" value={onMax ? 'max' : onEff ? 'effort' : onE1 ? 'e1rm' : onSets ? 'sets' : 'top'} onChange={setExMetric} options={exOpts} />}
           <Segmented className="seg-range" value={exRange} onChange={setExRange} options={rangeOptions()} />
           <div className="chart">

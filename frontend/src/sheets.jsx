@@ -79,6 +79,7 @@ import { workoutCardModel, layoutWorkoutCard, drawWorkoutCard, viewAspect, CARD_
 import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
+import GymPicker from './components/GymPicker.jsx'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -2599,6 +2600,8 @@ function WorkoutDetail({ w, close }) {
     <div style={{ height: 8 }} />
     {/* The same exercises again, today, as a new session (#58): the rows read what was logged
         in this workout. The record itself stays as it is. */}
+    <GymPicker w={w} />
+    <div style={{ height: 10 }} />
     {/* Picks this very workout up again, clock and all: finishing it again replaces it. */}
     <Button icon="play" variant="tinted" disabled={!!st.active} style={{ marginBottom: 8 }} onClick={() => {
       saveNote()
@@ -3429,6 +3432,7 @@ function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
     </div>}
     {/* Olympus: the workout is posted on its own; this says where that stands and can take it back,
         and the post's title, description and photos are written right here. */}
+    <GymPicker w={w} />
     {socialReady(user) && <PostStatus w={w} />}
     {socialReady(user) && ['waiting', 'posted'].includes(postState(st, w).state) && <PostEditor w={w} />}
     <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>
@@ -3439,7 +3443,7 @@ function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    <Button variant="primary" onClick={() => closeThenNav(close, '/home')}>{t('Nice!')}</Button>
+    <Button variant="primary" icon="check" onClick={() => closeThenNav(close, '/home')}>{t('Done!')}</Button>
     {/* Finished too soon: back into the same workout, clock and all (lib/session-edit.js). */}
     <Button variant="ghost" icon="play" style={{ marginTop: 6 }} onClick={() => {
       try { update(state => { resumeCompletedSession(state, w) }); closeThenNav(close, '/workout') }
@@ -3553,5 +3557,7 @@ function doFinishWorkout() {
   // A main lift that moved up a strength level with this workout (lib/strength-level.js).
   let ups = []
   try { ups = past ? [] : levelUps(hist, S()) } catch { ups = [] }
-  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} ups={ups} close={close} />, { kind: 'center', locked: true })
+  // Locked against a stray tap on the backdrop; the system back is Done.
+  ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} ups={ups} close={close} />,
+    { kind: 'center', locked: true, onBack: close => closeThenNav(close, '/home') })
 }

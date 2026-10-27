@@ -25,6 +25,8 @@ import Icon from './Icon.jsx'
 import '../hercules.css'
 import { coachGoalsSheet } from './CoachGoals.jsx'
 import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js'
+import CoachActions from './CoachActions.jsx'
+import { splitActions } from '../lib/coach-actions.js'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -121,6 +123,15 @@ function Menu({ data, busy, open, start, remove }) {
   </div>
 }
 
+/** A coach's message: its text, and the changes it proposes as cards (lib/coach-actions.js). */
+export function Reply({ m, onApplied }) {
+  const { text, actions } = splitActions(m.content)
+  return <>
+    {text && <Rich text={text} />}
+    <CoachActions actions={actions} applied={m.applied || []} onApplied={onApplied} />
+  </>
+}
+
 /** What the coaches know you train for (lib/coach-profile.js), and the way to tell or change it. */
 export function GoalsLine() {
   const S = useStore(st => st.S)
@@ -212,11 +223,17 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   const start = () => { commit({ ...latest.current, current: null }); setErr('') }
   const open = id => { commit({ ...latest.current, current: id }); setErr('') }
   const remove = id => commit(dropChat(latest.current, id))
+  // A change the coach proposed was applied (components/CoachActions.jsx): kept on its message.
+  const markApplied = (msgIndex, k) => {
+    const cur = latest.current
+    const msgs = cur.chats.find(c => c.id === cur.current)?.messages || []
+    commit(putChat(cur, cur.current, msgs.map((m, i) => (i === msgIndex ? { ...m, applied: [...new Set([...(m.applied || []), k])] } : m))))
+  }
   // Between sets the questions are about the workout in progress (lib/coach-profile.js gives the
   // coach its sets as they stand).
   const live = useStore(st => !!st.S.active && !st.S.active.backfill && !st.S.active.editingWorkoutId)
   const suggestions = [...(ask ? [ask] : []), ...suggestionsFor(coach, { live })].filter((x, i, a) => a.indexOf(x) === i).slice(0, 4)
-  return { uid, name, data, list, draft, setDraft, busy, err, left, status, input, send, start, open, remove, suggestions }
+  return { uid, name, data, list, draft, setDraft, busy, err, left, status, input, send, start, open, remove, suggestions, markApplied }
 }
 
 function Chat({ close, ask, coach, ons, pick, own }) {
@@ -267,7 +284,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
           ? <div key={i} className="hc-m me">{m.content}</div>
           : <div key={i} className="hc-row">
             {list[i - 1]?.role === 'assistant' ? <span className="hc-av-gap" /> : <Avatar size="sm" badge={false} coach={coach} />}
-            <div className="hc-m him"><Rich text={m.content} /></div>
+            <div className="hc-m him"><Reply m={m} onApplied={k => c.markApplied(i, k)} /></div>
           </div>))}
         {busy && <div className="hc-row">
           <Avatar size="sm" badge={false} live coach={coach} />

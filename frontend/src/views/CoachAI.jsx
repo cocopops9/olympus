@@ -9,7 +9,7 @@ import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
 import { socialReady } from '../lib/social.js'
 import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS } from '../lib/hercules.js'
-import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine } from '../components/Hercules.jsx'
+import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine, Reply } from '../components/Hercules.jsx'
 import { ownCoachSheet } from '../components/OwnCoach.jsx'
 import { isOwn, ownCoach, providerOf } from '../lib/own-coach.js'
 import { Switch } from '../components/ui.jsx'
@@ -100,7 +100,7 @@ function Drawer({ coach, current, open, onOpen, onNew, onClose, version, bump, o
 function Conversation({ coach, chatId, onChange }) {
   const user = useStore(s => s.user)
   const c = useCoachChat({ coach, chatId, onSent: onChange })
-  const { name, list, draft, setDraft, busy, err, left, input, send, suggestions, data } = c
+  const { name, list, draft, setDraft, busy, err, left, input, send, suggestions, data, markApplied } = c
   const end = useRef(null)
   // A conversation picked in the drawer, or a new one asked for there.
   useEffect(() => { if (chatId === 'new') c.start(); else if (chatId && chatId !== data.current) c.open(chatId) }, [chatId])
@@ -123,7 +123,7 @@ function Conversation({ coach, chatId, onChange }) {
           ? <div key={i} className="cai-me">{m.content}</div>
           : <div key={i} className="cai-him">
             {list[i - 1]?.role !== 'assistant' && <div className="cai-who"><Avatar size="sm" badge={false} coach={coach} />{name}</div>}
-            <div className="cai-text"><Rich text={m.content} /></div>
+            <div className="cai-text"><Reply m={m} onApplied={k => markApplied(i, k)} /></div>
           </div>))}
         {busy && <div className="cai-him"><div className="cai-who"><Avatar size="sm" badge={false} live coach={coach} />{name}</div>
           <div className="hc-typing" aria-label={t('{0} is writing…', name)}><i /><i /><i /></div></div>}

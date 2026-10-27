@@ -205,6 +205,7 @@ export default function Modals() {
       }
       const top = sheets[sheets.length - 1]
       if (top && !top.locked) closeSheet(top.id)
+      else if (top?.onBack) top.onBack(() => closeSheet(top.id))
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
@@ -213,7 +214,12 @@ export default function Modals() {
   // lock the page behind any open sheet (iOS-safe)
   useEffect(() => {
     if (!sheets.length) return
-    const onKey = e => { if (e.key === 'Escape') { const top = useUI.getState().sheets[useUI.getState().sheets.length - 1]; if (top && !top.locked) useUI.getState().closeSheet(top.id) } }
+    const onKey = e => {
+      if (e.key !== 'Escape') return
+      const top = useUI.getState().sheets[useUI.getState().sheets.length - 1]
+      if (top && !top.locked) useUI.getState().closeSheet(top.id)
+      else if (top?.onBack) top.onBack(() => useUI.getState().closeSheet(top.id))
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [sheets.length])

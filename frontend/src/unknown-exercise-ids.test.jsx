@@ -153,7 +153,8 @@ describe('exercise ids this build does not know', () => {
     const host = render(<Stats />)
     // Exercise progress opens on the known lift: an id with no name to show is left out of
     // the picker (Stats.jsx exHist), not charted as a bare number.
-    expect(host.textContent).toContain('Barbell Full Squat · 100 kg')
+    expect(host.querySelector('.pp-cur').textContent).toContain('Barbell Full Squat')
+    expect(host.querySelector('.pp-cur .pp-best').textContent).toBe('100 kg')
     expectKept(useStore.getState().S)
   })
 

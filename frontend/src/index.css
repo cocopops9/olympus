@@ -1620,13 +1620,15 @@ body.no-tabbar #timer.working{box-shadow:inset 0 var(--hair) 0 var(--acc),0 -10p
 .hm-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
 .hm-wrap::-webkit-scrollbar{display:none}
 .hm-months{display:flex;margin-inline-start:28px;margin-bottom:5px}
-.hm-months span{flex:none;width:14px;font-size:11px;color:var(--label-3);white-space:nowrap;overflow:visible}
+.hm-months span{flex:none;width:15px;font-size:11px;color:var(--label-2);white-space:nowrap;overflow:visible}
 .hm-body{display:flex}
 .hm-days{display:flex;flex-direction:column;gap:3px;flex:none;width:28px}
-.hm-days span{height:11px;font-size:10px;color:var(--label-2);line-height:11px}
+.hm-days span{height:12px;font-size:10px;color:var(--label-2);line-height:12px}
 .hm-grid{display:flex;gap:3px}
 .hm-col{display:flex;flex-direction:column;gap:3px}
-.hm-c{width:11px;height:11px;border-radius:3px;background:var(--surface-2);flex:none}
+.hm-c{width:12px;height:12px;border-radius:3.5px;background:var(--surface-2);flex:none;transition:transform .12s}
+.hm-c.l1,.hm-c.l2,.hm-c.l3,.hm-c.l4{cursor:pointer}
+.hm-c.l1:active,.hm-c.l2:active,.hm-c.l3:active,.hm-c.l4:active{transform:scale(1.35)}
 .hm-c.l1{background:color-mix(in srgb,var(--acc) 30%,var(--surface-2))}
 .hm-c.l2{background:color-mix(in srgb,var(--acc) 55%,var(--surface-2))}
 .hm-c.l3{background:color-mix(in srgb,var(--acc) 78%,var(--surface-2))}
@@ -2140,3 +2142,9 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 [dir="rtl"] *{letter-spacing:0}
 .exfix-link{display:inline-flex;align-items:center;gap:5px;margin:14px 0 4px;color:var(--label-3);text-decoration:none}
 .list .similar-label{margin:16px 2px 6px;grid-column:1/-1}
+
+/* The year in three numbers above the activity grid (components/Heatmap.jsx). */
+.hm-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 12px}
+.hm-sum>div{background:var(--surface-2);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.hm-sum b{font-size:20px;font-weight:750;color:var(--acc);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-sum span{font-size:12px;color:var(--label-2);line-height:1.25}

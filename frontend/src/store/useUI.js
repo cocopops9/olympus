@@ -232,9 +232,11 @@ export const useUI = create((set, get) => ({
     set(s => ({ timerFlashId: s.timerFlashId + 1 }))
   },
 
-  openSheet(render, { kind = 'sheet', locked = false } = {}) {
+  // `onBack(close)`: what the system back (and Escape) does on a locked sheet, which otherwise
+  // ignores it; the finish summary treats it as Done.
+  openSheet(render, { kind = 'sheet', locked = false, onBack = null } = {}) {
     const id = uid()
-    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked }] }))
+    set(s => ({ sheets: [...s.sheets, { id, render, kind, locked, onBack }] }))
     const close = () => get().closeSheet(id)
     return { id, close, lock: v => set(s => ({ sheets: s.sheets.map(x => x.id === id ? { ...x, locked: v } : x) })) }
   },

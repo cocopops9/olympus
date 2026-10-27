@@ -1,0 +1,12 @@
+/* Olympus: changes a coach proposes (components/CoachActions.jsx). */
+.ca-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.ca-k{display:flex;align-items:center;gap:6px;color:var(--label-2)}
+.ca-k .icn{color:var(--acc)}
+.ca{border-radius:16px;padding:12px;background:color-mix(in srgb,var(--acc) 9%,var(--surface-2));border:1px solid color-mix(in srgb,var(--acc) 35%,transparent)}
+.ca.done{opacity:.75;border-color:transparent}
+.ca-h{display:flex;align-items:center;gap:8px}
+.ca-i{width:28px;height:28px;border-radius:9px;background:var(--acc);color:var(--on-acc);display:flex;align-items:center;justify-content:center;flex:none}
+.ca-lines{margin:8px 0 0;padding-inline-start:20px;font-size:14px;line-height:1.45;color:var(--label)}
+.ca-err{color:var(--red);margin-top:6px}
+.ca-acts{display:flex;gap:8px;margin-top:10px;align-items:center}
+.ca-ok{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:600;font-size:14px}
