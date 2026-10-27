@@ -66,7 +66,15 @@ jobs:
           OLYMPUS_KEY_PASSWORD: ${{ secrets.OLYMPUS_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER))
+          set -o pipefail
+          # On a failure, Gradle's own explanation becomes an annotation of the run: readable from
+          # the run's summary and the checks API without downloading the whole log.
+          if ! ./gradlew --no-daemon assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER)) 2>&1 | tee "$RUNNER_TEMP/gradle.log"; then
+            why=$( { grep -A14 'What went wrong' "$RUNNER_TEMP/gradle.log"; grep -E 'error:|Duplicate class|AAPT: error' "$RUNNER_TEMP/gradle.log"; } | head -60 \
+              | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN{ORS="%0A"} {print}')
+            echo "::error title=Gradle build failed::$why"
+            exit 1
+          fi
           cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/olympus.apk"
           tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$tools/apksigner" verify --print-certs "$RUNNER_TEMP/olympus.apk" | head -3
