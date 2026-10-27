@@ -29,6 +29,9 @@ import Stats from './Stats.jsx'
 import '../social.css'
 import { CalendarDayIcon, BarbellIcon, FlipCalendarIcon, SpinningGearIcon, PulseIcon } from '../components/LiveIcons.jsx'
 import { inviteSheet, feedbackSheet } from '../components/Community.jsx'
+import { openAccountSheet } from './MobileOnboarding.jsx'
+import { MOBILE } from '../lib/mobile.js'
+import { DEFAULT_SERVER } from '../lib/app-info.js'
 
 const TABS = ['overview', 'stats', 'posts']
 
@@ -183,6 +186,14 @@ export default function Profile() {
       {ready && requests > 0 && <Button size="sm" variant="tinted" icon="person" style={{ marginTop: 10 }} onClick={() => nav('/notifications')}>
         {tn('{0} follow request', '{0} follow requests', requests)}</Button>}
       {!ready && <p className="prof-bio">{t('Training on this device only.')}</p>}
+      {/* Olympus: no account yet. What one adds, and the way to make it; the training comes along. */}
+      {!ready && MOBILE && DEFAULT_SERVER && <div className="prof-noacct">
+        <p className="small muted">{t('With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.')}</p>
+        <div className="prof-actions">
+          <Button size="sm" variant="primary" icon="person" onClick={() => openAccountSheet('signup')}>{t('Create account')}</Button>
+          <Button size="sm" icon="key" onClick={() => openAccountSheet('login')}>{t('Sign in')}</Button>
+        </div>
+      </div>}
       <div className="prof-counts">
         {counts.map(([v, l, go]) => <button key={l} onClick={go}><span className="v">{v}</span><span className="l">{l}</span></button>)}
       </div>

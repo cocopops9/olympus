@@ -25,7 +25,7 @@ function server(clock = { t: Date.parse('2026-10-24T12:00:00Z') }) {
   };
   return { app, store, photos, call, clock };
 }
-const signup = async (s, name, password = PW) => (await s.call('POST', '/api/app/signup', { body: { name, password } })).body;
+const signup = async (s, name, password = PW) => (await s.call('POST', '/api/app/signup', { body: { name, password, email: name.toLowerCase() + '@example.com' } })).body;
 
 test('the bundled copies of the shared server modules are current', () => {
   execFileSync(process.execPath, [path.join(ROOT, 'scripts/supabase-bundle.mjs'), '--check'], { stdio: 'pipe' });
@@ -38,8 +38,8 @@ test('signup, sign in, the token, wrong passwords and the pause', async () => {
   assert.deepEqual(ana.user, { id: ana.user.id, name: 'Ana', admin: true, founder: true }, 'the first profile is the admin and the founder');
   const ben = await signup(s, 'Ben', PW + ' two');
   assert.equal(ben.user.admin, false);
-  assert.equal((await s.call('POST', '/api/app/signup', { body: { name: 'ana', password: PW + ' x' } })).status, 409);
-  assert.equal((await s.call('POST', '/api/app/signup', { body: { name: 'Cleo', password: 'short' } })).body.code, 'too-short');
+  assert.equal((await s.call('POST', '/api/app/signup', { body: { name: 'ana', password: PW + ' x', email: 'other@example.com' } })).status, 409);
+  assert.equal((await s.call('POST', '/api/app/signup', { body: { name: 'Cleo', password: 'short', email: 'cleo@example.com' } })).body.code, 'too-short');
 
   const me = await s.call('GET', '/api/me', { token: ana.token });
   assert.equal(me.status, 200);
@@ -154,10 +154,11 @@ test('a profile changes its name and its password, and keeps this device signed 
   await signup(s, 'Ben', PW + ' two');
   assert.equal((await s.call('POST', '/api/account/name', { token: ana.token, body: { name: 'ben' } })).status, 409, 'another profile’s name');
   assert.equal((await s.call('POST', '/api/account/name', { token: ana.token, body: { name: '   ' } })).body.code, 'missing');
-  const renamed = await s.call('POST', '/api/account/name', { token: ana.token, body: { name: 'Anna Maria' } });
+  assert.equal((await s.call('POST', '/api/account/name', { token: ana.token, body: { name: 'Anna Maria' } })).body.code, 'username-chars', 'a username has no spaces');
+  const renamed = await s.call('POST', '/api/account/name', { token: ana.token, body: { name: 'Anna_Maria' } });
   assert.equal(renamed.status, 200);
-  assert.equal((await s.call('GET', '/api/me', { token: ana.token })).body.user.name, 'Anna Maria');
-  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'anna maria', password: PW } })).status, 200);
+  assert.equal((await s.call('GET', '/api/me', { token: ana.token })).body.user.name, 'Anna_Maria');
+  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'anna_maria', password: PW } })).status, 200);
   assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Ana', password: PW } })).status, 401, 'the old name signs in no more');
 
   const wrong = await s.call('POST', '/api/account/password', { token: ana.token, body: { current: 'not it at all', next: PW + ' new' } });
@@ -166,7 +167,7 @@ test('a profile changes its name and its password, and keeps this device signed 
   assert.equal(changed.status, 200);
   assert.equal((await s.call('GET', '/api/me', { token: ana.token })).status, 401, 'the old session ended');
   assert.equal((await s.call('GET', '/api/me', { token: changed.body.token })).status, 200, 'the token handed back works');
-  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Anna Maria', password: PW + ' new' } })).status, 200);
+  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Anna_Maria', password: PW + ' new' } })).status, 200);
 });
 
 test('invites, usage statistics, feedback and the owner dashboard', async () => {
@@ -180,10 +181,10 @@ test('invites, usage statistics, feedback and the owner dashboard', async () => 
     const ct = res.headers.get('content-type') || '';
     return { status: res.status, body: ct.includes('json') ? await res.json() : await res.text() };
   };
-  const owner = (await call('POST', '/api/app/signup', { body: { name: 'Owner', password: PW } })).body;
+  const owner = (await call('POST', '/api/app/signup', { body: { name: 'Boss', password: PW, email: 'boss@example.com' } })).body;
   const ref = await call('GET', '/api/referral', { token: owner.token });
   assert.match(ref.body.code, /^[A-Z2-9]{6}$/);
-  const friend = (await call('POST', '/api/app/signup', { body: { name: 'Friend', password: PW, ref: ref.body.code.toLowerCase() } })).body;
+  const friend = (await call('POST', '/api/app/signup', { body: { name: 'Friend', password: PW, email: 'friend@example.com', ref: ref.body.code.toLowerCase() } })).body;
   assert.equal((await call('GET', '/api/referral', { token: owner.token })).body.invited, 1);
 
   assert.equal((await call('POST', '/api/telemetry', { token: friend.token, body: { events: [] } })).status, 400, 'needs consent');
@@ -205,7 +206,7 @@ test('invites, usage statistics, feedback and the owner dashboard', async () => 
   assert.equal(board.totals.sharing, 1);
   assert.equal(board.totals.referred, 1);
   const f = board.people.find(p => p.name === 'Friend');
-  assert.deepEqual([f.sessions, f.seconds, f.referredBy, f.platform], [1, 120, 'Owner', 'android']);
+  assert.deepEqual([f.sessions, f.seconds, f.referredBy, f.platform], [1, 120, 'Boss', 'android']);
   assert.deepEqual(board.screens, [{ path: '/plan/r/:id', seconds: 120, users: 1 }]);
   assert.deepEqual(board.events, [{ name: 'workout.finish', n: 1, users: 1 }]);
   assert.equal(board.referrals[0].invited[0].name, 'Friend');
@@ -222,4 +223,91 @@ test('invites, usage statistics, feedback and the owner dashboard', async () => 
 
   await call('POST', '/api/telemetry/forget', { token: friend.token });
   assert.equal((await call('GET', '/api/owner/dashboard', { token: owner.token })).body.totals.sharing, 0);
+});
+
+test('accounts: usernames, a required e-mail, the reset code by e-mail, Google sign-in', async () => {
+  const mails = [];
+  const tokens = {
+    good: { aud: 'web.apps.googleusercontent.com', iss: 'https://accounts.google.com', exp: String(Date.parse('2026-10-24T13:00:00Z') / 1000), sub: 'g-1', email: 'Gia@Example.com', email_verified: 'true', name: 'Gia Rossi' },
+    ana: { aud: 'web.apps.googleusercontent.com', iss: 'accounts.google.com', exp: String(Date.parse('2026-10-24T13:00:00Z') / 1000), sub: 'g-2', email: 'ana@example.com', email_verified: true, name: 'Ana' },
+    other: { aud: 'someone-else', iss: 'accounts.google.com', exp: '9999999999', sub: 'g-3', email: 'x@example.com', email_verified: 'true' },
+  };
+  const fetchImpl = async (url, init) => {
+    if (String(url).startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+      const t = tokens[decodeURIComponent(String(url).split('id_token=')[1]).replace(/^tok-/, '')];
+      return t ? new Response(JSON.stringify(t), { status: 200 }) : new Response('{}', { status: 400 });
+    }
+    mails.push({ url, body: JSON.parse(init.body) });
+    return new Response('{}', { status: 200 });
+  };
+  const clock = { t: Date.parse('2026-10-24T12:00:00Z') };
+  const store = memoryStore();
+  const app = createApp({ store, photos: memoryPhotos(), now: () => clock.t, env: { RESEND_API_KEY: 'k', MAIL_FROM: 'Olympus <no-reply@olympus.app>', GOOGLE_CLIENT_ID: 'web.apps.googleusercontent.com' }, fetchImpl });
+  const call = async (method, p, body) => {
+    const res = await app.handle(new Request(BASE + p, { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }));
+    return { status: res.status, body: await res.json() };
+  };
+  const cfg = (await call('GET', '/api/config')).body;
+  assert.equal(cfg.google_client_id, 'web.apps.googleusercontent.com');
+  assert.equal(cfg.password_reset, true);
+
+  assert.equal((await call('POST', '/api/app/signup', { name: 'ana', password: PW })).body.code, 'email-missing');
+  assert.equal((await call('POST', '/api/app/signup', { name: 'a b', password: PW, email: 'a@example.com' })).body.code, 'username-chars');
+  assert.equal((await call('POST', '/api/app/signup', { name: 'admin', password: PW, email: 'a@example.com' })).body.code, 'username-reserved');
+  assert.equal((await call('GET', '/api/app/username?name=Ana')).body.available, true);
+  const ana = (await call('POST', '/api/app/signup', { name: 'Ana', password: PW, email: 'Ana@Example.com' })).body;
+  assert.ok(ana.token);
+  assert.deepEqual((await call('GET', '/api/app/username?name=ANA')).body, { available: false, code: 'name-taken', error: 'that username is taken' });
+  assert.equal((await call('GET', '/api/app/username?name=x')).body.code, 'username-too-short');
+  assert.equal((await call('POST', '/api/app/signup', { name: 'Ana2', password: PW, email: 'ana@example.com' })).body.code, 'email-taken');
+  assert.equal((await call('POST', '/api/app/login', { identifier: 'ANA@example.com', password: PW })).status, 200, 'sign in with the e-mail');
+
+  // Forgotten password: the same answer for an address nobody has, a code by e-mail for Ana.
+  assert.deepEqual((await call('POST', '/api/app/password/forgot', { email: 'nobody@example.com' })).body, { ok: true });
+  assert.equal(mails.length, 0);
+  await call('POST', '/api/app/password/forgot', { email: 'ana@example.com' });
+  assert.equal(mails.length, 1);
+  assert.equal(mails[0].body.to[0], 'ana@example.com');
+  assert.equal(mails[0].body.from, 'Olympus <no-reply@olympus.app>');
+  const code = /code is: (\d{6})/.exec(mails[0].body.text)[1];
+  await call('POST', '/api/app/password/forgot', { email: 'ana@example.com' });
+  assert.equal(mails.length, 1, 'one e-mail a minute');
+  assert.equal((await call('POST', '/api/app/password/reset', { email: 'ana@example.com', code: '000000' === code ? '111111' : '000000', password: PW + ' new' })).body.code, 'reset-invalid');
+  const done = await call('POST', '/api/app/password/reset', { email: 'ana@example.com', code, password: PW + ' new' });
+  assert.equal(done.status, 200);
+  assert.ok(done.body.token);
+  assert.equal((await call('POST', '/api/app/login', { identifier: 'Ana', password: PW })).status, 401, 'the old password is gone');
+  assert.equal((await call('POST', '/api/app/login', { identifier: 'Ana', password: PW + ' new' })).status, 200);
+  assert.equal((await call('POST', '/api/app/password/reset', { email: 'ana@example.com', code, password: PW + ' again' })).status, 400, 'a code works once');
+
+  // Google: a new profile with a username made from the e-mail; the same Google id signs in to it.
+  assert.equal((await call('POST', '/api/app/google', { idToken: 'tok-other-xxxxxxxxxxxxxxxx' })).body.code, 'google-invalid', 'a token for another app');
+  const gia = await call('POST', '/api/app/google', { idToken: 'tok-good', ref: '' });
+  assert.equal(gia.status, 401, 'too short to be a token');
+  tokens['good-xxxxxxxxxxxxxxxxxxxx'] = tokens.good;
+  const g1 = await call('POST', '/api/app/google', { idToken: 'tok-good-xxxxxxxxxxxxxxxxxxxx' });
+  assert.equal(g1.status, 200);
+  assert.equal(g1.body.created, true);
+  assert.equal(g1.body.user.name, 'gia', 'from the e-mail');
+  const g2 = await call('POST', '/api/app/google', { idToken: 'tok-good-xxxxxxxxxxxxxxxxxxxx' });
+  assert.equal(g2.body.user.id, g1.body.user.id);
+  assert.equal(g2.body.created, false);
+  // Ana's e-mail was proved by the reset: Google links to her profile and her password stays.
+  tokens['ana-xxxxxxxxxxxxxxxxxxxxx'] = tokens.ana;
+  const g3 = await call('POST', '/api/app/google', { idToken: 'tok-ana-xxxxxxxxxxxxxxxxxxxxx' });
+  assert.equal(g3.body.user.id, ana.user.id);
+  assert.equal((await call('POST', '/api/app/login', { identifier: 'Ana', password: PW + ' new' })).status, 200);
+  // A name made from a taken e-mail gets digits.
+  assert.equal((await call('GET', '/api/app/username?name=gia')).body.available, false);
+});
+
+test('accounts: Google on a profile whose e-mail nobody proved takes its password away', async () => {
+  const s = server();
+  await signup(s, 'Mia');
+  const env = { GOOGLE_CLIENT_ID: 'web' };
+  const fetchImpl = async () => new Response(JSON.stringify({ aud: 'web', iss: 'accounts.google.com', exp: '9999999999', sub: 'g-9', email: 'mia@example.com', email_verified: 'true' }), { status: 200 });
+  const app = createApp({ store: s.store, photos: s.photos, now: () => s.clock.t, env, fetchImpl });
+  const res = await app.handle(new Request(BASE + '/api/app/google', { method: 'POST', body: JSON.stringify({ idToken: 'x'.repeat(40) }) }));
+  assert.equal(res.status, 200);
+  assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Mia', password: PW } })).status, 401);
 });

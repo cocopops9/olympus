@@ -21,9 +21,9 @@ function NoServer() {
     <div className="ico-big"><Icon name="globe" /></div>
     <h3>{t('Train together')}</h3>
     {MOBILE && DEFAULT_SERVER ? <>
-      {/* The app's own server: a name and a password, nothing to set up. */}
+      {/* The app's own server: an account, nothing to set up. */}
       <p>{t('Create a profile to follow friends and share your workouts. Your training is then kept on this phone and on the Olympus server.')}</p>
-      <Button variant="primary" icon="person" onClick={() => openAccountSheet('signup')}>{t('Create profile')}</Button>
+      <Button variant="primary" icon="person" onClick={() => openAccountSheet('signup')}>{t('Create account')}</Button>
       <div style={{ height: 8 }} />
       <Button icon="key" onClick={() => openAccountSheet('login')}>{t('Sign in')}</Button>
     </> : <>

@@ -33,7 +33,8 @@ import { limitsFrom, fmtMB, MB } from '../lib/media-limits.js'
 import { setRestAccent } from '../lib/rest-alert.js'
 import { CUSTOM, accentKey, adjustedIn, applyAccent, cleanHex, inkOn, isGrey } from '../lib/accent.js'
 import { checkForUpdate, downloadAndInstall, fetchChecksum, RELEASES_PAGE, UPDATES_ON } from '../lib/update.js'
-import { SOURCE_URL, UPSTREAM_URL } from '../lib/app-info.js'
+import { SOURCE_URL, UPSTREAM_URL, DEFAULT_SERVER } from '../lib/app-info.js'
+import { openAccountSheet } from './MobileOnboarding.jsx'
 import { forgetCoach } from '../lib/coach-api.js'
 import { REST_MAX, REST_PAUSE_MIN, REST_PAUSE_MAX, fmtRest, fmtDuration } from '../lib/duration.js'
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmentProfileSheet, plateInventorySheet, dumbbellInventorySheet, menuSheet } from '../sheets.jsx'
@@ -864,6 +865,9 @@ export default function Settings({ page = null, find = null, via = null }) {
       {!(MOBILE && user) && <Section title={MOBILE ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
         {MOBILE ? <>
           <Row icon="lock" iconTint="var(--acc)" title={t('All data stays on this phone')} subtitle={t('No account, no cloud. Back it up anytime in Data & backup.')} />
+          {DEFAULT_SERVER && <Row icon="person" iconTint="var(--acc)" title={t('Create account')} subtitle={t('Feed, AI coaches and sync. Your training comes with you.')} accessory="chevron"
+            onClick={() => openAccountSheet('signup')} />}
+          {DEFAULT_SERVER && <Row icon="key" iconTint="var(--blue)" title={t('Sign in')} accessory="chevron" onClick={() => openAccountSheet('login')} />}
           <Row icon="cloud" iconTint="var(--indigo)" title={t('Connect to my server')} subtitle={t('Sync this device to your own self-hosted Olympus instead.')} accessory="chevron"
             onClick={connectServer} />
           <KeptChangesRows />

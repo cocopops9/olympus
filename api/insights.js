@@ -138,18 +138,39 @@ export function feedbackMail(item) {
   };
 }
 
-/** Sends `mail` through Resend when the server has its key; resolves to whether it went. */
+/**
+ * Sends `mail` ({ to?, subject, text, html }; `to` defaults to the owner, FEEDBACK_EMAIL) and
+ * resolves to whether it went. Through Brevo when the server has BREVO_API_KEY (any recipient
+ * once the sender address MAIL_FROM is verified there, no domain needed), else through Resend
+ * with RESEND_API_KEY (its test sender reaches only the Resend account's own address; any
+ * recipient once a domain is verified and MAIL_FROM uses it).
+ */
 export async function sendMail(env, mail, fetchImpl = globalThis.fetch) {
-  const key = env?.RESEND_API_KEY, to = env?.FEEDBACK_EMAIL;
-  if (!key || !to) return false;
-  const res = await fetchImpl('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.FEEDBACK_FROM || 'Olympus <onboarding@resend.dev>', to: [to], subject: mail.subject, text: mail.text, html: mail.html }),
-  });
-  if (!res.ok) console.error('feedback mail', res.status, await res.text().catch(() => ''));
+  const to = mail.to || env?.FEEDBACK_EMAIL;
+  const from = env?.MAIL_FROM || env?.FEEDBACK_FROM || '';
+  if (!to) return false;
+  let res;
+  if (env?.BREVO_API_KEY) {
+    const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+    const sender = m ? { name: m[1] || 'Olympus', email: m[2] } : { name: 'Olympus', email: from || env?.FEEDBACK_EMAIL };
+    if (!sender.email) return false;
+    res = await fetchImpl('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': env.BREVO_API_KEY, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ sender, to: [{ email: to }], subject: mail.subject, textContent: mail.text, htmlContent: mail.html }),
+    });
+  } else if (env?.RESEND_API_KEY) {
+    res = await fetchImpl('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: from || 'Olympus <onboarding@resend.dev>', to: [to], subject: mail.subject, text: mail.text, html: mail.html }),
+    });
+  } else return false;
+  if (!res.ok) console.error('mail', res.status, await res.text().catch(() => ''));
   return res.ok;
 }
+/** Whether the server has a way to send mail at all. */
+export const canMail = env => !!(env?.BREVO_API_KEY || env?.RESEND_API_KEY);
 
 /* ------------------------------ dashboard ------------------------------ */
 

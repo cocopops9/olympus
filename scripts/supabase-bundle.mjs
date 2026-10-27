@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'supabase/functions/olympus');
-export const SHARED = ['social.js', 'sync-stamps.js', 'password.js', 'hercules.js', 'insights.js'];
+export const SHARED = ['social.js', 'sync-stamps.js', 'password.js', 'hercules.js', 'insights.js', 'accounts.js'];
 const check = process.argv.includes('--check');
 let stale = 0;
 for (const f of SHARED) {

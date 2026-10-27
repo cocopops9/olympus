@@ -24,7 +24,8 @@ import { createSocial, SocialError } from './social.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, leftToday, dayOf, HerculesError } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
-import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, dashboard, personDetail, exportCsv } from './insights.js';
+import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv } from './insights.js';
+import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
 const WID_KEEP = 50;
@@ -107,7 +108,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
   // Passwords: the same identifier rules as the Node server (a name, or an address with an @).
   const holder = (users, k) => (k.includes('@') ? users.find(u => u.email === k && u.pw) : null)
     || users.find(u => u.pw && nameKey(u.name) === k) || null;
-  const nameTaken = (users, name, exceptId) => users.some(u => u.id !== exceptId && u.pw && nameKey(u.name) === nameKey(name));
+  // Every profile's name counts, the ones that sign in with Google only included: a name is one person.
+  const nameTaken = (users, name, exceptId) => users.some(u => u.id !== exceptId && nameKey(u.name) === nameKey(name));
   const lockedFor = u => Math.max(0, (u?.lockUntil || 0) - now());
 
   async function login(body) {
@@ -139,34 +141,125 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     return out || { status: 401, body: WRONG };
   }
 
+  // A new account: a username (accounts.js rules), an e-mail to recover it with, a password.
   async function signup(body) {
     const name = text(body.name).trim().slice(0, 40);
     if (!name) throw new HttpError(400, 'name required', 'missing');
+    const bad = usernameProblem(name);
+    if (bad) return { status: 400, body: { error: USERNAME_ERRORS[bad], code: 'username-' + bad } };
+    const email = normalizeEmail(text(body.email).trim());
+    if (!text(body.email).trim()) return { status: 400, body: { error: 'an e-mail address is required', code: 'email-missing' } };
+    if (!email) return { status: 400, body: { error: 'that is not an e-mail address', code: 'email-invalid' } };
     const problem = passwordProblem(body.password, name);
     if (problem) return { status: 400, body: { error: POLICY_ERRORS[problem], code: problem } };
-    const hasEmail = typeof body.email === 'string' && body.email.trim() !== '';
-    const email = hasEmail ? normalizeEmail(body.email) : null;
-    if (hasEmail && !email) return { status: 400, body: { error: 'that is not an e-mail address', code: 'email-invalid' } };
     const h = await hashPassword(body.password);
     let out;
     await store.update(['db'], async ({ get, set }) => {
       const db = get('db') || { users: [] };
       db.users = usersOf(db);
       if (nameTaken(db.users, name)) { out = { status: 409, body: { error: 'another profile already signs in with this name', code: 'name-taken' } }; return; }
-      if (email && db.users.some(u => u.email === email)) { out = { status: 409, body: { error: 'another profile already uses this e-mail address', code: 'email-taken' } }; return; }
+      if (db.users.some(u => u.email === email)) { out = { status: 409, body: { error: 'another profile already uses this e-mail address', code: 'email-taken' } }; return; }
       const created = new Date(now()).toISOString();
       // The first profile on a new server is its admin, as with FIRST_USER_ADMIN on the Node server,
       // and its founder (the badge api/social.js shows), which is never handed on.
       // An invite code of its own, and the profile whose code it was made with (insights.js).
       const by = inviter(db.users, body.ref);
       const user = {
-        id: crypto.randomBytes(12).toString('base64url'), name, created, pw: { h, set: created }, ...(email ? { email } : {}),
+        id: crypto.randomBytes(12).toString('base64url'), name, created, pw: { h, set: created }, email,
         ref: newCode(db.users, n => crypto.randomBytes(n)), ...(by ? { referredBy: by.id } : {}),
         ...(db.users.length ? {} : { admin: true, founder: true }),
       };
       db.users.push(user);
       set('db', db);
       out = { status: 200, body: { user: publicUser(user), token: await makeSession(user) } };
+    });
+    return out;
+  }
+
+  // Signing in with Google (accounts.js verifyGoogle): the profile Google's id belongs to; else the
+  // profile with that e-mail, which Google has just proved is theirs, is linked to it; else a new
+  // profile with a username made from the Google name. A profile linked through an e-mail nobody
+  // had proved loses its password: whoever set it may not be the address's owner.
+  async function google(body) {
+    let g;
+    try { g = await verifyGoogle(body.idToken, env, fetchImpl, now()); }
+    catch (e) {
+      const code = e.message === 'google-off' ? 'google-off' : e.message === 'google-email' ? 'google-email' : 'google-invalid';
+      return { status: code === 'google-off' ? 503 : 401, body: { error: code === 'google-off' ? 'Google sign-in is not set up on this server' : code === 'google-email' ? 'that Google account has no verified e-mail' : 'Google did not accept this sign-in', code } };
+    }
+    let out;
+    await store.update(['db'], async ({ get, set }) => {
+      const db = get('db') || { users: [] };
+      db.users = usersOf(db);
+      let u = db.users.find(x => x.google === g.sub);
+      let made = false;
+      if (!u) {
+        u = db.users.find(x => x.email === g.email);
+        if (u) {
+          u.google = g.sub;
+          if (!u.emailVerified) { delete u.pw; u.sv = sessionVersion(u) + 1; }
+          u.emailVerified = true;
+        } else {
+          const created = new Date(now()).toISOString();
+          const by = inviter(db.users, body.ref);
+          u = {
+            id: crypto.randomBytes(12).toString('base64url'), name: usernameFrom(g, n => nameTaken(db.users, n)), created,
+            email: g.email, emailVerified: true, google: g.sub,
+            ref: newCode(db.users, n => crypto.randomBytes(n)), ...(by ? { referredBy: by.id } : {}),
+            ...(db.users.length ? {} : { admin: true, founder: true }),
+          };
+          db.users.push(u);
+          made = true;
+        }
+      }
+      if (u.disabled) { out = { status: 403, body: { error: 'this account has been disabled', code: 'disabled' } }; return; }
+      set('db', db);
+      out = { status: 200, body: { user: publicUser(u), token: await makeSession(u), created: made } };
+    });
+    return out;
+  }
+
+  // Forgotten password: a code to the account's e-mail. The answer is the same whether or not an
+  // account has that address, so the form cannot be used to find out who is registered.
+  async function forgot(body) {
+    if (!canMail(env)) return { status: 503, body: { error: 'this server cannot send e-mail yet', code: 'mail-off' } };
+    const k = nameKey(text(body.email ?? body.identifier).trim().slice(0, 300));
+    if (!k) return { status: 400, body: { error: 'e-mail required', code: 'missing' } };
+    let mail = null;
+    await store.update(['db'], async ({ get, set }) => {
+      const db = get('db'); const users = usersOf(db);
+      const u = (k.includes('@') ? users.find(x => x.email === k) : users.find(x => nameKey(x.name) === k)) || null;
+      if (!u?.email || u.disabled) return;
+      try {
+        const { code, reset } = startReset(u, await key(), now());
+        u.reset = reset;
+        mail = resetMail(u, code);
+        set('db', db);
+      } catch { /* too many e-mails: nothing sent, the same answer */ }
+    });
+    if (mail) { try { await sendMail(env, mail, fetchImpl); } catch (e) { console.error('reset mail', e); } }
+    return { status: 200, body: { ok: true } };
+  }
+
+  async function reset(body) {
+    const k = nameKey(text(body.email ?? body.identifier).trim().slice(0, 300));
+    const problemOf = u => passwordProblem(body.password, u?.name || '');
+    let out = { status: 400, body: { error: 'the code is not right or has expired', code: 'reset-invalid' } };
+    const hNew = typeof body.password === 'string' && !passwordProblem(body.password, '') ? await hashPassword(body.password) : null;
+    await store.update(['db'], async ({ get, set }) => {
+      const db = get('db'); const users = usersOf(db);
+      const u = (k.includes('@') ? users.find(x => x.email === k) : users.find(x => nameKey(x.name) === k)) || null;
+      if (!u || u.disabled) return;
+      const verdict = checkReset(u, await key(), body.code, now());
+      if (verdict !== 'ok') { if (verdict === 'wrong') set('db', db); if (verdict === 'expired') out = { status: 400, body: { error: 'the code has expired', code: 'reset-expired' } }; return; }
+      const problem = problemOf(u);
+      if (problem || !hNew) { out = { status: 400, body: { error: POLICY_ERRORS[problem || 'too-short'], code: problem || 'too-short' } }; return; }
+      u.pw = { h: hNew, set: new Date(now()).toISOString() };
+      u.sv = sessionVersion(u) + 1;
+      u.emailVerified = true;
+      delete u.reset; delete u.fails; delete u.lockUntil;
+      set('db', db);
+      out = { status: 200, body: { user: publicUser(u), token: await makeSession(u) } };
     });
     return out;
   }
@@ -231,10 +324,21 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
 
   const routes = {
     'GET /api/health': async () => ({ status: 200, body: { ok: true, writable: true } }),
-    'GET /api/config': async () => ({ status: 200, body: { invite_only: false, allow_guest: false, password_login: true, server: 'supabase' } }),
+    'GET /api/config': async () => ({ status: 200, body: { invite_only: false, allow_guest: false, password_login: true, server: 'supabase', google_client_id: googleClients(env)[0] || null, password_reset: canMail(env) } }),
 
     'POST /api/app/login': async req => login(await readJson(req)),
     'POST /api/app/signup': async req => signup(await readJson(req)),
+    'POST /api/app/google': async req => google(await readJson(req)),
+    'POST /api/app/password/forgot': async req => forgot(await readJson(req)),
+    'POST /api/app/password/reset': async req => reset(await readJson(req)),
+    // Whether a username can be taken, asked while it is typed in the sign-up form.
+    'GET /api/app/username': async (req, q) => {
+      const name = text(q.get('name')).trim();
+      const bad = usernameProblem(name);
+      if (bad) return { status: 200, body: { available: false, code: 'username-' + bad, error: USERNAME_ERRORS[bad] } };
+      const taken = nameTaken(usersOf(await store.read('db')), name);
+      return { status: 200, body: { available: !taken, ...(taken ? { code: 'name-taken', error: 'that username is taken' } : {}) } };
+    },
     // The browser routes answer the same, for anything that uses them; no cookie is ever set here.
     'POST /api/login/password': async req => login(await readJson(req)),
     'POST /api/register/password': async req => signup(await readJson(req)),
@@ -285,6 +389,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const body = await readJson(req);
       const name = text(body.name).trim().slice(0, 40);
       if (!name) return { status: 400, body: { error: 'name required', code: 'missing' } };
+      const bad = name !== user.name && usernameProblem(name);
+      if (bad) return { status: 400, body: { error: USERNAME_ERRORS[bad], code: 'username-' + bad } };
       let out = { status: 200, body: { ok: true, name } };
       await store.update(['db'], async ({ get, set }) => {
         const db = get('db'); const users = usersOf(db); const u = users.find(x => x.id === user.id);

@@ -424,11 +424,15 @@ export async function passwordRegister(name, password, code, email) {
 // name and a password, no pairing code. Like pairRedeem it talks straight to that server before
 // any base is set, and gets a Bearer token back (api/server.js POST /api/app/login, /signup).
 // `ref`: the invite code of the person who shared the app (lib/referral.js), for a new profile.
-export async function appAccount(serverBase, mode, { name, password, email, code, ref }, { probeMs = PROBE_MS } = {}) {
-  const path = mode === 'signup' ? '/api/app/signup' : '/api/app/login'
+// `mode` 'google': `idToken` from Google Sign-In (lib/google.js); 'reset': the e-mail, the code
+// that was sent to it and the new password. All four answer a token and the account.
+export async function appAccount(serverBase, mode, { name, password, email, code, ref, idToken, resetCode }, { probeMs = PROBE_MS } = {}) {
+  const path = { signup: '/api/app/signup', google: '/api/app/google', reset: '/api/app/password/reset' }[mode] || '/api/app/login'
   const body = mode === 'signup'
     ? { name, password, code: code || '', ...(email ? { email } : {}), ...(ref ? { ref } : {}) }
-    : { identifier: name, password }
+    : mode === 'google' ? { idToken, ...(ref ? { ref } : {}) }
+      : mode === 'reset' ? { email, code: resetCode, password }
+        : { identifier: name, password }
   let data
   try {
     data = await request(serverBase + path, {
@@ -441,6 +445,22 @@ export async function appAccount(serverBase, mode, { name, password, email, code
   if (!data.token || !data.user) throw failure(t('The server answered with something other than Olympus data.'), 'bad-response', 200)
   return data
 }
+// Olympus: requests to the app's own server made before signing in (no token, no base set yet).
+async function preAuth(serverBase, path, init = {}, probeMs = PROBE_MS) {
+  try {
+    return await request(serverBase + path, { ...init, headers: Object.assign({ 'Content-Type': 'application/json' }, accessFor(serverBase)) }, TIMEOUT_GET_MS)
+  } catch (e) {
+    if (e && (e.status != null || e.code)) throw e
+    throw await whyUnreachable(serverBase, probeMs)
+  }
+}
+/** Sends a password reset code to `email` (the server answers the same whether or not it is known). */
+export const appForgot = (serverBase, email) => preAuth(serverBase, '/api/app/password/forgot', { method: 'POST', body: JSON.stringify({ email }) })
+/** { available, code?, error? } for a username being typed. */
+export const appUsername = (serverBase, name) => preAuth(serverBase, '/api/app/username?name=' + encodeURIComponent(name))
+/** What the server offers before sign-in: { google_client_id, password_reset, … }. */
+export const appConfig = serverBase => preAuth(serverBase, '/api/config')
+
 export async function passwordResetRedeem(name, code, next) {
   return (await post('/api/login/password-reset', { name, code, next })).user
 }

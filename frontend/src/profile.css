@@ -41,3 +41,5 @@
 .prof-ai-avs{display:inline-flex;flex:none}
 .prof-ai-avs .hc-av+.hc-av{margin-inline-start:-14px}
 .prof-ai .chev{color:var(--label-3)}
+.prof-noacct{margin:10px auto 0;max-width:340px}
+.prof-noacct p{margin:0 0 10px;line-height:1.45}
