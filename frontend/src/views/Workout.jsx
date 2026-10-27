@@ -1,3 +1,4 @@
+import { track } from '../lib/telemetry.js'
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react'
 import SwipeCards from '../components/SwipeCards.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
@@ -1412,7 +1413,7 @@ function ActiveWorkout() {
     title: t('Discard workout?'),
     message: A.resumeOf != null ? t('What you added since picking it up again is dropped; the workout you finished before stays as it was.') : t('The sets you logged in this session will be lost.'),
     confirmText: t('Discard'), danger: true,
-    onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') },
+    onConfirm: () => { update(s => { s.active = null }); track('workout.discard'); stopRest(); stopWork(); nav('/home') },
   })
   // The header ⋯, in groups: the settings you change at the gym first (their own sheet, the same
   // values as Settings), then what to add, what to change about this workout, and Discard last.

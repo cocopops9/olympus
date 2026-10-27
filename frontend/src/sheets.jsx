@@ -1,3 +1,4 @@
+import { track } from './lib/telemetry.js'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -1117,7 +1118,7 @@ function AddToRoutine({ ex, close }) {
     exConfigSheet(ex, null, cfg => {
       update(s => {
         let r = isNew ? { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] } : s.routines.find(x => x.id === rid)
-        if (isNew) s.routines.push(r)
+        if (isNew) { s.routines.push(r); track('routine.create') }
         if (r) r.ex.push({ id: ex.id, ...cfg })
       })
       const r = isNew ? S().routines[S().routines.length - 1] : st.routines.find(x => x.id === rid)
@@ -1226,6 +1227,7 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     else {
       id = 'c' + uid()
       update(s => { const c = { id, n: name, bp, desc: d, tg, sm, muscleGroups: groups, primaries: prim, secondaries: sm, eq, custom: true }; extra(c); (s.customEx = s.customEx || []).push(c) })
+      track('exercise.create')
     }
     // The file goes to the server now rather than after the state's own debounce: another device
     // that sees the reference first shows a tile until it arrives.
@@ -2844,6 +2846,8 @@ export function startFlow(routineIds) {
   bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
 }
 export function beginWorkout(routineIds, bw) {
+  track('workout.start')
+  if (routineIds && routineIds.length) track('routine.start')
   const st = S()
   const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
   update(s => {
@@ -3485,6 +3489,7 @@ function doFinishWorkout() {
   const st = S()
   const A = st.active
   if (!A) return
+  track('workout.finish')
   const past = !!A.backfill
   // A finished workout picked up again (lib/session-edit.js resumeCompletedSession) replaces its
   // saved record; its records are held against the history without that record.

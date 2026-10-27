@@ -7,6 +7,7 @@
 //
 // Shown only to a profile with a server account on a server that has Hercules set up, never
 // during a workout or over the sign-in and first-launch screens.
+import { track } from '../lib/telemetry.js'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -205,6 +206,7 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     const msg = String(text ?? draft).trim()
     if (!msg || busy) return
     if (left === 0) { setErr(errorText({ data: { code: 'hercules-limit' } }, name)); return }
+    track('coach.ask')
     const next = [...list, { role: 'user', content: msg, ts: Date.now() }]
     const sent = putChat(latest.current, latest.current.current, next)
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)

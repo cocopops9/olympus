@@ -4,6 +4,7 @@
 //
 // Everything here needs a profile on a server: a guest, or a phone kept local, has nobody to
 // post as. socialReady() is the single check the screens use before calling anything.
+import { track } from './telemetry.js'
 import { api, apiBlob } from './api.js'
 import { sessionSections, workoutVolume, workoutDuration, workoutDay, doneUnits, setLabel } from './history.js'
 import { isWarmupRow } from './workout-model.js'
@@ -48,14 +49,14 @@ export function avatarUrl(id) {
   return avatarUrls.get(id)
 }
 export const fetchConnections = (id, kind) => api('/api/social/connections' + q({ id, kind })).then(r => r.users || [])
-export const setFollow = (id, follow) => post('/api/social/follow', { id, follow }).then(r => r.user)
+export const setFollow = (id, follow) => post('/api/social/follow', { id, follow }).then(r => { if (follow) track('follow'); return r.user })
 export const fetchFeed = before => api('/api/social/feed' + q({ before }))
 export const fetchDiscover = before => api('/api/social/discover' + q({ before }))
 export const createPost = ({ text, workout, photos, wid }) => post('/api/social/posts', { text, workout, photos: photos && photos.length ? photos : undefined, wid }).then(r => r.post)
 export const editPost = ({ id, text, photos, workout }) => post('/api/social/posts/edit', { id, text, photos, workout }).then(r => r.post)
 export const deletePost = id => post('/api/social/posts/delete', { id })
-export const setLike = (id, like, kind = 'heart') => post('/api/social/posts/like', { id, like, kind }).then(r => r.post)
-export const addComment = (id, text) => post('/api/social/posts/comment', { id, text }).then(r => r.post)
+export const setLike = (id, like, kind = 'heart') => post('/api/social/posts/like', { id, like, kind }).then(r => { if (like) track('post.like'); return r.post })
+export const addComment = (id, text) => post('/api/social/posts/comment', { id, text }).then(r => { track('post.comment'); return r.post })
 export const deleteComment = (id, commentId) => post('/api/social/posts/comment/delete', { id, commentId }).then(r => r.post)
 
 // How heavy or long a logged set was, to pick the one a post shows as the exercise's best:

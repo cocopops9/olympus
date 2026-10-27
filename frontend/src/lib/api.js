@@ -423,10 +423,11 @@ export async function passwordRegister(name, password, code, email) {
 // Olympus: the phone app signing in to (or creating a profile on) its built-in server with a
 // name and a password, no pairing code. Like pairRedeem it talks straight to that server before
 // any base is set, and gets a Bearer token back (api/server.js POST /api/app/login, /signup).
-export async function appAccount(serverBase, mode, { name, password, email, code }, { probeMs = PROBE_MS } = {}) {
+// `ref`: the invite code of the person who shared the app (lib/referral.js), for a new profile.
+export async function appAccount(serverBase, mode, { name, password, email, code, ref }, { probeMs = PROBE_MS } = {}) {
   const path = mode === 'signup' ? '/api/app/signup' : '/api/app/login'
   const body = mode === 'signup'
-    ? { name, password, code: code || '', ...(email ? { email } : {}) }
+    ? { name, password, code: code || '', ...(email ? { email } : {}), ...(ref ? { ref } : {}) }
     : { identifier: name, password }
   let data
   try {

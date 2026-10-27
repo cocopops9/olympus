@@ -3,6 +3,7 @@
 // model, the conversation in the middle and the box to write in at the bottom. Reached from
 // Profile (AI coach) and from the chat sheet's full-screen button; ?c=athena&chat=<id> opens a
 // given coach and conversation. The chat sheet stays the quick way in.
+import { track } from '../lib/telemetry.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -207,7 +208,7 @@ export default function CoachAI() {
         </button>
         <span className="grow" />
         {isOwn(coach) && <button className="iconbtn" onClick={() => ownCoachSheet(ownCoach(user?.id, coach), saved => pick(saved ? saved.id : 'hercules'))} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
-        {canVoice && <button className={'iconbtn' + (voice ? ' voice-on' : '')} onClick={() => setVoice(v => { const n = !v; try { localStorage.setItem('olympus_voice_mode', n ? '1' : '0') } catch { /* a convenience */ } return n })}
+        {canVoice && <button className={'iconbtn' + (voice ? ' voice-on' : '')} onClick={() => setVoice(v => { const n = !v; if (n) track('coach.voice'); try { localStorage.setItem('olympus_voice_mode', n ? '1' : '0') } catch { /* a convenience */ } return n })}
           aria-pressed={voice} aria-label={t('Voice mode')} title={t('Voice mode')}><Icon name="speaker" /></button>}
         <button className="iconbtn" onClick={newChat} aria-label={t('New conversation')}><Icon name="pencil" /></button>
         <button className="iconbtn" onClick={leave} aria-label={t('Close')}><Icon name="xmark" /></button>

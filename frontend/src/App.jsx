@@ -58,6 +58,9 @@ import CoachAI from './views/CoachAI.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
+import Owner from './views/Owner.jsx'
+import { useTelemetry } from './components/Community.jsx'
+import { trackScreen } from './lib/telemetry.js'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -162,6 +165,9 @@ function Shell() {
   // Olympus: the unread count behind the Home tab's dot, asked once a minute while signed in to a
   // server (store/useSocial.js). A guest or a phone kept local has no feed to ask about.
   const social = ready && socialReady(user)
+  // Olympus: usage statistics, for a person who agreed (components/Community.jsx, lib/telemetry.js).
+  const telemetry = useTelemetry({ ready, server: social, path: loc.pathname })
+  useEffect(() => { if (telemetry) trackScreen(loc.pathname) }, [telemetry, loc.pathname])
   useEffect(() => {
     if (!social) return
     startSocialPolling()
@@ -269,6 +275,7 @@ function Shell() {
               <Route path="/coach/intake" element={<CoachIntake />} />
               <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />
               <Route path="/coach/setup" element={<CoachSetup />} />
+              <Route path="/owner" element={user?.founder ? <Owner /> : <Navigate to="/home" replace />} />
               <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>

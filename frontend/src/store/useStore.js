@@ -110,6 +110,9 @@ export const DEF = {
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Stats activity heatmap metric. Profiles without this key continue to open on time.
   heatmapMetric: 'time',
+  // Olympus: whether this person shares usage statistics with the server's owner (lib/telemetry.js).
+  // null = not asked yet (components/TelemetryConsent.jsx asks once), true or false = their answer.
+  telemetry: null,
   // Which cards the Stats page shows, in order (lib/stats-cards.js); null = never chosen, the default set.
   statsCards: null,
   // How the active workout is laid out — 'cards' (one exercise at a time with Prev/Next),

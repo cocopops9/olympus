@@ -1,5 +1,6 @@
 // Olympus: the Activity card of Stats. Three ways to look at the same training, time or volume:
-//   Month  a calendar, each trained day a disc filled by how much was done, tap a day to open it;
+//   Month  a calendar, each trained day a disc coloured by its third (light, medium, full) with its
+//          minutes or volume inside, a legend with the range of each colour; tap a day to open it;
 //   Weeks  the last twelve weeks as bars, this week lit, the best week marked;
 //   Year   the whole year as the grid it always was (components/Heatmap.jsx).
 // The three numbers on top (days trained, time or volume, best run of weeks) cover the last year.
@@ -41,6 +42,37 @@ export function levelFor(values) {
 
 const fmtMin = min => (min >= 60 ? t('{0} h', Math.round(min / 6) / 10) : t('{0} min', min))
 
+/**
+ * Three tiers for the month calendar: the trained days split in thirds by their value, with the
+ * real range of each third, so the legend can say exactly what a colour means. Fewer distinct
+ * values make fewer tiers. `level(v)` is 1..3 (0 for no value).
+ */
+export function tiersFor(values) {
+  const sorted = values.filter(v => v > 0).sort((a, b) => a - b)
+  if (!sorted.length) return { level: () => 0, ranges: [] }
+  const cut1 = sorted[Math.floor(sorted.length / 3)], cut2 = sorted[Math.floor(sorted.length * 2 / 3)]
+  const raw = v => (v >= cut2 && cut2 > cut1 ? 3 : v >= cut1 && cut1 > sorted[0] ? 2 : 1)
+  const ranges = []
+  for (const v of sorted) {
+    const l = raw(v), r = ranges.find(x => x.level === l)
+    if (r) r.hi = v; else ranges.push({ level: l, lo: v, hi: v })
+  }
+  // Tiers are numbered 1..n by rank, so two tiers are light and full, not light and medium.
+  const rank = new Map(ranges.map((r, i) => [r.level, ranges.length === 2 && i === 1 ? 3 : i + 1]))
+  ranges.forEach(r => { r.level = rank.get(r.level) })
+  return { level: v => (v > 0 ? rank.get(raw(v)) : 0), ranges }
+}
+
+// The number inside a day: minutes, or the volume in thousands (t of kg, k of lb).
+const shortVal = (v, metric, unit) => (metric === 'vol' ? (v >= 1000 ? (Math.round(v / 100) / 10).toLocaleString() + (unit === 'lb' ? 'k' : 't') : String(Math.round(v))) : String(Math.round(v)))
+
+// "30–45" minutes, "4,2–6,8 t" of volume: the same numbers the days show, so they can be matched.
+function rangeText(r, metric, unit) {
+  const f = v => shortVal(v, metric, unit)
+  const text = r.lo === r.hi ? f(r.lo) : `${f(r.lo).replace(/[tk]$/, r.hi >= 1000 && r.lo >= 1000 ? '' : '$&')}–${f(r.hi)}`
+  return metric === 'vol' && r.hi < 1000 ? `${text} ${unit === 'lb' ? 'lb' : 'kg'}` : text
+}
+
 function Month({ S, agg, metric, onDay }) {
   const [offset, setOffset] = useState(0)
   const ws = weekStartOf(S)
@@ -50,7 +82,9 @@ function Month({ S, agg, metric, onDay }) {
   const days = new Date(y, m + 1, 0).getDate()
   const lead = weekDayOffset(new Date(y, m, 1, 12).getDay(), ws)
   const key = metric === 'vol' ? 'vol' : 'min'
-  const level = levelFor(Object.values(agg).map(a => a[key]))
+  // Tiers over every trained day, not only this month's: a colour means the same in every month.
+  const tiers = useMemo(() => tiersFor(Object.values(agg).map(a => a[key])), [agg, key])
+  const fmt = v => (metric === 'vol' ? fmtVol(v, S.unit) : fmtMin(v))
   const cells = []
   let n = 0, min = 0, vol = 0
   for (let i = 0; i < lead; i++) cells.push(<span key={'b' + i} className="am-d blank" />)
@@ -59,9 +93,11 @@ function Month({ S, agg, metric, onDay }) {
     const a = agg[iso]
     if (a) { n += a.n; min += a.min; vol += a.vol }
     const note = !a && dayNoteOf(S, iso)
-    const cls = 'am-d' + (a ? ' l' + level(a[key]) : '') + (iso === today ? ' today' : '') + (iso > today ? ' future' : '') + (note ? ' noted' : '')
+    const lv = a ? tiers.level(a[key]) : 0
+    const cls = 'am-d' + (a ? ' on t' + lv : '') + (iso === today ? ' today' : '') + (iso > today ? ' future' : '') + (note ? ' noted' : '')
     cells.push(<span key={iso} className={cls} title={iso} {...tappable(a || note ? () => onDay?.(iso) : undefined)}
-      aria-label={a ? `${d} · ${tn('{0} workout', '{0} workouts', a.n)}` : String(d)}><b>{d}</b></span>)
+      aria-label={a ? `${d} · ${tn('{0} workout', '{0} workouts', a.n)} · ${fmt(a[key])}` : String(d)}>
+      <b>{d}</b>{a && a[key] > 0 && <small>{shortVal(a[key], metric, S.unit)}</small>}</span>)
   }
   const names = Array.from({ length: 7 }, (_, i) => t(DAYS[(ws + i) % 7]))
   return <div className="am">
@@ -73,6 +109,12 @@ function Month({ S, agg, metric, onDay }) {
     </div>
     <div className="am-g am-names">{names.map((d, i) => <span key={i}>{d}</span>)}</div>
     <div className="am-g">{cells}</div>
+    {tiers.ranges.length > 0 && <div className="am-legend">
+      <span className="am-lt">{metric === 'vol' ? t('Volume per day') + (S.unit === 'lb' ? ' (k = 1000 lb)' : ' (t = 1000 kg)') : t('Minutes per day')}</span>
+      {tiers.ranges.map(r => <span key={r.level} className="am-li"><i className={'am-sw t' + r.level} />{rangeText(r, metric, S.unit)}</span>)}
+      <span className="am-li"><i className="am-sw today" />{t('Today')}</span>
+      {Object.keys(S.dayNotes || {}).length > 0 && <span className="am-li"><i className="am-sw note" />{t('Day note')}</span>}
+    </div>}
   </div>
 }
 
@@ -134,7 +176,7 @@ export default function Activity({ S, onDay }) {
   return <>
     <div className="hm-sum">
       <div><b>{year.length}</b><span>{t('days trained')}</span></div>
-      <div><b>{metric === 'vol' ? fmtVol(totalVol, S.unit) : t('{0} h', Math.round(totalMin / 6) / 10)}</b><span>{metric === 'vol' ? t('lifted') : t('trained')}</span></div>
+      <div><b>{metric === 'vol' ? (totalVol >= 10000 ? `${(Math.round(totalVol / 100) / 10).toLocaleString()} ${S.unit === 'lb' ? 'k lb' : 't'}` : fmtVol(totalVol, S.unit)) : t('{0} h', Math.round(totalMin / 6) / 10)}</b><span>{metric === 'vol' ? t('lifted') : t('trained')}</span></div>
       <div><b>{bestRun}</b><span>{t('weeks in a row, best')}</span></div>
     </div>
     <div className="act-tabs">

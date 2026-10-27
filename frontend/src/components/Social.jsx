@@ -2,6 +2,7 @@
 // avatars, a post with its photos, likes and comments, a person row with a follow button, and
 // the sheets for writing a post, editing your profile (bio, private, notifications, blocked
 // people), viewing a photo and listing followers.
+import { track } from '../lib/telemetry.js'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -419,6 +420,7 @@ function Composer({ close, workout, onPosted }) {
     setBusy(true)
     try {
       const post = await createPost({ text: text.trim(), workout: summary, photos: ready })
+      track('post.create')
       close()
       toast(t('Posted to your feed'))
       onPosted?.(post)

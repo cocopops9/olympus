@@ -1,5 +1,6 @@
 // Olympus: the changes a coach proposes (lib/coach-actions.js), as cards under its message: what
 // the change is, and Apply. Applied, the card says so and stays that way in the conversation.
+import { track } from '../lib/telemetry.js'
 import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -18,6 +19,7 @@ function Card({ a, applied, onApplied }) {
     let res = null
     try {
       useStore.getState().update(s => { res = applyAction(s, a) })
+      track('coach.action')
       setErr(''); setMade(res); onApplied()
       useUI.getState().toast(t('Done: {0}', d.title))
     } catch (e) { setErr(e?.message || t('That could not be done.')) }

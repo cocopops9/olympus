@@ -1,3 +1,4 @@
+import { track } from '../lib/telemetry.js'
 import { useEffect, useRef, useState, forwardRef, useSyncExternalStore } from 'react'
 import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import { useStore, DEF, hasData } from '../store/useStore.js'
@@ -44,6 +45,7 @@ import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkey
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
+import { setTelemetry, TELEMETRY_WHAT } from '../components/Community.jsx'
 import { PAGES, ROOT_GROUPS, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
 
 /* Settings (v1.3.11). The root is one screen: an account card, eleven rows that each open a page
@@ -257,6 +259,7 @@ export default function Settings({ page = null, find = null, via = null }) {
   const doExport = async () => {
     const json = JSON.stringify(useStore.getState().S, null, 2)
     const name = 'olympus-backup-' + todayISO() + '.json'
+    track('backup.export')
     // WKWebView can't download blob URLs — the native build hands the file to the share sheet.
     if (MOBILE) {
       try { await shareExport(json, name); toast(t('Backup exported')) } catch (e) { /* share sheet dismissed */ }
@@ -842,11 +845,20 @@ export default function Settings({ page = null, find = null, via = null }) {
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
       {user && !DEMO && <ServerSyncSection>
         {MOBILE && <>
-          {user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
+          {/* Olympus: the Supabase server has the owner's dashboard instead of the Node server's admin pages. */}
+          {user.founder ? <Row icon="chartLine" iconTint="var(--indigo)" title={t('Owner dashboard')} accessory="chevron" onClick={() => nav('/owner')} />
+            : user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
           <AccountIdRow id={user.id} />
           <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} danger onClick={disconnect} />
         </>}
       </ServerSyncSection>}
+
+      {user && !DEMO && <Section title={t('Privacy')} footer={TELEMETRY_WHAT()}>
+        <Row icon="chartLine" iconTint="var(--teal)" title={t('Share usage statistics')}
+          subtitle={t('Helps the developer see what is used. Turning it off deletes what was sent.')}>
+          <Switch aria-label={t('Share usage statistics')} checked={S.telemetry === true} onChange={setTelemetry} />
+        </Row>
+      </Section>}
 
       {/* account (demo and mobile builds have nothing to sign in to) */}
       {!(MOBILE && user) && <Section title={MOBILE ? t('Your data') : DEMO ? t('Demo') : t('Account')}>

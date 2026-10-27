@@ -12,6 +12,7 @@ import { normalizeServerUrl } from '../lib/remote.js'
 import { loadCfAccess, saveCfAccess } from '../lib/cf-access.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
 import { MIN_PASSWORD, looksLikeEmail, passwordError } from '../components/PasswordAuth.jsx'
+import { pendingInvite, clearPendingInvite } from '../lib/referral.js'
 
 // A plain http:// server works (#428), but whatever the app sends, the pairing code and then its
 // token, crosses the network readable. Said once under the field, not in the way: on a home
@@ -134,6 +135,8 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
   const [pw, setPw] = useState('')
   const [again, setAgain] = useState('')
   const [sex, setSex] = useState('')      // optional: '' = not said
+  // An invite code: from the link the app was opened with, or typed (lib/referral.js).
+  const [ref, setRef] = useState(() => pendingInvite())
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const nameRef = useRef(null)
@@ -154,7 +157,8 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
     if (bad) { setErr(bad); return }
     setBusy(true); setErr('')
     try {
-      await joinServer(DEFAULT_SERVER, signup ? 'signup' : 'login', { name: n, password: pw, email: mail }, askAddDeviceData)
+      await joinServer(DEFAULT_SERVER, signup ? 'signup' : 'login', { name: n, password: pw, email: mail, ...(signup && ref.trim() ? { ref: ref.trim() } : {}) }, askAddDeviceData)
+      if (signup) clearPendingInvite()
       // The body figure follows the sex chosen here; not choosing leaves it as it was.
       if (signup && sex) useStore.getState().update(s => { s.body = sex })
       close()
@@ -183,6 +187,9 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
         <input className="input" type="password" name="new-password-again" autoComplete="new-password" placeholder={t('Repeat the password')}
           value={again} onChange={e => setAgain(e.target.value)} />
         <div className="dim small" style={{ marginTop: 6 }}>{t('At least {0} characters. A few unrelated words make a good one.', MIN_PASSWORD)}</div>
+        <div style={{ height: 10 }} />
+        <input className="input" name="invite" placeholder={t('Invite code (optional)')} maxLength={12} value={ref}
+          onChange={e => setRef(e.target.value.toUpperCase())} {...field} />
         <div className="small muted" style={{ margin: '14px 2px 6px' }}>{t('Sex (optional)')}</div>
         <div className="chips signup-sex" role="group" aria-label={t('Sex (optional)')}>
           {[['male', t('Male')], ['female', t('Female')], ['', t('Prefer not to say')]].map(([v, l]) =>

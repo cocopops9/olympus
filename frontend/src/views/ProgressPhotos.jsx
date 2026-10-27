@@ -9,6 +9,7 @@
 // to store, sync or back up — one more way to reach and to look at data the media system already
 // keeps, private to the account the same way everything else there is (DATA_DIR/uploads/<uid>/,
 // api/media.js).
+import { track } from '../lib/telemetry.js'
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -164,7 +165,7 @@ export default function ProgressPhotos() {
     if (!got) return
     let res
     update(s => { res = addWorkoutMedia(s, today, got) })
-    if (res === 'added') { toast(t('Photo added')); syncMedia({ force: true }) }
+    if (res === 'added') { toast(t('Photo added')); track('photo.add'); syncMedia({ force: true }) }
     else if (res === 'full') toast(t('Up to {0} photos or videos per workout.', WORKOUT_MEDIA_MAX))
     else if (res === 'gone') toast(t('Workout deleted'))
   }

@@ -28,6 +28,7 @@ import '../profile.css'
 import Stats from './Stats.jsx'
 import '../social.css'
 import { CalendarDayIcon, BarbellIcon, FlipCalendarIcon, SpinningGearIcon, PulseIcon } from '../components/LiveIcons.jsx'
+import { inviteSheet, feedbackSheet } from '../components/Community.jsx'
 
 const TABS = ['overview', 'stats', 'posts']
 
@@ -211,5 +212,11 @@ export default function Profile() {
       <Row icon={<PulseIcon />} iconTint="var(--teal)" title={t('Body & wellbeing')} subtitle={t('How you feel, measurements and photos')} accessory="chevron" onClick={() => nav('/body')} />
       <Row icon={<SpinningGearIcon />} iconTint="var(--grey)" title={t('Settings')} accessory="chevron" onClick={() => nav('/settings')} />
     </Section>
+    {/* Olympus: bringing friends, telling the developer what to change, and for the founder the dashboard. */}
+    {ready && <Section title={t('Olympus')}>
+      <Row icon="person" iconTint="var(--acc)" title={t('Invite friends')} subtitle={t('Share the app with your invite code')} accessory="chevron" onClick={inviteSheet} />
+      <Row icon="envelope" iconTint="var(--blue)" title={t('Send feedback')} subtitle={t('Rate the app and tell the developer what to change')} accessory="chevron" onClick={feedbackSheet} />
+      {user?.founder && <Row icon="chartLine" iconTint="var(--indigo)" title={t('Owner dashboard')} subtitle={t('Users, usage, invites and feedback')} accessory="chevron" onClick={() => nav('/owner')} />}
+    </Section>}
   </div>
 }

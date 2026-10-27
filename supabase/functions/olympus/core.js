@@ -8,6 +8,7 @@
 //   'social'      the social layer        (api/social.js's document)
 //   'secret'      the key that signs sessions
 //   'hercules', 'athena'   today's count of messages to each coach, per profile (hercules.js)
+//   'tel:<uid>'   the usage statistics a profile shares, and 'feedback' (insights.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
 // are serialized the way the single Node process serialized them.
 //
@@ -23,6 +24,7 @@ import { createSocial, SocialError } from './social.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, leftToday, dayOf, HerculesError } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
+import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, dashboard, personDetail, exportCsv } from './insights.js';
 
 const SESSION_DAYS = 90;
 const WID_KEEP = 50;
@@ -49,7 +51,7 @@ const POLICY_ERRORS = {
   'too-common': 'this password is too easy to guess',
 };
 const WRONG = { error: 'wrong name or password', code: 'bad-credentials' };
-const publicUser = u => ({ id: u.id, name: u.name, admin: !!u.admin });
+const publicUser = u => ({ id: u.id, name: u.name, admin: !!u.admin, ...(u.founder ? { founder: true } : {}) });
 const sessionVersion = u => u.sv || 0;
 
 /**
@@ -155,7 +157,13 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const created = new Date(now()).toISOString();
       // The first profile on a new server is its admin, as with FIRST_USER_ADMIN on the Node server,
       // and its founder (the badge api/social.js shows), which is never handed on.
-      const user = { id: crypto.randomBytes(12).toString('base64url'), name, created, pw: { h, set: created }, ...(email ? { email } : {}), ...(db.users.length ? {} : { admin: true, founder: true }) };
+      // An invite code of its own, and the profile whose code it was made with (insights.js).
+      const by = inviter(db.users, body.ref);
+      const user = {
+        id: crypto.randomBytes(12).toString('base64url'), name, created, pw: { h, set: created }, ...(email ? { email } : {}),
+        ref: newCode(db.users, n => crypto.randomBytes(n)), ...(by ? { referredBy: by.id } : {}),
+        ...(db.users.length ? {} : { admin: true, founder: true }),
+      };
       db.users.push(user);
       set('db', db);
       out = { status: 200, body: { user: publicUser(user), token: await makeSession(user) } };
@@ -203,6 +211,16 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     const quota = fn => store.update([id], ({ get, set }) => { set(id, fn(get(id))); });
     return { status: 200, body: await handleHercules({ user, body, config: coaches[id], quota, now: now(), fetchImpl }) };
   };
+
+  // What the owner's dashboard reads: the accounts, every profile's telemetry, the feedback.
+  async function ownerData(req) {
+    const { user } = await signedIn(req);
+    if (!user.founder) throw new HttpError(403, 'only the owner of this server', 'forbidden');
+    const users = usersOf(await store.read('db'));
+    const docs = await Promise.all(users.map(u => store.read('tel:' + u.id)));
+    const tel = Object.fromEntries(users.map((u, i) => [u.id, docs[i]]).filter(([, d]) => d));
+    return { users, tel, feedback: await store.read('feedback') };
+  }
 
   async function readJson(req) {
     const raw = await req.text();
@@ -285,7 +303,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const body = await readJson(req);
       if (!(await verifyPassword(text(body.password), user.pw?.h))) return { status: 401, body: { error: 'your current password is not right', code: 'current-wrong' } };
       await withSocial(s => s.removeUser(user.id));
-      await store.update(['db', 'state:' + user.id], ({ get, set }) => {
+      await store.update(['db', 'state:' + user.id, 'tel:' + user.id], ({ get, set }) => {
+        set('tel:' + user.id, null);
         const db = get('db');
         db.users = usersOf(db).filter(u => u.id !== user.id);
         // The first profile left becomes the admin when the admin leaves.
@@ -294,6 +313,72 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         set('state:' + user.id, null);
       });
       return { status: 200, body: { ok: true } };
+    },
+
+    // Invites (insights.js): your code, made on first ask for a profile from before codes, and how
+    // many profiles were made with it.
+    'GET /api/referral': async req => {
+      const { user } = await signedIn(req);
+      let code = user.ref, invited = 0;
+      await store.update(['db'], ({ get, set }) => {
+        const db = get('db'); const users = usersOf(db); const u = users.find(x => x.id === user.id);
+        if (!u) return;
+        if (!u.ref) { u.ref = newCode(users, n => crypto.randomBytes(n)); set('db', db); }
+        code = u.ref; invited = invitedBy(users, u.id).length;
+      });
+      return { status: 200, body: { code, invited } };
+    },
+
+    // Usage statistics a person agreed to share (insights.js addTelemetry), and taking them back.
+    'POST /api/telemetry': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      if (body.consent !== true) return { status: 400, body: { error: 'consent required', code: 'no-consent' } };
+      const k = 'tel:' + user.id;
+      await store.update([k], ({ get, set }) => { set(k, addTelemetry(get(k), body.events, { platform: body.platform, version: body.version }, now())); });
+      return { status: 200, body: { ok: true } };
+    },
+    'POST /api/telemetry/forget': async req => {
+      const { user } = await signedIn(req);
+      await store.update(['tel:' + user.id], ({ set }) => { set('tel:' + user.id, null); });
+      return { status: 200, body: { ok: true } };
+    },
+
+    // Feedback from inside the app: kept, and mailed to the owner when the server can send mail.
+    'POST /api/feedback': async req => {
+      const { user } = await signedIn(req);
+      const entry = cleanFeedback(await readJson(req));
+      if (typeof entry === 'string') return { status: 400, body: { error: 'nothing to send', code: 'empty' } };
+      let item = null;
+      try {
+        await store.update(['feedback'], ({ get, set }) => { const d = addFeedback(get('feedback'), user, entry, now()); item = d.items[d.items.length - 1]; set('feedback', d); });
+      } catch (e) { if (e.message === 'limit') return { status: 429, body: { error: 'enough feedback for today', code: 'feedback-limit' } }; throw e; }
+      let mailed = false;
+      try { mailed = await sendMail(env, feedbackMail(item), fetchImpl); } catch (e) { console.error('feedback mail', e); }
+      return { status: 200, body: { ok: true, mailed } };
+    },
+
+    // The owner's dashboard (insights.js): only the founder, the profile that made this server.
+    'GET /api/owner/dashboard': async (req, q) => {
+      const { users, tel, feedback } = await ownerData(req);
+      return { status: 200, body: dashboard({ users, tel, feedback, now: now(), days: Math.min(365, Math.max(7, Number(q.get('days')) || 30)) }) };
+    },
+    'GET /api/owner/person': async (req, q) => {
+      const { users, tel } = await ownerData(req);
+      const u = users.find(x => x.id === q.get('id'));
+      if (!u) return { status: 404, body: { error: 'no such profile', code: 'not-found' } };
+      return { status: 200, body: personDetail(u, tel[u.id]) };
+    },
+    'GET /api/owner/export': async (req, q) => {
+      const { users, tel, feedback } = await ownerData(req);
+      const board = dashboard({ users, tel, feedback, now: now(), days: 365 });
+      const what = q.get('what') || 'people';
+      if (q.get('format') === 'json') return { status: 200, body: { users: board.people, daily: board.series, referrals: board.referrals, feedback: board.feedback.items, telemetry: tel } };
+      const csv = exportCsv(what, board, { tel, users });
+      if (csv == null) return { status: 400, body: { error: 'unknown export', code: 'bad-export' } };
+      // wrap=1: the same table inside JSON, for the app's own api(), which reads every answer as JSON.
+      if (q.get('wrap') === '1') return { status: 200, body: { filename: `olympus-${what}.csv`, csv } };
+      return { status: 200, raw: new TextEncoder().encode(csv), headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="olympus-${what}.csv"`, 'Cache-Control': 'no-store' } };
     },
 
     // Training data: the same document, revision and conflict rules as the Node server.

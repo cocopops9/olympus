@@ -10,19 +10,27 @@
 .am-g{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .am-names{margin-bottom:6px}
 .am-names span{text-align:center;font-size:11px;font-weight:600;color:var(--label-2);text-transform:uppercase}
-.am-d{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;
-  background:var(--surface-2);color:var(--label-2);font-size:13px;font-variant-numeric:tabular-nums;transition:transform .15s}
+.am-d{aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;line-height:1;
+  background:var(--surface-2);color:var(--label-3);font-size:13px;font-variant-numeric:tabular-nums;transition:transform .15s}
 .am-d.blank{background:none}
 .am-d b{font-weight:600}
-.am-d.l1{background:color-mix(in srgb,var(--acc) 32%,var(--surface-2));color:var(--label)}
-.am-d.l2{background:color-mix(in srgb,var(--acc) 55%,var(--surface-2));color:var(--label)}
-.am-d.l3{background:color-mix(in srgb,var(--acc) 80%,var(--surface-2));color:var(--on-acc)}
-.am-d.l4{background:var(--acc);color:var(--on-acc);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--acc) 70%,transparent)}
-.am-d[class*=" l"]{cursor:pointer}
-.am-d[class*=" l"]:active{transform:scale(.9)}
-.am-d.today{box-shadow:0 0 0 2px var(--acc)}
+.am-d small{font-size:9.5px;font-weight:700;margin-top:2px;opacity:.9;letter-spacing:-.01em}
+/* Three tiers, far apart: an outline, a half fill, the full colour. Each says its number too. */
+.am-d.t1,.am-sw.t1{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--acc);color:var(--label)}
+.am-d.t2,.am-sw.t2{background:color-mix(in srgb,var(--acc) 45%,var(--surface-2));color:var(--label)}
+.am-d.t3,.am-sw.t3{background:var(--acc);color:var(--on-acc)}
+.am-d.t3{box-shadow:0 4px 14px -5px color-mix(in srgb,var(--acc) 75%,transparent)}
+.am-d.on{cursor:pointer}
+.am-d.on:active{transform:scale(.9)}
+.am-d.today{outline:2px solid var(--label);outline-offset:2px}
 .am-d.future{opacity:.35}
 .am-d.noted::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--indigo)}
+.am-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;padding-top:10px;border-top:1px solid var(--sep);font-size:12px;color:var(--label-2)}
+.am-lt{width:100%;font-weight:600;color:var(--label-3);font-size:12px}
+.am-li{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.am-sw{width:14px;height:14px;border-radius:50%;display:inline-block;flex:none}
+.am-sw.today{background:none;outline:2px solid var(--label);outline-offset:-1px}
+.am-sw.note{width:7px;height:7px;background:var(--indigo);margin:0 3px}
 
 /* Weeks: twelve bars. */
 .aw-cap{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}

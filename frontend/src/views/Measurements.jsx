@@ -1,3 +1,4 @@
+import { track } from '../lib/telemetry.js'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -71,6 +72,7 @@ function MeasurementLog({ sourceDate, close }) {
       if (sourceDate) state.measurements = state.measurements.filter(e => e.d !== sourceDate)
       state.measurements.push(base)
     })
+    track('measurement.add')
     close()
     toast(t('Measurements saved'))
   }

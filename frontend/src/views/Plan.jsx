@@ -1,3 +1,4 @@
+import { track } from '../lib/telemetry.js'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -394,6 +395,7 @@ function Routines({ S, update, nav }) {
   const addRoutine = () => {
     const r = { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] }
     update(s => { s.routines.push(r) })
+    track('routine.create')
     nav('/plan/r/' + r.id)
   }
   // The same delete as RoutineEdit's "Delete routine" button (lib/routines.js), with an Undo in

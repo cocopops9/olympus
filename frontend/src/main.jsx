@@ -7,10 +7,14 @@ import { startMediaSync } from './lib/media-sync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
 import { startSplash } from './lib/splash.js'
 import { startAutoPost } from './lib/auto-post.js'
+import { captureInvite } from './lib/referral.js'
 import './index.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
+// Olympus: an invite link (?ref=CODE) fills the invite code of the sign-up form (lib/referral.js).
+captureInvite()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode><App /></StrictMode>

@@ -1,0 +1,21 @@
+/* Olympus: invite, feedback and the usage-statistics question (components/Community.jsx). */
+.cm-sheet{display:flex;flex-direction:column;gap:6px}
+.cm-sheet h3{margin:0 0 2px}
+.cm-sheet p{margin:0 0 6px;line-height:1.45}
+.cm-ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--acc-soft);color:var(--acc);font-size:22px;margin-bottom:4px}
+.cm-code{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 6px;padding:16px;border-radius:16px;border:1px dashed var(--acc-line);
+  background:var(--surface-2);color:var(--label);font:700 30px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;cursor:pointer}
+.cm-code .icn{font-size:18px;color:var(--acc);letter-spacing:0}
+.cm-loading{color:var(--label-3);cursor:default}
+.cm-joined{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 0 10px;color:var(--label-2);font-weight:600}
+.cm-joined .icn{color:var(--acc)}
+.cm-err{padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red);display:flex;flex-direction:column;gap:8px}
+.cm-q{margin:6px 0 4px}
+.cm-ql{font-weight:650;margin-bottom:8px}
+.cm-scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cm-scale.wide{grid-template-columns:repeat(11,1fr);gap:3px}
+.cm-pt{height:40px;border-radius:12px;border:0;background:var(--surface-2);color:var(--label);font-weight:650;font-size:15px;cursor:pointer;transition:background var(--fast,.15s)}
+.cm-scale.wide .cm-pt{height:36px;border-radius:9px;font-size:13px;padding:0}
+.cm-pt.fill{background:var(--acc-soft);color:var(--acc)}
+.cm-pt.on{background:var(--acc);color:var(--on-acc)}
+.cm-ends{display:flex;justify-content:space-between;margin-top:4px}

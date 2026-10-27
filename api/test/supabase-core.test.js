@@ -35,7 +35,7 @@ test('signup, sign in, the token, wrong passwords and the pause', async () => {
   const s = server();
   const ana = await signup(s, 'Ana');
   assert.ok(ana.token);
-  assert.deepEqual(ana.user, { id: ana.user.id, name: 'Ana', admin: true }, 'the first profile is the admin');
+  assert.deepEqual(ana.user, { id: ana.user.id, name: 'Ana', admin: true, founder: true }, 'the first profile is the admin and the founder');
   const ben = await signup(s, 'Ben', PW + ' two');
   assert.equal(ben.user.admin, false);
   assert.equal((await s.call('POST', '/api/app/signup', { body: { name: 'ana', password: PW + ' x' } })).status, 409);
@@ -167,4 +167,59 @@ test('a profile changes its name and its password, and keeps this device signed 
   assert.equal((await s.call('GET', '/api/me', { token: ana.token })).status, 401, 'the old session ended');
   assert.equal((await s.call('GET', '/api/me', { token: changed.body.token })).status, 200, 'the token handed back works');
   assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Anna Maria', password: PW + ' new' } })).status, 200);
+});
+
+test('invites, usage statistics, feedback and the owner dashboard', async () => {
+  const s = server();
+  const env = { RESEND_API_KEY: 'k', FEEDBACK_EMAIL: 'owner@example.com' };
+  const mails = [];
+  const fetchImpl = async (url, init) => { mails.push({ url, body: JSON.parse(init.body) }); return { ok: true, text: async () => '' }; };
+  const app = createApp({ store: s.store, photos: s.photos, now: () => s.clock.t, env, fetchImpl });
+  const call = async (method, p, { body, token } = {}) => {
+    const res = await app.handle(new Request(BASE + p, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) }));
+    const ct = res.headers.get('content-type') || '';
+    return { status: res.status, body: ct.includes('json') ? await res.json() : await res.text() };
+  };
+  const owner = (await call('POST', '/api/app/signup', { body: { name: 'Owner', password: PW } })).body;
+  const ref = await call('GET', '/api/referral', { token: owner.token });
+  assert.match(ref.body.code, /^[A-Z2-9]{6}$/);
+  const friend = (await call('POST', '/api/app/signup', { body: { name: 'Friend', password: PW, ref: ref.body.code.toLowerCase() } })).body;
+  assert.equal((await call('GET', '/api/referral', { token: owner.token })).body.invited, 1);
+
+  assert.equal((await call('POST', '/api/telemetry', { token: friend.token, body: { events: [] } })).status, 400, 'needs consent');
+  const t = s.clock.t;
+  await call('POST', '/api/telemetry', { token: friend.token, body: { consent: true, platform: 'android', version: '1.0', events: [
+    { t: t - 60000, type: 'open' }, { t: t - 50000, type: 'screen', path: '/plan/r/AbCdEfGhIjKlMn', sec: 120 }, { t: t - 40000, type: 'event', name: 'workout.finish' },
+    { t: t + 9e9, type: 'open' }, { t, type: 'event', name: 'Bad Name!' },
+  ] } });
+
+  const fb = await call('POST', '/api/feedback', { token: friend.token, body: { ratings: { clarity: 5, enjoy: 4, useful: 9, recommend: 10 }, text: 'Great app' } });
+  assert.equal(fb.body.mailed, true);
+  assert.equal(mails[0].body.to[0], 'owner@example.com');
+  assert.match(mails[0].body.text, /Clear and easy to use: 5\/5/);
+  assert.match(mails[0].body.text, /Useful for training: 5\/5/, 'ratings are clamped to 1-5');
+
+  assert.equal((await call('GET', '/api/owner/dashboard', { token: friend.token })).status, 403, 'only the founder');
+  const board = (await call('GET', '/api/owner/dashboard', { token: owner.token })).body;
+  assert.equal(board.totals.users, 2);
+  assert.equal(board.totals.sharing, 1);
+  assert.equal(board.totals.referred, 1);
+  const f = board.people.find(p => p.name === 'Friend');
+  assert.deepEqual([f.sessions, f.seconds, f.referredBy, f.platform], [1, 120, 'Owner', 'android']);
+  assert.deepEqual(board.screens, [{ path: '/plan/r/:id', seconds: 120, users: 1 }]);
+  assert.deepEqual(board.events, [{ name: 'workout.finish', n: 1, users: 1 }]);
+  assert.equal(board.referrals[0].invited[0].name, 'Friend');
+  assert.equal(board.feedback.ratings.clarity, 5);
+  assert.equal(board.feedback.nps, 100);
+  const person = (await call('GET', '/api/owner/person?id=' + f.id, { token: owner.token })).body;
+  assert.equal(person.recent.length, 3);
+  const csv = (await call('GET', '/api/owner/export?what=people', { token: owner.token })).body;
+  assert.match(csv, /^id,name,email,created,referredBy/);
+  assert.match(csv, /Friend/);
+  const wrapped = (await call('GET', '/api/owner/export?what=feedback&wrap=1', { token: owner.token })).body;
+  assert.equal(wrapped.filename, 'olympus-feedback.csv');
+  assert.match(wrapped.csv, /Great app/);
+
+  await call('POST', '/api/telemetry/forget', { token: friend.token });
+  assert.equal((await call('GET', '/api/owner/dashboard', { token: owner.token })).body.totals.sharing, 0);
 });
