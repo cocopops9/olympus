@@ -9,7 +9,8 @@
   background:var(--surface-2);color:var(--label);font:inherit;font-size:16px;--icon-stroke:2.4}
 .cai-pick b{font-weight:700}
 .cai-pick .icn{font-size:13px;opacity:.7}
-.cai-models{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);z-index:3;width:min(92vw,380px);
+/* Anchored to the left edge: the pop-in animation sets transform, so centring by translate pushed it off screen. */
+.cai-models{position:absolute;top:calc(100% + 6px);left:10px;right:10px;margin-inline:auto;z-index:3;max-width:380px;
   background:var(--surface);border:1px solid var(--sep);border-radius:18px;padding:6px;box-shadow:0 18px 40px -12px rgba(0,0,0,.6);
   animation:hc-pop .2s ease-out both}
 .cai-model{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:0;border-radius:12px;background:none;color:inherit;text-align:start;font:inherit}

@@ -58,6 +58,16 @@ describe('makeBackHandler', () => {
     expect(h.calls.exit).toBe(0)
   })
 
+  // The finish summary is locked against a stray tap, but back on it means Done.
+  it('runs what a locked sheet says back means', () => {
+    const h = harness()
+    let done = 0
+    h.setSheets([{ id: 'a', locked: true, onBack: close => { done++; close() } }])
+    expect(h.handler({ canGoBack: true })).toBe('sheet-back')
+    expect(done).toBe(1)
+    expect(h.calls.closed).toEqual(['a'])
+  })
+
   it('goes back a page while the WebView still has app history', () => {
     const h = harness()
     expect(h.handler({ canGoBack: true })).toBe('history')

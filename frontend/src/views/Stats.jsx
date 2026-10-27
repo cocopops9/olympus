@@ -10,7 +10,6 @@ import { STATS_CARDS, statsCardsOf } from '../lib/stats-cards.js'
 import { StatsPickerButton, statsPickerSheet } from '../components/StatsPicker.jsx'
 import { calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
-import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { loadOfWeeklyPlan, loadOfWorkouts, muscleBalanceWindow, rankOf, MUSCLES, MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
@@ -31,6 +30,7 @@ import { tappable } from '../lib/use-sheet-keyboard.js'
 import { isWarmupRow } from '../lib/workout-model.js'
 import ProgressPicker from '../components/ProgressPicker.jsx'
 import { gymsForExercise, cleanGym } from '../lib/gyms.js'
+import Activity from '../components/Activity.jsx'
 
 // Set 1 to 5 on the per-set chart — system colours, so each line keeps its hue in dark mode.
 const SET_COLORS = ['var(--blue)', 'var(--green)', 'var(--orange)', 'var(--purple)', 'var(--pink)']
@@ -663,13 +663,9 @@ export default function Stats({ embedded = false } = {}) {
     </>,
     activity: () => <>
     <div className="card">
-      <h2>{t('Activity (last 12 months)')}</h2>
-      <Heatmap
-        S={S}
-        metric={S.heatmapMetric === 'vol' ? 'vol' : 'time'}
-        onMetricChange={metric => useStore.getState().update(s => { s.heatmapMetric = metric })}
-        onDay={iso => { const ws = workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }}
-      />
+      <h2>{t('Activity')}</h2>
+      <Activity S={S}
+        onDay={iso => { const ws = S.workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }} />
     </div>
     </>,
     progress: () => <>

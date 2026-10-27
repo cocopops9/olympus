@@ -9,7 +9,8 @@ import { Button, Segmented } from '../components/ui.jsx'
 import { exercisePicker, bwSheet } from '../sheets.jsx'
 import { computeBalance, overrideKey, withOverride } from '../lib/structuralBalance.js'
 import { balanceStatusView } from '../lib/structuralBalance-view.js'
-import { TEMPLATES, TEMPLATE_LIST, DEFAULT_TEMPLATE_ID, EVALUATION_MODES } from '../lib/structuralBalanceTemplates.js'
+import { TEMPLATES, TEMPLATE_LIST, DEFAULT_TEMPLATE_ID, EVALUATION_MODES, BORDERLINE_BAND_PCT } from '../lib/structuralBalanceTemplates.js'
+import { useUI } from '../store/useUI.js'
 
 // A role pointed at a custom exercise since deleted (on this device or another) still names
 // something rather than showing a blank line.
@@ -62,7 +63,8 @@ export default function StructuralBalance() {
           : <><div className="sb-sum-k">{t('Not enough data yet')}</div><div className="small muted">{t('Log the lifts below to see how they compare.')}</div></>}
       <div className="sb-counts">
         {[['balanced', 'Balanced'], ['borderline', 'Borderline'], ['weak', 'Weak'], ['no-data', 'No data']].map(([st, label]) => count(st) > 0 &&
-          <span key={st} className={'sb-count s-' + st}><i />{t(label)} <b>{count(st)}</b></span>)}
+          <button key={st} className={'sb-count s-' + st} onClick={() => statusInfoSheet(st)} aria-label={t('What {0} means', t(label))}>
+            <i />{t(label)} <b>{count(st)}</b><Icon name="info" className="sb-info" /></button>)}
       </div>
       <details className="sb-how">
         <summary>{t('How to read this')}</summary>
@@ -107,7 +109,8 @@ export default function StructuralBalance() {
                 </span>}
               </span>
               <span className="v" style={{ textAlign: 'end', flexShrink: 0 }}>
-                <span className={'sb-badge s-' + r.status}>{t(view.label)}</span>
+                <button className={'sb-badge s-' + r.status} onClick={() => statusInfoSheet(r.status)} aria-label={t('What {0} means', t(view.label))}>
+                  {t(view.label)}<Icon name="info" className="sb-info" /></button>
                 <span className="dim small sb-ratio" style={{ display: 'block' }} title={valueText}>{valueText}</span>
               </span>
             </div>
@@ -125,6 +128,25 @@ export default function StructuralBalance() {
       })}
     </div>
   </>
+}
+
+// What each verdict means, from the badge or the counts at the top (lib/structuralBalance.js
+// classify: on target, up to BORDERLINE_BAND_PCT points under it, or further under).
+const STATUS_HELP = [
+  ['balanced', 'Balanced', () => t('The lift is at the ratio the table asks for, or above it. Nothing to fix.')],
+  ['borderline', 'Borderline', () => t('A little under the ratio: up to {0} points below the target. Worth watching, not a problem yet.', BORDERLINE_BAND_PCT)],
+  ['weak', 'Weak', () => t('Clearly under the ratio: more than {0} points below the target. This is the lift that holds the others back; train it more often or with more volume.', BORDERLINE_BAND_PCT)],
+  ['no-data', 'No data', () => t('No set of this lift yet in your history, or a value it needs (your body weight, or the anchor lift) is missing.')],
+]
+function statusInfoSheet(focus) {
+  useUI.getState().openSheet(close => <div className="sb-help">
+    <h3 style={{ marginBottom: 10 }}>{t('What the verdicts mean')}</h3>
+    {STATUS_HELP.map(([st, label, text]) => <div key={st} className={'sb-help-row s-' + st + (st === focus ? ' on' : '')}>
+      <span className={'sb-badge s-' + st}>{t(label)}</span>
+      <p className="small">{text()}</p>
+    </div>)}
+    <Button variant="primary" onClick={close}>{t('Done')}</Button>
+  </div>)
 }
 
 // How close a scored lift is to its target, in % of the target (100 = on target).

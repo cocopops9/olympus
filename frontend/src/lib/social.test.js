@@ -77,7 +77,7 @@ describe('avatars and readiness', () => {
   it('explains the failures a person can act on', () => {
     const t = s => s
     expect(socialErrorText({ status: 429 }, t)).toMatch(/too many posts/)
-    expect(socialErrorText({ code: 'not-paired', status: 0 }, t)).toMatch(/Connect to a server/)
+    expect(socialErrorText({ code: 'not-paired', status: 0 }, t)).toMatch(/Connect to the internet/)
     expect(socialErrorText({ message: 'boom', status: 500 }, t)).toBe('boom')
   })
 })

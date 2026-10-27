@@ -20,3 +20,6 @@
 .pp-check{flex:none;color:var(--acc)}
 .gym-filter{align-items:center;gap:6px;margin:-4px 0 10px;flex-wrap:wrap;overflow:visible}
 .gym-filter>.icn{color:var(--acc);font-size:15px}
+.pp-map{background:var(--surface-2);border-radius:16px;padding:10px 6px;margin-bottom:4px}
+.pp-all{margin-top:14px}
+.pp-all summary{cursor:pointer;color:var(--acc);font-weight:600;font-size:14px;padding:6px 4px}

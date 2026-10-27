@@ -27,6 +27,7 @@ import { coachGoalsSheet } from './CoachGoals.jsx'
 import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js'
 import CoachActions from './CoachActions.jsx'
 import { splitActions } from '../lib/coach-actions.js'
+import { MicButton } from './Voice.jsx'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -297,6 +298,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
       <textarea ref={input} rows={1} maxLength={2000} value={draft} placeholder={t('Ask {0}…', name)}
         onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
+      <MicButton disabled={busy} onText={setDraft} onFinal={setDraft} />
       <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
     </form>}
     <div className="hc-note">{t('{0} is an AI and can be wrong. For pain or health problems, see a doctor.', name)}</div>

@@ -147,7 +147,7 @@ export function hueOf(id) {
 
 /** A failure from these calls as a sentence for a toast. */
 export function socialErrorText(e, t) {
-  if (e && e.code === 'not-paired') return t('Connect to a server to use the feed.')
+  if (e && e.code === 'not-paired') return t('Connect to the internet to use the feed.')
   if (e && e.status === 401) return t('Sign in again to use the feed.')
   if (e && e.status === 429) return t('Slow down a little: too many posts in the last hour.')
   if (e && e.code === 'photo-too-large') return t('That photo is too large.')

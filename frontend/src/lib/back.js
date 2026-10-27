@@ -18,7 +18,8 @@ export const EXIT_WINDOW = 2000
 
 // What a back press means, given what is on screen. Pure, so the table below is testable.
 export function decideBack({ top, canGoBack, exitArmed }) {
-  if (top) return top.locked ? 'ignore' : 'sheet'   // a locked sheet swallows back on purpose
+  // A locked sheet swallows back on purpose, unless it says what back means (the finish summary: Done).
+  if (top) return top.locked ? (top.onBack ? 'sheet-back' : 'ignore') : 'sheet'
   if (canGoBack) return 'history'                   // a page/tab we pushed ourselves
   return exitArmed ? 'exit' : 'arm-exit'
 }
@@ -34,6 +35,7 @@ export function makeBackHandler({ getSheets, closeSheet, toast, goBack, exit, no
     })
     if (action !== 'arm-exit') armedAt = -Infinity
     if (action === 'sheet') closeSheet(sheets[sheets.length - 1].id)
+    else if (action === 'sheet-back') { const top = sheets[sheets.length - 1]; top.onBack(() => closeSheet(top.id)) }
     else if (action === 'history') goBack()
     else if (action === 'arm-exit') { armedAt = now(); toast(t('Press back again to exit')) }
     else if (action === 'exit') exit()

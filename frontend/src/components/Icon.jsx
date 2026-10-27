@@ -138,6 +138,8 @@ const P = {
 
   /* ---- v1.3.11: one icon per concept (the Settings redesign names them) ---- */
   // sound, not "notification": a speaker with two waves
+  // a microphone on its stand, for dictation to the AI coaches
+  mic: <><rect x="9" y="3.2" width="6" height="11" rx="3" /><path d="M5.6 11.2a6.4 6.4 0 0 0 12.8 0M12 17.6v3.2M8.6 20.8h6.8" /></>,
   speaker: <><path d="M4.6 9.4h3.2l4.6-3.8v12.8l-4.6-3.8H4.6Z" /><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4" /></>,
   // a phone with buzz marks on both sides
   vibrate: <><rect x="8" y="4.2" width="8" height="15.6" rx="2" /><path d="M4.8 9v6M19.2 9v6M2.6 10.6v2.8M21.4 10.6v2.8" /></>,

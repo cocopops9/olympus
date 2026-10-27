@@ -38,7 +38,7 @@ describe('Stats: chosen cards', () => {
   })
   it('a choice shows only those cards, in its order', () => {
     mount({ statsCards: ['recent', 'activity'] })
-    expect(headings()).toEqual(['Recent workouts', 'Activity (last 12 months)'])
+    expect(headings()).toEqual(['Recent workouts', 'Activity'])
     expect(host.querySelector('.tiles')).toBe(null)
   })
   it('every card chosen: no invitation', () => {

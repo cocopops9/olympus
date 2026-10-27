@@ -1,0 +1,36 @@
+/* Olympus: the Activity card of Stats (components/Activity.jsx). */
+.act-tabs{display:grid;grid-template-columns:1.5fr 1fr;gap:8px;margin-bottom:12px}
+.act-tabs .seg{margin:0}
+
+/* Month: a calendar of discs. */
+.am-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.am-t{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px}
+.am-t b{text-transform:capitalize}
+.am-t b{font-size:16px}
+.am-g{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.am-names{margin-bottom:6px}
+.am-names span{text-align:center;font-size:11px;font-weight:600;color:var(--label-2);text-transform:uppercase}
+.am-d{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;
+  background:var(--surface-2);color:var(--label-2);font-size:13px;font-variant-numeric:tabular-nums;transition:transform .15s}
+.am-d.blank{background:none}
+.am-d b{font-weight:600}
+.am-d.l1{background:color-mix(in srgb,var(--acc) 32%,var(--surface-2));color:var(--label)}
+.am-d.l2{background:color-mix(in srgb,var(--acc) 55%,var(--surface-2));color:var(--label)}
+.am-d.l3{background:color-mix(in srgb,var(--acc) 80%,var(--surface-2));color:var(--on-acc)}
+.am-d.l4{background:var(--acc);color:var(--on-acc);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--acc) 70%,transparent)}
+.am-d[class*=" l"]{cursor:pointer}
+.am-d[class*=" l"]:active{transform:scale(.9)}
+.am-d.today{box-shadow:0 0 0 2px var(--acc)}
+.am-d.future{opacity:.35}
+.am-d.noted::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--indigo)}
+
+/* Weeks: twelve bars. */
+.aw-cap{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.aw-cap b{font-size:24px;font-weight:750;color:var(--acc);font-variant-numeric:tabular-nums}
+.aw-bars{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;height:130px;align-items:end}
+.aw-b{height:100%;border:0;padding:0;background:none;display:flex;align-items:flex-end;cursor:pointer}
+.aw-b i{display:block;width:100%;border-radius:8px 8px 4px 4px;background:color-mix(in srgb,var(--acc) 38%,var(--surface-2));transition:height .4s cubic-bezier(.2,.8,.2,1),background .2s}
+.aw-b.now i,.aw-b.sel i{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 70%,#fff),var(--acc))}
+.aw-b.best i{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 55%,transparent)}
+.aw-x{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-top:6px}
+.aw-x span{font-size:10.5px;color:var(--label-2);white-space:nowrap;overflow:visible}

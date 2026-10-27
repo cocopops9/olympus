@@ -18,7 +18,7 @@ const volumeOf = w => {
 }
 
 // GitHub-style activity heatmap, shaded by the selected time or volume metric per day.
-export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChange }) {
+export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChange, hideMetric = false }) {
   const wrapRef = useRef(null)
   const [localMetric, setLocalMetric] = useState(() => normalizeMetric(selectedMetric ?? S?.heatmapMetric))
   useEffect(() => { if (wrapRef.current) wrapRef.current.scrollLeft = wrapRef.current.scrollWidth }, [])
@@ -55,7 +55,7 @@ export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChan
   dayLabels[weekDayOffset(3, ws)] = 'Wed'
   dayLabels[weekDayOffset(5, ws)] = 'Fri'
 
-  const months = [], cols = [], weekHas = []
+  const months = [], cols = []
   let lastMonth = -1
   for (let wk = 0; wk <= 52; wk++) {
     const colStart = new Date(start); colStart.setDate(start.getDate() + wk * 7)
@@ -76,28 +76,12 @@ export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChan
         title={key + (a ? ` · ${tn('{0} workout', '{0} workouts', a.n)} · ${t('{0} min', a.min)} · ${fmtVol(a.vol, S.unit)}` : note ? ` · ${dayNoteLine(note, t)}` : '')}
         {...tappable(a || note ? () => onDay?.(key) : undefined)} />)
     }
-    weekHas.push(cells.some(c => / l[1-4]/.test(c.props.className)))
     cols.push(<div key={wk} className="hm-col">{cells}</div>)
   }
 
-  // The year in three numbers, above the grid: days trained, time or volume in total, and the
-  // longest run of weeks with at least one workout.
-  const since = isoOf(start)
-  const yearDays = Object.entries(agg).filter(([d]) => d >= since)
-  const totalMin = yearDays.reduce((n, [, a]) => n + a.min, 0)
-  const totalVol = yearDays.reduce((n, [, a]) => n + a.vol, 0)
-  let run = 0, best = 0
-  for (const col of weekHas) { run = col ? run + 1 : 0; if (run > best) best = run }
-  const hours = Math.round(totalMin / 6) / 10
-
   return <>
-    <div className="hm-sum">
-      <div><b>{yearDays.length}</b><span>{t('days trained')}</span></div>
-      <div><b>{metric === 'vol' ? fmtVol(totalVol, S.unit) : t('{0} h', hours)}</b><span>{metric === 'vol' ? t('lifted') : t('trained')}</span></div>
-      <div><b>{best}</b><span>{t('weeks in a row, best')}</span></div>
-    </div>
-    <Segmented value={metric} onChange={changeMetric}
-      options={[{ value: 'time', label: t('Time') }, { value: 'vol', label: t('Volume') }]} />
+    {!hideMetric && <Segmented value={metric} onChange={changeMetric}
+      options={[{ value: 'time', label: t('Time') }, { value: 'vol', label: t('Volume') }]} />}
     <div className="hm-wrap" ref={wrapRef}>
       <div className="hm-months" style={{ marginInlineStart: 30 }}>{months}</div>
       <div className="hm-body">

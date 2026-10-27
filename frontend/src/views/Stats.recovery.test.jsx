@@ -497,7 +497,9 @@ describe('Stats exercise progress picker', () => {
     const input = modal.querySelector('.pp-search input')
     expect(input.getAttribute('aria-label')).toBe('Search…')
     const rows = () => [...modal.querySelectorAll('.pp-row')]
-    expect(rows()).toHaveLength(3)
+    // Trained recently first; the body map below lists the selected exercise's muscle again.
+    expect(modal.querySelector('.pp-sec').querySelectorAll('.pp-row')).toHaveLength(3)
+    expect(modal.querySelector('.pp-map')).toBeTruthy()
     expect(modal.textContent).toContain('Legacy shoulder press')
     // Each row has its picture.
     expect(rows().every(r => r.querySelector('.thumb'))).toBe(true)
