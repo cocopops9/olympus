@@ -31,6 +31,7 @@ import { isWarmupRow } from '../lib/workout-model.js'
 import ProgressPicker from '../components/ProgressPicker.jsx'
 import { gymsForExercise, cleanGym } from '../lib/gyms.js'
 import Activity from '../components/Activity.jsx'
+import { workoutsSheet, monthSheet, streakSheet, recordsSheet } from '../components/StatSheets.jsx'
 
 // Set 1 to 5 on the per-set chart — system colours, so each line keeps its hue in dark mode.
 const SET_COLORS = ['var(--blue)', 'var(--green)', 'var(--orange)', 'var(--purple)', 'var(--pink)']
@@ -654,10 +655,10 @@ export default function Stats({ embedded = false } = {}) {
   const cards = {
     summary: () => <>
     <div className="tiles">
-      <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>
-      <div className="tile"><div className="l"><Icon name="calendar" />{t('This month')}</div><div className="v">{monthW}</div></div>
-      <div className="tile"><div className="l"><Icon name="flame" />{t('Week streak')}</div><div className="v">{streakWeeks(S)}</div></div>
-      <div className="tile"><div className="l"><Icon name="trophy" />{t('PRs')}</div><div className="v">{workouts.reduce((n, w) => n + (Array.isArray(w.prs) ? w.prs.length : 0), 0)}</div></div>
+      <div className="tile tappable" {...tappable(workoutsSheet)}><div className="l"><Icon name="dumbbell" />{t('Workouts')}<Icon name="chevronRight" className="tile-go" /></div><div className="v">{workouts.length}</div></div>
+      <div className="tile tappable" {...tappable(monthSheet)}><div className="l"><Icon name="calendar" />{t('This month')}<Icon name="chevronRight" className="tile-go" /></div><div className="v">{monthW}</div></div>
+      <div className="tile tappable" {...tappable(streakSheet)}><div className="l"><Icon name="flame" />{t('Week streak')}<Icon name="chevronRight" className="tile-go" /></div><div className="v">{streakWeeks(S)}</div></div>
+      <div className="tile tappable" {...tappable(recordsSheet)}><div className="l"><Icon name="trophy" />{t('PRs')}<Icon name="chevronRight" className="tile-go" /></div><div className="v">{workouts.reduce((n, w) => n + (Array.isArray(w.prs) ? w.prs.length : 0), 0)}</div></div>
 
     </div>
     </>,

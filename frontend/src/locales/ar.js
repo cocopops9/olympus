@@ -2878,4 +2878,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "مع حساب تحصل على الموجز والأصدقاء ومدرّبي الذكاء الاصطناعي والدعوات، وتمارينك متزامنة وآمنة في السحابة. ما سجّلته هنا ينتقل معك.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "اسم المستخدم هو ما يجدك به أصدقاؤك. يُستخدم البريد فقط لاستعادة حسابك.",
   "or": "أو",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "يُحتسب الأسبوع إذا تمرّنت فيه مرة واحدة على الأقل. يُبقي الأسبوع الحالي السلسلة قائمة حتى ينتهي.",
+  "Best: {0}": "الأفضل: {0}",
+  "Each time a lift beat its best weight": "كل مرة تجاوز فيها تمرين أفضل وزن له",
+  "No records yet. Lift more than your best and it shows up here.": "لا أرقام قياسية بعد. ارفع أكثر من أفضل ما لديك وسيظهر هنا.",
+  "No workouts this month yet.": "لا تمارين هذا الشهر بعد.",
+  "No workouts yet.": "لا تمارين بعد.",
+  "Train this week to start a streak.": "تمرّن هذا الأسبوع لتبدأ سلسلة.",
+  "{0} week": "{0} أسبوع",
+  "{0} weeks": "{0} أسابيع",
 }

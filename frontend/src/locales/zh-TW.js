@@ -2816,4 +2816,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "有了帳號，你就能使用動態和朋友、AI 教練、邀請，訓練紀錄也會同步並安全保存在雲端。你在這裡記錄的內容會一起帶過去。",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "朋友透過使用者名稱找到你。電子郵件只用來找回帳號。",
   "or": "或",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "一週內至少訓練一次就算數。本週結束前，連續紀錄都會保持。",
+  "Best: {0}": "最佳：{0}",
+  "Each time a lift beat its best weight": "每次某個動作超過其最佳重量",
+  "No records yet. Lift more than your best and it shows up here.": "還沒有紀錄。舉得比你的最好成績更重，它就會出現在這裡。",
+  "No workouts this month yet.": "本月還沒有訓練。",
+  "No workouts yet.": "還沒有訓練。",
+  "Train this week to start a streak.": "本週訓練，開始連續紀錄。",
+  "{0} week": "{0} 週",
+  "{0} weeks": "{0} 週",
 }

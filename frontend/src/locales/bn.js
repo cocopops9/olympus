@@ -2902,4 +2902,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "অ্যাকাউন্ট থাকলে ফিড ও বন্ধু, AI কোচ, আমন্ত্রণ পাবে, আর তোমার ট্রেনিং ক্লাউডে সিঙ্ক ও নিরাপদ থাকবে। এখানে যা লগ করেছ তা সঙ্গে যাবে।",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "ইউজারনেম দিয়েই বন্ধুরা তোমাকে খুঁজে পায়। ইমেল কেবল অ্যাকাউন্ট ফিরে পেতে ব্যবহার হয়।",
   "or": "অথবা",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "কোনো সপ্তাহে অন্তত একবার ট্রেনিং করলে সেটি গোনা হয়। চলতি সপ্তাহ শেষ না হওয়া পর্যন্ত ধারাটি টিকিয়ে রাখে।",
+  "Best: {0}": "সেরা: {0}",
+  "Each time a lift beat its best weight": "যতবার কোনো লিফট তার সেরা ওজন ছাড়িয়েছে",
+  "No records yet. Lift more than your best and it shows up here.": "এখনও কোনো রেকর্ড নেই। আপনার সেরার চেয়ে বেশি তুলুন, এখানে দেখা যাবে।",
+  "No workouts this month yet.": "এই মাসে এখনও কোনো ওয়ার্কআউট নেই।",
+  "No workouts yet.": "এখনও কোনো ওয়ার্কআউট নেই।",
+  "Train this week to start a streak.": "ধারা শুরু করতে এই সপ্তাহে ট্রেনিং করুন।",
+  "{0} week": "{0} সপ্তাহ",
+  "{0} weeks": "{0} সপ্তাহ",
 }

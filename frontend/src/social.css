@@ -13,13 +13,27 @@
 .avatar.lg{--av:76px}
 .avatar.xl{--av:132px}
 
-/* The founder: a golden name and the seal after it (components/Social.jsx FounderBadge). */
+/* The founder: a cosmic name, a nebula drifting through the letters with a soft starlight glow,
+   and the seal after it (components/Social.jsx FounderBadge). */
 .uname.founder{display:inline-flex;align-items:center;gap:.28em;max-width:100%;vertical-align:bottom}
-.uname.founder .uname-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;
-  background:linear-gradient(100deg,#fff3b0 0%,#f5c518 28%,#e0a106 55%,#ffe27a 78%,#c98a00 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-:root[data-theme="light"] .uname.founder .uname-t{background-image:linear-gradient(100deg,#b07800 0%,#d79a00 35%,#8f6100 65%,#c58a00 100%)}
-.founder-badge{flex:none;width:1.05em;height:1.05em;filter:drop-shadow(0 0 3px rgba(245,197,24,.45))}
+.uname.founder .uname-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;
+  background:linear-gradient(100deg,#7af5ff 0%,#9d7bff 18%,#ff5ce1 34%,#fff4fe 46%,#6ad7ff 58%,#a26bff 74%,#ff7ad9 88%,#7af5ff 100%);
+  background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 .18em rgba(157,123,255,.55)) drop-shadow(0 0 .45em rgba(90,215,255,.28));
+  animation:cosmic-flow 9s linear infinite,cosmic-glow 3.6s ease-in-out infinite}
+:root[data-theme="light"] .uname.founder .uname-t{
+  background-image:linear-gradient(100deg,#0a8fb0 0%,#5b34e0 18%,#c2189d 34%,#3a1aa8 46%,#0b84c9 58%,#6a2bd9 74%,#c41f8f 88%,#0a8fb0 100%);
+  filter:drop-shadow(0 0 .14em rgba(91,52,224,.35))}
+@keyframes cosmic-flow{from{background-position:0% 50%}to{background-position:300% 50%}}
+@keyframes cosmic-glow{0%,100%{filter:drop-shadow(0 0 .16em rgba(157,123,255,.5)) drop-shadow(0 0 .4em rgba(90,215,255,.22))}
+  50%{filter:drop-shadow(0 0 .24em rgba(255,92,225,.6)) drop-shadow(0 0 .7em rgba(122,245,255,.4))}}
+:root[data-theme="light"] .uname.founder .uname-t{animation:cosmic-flow 9s linear infinite}
+.founder-badge{flex:none;width:1.05em;height:1.05em;overflow:visible;animation:cosmic-badge 3.6s ease-in-out infinite}
+@keyframes cosmic-badge{0%,100%{filter:drop-shadow(0 0 3px rgba(157,123,255,.65))}50%{filter:drop-shadow(0 0 7px rgba(122,245,255,.85))}}
+.founder-badge .fb-spark{transform-box:fill-box;transform-origin:center;animation:cosmic-spark 2.8s ease-in-out infinite}
+.founder-badge .fb-spark.b{animation-delay:1.4s}
+@keyframes cosmic-spark{0%,100%{opacity:0;transform:scale(.3)}45%,55%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.uname.founder .uname-t,.founder-badge,.founder-badge .fb-spark{animation:none}}
 .prof-n .uname.founder{gap:.22em}
 .avatar.ph{background:var(--surface-2);overflow:hidden}
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}

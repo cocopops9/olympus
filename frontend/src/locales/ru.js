@@ -2827,4 +2827,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "С аккаунтом у тебя есть лента и друзья, ИИ-тренеры, приглашения и тренировки, синхронизированные и сохранённые в облаке. Всё, что ты записал здесь, перейдёт с тобой.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "По имени пользователя тебя находят друзья. Почта нужна только для восстановления аккаунта.",
   "or": "или",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "Неделя засчитывается, если вы тренировались хотя бы раз. Текущая неделя сохраняет серию, пока не закончится.",
+  "Best: {0}": "Лучшее: {0}",
+  "Each time a lift beat its best weight": "Каждый раз, когда упражнение превзошло свой лучший вес",
+  "No records yet. Lift more than your best and it shows up here.": "Рекордов пока нет. Поднимите больше своего максимума, и он появится здесь.",
+  "No workouts this month yet.": "В этом месяце тренировок пока нет.",
+  "No workouts yet.": "Тренировок пока нет.",
+  "Train this week to start a streak.": "Потренируйтесь на этой неделе, чтобы начать серию.",
+  "{0} week": "{0} неделя",
+  "{0} weeks": {"one": "{0} неделя", "few": "{0} недели", "many": "{0} недель"},
 }

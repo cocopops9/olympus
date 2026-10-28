@@ -1,0 +1,19 @@
+/* Olympus: the sheets behind the numbers at the top of Stats (components/StatSheets.jsx). */
+.tile.tappable{cursor:pointer;transition:background .15s,transform .12s}
+.tile.tappable:active{transform:scale(.98)}
+.tile .l .tile-go{margin-inline-start:auto;font-size:13px;color:var(--label-3)}
+.stsh{text-align:start}
+.stsh-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.stsh-head h3{margin:0}
+.stsh-head .grow{flex:1;min-width:0}
+.stsh-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;
+  background:var(--acc-soft);color:var(--acc);font-size:20px}
+.stsh-v{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stsh-note{margin:0 2px 10px;line-height:1.45}
+.stsh-group,.stsh-week{margin-top:12px}
+.stsh-gh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 4px 6px}
+.stsh-gh b{font-size:15px}
+.stsh-group .stsh-gh b{text-transform:capitalize}
+.stsh-more{margin-top:12px}
+.lrow-i.stsh-pr{width:34px;height:34px;border-radius:8px;font-size:17px;background:color-mix(in srgb,var(--acc) 18%,var(--surface-2));color:var(--acc)}
+.stsh-kg{font-variant-numeric:tabular-nums;white-space:nowrap;margin-inline-start:6px}

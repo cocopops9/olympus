@@ -16,8 +16,18 @@ import { todayISO, isoOf } from './format.js'
 export const FEEL_FIELDS = [
   { id: 'energy', name: 'Energy', icon: 'bolt', low: 'Low', high: 'High' },
   { id: 'sleep', name: 'Sleep', icon: 'moon', low: 'Poor', high: 'Great' },
-  { id: 'soreness', name: 'Soreness', icon: 'figureStrength', low: 'None', high: 'Very sore' },
+  { id: 'soreness', name: 'Soreness', icon: 'figureStrength', low: 'None', high: 'Very sore', worseHigh: true },
 ]
+
+/**
+ * How good an answer is, 1 (worst) to 5 (best): the value itself, turned round for soreness,
+ * where 5 means very sore. The faces and their colors follow this, never the raw value.
+ */
+export const goodness = (field, v) => {
+  const f = FEEL_FIELDS.find(x => x.id === field)
+  const n = score(v)
+  return n == null ? null : f?.worseHigh ? 6 - n : n
+}
 const IDS = FEEL_FIELDS.map(f => f.id)
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const ISO = /^\d{4}-\d{2}-\d{2}$/

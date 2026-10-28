@@ -2823,4 +2823,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "Con un account hai feed e amici, coach AI, inviti e i tuoi allenamenti sincronizzati e al sicuro nel cloud. Quello che hai registrato qui viene con te.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "Il nome utente è come ti trovano gli amici. L'e-mail serve solo a recuperare l'account.",
   "or": "oppure",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "Una settimana conta se ti alleni almeno una volta. La settimana in corso tiene viva la serie finché non finisce.",
+  "Best: {0}": "Migliore: {0}",
+  "Each time a lift beat its best weight": "Ogni volta che un esercizio ha superato il suo peso migliore",
+  "No records yet. Lift more than your best and it shows up here.": "Ancora nessun record. Solleva più del tuo massimo e comparirà qui.",
+  "No workouts this month yet.": "Ancora nessun allenamento questo mese.",
+  "No workouts yet.": "Ancora nessun allenamento.",
+  "Train this week to start a streak.": "Allenati questa settimana per iniziare una serie.",
+  "{0} week": "{0} settimana",
+  "{0} weeks": "{0} settimane",
 }

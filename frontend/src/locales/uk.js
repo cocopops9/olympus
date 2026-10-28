@@ -2820,4 +2820,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "З обліковим записом у тебе є стрічка й друзі, ШІ-тренери, запрошення та тренування, синхронізовані й збережені в хмарі. Усе, що ти записав тут, перейде з тобою.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "За іменем користувача тебе знаходять друзі. Пошта потрібна лише для відновлення облікового запису.",
   "or": "або",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "Тиждень зараховується, якщо ви тренувалися хоча б раз. Поточний тиждень зберігає серію, доки не скінчиться.",
+  "Best: {0}": "Найкраще: {0}",
+  "Each time a lift beat its best weight": "Щоразу, коли вправа перевершила свою найкращу вагу",
+  "No records yet. Lift more than your best and it shows up here.": "Рекордів ще немає. Підніміть більше за свій максимум, і він з’явиться тут.",
+  "No workouts this month yet.": "Цього місяця тренувань ще немає.",
+  "No workouts yet.": "Тренувань ще немає.",
+  "Train this week to start a streak.": "Потренуйтеся цього тижня, щоб почати серію.",
+  "{0} week": "{0} тиждень",
+  "{0} weeks": {"one": "{0} тиждень", "few": "{0} тижні", "many": "{0} тижнів"},
 }

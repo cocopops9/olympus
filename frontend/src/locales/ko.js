@@ -2823,4 +2823,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "계정이 있으면 피드와 친구, AI 코치, 초대를 쓸 수 있고 운동 기록이 클라우드에 동기화되어 안전하게 보관돼요. 여기서 기록한 것도 함께 옮겨져요.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "친구들은 사용자 이름으로 나를 찾아요. 이메일은 계정 복구에만 쓰여요.",
   "or": "또는",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "한 번이라도 운동한 주는 기록됩니다. 이번 주는 끝날 때까지 연속 기록을 유지합니다.",
+  "Best: {0}": "최고: {0}",
+  "Each time a lift beat its best weight": "운동이 최고 무게를 넘을 때마다",
+  "No records yet. Lift more than your best and it shows up here.": "아직 기록이 없습니다. 최고 기록보다 더 들면 여기에 표시됩니다.",
+  "No workouts this month yet.": "이번 달에는 아직 운동이 없습니다.",
+  "No workouts yet.": "아직 운동이 없습니다.",
+  "Train this week to start a streak.": "이번 주에 운동해서 연속 기록을 시작하세요.",
+  "{0} week": "{0}주",
+  "{0} weeks": "{0}주",
 }

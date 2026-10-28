@@ -65,19 +65,29 @@ export function Avatar({ user, size }) {
   </span>
 }
 
-// The founder's seal: a gold rosette with a check, the shape people read as "verified".
+// The founder's seal: a rosette with a check, the shape people read as "verified", in the colors
+// of a nebula that turn slowly, with two stars that twinkle by it.
 export function FounderBadge() {
   return <svg className="founder-badge" viewBox="0 0 24 24" role="img" aria-label={t('Founder of Olympus')}>
     <title>{t('Founder of Olympus')}</title>
-    <defs><linearGradient id="fb-gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stopColor="#ffe68a" /><stop offset=".5" stopColor="#f2b705" /><stop offset="1" stopColor="#c98a00" />
-    </linearGradient></defs>
-    <path fill="url(#fb-gold)" d="M12 1.6l2.3 1.7 2.8-.4 1.1 2.6 2.6 1.1-.4 2.8 1.7 2.3-1.7 2.3.4 2.8-2.6 1.1-1.1 2.6-2.8-.4L12 22.4l-2.3-1.7-2.8.4-1.1-2.6-2.6-1.1.4-2.8L1.9 12l1.7-2.3-.4-2.8 2.6-1.1 1.1-2.6 2.8.4Z" />
-    <path d="m7.6 12.3 3 3 5.8-6.2" fill="none" stroke="#3a2600" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <defs>
+      <linearGradient id="fb-cosmic" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#7af5ff" /><stop offset=".35" stopColor="#9d7bff" /><stop offset=".7" stopColor="#ff5ce1" /><stop offset="1" stopColor="#6ad7ff" />
+        <animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="8s" repeatCount="indefinite" />
+      </linearGradient>
+      <radialGradient id="fb-core" cx=".38" cy=".32" r=".7">
+        <stop offset="0" stopColor="#fff" stopOpacity=".55" /><stop offset=".55" stopColor="#fff" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+    <path fill="url(#fb-cosmic)" d="M12 1.6l2.3 1.7 2.8-.4 1.1 2.6 2.6 1.1-.4 2.8 1.7 2.3-1.7 2.3.4 2.8-2.6 1.1-1.1 2.6-2.8-.4L12 22.4l-2.3-1.7-2.8.4-1.1-2.6-2.6-1.1.4-2.8L1.9 12l1.7-2.3-.4-2.8 2.6-1.1 1.1-2.6 2.8.4Z" />
+    <path fill="url(#fb-core)" d="M12 1.6l2.3 1.7 2.8-.4 1.1 2.6 2.6 1.1-.4 2.8 1.7 2.3-1.7 2.3.4 2.8-2.6 1.1-1.1 2.6-2.8-.4L12 22.4l-2.3-1.7-2.8.4-1.1-2.6-2.6-1.1.4-2.8L1.9 12l1.7-2.3-.4-2.8 2.6-1.1 1.1-2.6 2.8.4Z" />
+    <path d="m7.6 12.3 3 3 5.8-6.2" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path className="fb-spark" fill="#fff" d="M21.2 .6l.45 1.25 1.25.45-1.25.45-.45 1.25-.45-1.25-1.25-.45 1.25-.45Z" />
+    <path className="fb-spark b" fill="#cfeaff" d="M2.4 18.6l.35.95.95.35-.95.35-.35.95-.35-.95-.95-.35.95-.35Z" />
   </svg>
 }
 
-/** A person's name; the founder's in gold with the seal after it. */
+/** A person's name; the founder's in cosmic colors with the seal after it. */
 export function Name({ user }) {
   if (!user) return null
   return user.founder

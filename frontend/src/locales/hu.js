@@ -2826,4 +2826,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "Fiókkal megkapod a hírfolyamot és a barátokat, az MI-edzőket, a meghívókat, és az edzéseid szinkronizálva, biztonságban vannak a felhőben. Amit itt rögzítettél, veled jön.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "A felhasználóneved alapján találnak meg a barátaid. Az e-mail csak a fiók visszaállítására szolgál.",
   "or": "vagy",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "Egy hét akkor számít, ha legalább egyszer edzel benne. Az aktuális hét a végéig életben tartja a sorozatot.",
+  "Best: {0}": "Legjobb: {0}",
+  "Each time a lift beat its best weight": "Minden alkalom, amikor egy gyakorlat túllépte a legjobb súlyát",
+  "No records yet. Lift more than your best and it shows up here.": "Még nincs rekord. Emelj többet a legjobbadnál, és itt megjelenik.",
+  "No workouts this month yet.": "Ebben a hónapban még nincs edzés.",
+  "No workouts yet.": "Még nincs edzés.",
+  "Train this week to start a streak.": "Edz ezen a héten, hogy sorozatot indíts.",
+  "{0} week": "{0} hét",
+  "{0} weeks": "{0} hét",
 }

@@ -2834,4 +2834,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "เมื่อมีบัญชี คุณจะได้ฟีดและเพื่อน โค้ช AI คำเชิญ และการฝึกที่ซิงก์และปลอดภัยบนคลาวด์ สิ่งที่บันทึกไว้ที่นี่จะย้ายไปด้วย",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "เพื่อนจะหาคุณเจอจากชื่อผู้ใช้ อีเมลใช้เพื่อกู้คืนบัญชีเท่านั้น",
   "or": "หรือ",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "สัปดาห์จะนับเมื่อคุณฝึกอย่างน้อยหนึ่งครั้ง สัปดาห์ปัจจุบันยังคงรักษาสถิติต่อเนื่องไว้จนกว่าจะจบ",
+  "Best: {0}": "ดีที่สุด: {0}",
+  "Each time a lift beat its best weight": "ทุกครั้งที่ท่าฝึกทำได้เกินน้ำหนักที่ดีที่สุด",
+  "No records yet. Lift more than your best and it shows up here.": "ยังไม่มีสถิติ ยกให้มากกว่าสถิติเดิม แล้วจะแสดงที่นี่",
+  "No workouts this month yet.": "เดือนนี้ยังไม่มีการฝึก",
+  "No workouts yet.": "ยังไม่มีการฝึก",
+  "Train this week to start a streak.": "ฝึกสัปดาห์นี้เพื่อเริ่มสถิติต่อเนื่อง",
+  "{0} week": "{0} สัปดาห์",
+  "{0} weeks": "{0} สัปดาห์",
 }

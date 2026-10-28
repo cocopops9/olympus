@@ -58,11 +58,34 @@ export const setFabHidden = on => writeFab({ hidden: !!on })
 let greetedFor = null
 export const resetGreetingForTests = () => { greetedFor = null; cached = { uid: null, status: {} } }
 
-/** The coach's portrait in the gold ring, with the AI badge. `size` is 'sm', 'md', 'lg' or 'xl'. */
+// Where the eyes are on each portrait (192 px square), for the blink: centre and half sizes of
+// the open eye, the colour of the skin around it. A coach of your own has no lids, only breath.
+const LIDS = {
+  hercules: { skin: '#fcf3e3', eyes: [[88, 104.6, 8.6, 4], [54, 106.3, 5.4, 2.8]] },
+  athena: { skin: '#fbf4e4', eyes: [[90.5, 129.6, 10.6, 4.2]] },  // the other eye is behind the cheek guard
+}
+
+/**
+ * The coach's portrait in the gold ring, with the AI badge, alive: it breathes, sways a little
+ * and blinks now and then; while the coach thinks or speaks (`live`) it moves as if talking.
+ * `size` is 'xs', 'sm', 'md', 'lg' or 'xl'.
+ */
 export function Avatar({ size = 'md', live = false, badge = true, coach = 'hercules' }) {
   const src = coachPortrait(coach)
+  const lids = !isOwn(coach) && LIDS[coach]
   return <span className={'hc-av hc-av-' + size + (live ? ' live' : '')} aria-hidden="true">
-    {src ? <img src={src} alt="" draggable={false} /> : <span className="hc-av-letter">{coachName(coach).slice(0, 1).toUpperCase()}</span>}
+    <span className="hc-face">
+      <span className="hc-alive">
+        {src ? <img src={src} alt="" draggable={false} /> : <span className="hc-av-letter">{coachName(coach).slice(0, 1).toUpperCase()}</span>}
+        {src && lids && <svg className="hc-lids" viewBox="0 0 192 192">
+          {lids.eyes.map(([cx, cy, rx, ry], i) => <g key={i} className="hc-lid">
+            <ellipse cx={cx} cy={cy} rx={rx + 1} ry={ry + 1.2} fill={lids.skin} />
+            <path d={`M${cx - rx} ${cy + ry * .15}Q${cx} ${cy + ry * 1.25} ${cx + rx} ${cy + ry * .1}`} fill="none" stroke="#14110c" strokeWidth="1.9" strokeLinecap="round" />
+          </g>)}
+        </svg>}
+      </span>
+      <span className="hc-sheen" />
+    </span>
     {badge && <span className="hc-ai">AI</span>}
   </span>
 }
@@ -141,7 +164,7 @@ export function GoalsLine() {
   const parts = [...p.styles.map(id => t(TRAINING_STYLES.find(x => x.id === id).label)), ...(p.phase ? [t(PHASES.find(x => x.id === p.phase).label)] : [])]
   const said = parts.length || p.goals
   return <button className="hc-goals" onClick={coachGoalsSheet}>
-    <Icon name="target" />
+    <Icon name="brain" />
     <span className="grow">{said
       ? <><b>{t('Training for')}:</b> {parts.join(' · ') || p.goals.slice(0, 60) + (p.goals.length > 60 ? '…' : '')}</>
       : t('Tell your coaches what you train for: style, phase, goals, what is coming up.')}</span>
@@ -262,7 +285,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
         <div className="hc-sub"><i className="hc-dot" />{isOwn(coach) ? t('Your own model') + ' · ' + (ownCoach(useStore.getState().user?.id, coach)?.model || '') : sub}</div>
       </div>
       {isOwn(coach) && <button className="iconbtn" onClick={editOwn} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
-      <button className="iconbtn" onClick={coachGoalsSheet} aria-label={t('What you train for')} title={t('What you train for')}><Icon name="target" /></button>
+      <button className="iconbtn" onClick={coachGoalsSheet} aria-label={t('What you train for')} title={t('What you train for')}><Icon name="brain" /></button>
       <button className={'iconbtn' + (menu ? ' hc-on' : '')} onClick={() => setMenu(m => !m)} aria-label={t('Conversations')} aria-expanded={menu}><Icon name="list" /></button>
       <button className="iconbtn" onClick={expand} aria-label={t('Full screen')}><Icon name="expand" /></button>
       <button className="iconbtn" onClick={close} aria-label={t('Close')}><Icon name="xmark" /></button>

@@ -2823,4 +2823,13 @@ export default {
   "With an account you get the feed and friends, the AI coaches, invites and your training synced and safe in the cloud. What you logged here comes with you.": "Bir hesapla akışa ve arkadaşlara, yapay zekâ koçlarına, davetlere ve bulutta eşitlenen, güvende tutulan antrenmanlara sahip olursun. Burada kaydettiklerin seninle gelir.",
   "Your username is how friends find you. The e-mail is only used to recover your account.": "Kullanıcı adın, arkadaşlarının seni bulma yoludur. E-posta yalnızca hesabını kurtarmak için kullanılır.",
   "or": "veya",
+  "A week counts when you train at least once in it. The current week keeps the streak alive until it ends.": "Bir hafta, en az bir kez antrenman yaptığında sayılır. İçinde bulunulan hafta bitene kadar seriyi canlı tutar.",
+  "Best: {0}": "En iyi: {0}",
+  "Each time a lift beat its best weight": "Bir hareketin en iyi ağırlığını her geçişi",
+  "No records yet. Lift more than your best and it shows up here.": "Henüz rekor yok. En iyinden fazlasını kaldır, burada görünsün.",
+  "No workouts this month yet.": "Bu ay henüz antrenman yok.",
+  "No workouts yet.": "Henüz antrenman yok.",
+  "Train this week to start a streak.": "Seri başlatmak için bu hafta antrenman yap.",
+  "{0} week": "{0} hafta",
+  "{0} weeks": "{0} hafta",
 }
