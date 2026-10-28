@@ -10,6 +10,7 @@ import {
   planHasRoutines, exportPlanFile, printWholePlan, importPlanFile,
 } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import { Tip } from '../components/Guide.jsx'
 import { Button, Row, Section, Segmented } from '../components/ui.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
 import { copyRoutine, deleteRoutine, restoreRoutine, routineSnapshot } from '../lib/routines.js'
@@ -170,6 +171,9 @@ export default function Plan() {
       </div>
     </div>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
+    <Tip id="plan" icon="calendar" title={t('Plan your week')}>
+      {t('Routines holds your workouts, each a list of exercises. Schedule puts them on weekdays: tap a day to choose what you train, and that day’s workout is ready when you open the app.')}
+    </Tip>
     <Segmented className="plan-views" value={view} onChange={setView}
       options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Routines') }]} />
     {view === 'routines'

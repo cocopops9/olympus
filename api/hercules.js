@@ -147,7 +147,7 @@ export const ACTIONS_HELP = [
   '- add_exercise {"name": "cable fly", "sets": 3, "reps": 12, "weight": 15} (only while a workout is in progress)',
   '- set_next_sets {"weight": 82.5, "reps": 6} (the remaining sets of the current exercise of the workout in progress)',
   '- set_rest {"seconds": 150} (the default rest between sets, 15 to 600)',
-  '- set_stats_cards {"cards": ["summary", "progress", "muscles"]} (which statistics their Stats page shows, in order; ids: summary, activity, progress, muscles, weekly, effort, structural, photos, recent)',
+  '- set_stats_cards {"cards": ["summary", "progress", "muscles"]} (which statistics their Stats page shows, in order; ids: highlights, summary, activity, progress, muscles, weekly, effort, structural, photos, recent)',
   '- set_goals {"styles": ["bodybuilding"], "phase": "build", "goals": "..."} (styles: bodybuilding, powerlifting, strength, functional, calisthenics, sport, endurance, health; phase: build, cut, maintain, peak, recover)',
 ].join('\n');
 

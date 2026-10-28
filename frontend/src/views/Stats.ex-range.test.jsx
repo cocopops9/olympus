@@ -33,7 +33,8 @@ let root, host
 afterEach(() => { act(() => root.unmount()); host.remove(); mocks.charts = [] })
 
 function mount(workouts) {
-  mocks.S = { body: 'male', effort: 'none', unit: 'kg', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts }
+  // Detailed: Simple keeps only the top-set curve, and these tests are about the other views.
+  mocks.S = { body: 'male', effort: 'none', unit: 'kg', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts, statsDetail: 'detailed' }
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)

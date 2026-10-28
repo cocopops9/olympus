@@ -251,6 +251,28 @@ export function classify(actualPct, targetPct) {
   return BALANCE_STATUSES.WEAK
 }
 
+// The role's verdict as two figures a lifter can act on — what you do now, and what the table asks
+// of you — rather than a percentage of a percentage:
+//   { kind: 'kg', now, target, reps, anchor }  load roles, in kg: an estimated max for `reps` reps
+//                                              (1: a one-rep max; an ATG role: its own rep count)
+//   { kind: 'reps', now, target }              rep-count roles
+// `now` is null with nothing logged, `target` with nothing to work it out from (the anchor not
+// logged, no weigh-in). An anchor role has no target of its own: the others are set from it. A
+// role with no data of its own still gets a target, so the screen can say what to aim for.
+export function goalFor(role, current, anchorCurrent, bodyweightKg, target) {
+  if (role.evaluationMode === EVALUATION_MODES.REP_COUNT) {
+    return { kind: 'reps', now: current ? current.r : null, target }
+  }
+  if (role.evaluationMode === EVALUATION_MODES.BODYWEIGHT_RATIO) {
+    const reps = role.reps > 1 ? role.reps : 1
+    const now = current ? (reps > 1 ? current.repsKg : current.estKg) : null
+    return { kind: 'kg', now: now > 0 ? now : null, target: bodyweightKg > 0 ? bodyweightKg * target / 100 : null, reps, anchor: false }
+  }
+  const now = current?.estKg > 0 ? current.estKg : null
+  if (!role.anchorRoleId) return { kind: 'kg', now, target: null, reps: 1, anchor: true }
+  return { kind: 'kg', now, target: anchorCurrent?.estKg > 0 ? anchorCurrent.estKg * target / 100 : null, reps: 1, anchor: false }
+}
+
 function evaluateRole(template, role, currentByRoleId, bodyweightKg, S) {
   const current = currentByRoleId.get(role.id)
   // For load-ratio/bodyweight-ratio, `targetPct` is a percentage — the same scale classify()
@@ -263,7 +285,8 @@ function evaluateRole(template, role, currentByRoleId, bodyweightKg, S) {
   // Which exercise this role is set to, whether or not it has ever been logged — the view needs
   // it to name the role's exercise (and to show an override back to the user who chose it).
   const configuredExerciseId = override || role.exerciseIds[0] || null
-  const base = { roleId: role.id, configuredExerciseId, targetPct, isOverridden: Boolean(override) }
+  const goal = goalFor(role, current, role.anchorRoleId ? currentByRoleId.get(role.anchorRoleId) : null, bodyweightKg, targetPct)
+  const base = { roleId: role.id, configuredExerciseId, targetPct, isOverridden: Boolean(override), anchorRoleId: role.anchorRoleId || null, goal }
   const needsBodyweight = waitsOnBodyweight(S, role, exerciseIdsFor(S, template, role), current, bodyweightKg)
   if (!current) {
     return { ...base, mappedExerciseId: null, current: null, actualPct: null, status: BALANCE_STATUSES.NO_DATA, needsBodyweight, needsAnchor: false }

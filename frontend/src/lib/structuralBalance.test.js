@@ -715,3 +715,36 @@ describe('a role waiting on its anchor says so', () => {
     expect(incline.status).not.toBe(BALANCE_STATUSES.NO_DATA)
   })
 })
+
+// The screen says "now 70 kg · aim for 75 kg" rather than "93% / 75%": each result carries the
+// figures behind its ratio (goalFor), in kg, the target worked out even before the lift is logged.
+describe('goal: what you do now, and what the table asks for', () => {
+  const role = (S, template, roleId) => computeBalance(S, template).find(r => r.roleId === roleId)
+
+  it('a load-ratio lift is set from its anchor\'s estimated max, logged or not', () => {
+    const S = { unit: 'kg', workouts: [workoutAt('0043', NOW - 1000, [setDone(100, 1)]), workoutAt('0025', NOW, [setDone(70, 1)])] }
+    expect(role(S, TEMPLATES.thibaudeauPowerlifting, 'bench').goal).toMatchObject({ kind: 'kg', now: 70, reps: 1, anchor: false })
+    expect(role(S, TEMPLATES.thibaudeauPowerlifting, 'bench').goal.target).toBeCloseTo(75)
+    const deadlift = role(S, TEMPLATES.thibaudeauPowerlifting, 'deadlift')
+    expect(deadlift.status).toBe(BALANCE_STATUSES.NO_DATA)
+    expect(deadlift.goal.now).toBe(null)
+    expect(deadlift.goal.target).toBeCloseTo(120)
+  })
+
+  it('the anchor has no target of its own, and nothing has one before the anchor is logged', () => {
+    const S = { unit: 'kg', workouts: [workoutAt('0043', NOW, [setDone(100, 1)])] }
+    expect(role(S, TEMPLATES.thibaudeauPowerlifting, 'squat').goal).toMatchObject({ now: 100, target: null, anchor: true })
+    expect(role({ unit: 'kg', workouts: [] }, TEMPLATES.thibaudeauPowerlifting, 'bench').goal).toMatchObject({ now: null, target: null })
+  })
+
+  it('a body-weight standard is a load for its own rep count, set from the weigh-in', () => {
+    const S = { unit: 'kg', bodyweight: [{ d: '2026-01-01', w: 80 }], workouts: [workoutAt('0085', NOW, [setDone(70, 12)])] }
+    expect(role(S, TEMPLATES.atg, 'romanianDeadlift').goal).toMatchObject({ kind: 'kg', now: 70, target: 80, reps: 12 })
+    expect(role({ ...S, bodyweight: [] }, TEMPLATES.atg, 'romanianDeadlift').goal.target).toBe(null)
+  })
+
+  it('a rep-count role counts reps', () => {
+    const S = { unit: 'kg', workouts: [workoutAt('0652', NOW, [setDone(0, 6)])] }
+    expect(role(S, TEMPLATES.atg, 'pullups').goal).toEqual({ kind: 'reps', now: 6, target: 10 })
+  })
+})

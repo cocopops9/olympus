@@ -23,3 +23,22 @@ button.sb-badge{color:var(--c);font-size:12px;font-weight:650}
 .sb-help-row{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;border-radius:14px;margin-bottom:8px;background:var(--surface-2)}
 .sb-help-row.on{box-shadow:0 0 0 2px var(--c)}
 .sb-help-row p{margin:0;line-height:1.45}
+/* The standard picker and what it is for, the groups by anchor lift, and each row's now / aim for. */
+.sb-std{margin-bottom:12px}
+.sb-std-l{margin:0 2px 6px;font-weight:600}
+.sb-std .seg-range{margin-bottom:6px}
+.sb-std-about{margin:0 2px;line-height:1.45}
+.s-anchor{--c:var(--acc)}
+.sb-group{padding:12px 0 2px;font-size:12.5px;font-weight:650;color:var(--label-2);text-transform:uppercase;letter-spacing:.03em}
+.sb-block:first-child .sb-group{padding-top:2px}
+.sb-list .sb-block+.sb-block>.sb-row{border-top:var(--hair) solid var(--sep)}
+.sb-list .sb-block+.sb-block>.sb-group{margin-top:6px;border-top:var(--hair) solid var(--sep);padding-top:14px}
+.sb-goal{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;font-size:14.5px;font-variant-numeric:tabular-nums}
+.sb-gap{margin-inline-start:auto;font-size:13px;font-weight:600;color:var(--label-2)}
+.sb-gap.done{color:var(--green)}
+.sb-more summary{cursor:pointer;color:var(--acc);font-size:13px;font-weight:600;list-style-position:inside}
+.sb-more[open] summary{margin-bottom:4px}
+.sb-more>div{margin-top:3px}
+/* The counts and badges are buttons, whose font:inherit above undid their size; one line each. */
+button.sb-count{font-size:12.5px}
+.sb-badge{white-space:nowrap}

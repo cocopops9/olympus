@@ -6,7 +6,9 @@ import { lastBW, streakWeeks, setLabel, modeOf, effortOf, entriesForExercise, me
 import { fmtNum, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
 import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
 import { t, tn, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
-import { STATS_CARDS, statsCardsOf } from '../lib/stats-cards.js'
+import { STATS_CARDS, statsCardsOf, statsDetailOf } from '../lib/stats-cards.js'
+import { statsInsights, PROGRESS_DAYS, GAP_DAYS } from '../lib/stats-insights.js'
+import { Tip, InfoButton, helpSheet } from '../components/Guide.jsx'
 import { StatsPickerButton, statsPickerSheet } from '../components/StatsPicker.jsx'
 import { calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
@@ -112,6 +114,109 @@ function StrengthLegend() {
   </div>
 }
 
+// What each card shows, for the ⓘ beside its heading: what it means first, for anyone, and how it
+// is worked out under Technical details (components/Guide.jsx helpSheet). Functions, so they
+// follow the language.
+const HELP = {
+  highlights: () => ({
+    title: t('Highlights'),
+    simple: [t('A few sentences on what your training adds up to lately. They change as you train.'), t('Tap one to open the chart behind it.')],
+    expert: [t('Progress compares the best estimated 1RM of the last {0} days with the best one before them.', PROGRESS_DAYS),
+      t('A muscle is named after {0} days without a set, if it had at least 4 sets in the last 90 days.', GAP_DAYS)],
+  }),
+  summary: () => ({ title: t('Summary'), simple: t('Your totals at a glance. Tap a tile for the list behind it.') }),
+  activity: () => ({ title: t('Activity'), simple: t('Every square is a day. The darker it is, the more you trained that day. Tap a day to see what you did.') }),
+  progress: () => ({
+    title: t('Exercise progress'),
+    simple: [t('The line is your best set of one exercise, workout by workout. Going up means you are getting stronger.'),
+      t('Choose the exercise at the top, and how far back to look under the chart.')],
+    expert: [t('Top set: the heaviest weight you finished in each workout. For timed work the longest hold, for cardio the top speed, for bodyweight work the most reps.'),
+      t('Est. 1RM: the weight you could probably lift once, estimated from a set of several reps with the formula chosen in Settings. An estimate, not a tested max.'),
+      t('Per set: one line per set number, to see on which set you drop off. Effort: how close to failure you went. Max reps: the most reps in a Max set.')],
+  }),
+  muscles: () => ({
+    title: t('Muscle balance'),
+    simple: [t('The body map shows which muscles you trained. The stronger the colour, the more sets the muscle got. Muscles left grey were not trained.'),
+      t('Fatigue shows which muscles are still recovering, so you know what to rest. Strength shows how much strength each muscle keeps while you are not training it.'),
+      t('Tap a muscle to see it on its own.')],
+    expert: [t('A set counts fully for the muscle it targets and partly for the muscles that help, so totals can have decimals.'),
+      t('Hard sets counts only sets rated close to failure, so the map shows where the effort went rather than the volume.'),
+      t('Fatigue rises with every set, more for heavy and hard ones, and fades over the following days. Strength fades slowly after weeks without training, down to a floor of {0}.', Math.round(STRENGTH_FLOOR * 100) + '%')],
+  }),
+  weekly: () => ({
+    title: t('Weekly muscle volume'),
+    simple: [t('How many sets each muscle gets in one week of your plan, if you do every planned workout.'),
+      t('Around 10 to 20 sets a week is a common target for a muscle you want to grow.')],
+    expert: t('Every weekday routine counts once, plus each session of a running rotation. Muscles that only help count partly.'),
+  }),
+  effort: () => ({
+    title: t('Effort'),
+    simple: [t('How hard your sets are: how many more reps you could have done when you stopped.'),
+      t('Most progress comes from sets that end 1 to 3 reps short of failure.')],
+    expert: t('RIR is reps in reserve; RPE is rated exertion, where 10 is failure, so RPE = 10 − RIR. When too few sets are rated, the rest are estimated from the weight and reps.'),
+  }),
+}
+const helpFor = id => () => helpSheet(HELP[id]())
+
+// A card heading with its ⓘ. `sub` rides along dimmed, as the cards always did.
+function CardTitle({ id, children, sub, style }) {
+  const help = HELP[id]
+  return <h2 style={style}>{children}{sub && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {sub}</span>}
+    {help && <InfoButton label={help().title} onClick={helpFor(id)} />}</h2>
+}
+
+// The effort card's figure, in words: where the average set ends, and what that means for
+// progress. In RIR, like everything lib/effort.js returns.
+function effortVerdict(avgRir) {
+  if (avgRir == null) return null
+  if (avgRir <= 1) return t('Most sets end at or right next to failure. That is hard to recover from: a rep or two left in the tank is usually enough.')
+  if (avgRir <= 3) return t('Most sets end 1 to 3 reps short of failure: the range most progress comes from.')
+  return t('Most sets end with plenty left in the tank. Going a little closer to failure would get more out of them.')
+}
+
+// The Highlights card (lib/stats-insights.js), a sentence each. A progress line opens that lift's
+// chart; a records line opens the records.
+function Highlights({ S, onOpen }) {
+  const items = useMemo(() => statsInsights(S), [S.workouts, S.weekStart, S.unit])
+  if (!items.length) return null
+  const row = (key, icon, tone, text, sub, onClick) => {
+    const Tag = onClick ? 'button' : 'div'
+    return <Tag key={key} className="stats-hl-row" onClick={onClick} data-highlight={key}>
+      <span className="stats-hl-i" style={{ '--c': tone }} aria-hidden="true"><Icon name={icon} /></span>
+      <span className="grow stats-hl-t">{text}{sub && <span className="small dim" style={{ display: 'block' }}>{sub}</span>}</span>
+      {onClick && <Icon name="chevronRight" className="dim" style={{ marginTop: 7 }} />}
+    </Tag>
+  }
+  return <div className="card">
+    <CardTitle id="highlights">{t('Highlights')}</CardTitle>
+    <div className="stats-hl">{items.map(it => {
+      if (it.kind === 'week') {
+        const said = tn('{0} workout this week.', '{0} workouts this week.', it.now)
+        const vs = it.now === 0 && it.before === 0 ? t('Even a short one gets the week going.')
+          : it.now > it.before ? t('More than last week ({0}).', it.before)
+            : it.now === it.before ? t('The same as last week.')
+              : t('Last week you did {0}: there is still time.', it.before)
+        return row('week', 'calendar', 'var(--green)', said + ' ' + vs)
+      }
+      if (it.kind === 'progress') {
+        // Text, not a styled span: the name opens a sentence, cased the way every list shows it.
+        const name = EXIDX[it.id] ? exerciseNameText(EXIDX[it.id]) : it.id
+        return row('progress', 'chartLine', 'var(--blue)',
+          t('{0}: up {1}% in the last {2} days.', name, Math.max(1, Math.round(it.pct)), PROGRESS_DAYS),
+          t('Estimated max {0} → {1}', fmtNum(it.from) + ' ' + S.unit, fmtNum(it.to) + ' ' + S.unit),
+          () => onOpen(it.id))
+      }
+      if (it.kind === 'gap') {
+        return row('gap', 'warning', 'var(--orange)',
+          t('No sets for {0} days: {1}.', GAP_DAYS, it.muscles.map(m => t(MUSCLE_NAME[m])).join(', ')),
+          t('Fit them into your next workout to stay balanced.'))
+      }
+      return row('records', 'trophy', 'var(--yellow)',
+        tn('{0} personal record this month. Nice work!', '{0} personal records this month. Nice work!', it.n), null, recordsSheet)
+    })}</div>
+  </div>
+}
+
 function fatigueLabel(value) {
   const state = fatigueStateOf(value)
   return t(state === 'ready' ? 'Ready' : state === 'recovering' ? 'Recovering' : 'Fatigued')
@@ -127,7 +232,9 @@ function profileBodyweightKg(S) {
   return S.unit === 'lb' ? last.w * LB_TO_KG : last.w
 }
 
-function MuscleBalance({ S }) {
+// `simple` (Stats → Simple): the map and its rows, without the hard-sets switch, and the strength
+// list cut to the muscles furthest down.
+function MuscleBalance({ S, simple }) {
   const [view, setView] = useState('balance')
   const [win, setWin] = useState(7)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -162,7 +269,7 @@ function MuscleBalance({ S }) {
   // hard. Offered only when the window holds ratings at all, since with none the hard map
   // would just be empty and read as "you trained nothing".
   const rated = inWin.some(w => w.entries.some(e => e.sets.some(s => s.done && isHardSet(s))))
-  const on = !weekly && hard && rated
+  const on = !weekly && hard && rated && !simple
   const load = loadOfWorkouts(inWin, on ? isHardSet : null)
   const planned = weekly && weekOffset === 0 ? loadOfWeeklyPlan(S) : {}
   const comparisonMuscles = MUSCLES
@@ -201,7 +308,7 @@ function MuscleBalance({ S }) {
   })
   const setsNote = <div className="small dim" style={{ marginTop: 8 }}>
     {hasPlan ? t('Sets done this week, against what your weekly plan asks for.') : t('Sets done this week.')}
-    {' '}{t('A set counts fully for the muscle it targets and partly for the muscles that help, so totals can have decimals.')}
+    {!simple && <>{' '}{t('A set counts fully for the muscle it targets and partly for the muscles that help, so totals can have decimals.')}</>}
   </div>
   const completionSummary = <>
     {missed.length > 0 && <>
@@ -239,10 +346,11 @@ function MuscleBalance({ S }) {
       options={[{ value: 'balance', label: t('Muscle balance') }, { value: 'fatigue', label: t('Fatigue') }, { value: 'strength', label: t('Strength') }]} />
     {view === 'balance' ? <>
       <div className="row between" style={{ marginBottom: 8 }}>
-        <h2 style={{ margin: 0 }}>{t('Muscle balance')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {on ? t('by hard sets') : t('by sets worked')}</span></h2>
-        {!weekly && rated && <Button size="sm" icon="gauge" style={on ? { color: 'var(--yellow)' } : undefined}
+        <CardTitle id="muscles" style={{ margin: 0 }} sub={simple ? null : on ? t('by hard sets') : t('by sets worked')}>{t('Muscle balance')}</CardTitle>
+        {!weekly && rated && !simple && <Button size="sm" icon="gauge" style={on ? { color: 'var(--yellow)' } : undefined}
           onClick={() => { setHard(h => !h); setSel(null) }}>{on ? t('Hard') : t('All')}</Button>}
       </div>
+      {simple && <div className="muted small" style={{ margin: '-2px 0 10px' }}>{t('Which muscles you trained, and which you missed.')}</div>}
       <Segmented className="seg-range" value={win} onChange={v => { setWin(v); setSel(null); setWeeklyExpanded(false) }}
         options={[{ value: 7, label: t('Week') }, { value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 0, label: t('All') }]} />
       {weekly ? <div data-weekly-volume-comparison data-week={selectedWeek}>
@@ -264,7 +372,7 @@ function MuscleBalance({ S }) {
         {completedRows}
       </> : <div className="muted small">{t('No workouts in this period yet.')}</div>}
     </> : view === 'fatigue' ? <>
-      <h2>{t('Fatigue')}</h2>
+      <CardTitle id="muscles">{t('Fatigue')}</CardTitle>
       <BodyMap className="tappable hm-fatigue" load={fatigue} thresholds={FATIGUE_LEVELS} body={S.body} selected={sel} onMuscle={toggleSel} />
       <FatigueLegend />
       <div className="muted small" style={{ marginTop: 10 }}>{t('Fatigue shows how recently each muscle was trained. High means rest.')}</div>
@@ -273,7 +381,7 @@ function MuscleBalance({ S }) {
         <span className="v">{fatigueLabel(fatigue[sel])}</span>
       </div>}
     </> : <>
-      <h2>{t('Strength')}</h2>
+      <CardTitle id="muscles">{t('Strength')}</CardTitle>
       <BodyMap className="tappable hm-strength" load={strength} thresholds={STRENGTH_LEVELS} body={S.body} selected={sel} onMuscle={toggleSel} />
       <StrengthLegend />
       <div className="muted small" style={{ marginTop: 10 }}>{t('Strength shows retained muscle strength. Train again to reset it.')}</div>
@@ -304,7 +412,7 @@ function MuscleBalance({ S }) {
           muscle was last trained. Sets in the last 90 days ride along only when there are
           any — a muscle is on this list precisely because it has not been trained lately, so
           that number alone read as "0 sets" all the way down and told nobody anything. */}
-      {detrained.map(slug => {
+      {(simple ? detrained.slice(0, 5) : detrained).map(slug => {
         const sets90 = Math.round((vol90[slug] || 0) * 10) / 10
         return <div key={slug} className="mrow">
           <span className="nm">{t(MUSCLE_NAME[slug])}</span>
@@ -325,7 +433,9 @@ function MuscleBalance({ S }) {
 // Every number carries how much of the training it speaks for: rating is optional and off by
 // default, so a partly rated history is the normal case, and an average without its
 // denominator would quietly speak for sets that were never rated.
-function EffortCard({ S }) {
+// `simple`: the two figures and what they mean, in a sentence; the weekly curve and the histogram
+// only in Detailed.
+function EffortCard({ S, simple }) {
   const [win, setWin] = useState(90)
   const kind = displayScale(S)
   const hd = scaleName(kind)
@@ -354,7 +464,7 @@ function EffortCard({ S }) {
   const binLabel = b => kind === 'rpe' ? (b.tail ? '≤ 6' : String(10 - b.rir)) : (b.tail ? b.rir + '+' : String(b.rir))
 
   return <div className="card">
-    <h2>{t('Effort')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {t('how close to failure')}{estimated ? ' · ' + t('estimated') : ''}</span></h2>
+    <CardTitle id="effort" sub={t('how close to failure') + (estimated ? ' · ' + t('estimated') : '')}>{t('Effort')}</CardTitle>
     <Segmented className="seg-range" value={win} onChange={setWin}
       options={[{ value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
     {sum.rated === 0 && sum.est === 0 ? <div className="muted small">{t('No rated sets in this period.')}</div> : <>
@@ -374,19 +484,22 @@ function EffortCard({ S }) {
       {effortOf(S) === 'none' && <div className="small" style={{ color: 'var(--yellow)', marginTop: 4 }}>
         {t('Effort per set is off. Turn it on in Settings → Workout to keep rating.')}
       </div>}
-      {pts.length > 1 && <>
+      {simple && effortVerdict(sum.avg) && <div className="small stats-plain">{effortVerdict(sum.avg)}</div>}
+      {!simple && pts.length > 1 && <>
         <h4 className="sec" style={{ marginTop: 12 }}>{t('Week by week')}</h4>
         <div className="chart"><LineChart points={pts} h={140} unit={hd} color="var(--yellow)" invert={kind === 'rir'} /></div>
       </>}
-      <h4 className="sec" style={{ marginTop: 12 }}>{t('Where the sets land')}</h4>
-      {hist.map(b => <div key={b.rir} className="mrow">
-        <span className="nm">{hd} {binLabel(b)}</span>
-        <span className="bar"><i style={{ width: Math.round(b.n / maxBin * 100) + '%', background: b.rir <= HARD_RIR ? 'var(--yellow)' : 'var(--label-3)' }} /></span>
-        <span className="v">{b.n ? b.n + ' · ' + Math.round(b.pct * 100) + '%' : '–'}</span>
-      </div>)}
-      <div className="small dim" style={{ marginTop: 8 }}>
-        {t('Most working sets belong close to failure, not at it. Half at the floor and half at the top still average out to a healthy-looking middle.')}
-      </div>
+      {!simple && <>
+        <h4 className="sec" style={{ marginTop: 12 }}>{t('Where the sets land')}</h4>
+        {hist.map(b => <div key={b.rir} className="mrow">
+          <span className="nm">{hd} {binLabel(b)}</span>
+          <span className="bar"><i style={{ width: Math.round(b.n / maxBin * 100) + '%', background: b.rir <= HARD_RIR ? 'var(--yellow)' : 'var(--label-3)' }} /></span>
+          <span className="v">{b.n ? b.n + ' · ' + Math.round(b.pct * 100) + '%' : '–'}</span>
+        </div>)}
+        <div className="small dim" style={{ marginTop: 8 }}>
+          {t('Most working sets belong close to failure, not at it. Half at the floor and half at the top still average out to a healthy-looking middle.')}
+        </div>
+      </>}
     </>}
   </div>
 }
@@ -403,7 +516,7 @@ export function WeeklyPlanVolume({ S }) {
   const shown = all ? muscles : muscles.slice(0, PLAN_VOLUME_ROWS)
   const max = muscles.length ? load[muscles[0]] : 0
   return <div className="card" id="weekly-volume" data-weekly-muscle-volume>
-    <h2 style={{ marginBottom: 2 }}>{t('Weekly muscle volume')}</h2>
+    <CardTitle id="weekly" style={{ marginBottom: 2 }}>{t('Weekly muscle volume')}</CardTitle>
     <div className="muted small" style={{ marginBottom: 10 }}>{t('Planned sets per week, from your plan.')}</div>
     {muscles.length ? shown.map(muscle => <div className="mrow" key={muscle}>
       <span className="nm">{t(MUSCLE_NAME[muscle])}</span>
@@ -422,6 +535,10 @@ export function WeeklyPlanVolume({ S }) {
 export default function Stats({ embedded = false } = {}) {
   const nav = useNavigate()
   const S = useStore(s => s.S)
+  const update = useStore(s => s.update)
+  // Simple or Detailed (lib/stats-cards.js statsDetailOf): how much of each card shows.
+  const detail = statsDetailOf(S)
+  const simple = detail === 'simple'
   // Plan's "Weekly muscle volume" row lands here (/stats?focus=weekly-volume). The router is a
   // HashRouter, so the query sits in the hash; the scroll waits a frame for the page's own
   // scroll-to-top on navigation to have happened first.
@@ -633,10 +750,12 @@ export default function Stats({ embedded = false } = {}) {
     const series = perSet.series.map(s => ({ ...s, points: s.points.filter(p => p.t >= exFrom) })).filter(s => s.points.length)
     return { anchors: perSet.anchors.filter(p => p.t >= exFrom), series, ns: series.map(s => s.n) }
   }, [perSet, exFrom])
-  const onSets = !!perSet && exMetric === 'sets'
-  const onE1 = showE1 && exMetric === 'e1rm'
-  const onEff = showEff && exMetric === 'effort'
-  const onMax = showMax && exMetric === 'max'
+  // Simple keeps the one curve everybody reads, the best set; the others wait in Detailed.
+  const metricOn = simple ? 'top' : exMetric
+  const onSets = !!perSet && metricOn === 'sets'
+  const onE1 = showE1 && metricOn === 'e1rm'
+  const onEff = showEff && metricOn === 'effort'
+  const onMax = showMax && metricOn === 'max'
   const topPts = exPts.map((p, i) => ({
     t: p.t, y: p.y, d: p.d,
     // 0 RIR (nothing left) is a full dot, 4+ a faint one; unrated sessions keep the plain line.
@@ -651,8 +770,28 @@ export default function Stats({ embedded = false } = {}) {
   if (showE1) exOpts.push({ value: 'e1rm', label: t('Est. 1RM') })
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
   if (showMax) exOpts.push({ value: 'max', label: t('Max reps') })
+  // The curve in a sentence, for Simple: how far the shown range moved from its first workout.
+  const trend = (() => {
+    if (!simple || rangeTooShort || chartPts.length < 2) return null
+    const first = chartPts[0], last = chartPts.at(-1)
+    const diff = Math.round((last.y - first.y) * 10) / 10
+    const by = fmtNum(Math.abs(diff)) + ' ' + exUnit
+    const since = first.d ? fmtDate(first.d) : ''
+    // An assistance machine counts down: less help is the progress.
+    const better = isAssisted(curEx) && !repsOnly ? diff < 0 : diff > 0
+    if (!diff) return { tone: 'var(--label-2)', text: t('The same as on {0}. Holding steady counts too.', since) }
+    return better
+      ? { tone: 'var(--green)', text: t('Better by {0} since {1}. Keep it up!', by, since) }
+      : { tone: 'var(--orange)', text: t('Down {0} since {1}. A lighter phase is normal; it often comes back within a few workouts.', by, since) }
+  })()
 
+  // A highlight about a lift opens its curve: that exercise picked, the chart scrolled to.
+  const openProgress = id => {
+    setExId(id); setExMetric('top'); setExRange(0)
+    window.requestAnimationFrame?.(() => document.getElementById('stats-progress')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }))
+  }
   const cards = {
+    highlights: () => <Highlights S={S} onOpen={openProgress} />,
     summary: () => <>
     <div className="tiles">
       <div className="tile tappable" {...tappable(workoutsSheet)}><div className="l"><Icon name="dumbbell" />{t('Workouts')}<Icon name="chevronRight" className="tile-go" /></div><div className="v">{workouts.length}</div></div>
@@ -664,15 +803,15 @@ export default function Stats({ embedded = false } = {}) {
     </>,
     activity: () => <>
     <div className="card">
-      <h2>{t('Activity')}</h2>
+      <CardTitle id="activity">{t('Activity')}</CardTitle>
       <Activity S={S}
         onDay={iso => { const ws = S.workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }} />
     </div>
     </>,
     progress: () => <>
     <div className="cols">
-      <div className="card">
-        <h2>{t('Exercise progress')}</h2>
+      <div className="card" id="stats-progress">
+        <CardTitle id="progress">{t('Exercise progress')}</CardTitle>
         {exHist.length ? <>
           <ProgressPicker value={curEx} onChange={setExId} matcherOf={matcherOf}
             items={exHist.map(id => ({ id, name: EXIDX[id] ? exerciseNameText(EXIDX[id]) : nameOf(id), last: lastTrained[id] || 0,
@@ -682,7 +821,7 @@ export default function Stats({ embedded = false } = {}) {
             <button className={'chip nocap' + (!gymOn ? ' on' : '')} onClick={() => setExGym(null)}>{t('All gyms')}</button>
             {exGyms.map(g => <button key={g} className={'chip nocap' + (gymOn === g ? ' on' : '')} onClick={() => setExGym(g)}>{g}</button>)}
           </div>}
-          {exOpts.length > 1 && <Segmented className="seg-range" value={onMax ? 'max' : onEff ? 'effort' : onE1 ? 'e1rm' : onSets ? 'sets' : 'top'} onChange={setExMetric} options={exOpts} />}
+          {!simple && exOpts.length > 1 && <Segmented className="seg-range" value={onMax ? 'max' : onEff ? 'effort' : onE1 ? 'e1rm' : onSets ? 'sets' : 'top'} onChange={setExMetric} options={exOpts} />}
           <Segmented className="seg-range" value={exRange} onChange={setExRange} options={rangeOptions()} />
           <div className="chart">
             {rangeTooShort
@@ -695,6 +834,7 @@ export default function Stats({ embedded = false } = {}) {
               ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
               : <LineChart points={chartPts} h={150} unit={exUnit} color="var(--blue)" />}
           </div>
+          {trend && <div className="small stats-plain" data-trend style={{ borderInlineStart: '3px solid ' + trend.tone }}>{trend.text}</div>}
           {onSets && !rangeTooShort && <div className="row small" style={{ gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
             {perSetChart.ns.map(n => <span key={n} className="row" style={{ gap: 5, alignItems: 'center' }}>
               <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 4, background: SET_COLORS[n - 1] }} />{t('Set {0}', n)}
@@ -714,7 +854,7 @@ export default function Stats({ embedded = false } = {}) {
           {onE1 && <div className="small dim" style={{ marginTop: 4 }}>
             {t('Best estimate from {0} on {1}. An estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))}
           </div>}
-          {!onEff && !onE1 && !onMax && !onSets && showEff && <div className="small dim" style={{ marginTop: 4 }}>
+          {!simple && !onEff && !onE1 && !onMax && !onSets && showEff && <div className="small dim" style={{ marginTop: 4 }}>
             {t('A fuller dot means less left in the tank. The same weight at a lower {0} is progress the line alone doesn’t show.', hd)}
           </div>}
         </> : <div className="muted small">{t('Finish your first workout and your progress curves will show up here.')}</div>}
@@ -722,13 +862,13 @@ export default function Stats({ embedded = false } = {}) {
     </div>
     </>,
     muscles: () => <>
-    {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} />}
+    {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} simple={simple} />}
     </>,
     weekly: () => <>
     {S.routines.length > 0 && <WeeklyPlanVolume S={S} />}
     </>,
     effort: () => <>
-    {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} />}
+    {(hasEffort(S) || hasEstimableEffort(S)) && <EffortCard S={S} simple={simple} />}
     </>,
     structural: () => <>
     {workouts.length > 0 && <div className="card row between" style={{ alignItems: 'center', gap: 12 }}>
@@ -765,6 +905,14 @@ export default function Stats({ embedded = false } = {}) {
       <div className="row" style={{ gap: 8 }}><StatsPickerButton compact />
         <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div></div>}
     {embedded && <div className="stats-top"><StatsPickerButton /></div>}
+
+    <Tip id="stats" icon="chartLine" title={t('Your progress, made simple')}>
+      {t('Simple shows the essentials in plain words. Switch to Detailed for every chart and number. Tap ⓘ next to a title to learn what a card shows.')}
+    </Tip>
+    {workouts.length > 0 && <div className="stats-mode" data-stats-detail={detail}>
+      <Segmented value={detail} onChange={v => update(s => { s.statsDetail = v })}
+        options={[{ value: 'simple', label: t('Simple') }, { value: 'detailed', label: t('Detailed') }]} />
+    </div>}
 
     {order.map(id => <Fragment key={id}>{cards[id]()}</Fragment>)}
 

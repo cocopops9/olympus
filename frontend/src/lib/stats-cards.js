@@ -6,6 +6,7 @@ import { t } from './i18n.js'
 
 /** Every card the Stats page can show, in the default order. Labels are functions: they follow the language. */
 export const STATS_CARDS = [
+  { id: 'highlights', icon: 'sparkles', tone: 'yellow', name: () => t('Highlights'), desc: () => t('What your training adds up to, in a sentence each') },
   { id: 'summary', icon: 'trophy', tone: 'orange', name: () => t('Summary'), desc: () => t('Workouts, this month, week streak and PRs') },
   { id: 'activity', icon: 'calendar', tone: 'green', name: () => t('Activity'), desc: () => t('A year of training, day by day') },
   { id: 'progress', icon: 'chartLine', tone: 'blue', name: () => t('Exercise progress'), desc: () => t('Top set, estimated 1RM and every set, per exercise') },
@@ -22,8 +23,14 @@ export const statsCard = id => STATS_CARDS.find(c => c.id === id) || null
 /** The cards shown when nothing was chosen. Effort joins when the profile logs effort at all. */
 export function defaultStatsCards(S) {
   const logsEffort = S?.effort === 'rir' || S?.effort === 'rpe' || (S?.effort == null && S?.showRir === true)
-  return ['summary', 'activity', 'progress', 'muscles', 'weekly', ...(logsEffort ? ['effort'] : []), 'structural', 'recent']
+  return ['highlights', 'summary', 'activity', 'progress', 'muscles', 'weekly', ...(logsEffort ? ['effort'] : []), 'structural', 'recent']
 }
+
+// How much each card shows (S.statsDetail): 'simple' — the headline figure, one chart and what it
+// means, in words — or 'detailed', every view, toggle and number. null = never chosen, which reads
+// as simple: the page should be readable to anyone the first time, and one tap opens it up.
+export const STATS_DETAIL = ['simple', 'detailed']
+export const statsDetailOf = S => (S?.statsDetail === 'detailed' ? 'detailed' : 'simple')
 
 /** The ids the Stats page shows, in order: the saved choice (unknown ids dropped), or the default. */
 export function statsCardsOf(S) {

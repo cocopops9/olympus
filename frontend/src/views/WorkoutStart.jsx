@@ -17,6 +17,7 @@ import { startFlow, planCopy, loadStarterPlan, confirmSheet } from '../sheets.js
 import BodyMap from '../components/BodyMap.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
+import { Tip } from '../components/Guide.jsx'
 import '../workout-start.css'
 
 const TINTS = ['var(--acc)', 'var(--blue)', 'var(--orange)', 'var(--pink)', 'var(--indigo)', 'var(--teal)', 'var(--red)']
@@ -112,6 +113,10 @@ export default function WorkoutStart() {
         <button className="iconbtn" onClick={() => nav('/plan')} aria-label={t('Weekly plan')}><Icon name="calendar" /></button>
       </div>
     </div>
+
+    <Tip id="workoutStart" icon="play" title={t('How to start')}>
+      {t('Tap Start routine on one of your routines, or Start empty workout and add exercises as you go. No routine yet? Explore routines has ready-made ones to copy.')}
+    </Tip>
 
     <button className="ws-empty" onClick={() => startFlow([])}>
       <span className="ws-empty-i"><Icon name="plus" /></span>

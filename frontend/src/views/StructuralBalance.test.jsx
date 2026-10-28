@@ -49,8 +49,8 @@ describe('StructuralBalance view', () => {
     const host = render()
     const rows = host.querySelectorAll('[data-role-id]')
     expect(rows.length).toBe(9)
-    expect(host.querySelector('[data-role-id="narrowBench"]').textContent).toContain('Balanced')
-    expect(host.querySelector('[data-role-id="deadlift"]').textContent).toContain('No data')
+    expect(host.querySelector('[data-role-id="narrowBench"]').textContent).toContain('Reference')
+    expect(host.querySelector('[data-role-id="deadlift"]').textContent).toContain('Not measured')
   })
 
   it('switching templates via the Segmented control recomputes the role list', () => {
@@ -65,10 +65,10 @@ describe('StructuralBalance view', () => {
     expect(host.querySelector('[data-role-id="nordicCurl"]')).toBeTruthy()
   })
 
-  it('a role with no matching exercise ever logged shows "No data" without throwing', () => {
+  it('a role with no matching exercise ever logged shows "Not measured" without throwing', () => {
     const host = render()
     const deadlift = host.querySelector('[data-role-id="deadlift"]')
-    expect(deadlift.textContent).toContain('No data')
+    expect(deadlift.textContent).toContain('Not measured')
   })
 
   // `.mrow .nm` is one line with an ellipsis that never reaches the label's block lines, so a
@@ -156,9 +156,44 @@ describe('StructuralBalance view', () => {
     expect(incline.textContent).not.toContain('No data')
     expect(incline.querySelector('[data-needs-anchor]').textContent).toBe('Log the anchor lift to score this one.')
     const anchor = host.querySelector('[data-role-id="narrowBench"]')
-    expect(anchor.textContent).toContain('No data')
+    expect(anchor.dataset.status).toBe('no-data')
+    expect(anchor.textContent).toContain('Log this lift first')
     expect(anchor.querySelector('[data-needs-anchor]')).toBe(null)
     expect(host.querySelector('[data-role-id="frontSquat"] [data-needs-anchor]')).toBe(null)   // not logged either
+  })
+
+  // The screen talks in kilos and reps for whoever never read a ratio table: what you lift now,
+  // what to aim for, how far that is, and the one lift to work on first.
+  it('names the lift to work on first and says, in kilos, what to aim for', () => {
+    const S = clone(DEF)
+    S.balanceTemplate = 'thibaudeauPowerlifting'
+    S.workouts = [workoutAt('0043', Date.now() - 1000, [setDoneSet(100, 1)]), workoutAt('0025', Date.now(), [setDoneSet(60, 1)])]
+    useStore.setState({ S, user: null })
+    const host = render()
+    expect(host.querySelector('.sb-sum').dataset.verdict).toBe('weak-link')
+    expect(host.querySelector('.sb-sum-v').textContent).toBe('Bench press')
+    const bench = host.querySelector('[data-role-id="bench"] [data-goal]').textContent
+    expect(bench).toContain('60 kg')
+    expect(bench).toContain('75 kg')
+    expect(bench).toContain('15 kg to go')
+    // A lift not logged yet still says what to aim for: 120% of the squat.
+    expect(host.querySelector('[data-role-id="deadlift"] [data-goal]').textContent).toContain('120 kg')
+    expect(host.querySelector('[data-template-about]').textContent).toContain('squat')
+  })
+
+  it('keeps the ratios under Details, open from the start only in Detailed', () => {
+    const S = clone(DEF)
+    S.balanceTemplate = 'thibaudeauPowerlifting'
+    S.workouts = [workoutAt('0043', Date.now() - 1000, [setDoneSet(100, 1)]), workoutAt('0025', Date.now(), [setDoneSet(75, 1)])]
+    useStore.setState({ S, user: null })
+    let host = render()
+    const details = () => host.querySelector('[data-role-id="bench"] details')
+    expect(details().open).toBe(false)
+    expect(details().querySelector('[data-ratio]').textContent).toBe('75% of the anchor lift, target 75%')
+    act(() => { mounted.splice(0).forEach(root => root.unmount()) })
+    useStore.setState({ S: { ...S, statsDetail: 'detailed' } })
+    host = render()
+    expect(details().open).toBe(true)
   })
 
   it('the back chevron navigates to /stats', () => {

@@ -115,6 +115,9 @@ export const DEF = {
   telemetry: null,
   // Which cards the Stats page shows, in order (lib/stats-cards.js); null = never chosen, the default set.
   statsCards: null,
+  // How much each Stats card shows — 'simple' or 'detailed' (lib/stats-cards.js statsDetailOf);
+  // null = never chosen, read as simple.
+  statsDetail: null,
   // How the active workout is laid out — 'cards' (one exercise at a time with Prev/Next),
   // 'list' (every exercise stacked and scrollable) or 'compact' (that stack stripped to just
   // names and set rows — no media, tags, notes, last-time or progression line). Purely
@@ -135,6 +138,7 @@ export const DEF = {
   wc: { ...WC_DEFAULT },
   // One-time hints already shown to this profile, synced so each shows once per person rather
   // than once per device: { swipeSets: true } after the first swipe-on-sets nudge (Workout.jsx).
+  // The guide keeps its level, its welcome and its dismissed tips here too (lib/guide.js).
   hints: {},
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path: local,

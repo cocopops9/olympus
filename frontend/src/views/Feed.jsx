@@ -13,6 +13,7 @@ import { PostCard, PersonRow, composeSheet, POSTED_EVENT } from '../components/S
 import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
+import { Tip } from '../components/Guide.jsx'
 import '../social.css'
 
 function NoServer() {
@@ -132,6 +133,10 @@ export default function Feed() {
         {ready && <button className="iconbtn" onClick={() => composeSheet({ onPosted: posted })} aria-label={t('New post')}><Icon name="plus" /></button>}
       </div>
     </div>
+
+    <Tip id="feed" icon="house" title={t('Finding your way')}>
+      {t('Three tabs at the bottom: Home is this feed, the round Workout button starts training, and Profile holds your plan, progress and settings.')}
+    </Tip>
 
     {!ready ? <NoServer /> : searching ? <People onClose={() => setSearching(false)} /> : <>
       <Segmented className="feed-tabs" value={tab} onChange={setTab}

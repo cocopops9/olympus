@@ -142,6 +142,7 @@ function exercisePickerWorkouts(now = BASE_NOW) {
 
 function resetFixture(workouts = lifecycleWorkouts()) {
   mocks.S.unit = 'kg'
+  mocks.S.statsDetail = 'detailed'   // Simple hides the Hard-sets switch these tests press
   mocks.S.bodyweight = []
   mocks.S.workouts = workouts
   mocks.maps.length = 0

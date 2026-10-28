@@ -41,9 +41,12 @@ export const BORDERLINE_BAND_PCT = 5
 //   repsTargetFemale rep-count only, when the source gives a distinct female rep target
 
 export const TEMPLATES = {
+  // `about`: what the table is for, in a sentence, for someone who has never heard the coach's
+  // name (an i18n key, like `label`).
   poliquin: {
     id: 'poliquin',
     label: 'Poliquin',
+    about: 'For general strength and muscle. Upper-body lifts are measured against your close-grip bench press, leg lifts against your squat.',
     roles: [
       {
         id: 'narrowBench',
@@ -121,6 +124,7 @@ export const TEMPLATES = {
   thibaudeauPowerlifting: {
     id: 'thibaudeauPowerlifting',
     label: 'Thibaudeau (Powerlifting)',
+    about: 'For powerlifting. Your bench press, deadlift and military press are measured against your squat.',
     roles: [
       {
         id: 'squat',
@@ -159,6 +163,7 @@ export const TEMPLATES = {
   atg: {
     id: 'atg',
     label: 'ATG',
+    about: 'For strong, resilient knees, back and shoulders. Each lift is measured against your body weight, or counted in reps.',
     roles: [
       {
         id: 'romanianDeadlift',

@@ -32,6 +32,7 @@ import { inviteSheet, feedbackSheet } from '../components/Community.jsx'
 import { openAccountSheet } from './MobileOnboarding.jsx'
 import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
+import { Tip } from '../components/Guide.jsx'
 
 const TABS = ['overview', 'stats', 'posts']
 
@@ -202,6 +203,10 @@ export default function Profile() {
         <Button size="sm" icon="share" onClick={() => composeSheet()}>{t('New post')}</Button>
       </div>}
     </div>
+
+    <Tip id="profile" icon="person" title={t('Your training, in one place')}>
+      {t('Overview is this week at a glance and Stats has your progress charts. Further down: your Plan, the exercise library and Settings.')}
+    </Tip>
 
     <Segmented className="prof-tab" value={tab} onChange={setTab} options={options} />
 

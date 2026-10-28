@@ -5,6 +5,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Stats from './Stats.jsx'
+import { useUI } from '../store/useUI.js'
 
 const mocks = vi.hoisted(() => ({ S: null }))
 vi.mock('../store/useStore.js', () => ({ useStore: Object.assign(selector => selector({ S: mocks.S }), { getState: () => ({ S: mocks.S, update: () => {} }) }) }))
@@ -42,8 +43,36 @@ describe('Stats: chosen cards', () => {
     expect(host.querySelector('.tiles')).toBe(null)
   })
   it('every card chosen: no invitation', () => {
-    mount({ statsCards: ['summary', 'activity', 'progress', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent'] })
+    mount({ statsCards: ['highlights', 'summary', 'activity', 'progress', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent'] })
     expect(host.querySelector('.stats-more')).toBe(null)
     expect(headings()).toContain('Progress photos')
+  })
+})
+
+// Simple (the default) or Detailed (S.statsDetail): Simple keeps one curve and says in a sentence
+// what it did; Detailed has every view. Each card explains itself behind its ⓘ.
+describe('Stats: simple and detailed', () => {
+  const earlier = { ...workout, id: 'w0', start: start - 10 * 86400000, d: new Date(start - 10 * 86400000).toISOString().slice(0, 10),
+    entries: [{ ...workout.entries[0], sets: [{ w: 70, r: 5, done: true }] }] }
+  const metricButtons = () => [...host.querySelectorAll('.seg button')].map(b => b.textContent)
+
+  it('opens on Simple: the highlights, one curve and what it did, in words', () => {
+    mount({ statsCards: null, workouts: [earlier, workout] })
+    expect(host.querySelector('[data-stats-detail]').dataset.statsDetail).toBe('simple')
+    expect(headings()).toContain('Highlights')
+    expect(metricButtons()).not.toContain('Est. 1RM')
+    expect(host.querySelector('[data-trend]').textContent).toContain('Better by 10 kg')
+  })
+  it('Detailed brings every view back, without the sentence', () => {
+    mount({ statsCards: null, statsDetail: 'detailed', workouts: [earlier, workout] })
+    expect(metricButtons()).toEqual(expect.arrayContaining(['Top set', 'Est. 1RM']))
+    expect(host.querySelector('[data-trend]')).toBe(null)
+  })
+  it('a card\'s ⓘ opens what it shows, with the method folded under it', () => {
+    mount({ statsCards: ['progress'] })
+    act(() => host.querySelector('#stats-progress .guide-info').click())
+    const sheet = useUI.getState().sheets.at(-1)
+    expect(sheet).toBeTruthy()
+    act(() => useUI.getState().closeAll())
   })
 })

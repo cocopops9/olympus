@@ -123,6 +123,9 @@ export const SEARCH = [
   { page: 'data', title: 'Photos & videos', icon: 'image', tint: 'var(--teal)', kw: 'media storage photos videos upload', when: c => c.hasMedia },
   { page: 'data', title: 'Reset everything', icon: 'trash', tint: 'var(--red)', kw: 'delete wipe reset erase' },
   // About & updates
+  { page: 'about', title: 'Tips', icon: 'lightbulb', tint: 'var(--yellow)', kw: 'help guide hints tutorial onboarding explain beginner', opts: ['All tips', 'Charts and numbers only', 'Off'] },
+  { page: 'about', title: 'Show the welcome tour again', icon: 'sparkles', tint: 'var(--acc)', kw: 'tutorial intro guide welcome onboarding tour help' },
+  { page: 'about', title: 'Show the tips again', icon: 'reset', tint: 'var(--grey)', kw: 'tips hints reset help guide' },
   { page: 'about', title: 'Check for updates', icon: 'download', tint: 'var(--green)', kw: 'update apk android version', when: c => !!UPDATE_REPO && c.mobile && c.android },
   { page: 'about', title: 'Get the Android app', icon: 'download', tint: 'var(--green)', kw: 'apk android download app', when: c => !!UPDATE_REPO && !c.mobile },
   { page: 'about', title: 'Version', icon: 'info', tint: 'var(--grey)', kw: 'version about licence license source code open source' },

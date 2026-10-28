@@ -8,6 +8,8 @@ import { speedUnitOf } from '../lib/speed.js'
 import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
 import { copyText } from '../lib/clipboard.js'
 import { useUI } from '../store/useUI.js'
+import { guideLevelOf, withGuideLevel, withTipsReset } from '../lib/guide.js'
+import { welcomeSheet } from '../components/Welcome.jsx'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
 import { dumbbellsOf } from '../lib/dumbbells.js'
@@ -805,6 +807,22 @@ export default function Settings({ page = null, find = null, via = null }) {
     </>,
 
     about: () => <>
+      {/* The guide (lib/guide.js): how many tips the screens show, and the way back to the
+          welcome tour and to tips already dismissed. */}
+      <Section title={t('Help & tips')} footer={t('Tips are short notes at the top of a screen that say what it is for. Each shows once.')}>
+        <SelectRow icon="lightbulb" iconTint="var(--yellow)" title={t('Tips')} value={guideLevelOf(S)}
+          options={[
+            { value: 'new', label: t('All tips'), subtitle: t('A tip on every main screen, for getting started') },
+            { value: 'some', label: t('Charts and numbers only'), subtitle: t('Only on Stats and the other analysis screens') },
+            { value: 'off', label: t('Off') },
+          ]}
+          onChange={level => update(s => { s.hints = withGuideLevel(s.hints, level) })} />
+        <Row icon="sparkles" iconTint="var(--acc)" title={t('Show the welcome tour again')} accessory="chevron" onClick={() => welcomeSheet()} />
+        <Row icon="reset" iconTint="var(--grey)" title={t('Show the tips again')} onClick={() => {
+          update(s => { s.hints = withTipsReset(s.hints) })
+          useUI.getState().toast(t('The tips will show again.'))
+        }} />
+      </Section>
       {/* Updates. On Android the row is always there: it checks on demand and installs when a
           release is newer (checksum verified, see onUpdateRowClick). On the web the app updates
           with its server, so the row points at the APK for the phone instead. iOS has no APK. */}
