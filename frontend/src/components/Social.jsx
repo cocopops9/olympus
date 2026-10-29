@@ -388,6 +388,18 @@ export function PersonRow({ user, onChange, onOpen, action }) {
 
 /* ---------------- writing a post ---------------- */
 
+// Two hidden pickers for a post's photos: the gallery (several at once) and the camera, for a
+// photo taken right now. `capture` opens the camera directly: in the Android app through the
+// shell's own camera intent (it asks for the camera permission the first time), in a phone's
+// browser through its camera; a desktop browser without one just offers files.
+function PhotoInputs({ fileRef, camRef, onFiles }) {
+  const pick = e => { const f = e.target.files; if (f && f.length) onFiles(f); e.target.value = '' }
+  return <>
+    <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={pick} />
+    <input ref={camRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={pick} data-testid="post-camera" />
+  </>
+}
+
 function Composer({ close, workout, onPosted }) {
   const S = useStore(s => s.S)
   const recent = S.workouts.slice(-12).reverse()
@@ -398,6 +410,7 @@ function Composer({ close, workout, onPosted }) {
   const [busy, setBusy] = useState(false)
   const ref = useRef(null)
   const fileRef = useRef(null)
+  const camRef = useRef(null)
   useEffect(() => { ref.current?.focus() }, [])
   const chosen = workout && (pick === (workout.id || '__given')) ? workout : recent.find(w => w.id === pick) || null
   const summary = chosen ? summaryOf(chosen, S) : null
@@ -448,11 +461,13 @@ function Composer({ close, workout, onPosted }) {
       </div>)}
     </div>}
     <div style={{ height: 10 }} />
-    <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
-      onChange={e => { const f = e.target.files; if (f && f.length) addPhotos(f); e.target.value = '' }} />
-    <Button icon="camera" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
-      {photos.length ? t('Add another photo') : t('Add photos')}
-    </Button>
+    <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
+    <div className="cmp-pick">
+      <Button icon="camera" disabled={photos.length >= MAX_PHOTOS} onClick={() => camRef.current?.click()}>{t('Take a photo')}</Button>
+      <Button icon="image" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
+        {photos.length ? t('Add another photo') : t('Add photos')}
+      </Button>
+    </div>
     <div style={{ height: 8 }} />
     {recent.length > 0 || workout
       ? <SelectRow icon="dumbbell" title={t('Attach a workout')} value={pick} options={options} onChange={setPick} sheetTitle={t('Attach a workout')} />
@@ -487,9 +502,32 @@ export function PostEditor({ w, initial = null, onSaved }) {
   const [text, setText] = useState(pending?.text ?? initial?.text ?? '')
   const [photos, setPhotos] = useState(() => (pending?.photos ?? initial?.photos ?? []).map(id => ({ key: id, id, preview: null })))
   const [saved, setSaved] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const fileRef = useRef(null)
+  const camRef = useRef(null)
   const uploading = photos.some(p => !p.id)
   const offline = () => typeof navigator !== 'undefined' && navigator.onLine === false
+  // What was written is never lost: when the editor goes away unsaved (Done on the finish summary,
+  // the Android back, the sheet closed), the post is saved as it stands, as Save post would. A
+  // photo still uploading by then is waited for. Before this, back while writing the post of a
+  // finished workout threw it away.
+  const latest = useRef(null)
+  latest.current = { rec, title, text, photos, saved, dirty }
+  const uploads = useRef(new Map())   // key -> promise of the photo's id
+  useEffect(() => () => {
+    const d = latest.current
+    if (!d || d.saved || !d.dirty) return
+    const keys = d.photos.map(p => p.key)
+    const known = new Map(d.photos.filter(p => p.id).map(p => [p.key, p.id]))
+    const waiting = keys.filter(k => !known.has(k) && uploads.current.has(k))
+      .map(k => uploads.current.get(k).then(id => { known.set(k, id) }, () => {}))
+    Promise.all(waiting).then(() => {
+      const ids = keys.map(k => known.get(k)).filter(Boolean)
+      useStore.getState().update(s => setPostDetails(s, d.rec, { title: d.title, text: d.text, photos: ids }))
+      flushPosts().catch(() => {})
+      toast(offline() ? t('Saved. It will be sent when you are back online.') : t('Post saved'))
+    })
+  }, [])
 
   const addPhotos = async files => {
     if (offline()) { toast(t('Photos need a connection. Add them once you are back online.')); return }
@@ -500,9 +538,11 @@ export function PostEditor({ w, initial = null, onSaved }) {
       const key = Math.random().toString(36).slice(2)
       let data
       try { data = await preparePhoto(file) } catch (e) { fail(e); continue }
-      setSaved(false)
+      setSaved(false); setDirty(true)
       setPhotos(ps => [...ps, { key, preview: data, id: null }])
-      uploadPhoto(data).then(
+      const up = uploadPhoto(data)
+      uploads.current.set(key, up)
+      up.then(
         id => setPhotos(ps => ps.map(p => (p.key === key ? { ...p, id } : p))),
         e => { fail(e); setPhotos(ps => ps.filter(p => p.key !== key)) })
     }
@@ -511,11 +551,12 @@ export function PostEditor({ w, initial = null, onSaved }) {
     if (uploading) return
     useStore.getState().update(s => setPostDetails(s, rec, { title, text, photos: photos.map(p => p.id) }))
     flushPosts().catch(() => {})
-    setSaved(true)
+    setSaved(true); setDirty(false)
+    latest.current = { ...latest.current, saved: true, dirty: false }
     toast(offline() ? t('Saved. It will be sent when you are back online.') : t('Post saved'))
     onSaved?.()
   }
-  const change = fn => v => { setSaved(false); fn(v) }
+  const change = fn => v => { setSaved(false); setDirty(true); fn(v) }
 
   return <div className="pe">
     <div className="pe-h"><Icon name="share" />{t('Your post')}</div>
@@ -526,13 +567,14 @@ export function PostEditor({ w, initial = null, onSaved }) {
     {photos.length > 0 && <div className="cmp-phs">
       {photos.map(p => <div key={p.key} className={'cmp-ph' + (p.id ? '' : ' busy')}>
         {p.preview ? <img src={p.preview} alt="" /> : <PostedThumb id={p.id} />}
-        <button className="cmp-ph-x" onClick={() => { setSaved(false); setPhotos(ps => ps.filter(x => x.key !== p.key)) }} aria-label={t('Remove photo')}><Icon name="xmark" /></button>
+        <button className="cmp-ph-x" onClick={() => { setSaved(false); setDirty(true); setPhotos(ps => ps.filter(x => x.key !== p.key)) }} aria-label={t('Remove photo')}><Icon name="xmark" /></button>
       </div>)}
     </div>}
-    <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
-      onChange={e => { const f = e.target.files; if (f && f.length) addPhotos(f); e.target.value = '' }} />
+    <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
     <div className="pe-a">
-      <Button size="sm" icon="camera" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
+      <Button size="sm" icon="camera" className="pe-cam" disabled={photos.length >= MAX_PHOTOS} onClick={() => camRef.current?.click()}
+        aria-label={t('Take a photo')} title={t('Take a photo')} />
+      <Button size="sm" icon="image" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
         {photos.length ? t('Add another photo') : t('Add photos')}
       </Button>
       <Button size="sm" variant="primary" icon={saved ? 'check' : undefined} disabled={uploading || saved} onClick={save}>

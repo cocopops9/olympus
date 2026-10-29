@@ -2148,3 +2148,26 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .hm-sum>div{background:var(--surface-2);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .hm-sum b{font-size:20px;font-weight:750;color:var(--acc);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hm-sum span{font-size:12px;color:var(--label-2);line-height:1.25}
+
+/* Olympus: away from the workout the rest bar opens it (RestTimer.jsx useOpenWorkout). The handle on
+   its top edge says it can be pulled; the sheet behind it follows the finger up and, let go far
+   enough, covers the screen as the workout opens. */
+#timer.away{touch-action:pan-x;padding-top:16px}
+#timer .tgrab{position:absolute;top:0;left:50%;transform:translateX(-50%);width:64px;height:16px;padding:0;
+  border:0;background:none;display:flex;align-items:center;justify-content:center;z-index:1}
+#timer .tgrab i{display:block;width:36px;height:4px;border-radius:2px;background:var(--text-3,var(--text-2));opacity:.7}
+#timer .tgrab:active i{opacity:1;background:var(--acc)}
+.tsheet{position:fixed;inset:0;z-index:59;background:var(--bg);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;pointer-events:none;
+  clip-path:inset(calc(100% - 88px - var(--sab) - 90px - var(--pull,0px)) 12px calc(88px + var(--sab)) 12px round var(--r-lg));
+  transition:clip-path 60ms linear}
+.tsheet.open{clip-path:inset(0 0 0 0 round 0);transition:clip-path 280ms cubic-bezier(.2,.8,.2,1)}
+.tsheet-t{font-size:64px;font-weight:650;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--acc);opacity:0;transition:opacity 200ms}
+.tsheet-l{color:var(--text-2);opacity:0;transition:opacity 200ms}
+.tsheet.open .tsheet-t,.tsheet.open .tsheet-l{opacity:1}
+@media (prefers-reduced-motion:reduce){.tsheet,.tsheet.open{transition:none}}
+/* Olympus: a chip held to move its exercise (components/WorkoutChips.jsx). */
+.wchip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform 120ms ease}
+.wchip.lifted{transform:scale(1.18);box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--acc),0 6px 14px -4px rgba(0,0,0,.5);z-index:1;position:relative}
+.wchips.dragging{overflow-x:hidden}
+@media (prefers-reduced-motion:reduce){.wchip{transition:none}}

@@ -9,7 +9,7 @@ import { useStore } from '../store/useStore.js'
 
 const mocks = vi.hoisted(() => ({
   nav: vi.fn(),
-  feed: vi.fn(), discover: vi.fn(), search: vi.fn(), like: vi.fn(),
+  feed: vi.fn(), discover: vi.fn(), search: vi.fn(), like: vi.fn(), suggested: vi.fn(), profile: vi.fn(),
 }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
 vi.mock('../lib/social.js', async importOriginal => ({
@@ -18,6 +18,8 @@ vi.mock('../lib/social.js', async importOriginal => ({
   fetchDiscover: (...a) => mocks.discover(...a),
   searchUsers: (...a) => mocks.search(...a),
   setLike: (...a) => mocks.like(...a),
+  fetchSuggested: (...a) => mocks.suggested(...a),
+  fetchProfile: (...a) => mocks.profile(...a),
 }))
 import Feed from './Feed.jsx'
 
@@ -35,6 +37,9 @@ beforeEach(() => {
   document.body.appendChild(host)
   root = createRoot(host)
   Object.values(mocks).forEach(m => m.mockReset())
+  // Someone who already follows people: Home opens on Following, as it always has.
+  mocks.profile.mockResolvedValue({ user: { id: 'u_a', following: 3 } })
+  mocks.suggested.mockResolvedValue([])
 })
 afterEach(() => { act(() => root.unmount()); host.remove(); useStore.setState({ user: null }) })
 
@@ -115,5 +120,37 @@ describe('Feed with a server profile', () => {
     await act(async () => button('Try again').click())
     await flush()
     expect(text()).toContain('Leg day p9')
+  })
+})
+
+describe('Suggested people (Olympus)', () => {
+  beforeEach(() => useStore.setState({ user: { id: 'u_a', name: 'Anna' } }))
+
+  it('opens on Suggested for someone who follows nobody, with the founder first', async () => {
+    mocks.profile.mockResolvedValue({ user: { id: 'u_a', following: 0 } })
+    mocks.feed.mockResolvedValue({ posts: [], next: null })
+    mocks.suggested.mockResolvedValue([
+      { id: 'u_c', name: 'Chaos', founder: true, followers: 12, posts: 3 },
+      { id: 'u_b', name: 'Ben', followers: 4, posts: 1 },
+    ])
+    await act(async () => root.render(<Feed />))
+    await flush(); await flush()
+    expect(text()).toContain('Suggested for you')
+    const names = [...host.querySelectorAll('.person-n')].map(n => n.textContent)
+    expect(names[0]).toContain('Chaos')
+    expect(names[1]).toContain('Ben')
+  })
+
+  it('stays on Following for someone who follows people, with Suggested one tap away', async () => {
+    mocks.feed.mockResolvedValue({ posts: [post('p1')], next: null })
+    mocks.suggested.mockResolvedValue([{ id: 'u_c', name: 'Chaos', founder: true, followers: 12, posts: 3 }])
+    await act(async () => root.render(<Feed />))
+    await flush()
+    expect(text()).toContain('Leg day p1')
+    expect(text()).not.toContain('Suggested for you')
+    await act(async () => button('Suggested').click())
+    await flush()
+    expect(text()).toContain('Suggested for you')
+    expect(text()).toContain('Chaos')
   })
 })

@@ -14,7 +14,7 @@ export const USERNAME_MIN = 3;
 export const USERNAME_MAX = 20;
 const USERNAME_RE = /^[A-Za-z0-9](?:[A-Za-z0-9._]*[A-Za-z0-9_])?$/;
 // Names that would read as the app or its staff speaking.
-const RESERVED = new Set(['admin', 'administrator', 'olympus', 'hercules', 'athena', 'support', 'help', 'root', 'system', 'moderator', 'owner', 'staff', 'official']);
+const RESERVED = new Set(['admin', 'administrator', 'olympus', 'hercules', 'athena', 'chiron', 'support', 'help', 'root', 'system', 'moderator', 'owner', 'staff', 'official']);
 
 /** What is wrong with `name` as a username, or null: 'too-short' | 'too-long' | 'chars' | 'reserved'. */
 export function usernameProblem(name) {

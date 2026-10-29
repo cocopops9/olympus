@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
+import { useStore } from '../store/useStore.js'
+import { nav } from '../lib/nav.js'
 import { t } from '../lib/i18n.js'
 import { REST_MAX } from '../lib/duration.js'
 import { durationSheet } from './DurationWheel.jsx'
@@ -75,6 +77,57 @@ function useSkipFits(actsRef, deps) {
   return fits
 }
 
+// Olympus: away from the workout screen the bar is also the way back to it. Swiping it up (or
+// tapping the handle on its top edge) grows it over the whole screen and opens the workout, as
+// a mini player opens its full player. How far a swipe has to travel before it opens, in px.
+const OPEN_AT = 70
+const onWorkoutScreen = () => String(globalThis.location?.hash || '').startsWith('#/workout')
+const stillMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/**
+ * The swipe up from the bar: { pull } while the finger moves (how far up it went, px), and
+ * `opening` once it is let go far enough (or the handle tapped): the screen-wide sheet grows,
+ * then the workout opens under it. `handlers` go on the bar; a swipe that started on a button
+ * never presses it.
+ */
+function useOpenWorkout(enabled) {
+  const [pull, setPull] = useState(0)
+  const [opening, setOpening] = useState(false)
+  const start = useRef(null)
+  const swallowClick = useRef(false)
+  const open = () => {
+    if (opening) return
+    if (stillMotion()) { nav('/workout'); return }
+    setOpening(true)
+    setTimeout(() => { nav('/workout'); setOpening(false); setPull(0) }, 280)
+  }
+  const handlers = enabled ? {
+    onPointerDown: e => { start.current = { y: e.clientY, x: e.clientX, id: e.pointerId, moved: false } },
+    onPointerMove: e => {
+      const s0 = start.current
+      if (!s0 || s0.id !== e.pointerId) return
+      const dy = s0.y - e.clientY
+      if (!s0.moved && dy > 8 && dy > Math.abs(e.clientX - s0.x)) {
+        s0.moved = true
+        try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* old browsers */ }
+      }
+      if (s0.moved) setPull(Math.max(0, dy))
+    },
+    onPointerUp: e => {
+      const s0 = start.current
+      start.current = null
+      if (!s0?.moved) return
+      swallowClick.current = true
+      setTimeout(() => { swallowClick.current = false }, 0)
+      if (s0.y - e.clientY >= OPEN_AT) open(); else setPull(0)
+    },
+    onPointerCancel: () => { start.current = null; setPull(0) },
+    // The click that ends a swipe begun on a button (the clock, +15) is not a press.
+    onClickCapture: e => { if (swallowClick.current) { e.stopPropagation(); e.preventDefault(); swallowClick.current = false } },
+  } : {}
+  return { pull, opening, open, handlers }
+}
+
 export default function RestTimer() {
   const timer = useUI(s => s.timer)
   const work = useUI(s => s.work)
@@ -82,6 +135,9 @@ export default function RestTimer() {
   const on = work || timer
   const actsRef = useRef(null)
   const skipFits = useSkipFits(actsRef, [!!timer && !work, t('Skip'), t('Dismiss')])
+  // The bar re-renders every second while it counts, so the route is read as it is now.
+  const away = useStore(s => !!s.S.active) && !onWorkoutScreen()
+  const { pull, opening, open, handlers } = useOpenWorkout(away)
   // The page keeps room at its bottom for the bar (index.css body.resting), so the last set and
   // the Finish button can scroll clear of it.
   useEffect(() => {
@@ -91,8 +147,17 @@ export default function RestTimer() {
   if (!on) return null
   const pct = Math.max(0, Math.min(100, (on.left / on.total) * 100))
 
-  if (work) return (
-    <div id="timer" className="working">
+  const grab = away && <button type="button" className="tgrab" onClick={open} aria-label={t('Back to the workout')} title={t('Back to the workout')}><i /></button>
+  const lift = pull ? { transform: `translateY(${-Math.min(pull, 160) * 0.35}px)` } : undefined
+  const sheet = away && (pull > 0 || opening) && <div className={'tsheet' + (opening ? ' open' : '')} aria-hidden="true"
+    style={opening ? undefined : { '--pull': Math.min(pull, 400) + 'px' }}>
+    <span className="tsheet-t">{clock(Math.max(0, (work || timer).left))}</span>
+    <span className="tsheet-l">{t('Back to the workout')}</span>
+  </div>
+
+  if (work) return (<>{sheet}
+    <div id="timer" className={'working' + (away ? ' away' : '')} style={lift} {...handlers}>
+      {grab}
       <div className="bar" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
       <div className="tclock">
         <span className="t">{work.left <= 0 && work.overtime ? '+' + clock(-work.left) : clock(work.left)}</span>
@@ -102,7 +167,7 @@ export default function RestTimer() {
         <Button size="sm" onClick={stopWork}>{t('Cancel')}</Button>
         <Button size="sm" variant="primary" icon="check" onClick={finishWorkEarly}>{t('Done')}</Button>
       </div>
-    </div>
+    </div></>
   )
   // −15 and +15 sit together in number-line order; Skip is pushed to the far edge, away from the
   // button you tap to buy more time. Pause sits between them as an icon (#193): it holds the
@@ -112,8 +177,10 @@ export default function RestTimer() {
   // its two faces (data-alt, a hidden line in index.css): the row never reflows when the rest
   // turns Ready, so a thumb on +15 never lands on −15.
   const label = timer.kind === 'switch' ? t('Switch sides') : timer.paused ? t('Paused') : t('Rest')
-  return (
-    <div id="timer" className={'rest' + (timer.paused ? ' paused' : '') + (timer.kind === 'switch' ? ' switch' : '') + (timer.ready ? ' ready' : '')}>
+  return (<>{sheet}
+    <div id="timer" className={'rest' + (timer.paused ? ' paused' : '') + (timer.kind === 'switch' ? ' switch' : '') + (timer.ready ? ' ready' : '') + (away ? ' away' : '')}
+      style={lift} {...handlers}>
+      {grab}
       <div className="bar" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
       <button type="button" className="tclock" onClick={adjustRestSheet}
         aria-label={(timer.ready ? t('Ready') : clock(timer.left)) + '. ' + t('Change the time left')}>
@@ -137,6 +204,6 @@ export default function RestTimer() {
           <span className="skip-probe" aria-hidden="true"><span>{t('Skip')}</span><span>{t('Dismiss')}</span></span>
         </button>
       </div>
-    </div>
+    </div></>
   )
 }

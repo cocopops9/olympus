@@ -81,6 +81,7 @@ import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
 import GymPicker from './components/GymPicker.jsx'
+import { lastGym, cleanGym } from './lib/gyms.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -3519,6 +3520,11 @@ function doFinishWorkout() {
   w.vol = workoutVolume(w)
   // A workout nobody named is named after what it trained (lib/workout-title.js).
   titleWorkout(w)
+  // Olympus: the gym of the latest workout comes along as the default (lib/gyms.js); the finish
+  // summary can change it. A workout picked up again keeps the gym it was saved with.
+  const before = resumed != null ? st.workouts.find(x => resumedKeyOf(x) === resumed) : null
+  const gym = before ? cleanGym(before.gym) : lastGym(st)
+  if (gym) w.gym = gym
   let shown = w
   update(s => {
     if (past) {

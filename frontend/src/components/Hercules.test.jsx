@@ -19,6 +19,7 @@ vi.mock('../lib/hercules.js', async orig => ({
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import HerculesButton, { herculesSheet, resetGreetingForTests } from './Hercules.jsx'
+import { chatsOf } from '../lib/coach-memory.js'
 
 const roots = []
 const flush = () => act(() => new Promise(r => setTimeout(r, 0)))
@@ -85,7 +86,7 @@ describe('Hercules', () => {
     expect(chat.querySelectorAll('.hc-m.him li')).toHaveLength(2)
     expect(chat.textContent).toContain('19 messages left today')
     // kept on the device for next time
-    const kept = JSON.parse(localStorage.getItem('olympus_hercules_chats_' + useStore.getState().user.id))
+    const kept = chatsOf(useStore.getState().user.id, 'hercules')
     expect(kept.chats).toHaveLength(1)
     expect(kept.chats[0].title).toBe('Plan my training for next week')
     expect(kept.chats[0].messages.map(m => m.role)).toEqual(['user', 'assistant'])
@@ -135,7 +136,7 @@ describe('Hercules', () => {
     act(() => menuBtn().click())
     act(() => chat.querySelector('.hc-conv [aria-label="Delete conversation"]').click())
     expect([...chat.querySelectorAll('.hc-conv-t')].map(e => e.textContent)).toEqual(['How much protein?'])
-    const kept = JSON.parse(localStorage.getItem('olympus_hercules_chats_' + useStore.getState().user.id))
+    const kept = chatsOf(useStore.getState().user.id, 'hercules')
     expect(kept.chats.map(c => c.title)).toEqual(['How much protein?'])
   })
 
@@ -198,8 +199,10 @@ describe('Hercules', () => {
     type(chat, 'Question for Athena'); await flush(); await flush()
     expect(mocks.coaches).toEqual(['hercules', 'athena'])
     expect(chat.querySelector('.hc-m.me').textContent).toBe('Question for Athena')
-    expect(JSON.parse(localStorage.getItem('olympus_athena_chats_' + uid)).chats[0].title).toBe('Question for Athena')
-    expect(JSON.parse(localStorage.getItem('olympus_hercules_chats_' + uid)).chats[0].title).toBe('Question for Hercules')
+    expect(chatsOf(uid, 'athena').chats[0].title).toBe('Question for Athena')
+    expect(chatsOf(uid, 'hercules').chats[0].title).toBe('Question for Hercules')
+    // One memory: both conversations sit in the same store on the device.
+    expect(JSON.parse(localStorage.getItem('olympus_coach_memory_' + uid)).chats.map(c => c.coach).sort()).toEqual(['athena', 'hercules'])
     expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('athena')
     // back to the first: his conversation is still his
     act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Hercules').click())

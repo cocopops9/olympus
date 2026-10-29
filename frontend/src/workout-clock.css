@@ -22,3 +22,32 @@
 
 /* Numbers the app offered (last time's, or 0 kg and 10 reps) and nobody changed yet (lib/suggested.js). */
 .stp.sug .val input{color:color-mix(in srgb,var(--label) 38%,transparent);font-style:italic}
+
+/* Olympus: the workout's time and volume, big, under its name (views/Workout.jsx WorkoutStats). */
+.wstats{display:flex;align-items:stretch;gap:10px;margin:-4px 0 10px}
+.wstat{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:16px;
+  background:var(--surface);border:0;color:inherit;font:inherit;text-align:start}
+.wstat-v{font-size:26px;font-weight:700;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wstat-l{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.wstat-b{display:flex;flex-direction:column;min-width:0}
+.wstat.time{cursor:pointer}
+.wstat.time .hglass{color:var(--acc);flex:none}
+.wstat.time.paused .wstat-v{color:var(--acc)}
+.wstat .wclock-pp{flex:none;margin-inline-start:auto;width:30px;height:30px;font-size:14px!important;border:0;cursor:pointer}
+.wstat .atlas{flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}
+@media (max-width:359px){.wstat-v{font-size:22px}.wstat{padding:8px 10px;gap:8px}}
+/* The hourglass: 5.4 s of sand, then a half turn; the reset at the end is invisible because the
+   turned glass looks like a fresh one. */
+.hglass-sand{fill:var(--acc)}
+.hglass-stream{stroke:var(--acc);stroke-width:1;stroke-dasharray:1 1.4}
+.hglass-sand.top{transform-origin:12px 11.2px;animation:hg-top 6s linear infinite}
+.hglass-sand.bot{transform-origin:12px 20px;animation:hg-bot 6s linear infinite}
+.hglass-stream{animation:hg-stream 6s linear infinite,hg-fall .45s linear infinite}
+.hglass-turn{transform-origin:12px 12px;animation:hg-turn 6s cubic-bezier(.5,0,.5,1) infinite}
+.hglass.paused *{animation-play-state:paused!important}
+@keyframes hg-top{0%{transform:scaleY(1)}88%{transform:scaleY(0)}100%{transform:scaleY(0)}}
+@keyframes hg-bot{0%{transform:scaleY(0)}88%{transform:scaleY(1)}100%{transform:scaleY(1)}}
+@keyframes hg-stream{0%,86%{opacity:1}87%,100%{opacity:0}}
+@keyframes hg-fall{to{stroke-dashoffset:-4.8}}
+@keyframes hg-turn{0%,88%{transform:rotate(0)}100%{transform:rotate(180deg)}}
+@media (prefers-reduced-motion:reduce){.hglass *{animation:none!important}.hglass-sand.top{transform:scaleY(.55)}.hglass-sand.bot{transform:scaleY(.5)}.hglass-stream{opacity:0}}

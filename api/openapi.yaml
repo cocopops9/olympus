@@ -1197,6 +1197,73 @@ paths:
         '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/chiron:
+    get:
+      tags: [coach]
+      operationId: chironStatus
+      summary: Whether Chiron is on, and today's messages left
+      description: |
+        Chiron is the free coach woken up during a workout, between sets: the same exchange as
+        Hercules (`/api/hercules`), with replies kept under 60 words, only the last 6 turns read,
+        anything off the training declined in a sentence, and his own allowance (60 a day unless
+        `CHIRON_PER_DAY` says otherwise). He uses Hercules's provider key unless `CHIRON_API_KEY`
+        is set; `CHIRON_MODEL` and `CHIRON_FALLBACK_MODEL` pick his models.
+      responses:
+        '200':
+          description: The state.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  on: { type: boolean }
+                  perDay: { type: integer }
+                  left: { type: integer }
+              example: { on: true, perDay: 60, left: 57 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [coach]
+      operationId: chironAsk
+      summary: Ask Chiron
+      description: |
+        One message, with the conversation so far (the last 6 turns are used, 2000 characters
+        each) and the app's written summary of the profile's training (up to 9000 characters).
+        A message the model did not answer is not counted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [user, assistant] }
+                      content: { type: string }
+                lang: { type: string, description: The app's language; the answer is in it. }
+                context: { type: string, description: The training summary. }
+            example: { messages: [{ role: user, content: "How many sets for chest per week?" }], lang: en, context: "Workouts (last 6 weeks): ..." }
+      responses:
+        '200':
+          description: The answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+                  left: { type: integer }
+                  perDay: { type: integer }
+        '400': { description: 'No message (`empty`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { description: 'No messages left today (`hercules-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/account/email:
     post:
       tags: [password]
@@ -2537,6 +2604,33 @@ paths:
                   users:
                     type: array
                     items: { $ref: '#/components/schemas/SocialUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/social/suggested:
+    get:
+      tags: [social]
+      operationId: socialSuggested
+      summary: People to follow
+      description: |
+        Profiles the caller does not follow (nor has asked to follow), none in a block with them.
+        The founder first, then the profiles most followed by people the caller follows (`mutual`
+        says how many), then the most followed.
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/SocialUser'
+                        - type: object
+                          properties:
+                            mutual: { type: integer, description: How many of the people the caller follows follow this profile. }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/social/profile:

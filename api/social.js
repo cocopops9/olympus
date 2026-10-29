@@ -364,6 +364,23 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return ranked.slice(0, LIMITS.searchResults);
     },
 
+    // People to follow: everyone the viewer does not follow yet (nor has asked to), not in a
+    // block with them. The founder comes first, so the very first suggestion of a new profile is
+    // the person who made the app; then the people followed by those the viewer follows, then the
+    // most followed.
+    suggested(viewer) {
+      const mine = new Set(followsOf(viewer.id));
+      const friendsOf = uid => followersOf(uid).filter(id => mine.has(id)).length;
+      const all = users().filter(u => !u.disabled && u.id !== viewer.id && !mine.has(u.id)
+        && !requested(viewer.id, u.id) && !blocked(u.id, viewer.id) && !blocked(viewer.id, u.id));
+      return all.map(u => ({ u, pub: publicUser(u, viewer), mutual: friendsOf(u.id) }))
+        .filter(x => x.pub)
+        .sort((a, b) => (b.pub.founder ? 1 : 0) - (a.pub.founder ? 1 : 0) || b.mutual - a.mutual
+          || b.pub.followers - a.pub.followers || a.pub.name.localeCompare(b.pub.name))
+        .slice(0, LIMITS.searchResults)
+        .map(x => ({ ...x.pub, ...(x.mutual ? { mutual: x.mutual } : {}) }));
+    },
+
     profile(viewer, id, opts) {
       const u = findUser(viewer, typeof id === 'string' && id ? id : viewer.id);
       const user = publicUser(u, viewer);

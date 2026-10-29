@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useSocial, useWhenVisible } from '../store/useSocial.js'
 import { t } from '../lib/i18n.js'
-import { socialReady, fetchFeed, fetchDiscover, searchUsers, socialErrorText } from '../lib/social.js'
+import { socialReady, fetchFeed, fetchDiscover, searchUsers, socialErrorText, fetchSuggested, fetchProfile } from '../lib/social.js'
 import { Button, Segmented, SearchField } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { PostCard, PersonRow, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
@@ -67,12 +67,51 @@ function People({ onClose }) {
   </div>
 }
 
+// Olympus: people to follow (lib/social.js fetchSuggested), the founder first. The Suggested tab,
+// and the empty Following feed of someone who follows nobody yet. `limit` shortens the list.
+function Suggested({ limit, onMore }) {
+  const [users, setUsers] = useState(null)
+  const [error, setError] = useState(null)
+  useEffect(() => {
+    let live = true
+    fetchSuggested().then(u => { if (live) { setUsers(u); setError(null) } }, e => { if (live) setError(socialErrorText(e, t)) })
+    return () => { live = false }
+  }, [])
+  // Followed from here, a person stays on the list with the button showing it, until next time.
+  const update = u => setUsers(list => list.map(x => (x.id === u.id ? u : x)))
+  if (error) return <div className="empty">{error}</div>
+  if (users === null) return <div className="empty">{t('Loading…')}</div>
+  if (!users.length) return <div className="empty">{t('You follow everyone here. Invite a friend to join.')}</div>
+  const shown = limit ? users.slice(0, limit) : users
+  return <div className="suggested">
+    <h4 className="sec">{t('Suggested for you')}</h4>
+    {shown.map(u => <PersonRow key={u.id} user={u} onChange={update} />)}
+    {limit && users.length > limit && onMore && <div className="feed-loadmore"><Button size="sm" variant="tinted" onClick={onMore}>{t('See all suggestions')}</Button></div>}
+  </div>
+}
+
 export default function Feed() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
   const ready = socialReady(user)
   const news = useSocial(s => s.unread + s.requests)
   const [tab, setTab] = useState('following')
+  // Someone who follows nobody yet starts on Suggested, the founder at the top of it. Asked once
+  // per visit to Home; it changes nothing once a tab was picked by hand.
+  const [follows, setFollows] = useState(null)
+  const picked = useRef(false)
+  useEffect(() => {
+    if (!ready) return
+    let live = true
+    fetchProfile().then(p => {
+      if (!live) return
+      const n = Number(p?.user?.following) || 0
+      setFollows(n)
+      if (n === 0 && !picked.current) setTab('suggested')
+    }, () => {})
+    return () => { live = false }
+  }, [ready, user?.id])
+  const pickTab = v => { picked.current = true; setTab(v) }
   const [searching, setSearching] = useState(false)
   const [posts, setPosts] = useState(null)
   const [next, setNext] = useState(null)
@@ -86,7 +125,7 @@ export default function Feed() {
   }, [])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || tab === 'suggested') return
     let live = true
     setPosts(null); setError(null); setNext(null)
     load(tab).then(p => { if (live) { setPosts(p.posts); setNext(p.next) } }, e => { if (live) setError(socialErrorText(e, t)) })
@@ -106,7 +145,7 @@ export default function Feed() {
   }
   // Back in front: the newest page again, quietly, keeping what is on screen until it arrives.
   useWhenVisible(() => {
-    if (!ready || searching) return
+    if (!ready || searching || tab === 'suggested') return
     load(tab).then(p => { setPosts(p.posts); setNext(p.next) }, () => {})
   })
   const change = p => setPosts(list => list.map(x => (x.id === p.id ? p : x)))
@@ -139,9 +178,9 @@ export default function Feed() {
     </Tip>
 
     {!ready ? <NoServer /> : searching ? <People onClose={() => setSearching(false)} /> : <>
-      <Segmented className="feed-tabs" value={tab} onChange={setTab}
-        options={[{ value: 'following', label: t('Following') }, { value: 'discover', label: t('Discover') }]} />
-      {error ? <div className="empty">{error}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={refresh}>{t('Try again')}</Button></div></div>
+      <Segmented className="feed-tabs" value={tab} onChange={pickTab}
+        options={[{ value: 'following', label: t('Following') }, { value: 'discover', label: t('Discover') }, { value: 'suggested', label: t('Suggested') }]} />
+      {tab === 'suggested' ? <Suggested /> : error ? <div className="empty">{error}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={refresh}>{t('Try again')}</Button></div></div>
         : posts === null ? <div className="empty">{t('Loading…')}</div>
           : posts.length ? <>
             {posts.map(p => <PostCard key={p.id} post={p} onChange={change} onDelete={remove} />)}
@@ -153,6 +192,8 @@ export default function Feed() {
             {tab === 'following' && <><Button variant="primary" icon="magnifier" onClick={() => setSearching(true)}>{t('Find people')}</Button><div style={{ height: 8 }} /></>}
             <Button icon="share" onClick={() => composeSheet({ onPosted: posted })}>{t('Share a workout')}</Button>
           </div>}
+      {/* Following nobody yet: the people to start with, under the posts (your own) or the empty note. */}
+      {tab === 'following' && follows === 0 && posts !== null && !error && <Suggested limit={5} onMore={() => pickTab('suggested')} />}
       <div style={{ height: 6 }} />
       <Button variant="ghost" icon="calendar" onClick={() => nav('/today')}>{t('Today’s training')}</Button>
     </>}

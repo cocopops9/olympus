@@ -35,7 +35,7 @@ import { REST_MAX, fmtRest } from '../lib/duration.js'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
 import { effortColor } from '../lib/effort.js'
-import { HeaderClock } from '../components/WorkoutClock.jsx'
+import { WorkoutStats } from '../components/WorkoutClock.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
@@ -54,7 +54,7 @@ import FocusView from './FocusView.jsx'
 import WorkoutStart from './WorkoutStart.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
 import { markSuggested, isSuggested, clearSuggested } from '../lib/suggested.js'
-import { WorkoutCoachButton } from '../components/Hercules.jsx'
+import { WorkoutChiron } from '../components/Chiron.jsx'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
 // that bounces, or a double press, sends two presses a moment apart: the first starts the hold,
@@ -1540,21 +1540,23 @@ function ActiveWorkout() {
       confirmText: t('Remove'), danger: true, onConfirm: () => removeExercise(idx)
     })
   }
-  const removeExerciseSheet = () => {
-    if (unit.length > 1) {
+  // The unit is the current one from the buttons under the exercise, or the one a held chip at
+  // the top stands for (holdChip below).
+  const removeExerciseSheet = (u = unit) => {
+    if (u.length > 1) {
       useUI.getState().openSheet(close => (
         <div>
           <h3>{t('Remove exercise')}</h3>
           <div className="muted small" style={{ marginBottom: 12 }}>{t('Which exercise in this superset do you want to remove?')}</div>
           <div className="list">
-            {unit.map(idx => <div key={idx} className="item" onClick={() => { close(); confirmRemoveExercise(idx) }}>
+            {u.map(idx => <div key={idx} className="item" onClick={() => { close(); confirmRemoveExercise(idx) }}>
               <div className="grow"><div className={`tt ${exerciseNameClass(exOr(A.entries[idx]?.id))}`}>{exerciseNameFor(exOr(A.entries[idx]?.id))}</div></div>
               <Icon name="chevronRight" />
             </div>)}
           </div>
         </div>
       ))
-    } else confirmRemoveExercise(cur)
+    } else confirmRemoveExercise(u === unit ? cur : u[0])
   }
 
   // A timed set is held, not typed. The work timer records what was actually held — an early
@@ -1807,8 +1809,31 @@ function ActiveWorkout() {
     if (chip.unit.includes(cur)) return
     update(s => { if (s.active) s.active.cur = chip.unit[0] })
   }
+  // Olympus: a chip held still opens its exercise's menu; dragged, it moves the exercise along
+  // the row one place at a time (components/WorkoutChips.jsx). Not while a timed set is held,
+  // as for the buttons under the exercise.
+  const dragChip = (at, direction) => {
+    if (useUI.getState().work || !canMoveActiveWorkoutUnit(useStore.getState().S.active, at, direction)) return false
+    moveUnitAt(at, direction)
+  }
+  const holdChip = chip => {
+    if (!chip) return
+    const at = chip.unit[0]
+    const live = useStore.getState().S.active
+    const busyNow = !!useUI.getState().work
+    menuSheet({
+      title: chip.unit.map(idx => exerciseNameText(exOr(live.entries[idx]?.id))).join(' + '),
+      subtitle: t('Or drag the number along the row to move it.'),
+      items: [
+        { icon: 'chevronUp', label: t('Move up'), disabled: busyNow || !canMoveActiveWorkoutUnit(live, at, -1), onClick: () => moveUnitAt(at, -1) },
+        { icon: 'chevronDown', label: t('Move down'), disabled: busyNow || !canMoveActiveWorkoutUnit(live, at, 1), onClick: () => moveUnitAt(at, 1) },
+        chip.unit.length === 1 && { icon: 'swap', label: t('Swap exercise'), disabled: busyNow, onClick: () => swapExercise(at) },
+        { icon: 'trash', danger: true, label: t('Remove exercise'), disabled: busyNow, onClick: () => removeExerciseSheet(chip.unit) },
+      ],
+    })
+  }
   const chipRow = wc.exerciseChips && A.entries.length > 0
-    ? <WorkoutChips entries={A.entries} cur={cur} onPick={pickChip} />
+    ? <WorkoutChips entries={A.entries} cur={cur} onPick={pickChip} onHold={holdChip} onMove={dragChip} />
     : null
 
   // Hardware keys (issue #133, lib/workout-keys.js): Space or Enter ticks the next set, ← and →
@@ -1936,12 +1961,15 @@ function ActiveWorkout() {
       {editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
-      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) : <HeaderClock active={A} />} · {t('{0} sets', done + '/' + total)}</div></div>
-      <WorkoutCoachButton />
+      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) + ' · ' : ''}{t('{0} sets', done + '/' + total)}</div></div>
+      <WorkoutChiron />
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
         onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
     </div>
+    {/* The time and the volume, big: the two numbers glanced at between sets. A past workout
+        being logged or edited has no running clock. */}
+    {!(A.backfill || editing) && <WorkoutStats active={A} unit={S.unit} />}
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}
@@ -2084,7 +2112,7 @@ function ActiveWorkout() {
       </div>
       <div style={{ height: 6 }} />
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <Button size="sm" icon="minus" style={{ color: 'var(--red)' }} disabled={!!work} onClick={removeExerciseSheet}>{t('Remove exercise')}</Button>
+        <Button size="sm" icon="minus" style={{ color: 'var(--red)' }} disabled={!!work} onClick={() => removeExerciseSheet()}>{t('Remove exercise')}</Button>
       </div>
     </>}
     <div style={{ height: 10 }} />

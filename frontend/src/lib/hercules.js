@@ -1,38 +1,34 @@
-// Olympus: talking to the coaches, Hercules and Athena (api/hercules.js), and the conversations kept on
-// this device. Each coach has her or his own conversations and her or his own messages for the day.
+// Olympus: talking to the coaches, Hercules and Athena (api/hercules.js), Chiron in the workout,
+// and the conversations kept on this device. Each coach has her or his own messages for the day.
 //
-// Conversations are not part of the training document: they stay on the device, per profile,
-// up to MAX_CHATS of them with the last MAX_KEPT messages each, so they are there when the chat
-// is opened again. Stored as { current: id, chats: [{ id, title, ts, messages }] }, newest first.
-// The single conversation older versions kept (olympus_hercules_<uid>) becomes the first one.
+// Conversations are not part of the training document: they stay on the device, per profile, in
+// the one memory every coach shares (lib/coach-memory.js), up to MAX_CHATS per coach with the last
+// MAX_KEPT messages each, so they are there when the chat is opened again. Each coach lists its
+// own; every coach reads a digest of all of them with the training summary.
 import { api } from './api.js'
 import { getLang } from './i18n.js'
 import { useStore } from '../store/useStore.js'
 import { herculesContext } from './hercules-context.js'
+import { chatsOf, putChatsOf, memoryLines } from './coach-memory.js'
 
-const MAX_KEPT = 40
-const MAX_CHATS = 20
 const TITLE_LEN = 48
 const ANSWER_MS = 75000   // the model, and its fallback when the first is busy
 
 export const COACH_IDS = ['hercules', 'athena']
-// Hercules, Athena, or a coach of your own (lib/own-coach.js, ids own_...).
-const coachOf = id => (COACH_IDS.includes(id) || /^own_[a-z0-9]+$/.test(String(id)) ? id : 'hercules')
-const oldKeyOf = uid => 'olympus_hercules_' + (uid || 'local')
-const keyOf = (uid, coach = 'hercules') => 'olympus_' + coachOf(coach) + '_chats_' + (uid || 'local')
+// Chiron only coaches during a workout (components/Chiron.jsx): not one of the chat's coaches.
+export const WORKOUT_COACH = 'chiron'
+// Hercules, Athena, Chiron, or a coach of your own (lib/own-coach.js, ids own_...).
+const coachOf = id => (COACH_IDS.includes(id) || id === WORKOUT_COACH || /^own_[a-z0-9]+$/.test(String(id)) ? id : 'hercules')
 const lastKeyOf = uid => 'olympus_coach_last_' + (uid || 'local')
 
 /** The coach this profile talked to last (the one on the button), or null. */
 export function lastCoach(uid) {
-  try { const v = localStorage.getItem(lastKeyOf(uid)); return v && coachOf(v) === v ? v : null } catch { return null }
+  try { const v = localStorage.getItem(lastKeyOf(uid)); return v && v !== WORKOUT_COACH && coachOf(v) === v ? v : null } catch { return null }
 }
 export function setLastCoach(uid, coach) {
+  if (coach === WORKOUT_COACH) return
   try { localStorage.setItem(lastKeyOf(uid), coachOf(coach)) } catch { /* the button shows Hercules again */ }
 }
-
-const cleanMessages = v => (Array.isArray(v)
-  ? v.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-  : [])
 
 /** The title of a conversation: its first question, cut short. */
 export function chatTitle(messages) {
@@ -44,35 +40,9 @@ export function chatTitle(messages) {
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
 /** All the conversations of profile `uid` with `coach`: { current, chats }. */
-export function loadChats(uid, coach = 'hercules') {
-  let data = null
-  try { data = JSON.parse(localStorage.getItem(keyOf(uid, coach)) || 'null') } catch { data = null }
-  let chats = Array.isArray(data?.chats)
-    ? data.chats.filter(c => c && typeof c.id === 'string').map(c => ({
-      id: c.id, ts: Number(c.ts) || 0, messages: cleanMessages(c.messages), title: String(c.title || ''),
-    }))
-    : []
-  if (!data && coachOf(coach) === 'hercules') {
-    // The one conversation an older version kept.
-    let old = []
-    try { old = cleanMessages(JSON.parse(localStorage.getItem(oldKeyOf(uid)) || '[]')) } catch { old = [] }
-    if (old.length) chats = [{ id: newId(), ts: old.at(-1)?.ts || Date.now(), messages: old, title: chatTitle(old) }]
-  }
-  const current = chats.some(c => c.id === data?.current) ? data.current : (chats[0]?.id || null)
-  return { current, chats }
-}
+export const loadChats = (uid, coach = 'hercules') => chatsOf(uid, coachOf(coach))
 
-export function saveChats(uid, data, coach = 'hercules') {
-  const chats = data.chats
-    .filter(c => c.messages.length)
-    .sort((a, b) => b.ts - a.ts)
-    .slice(0, MAX_CHATS)
-    .map(c => ({ ...c, messages: c.messages.slice(-MAX_KEPT) }))
-  try {
-    localStorage.setItem(keyOf(uid, coach), JSON.stringify({ current: data.current, chats }))
-    if (coachOf(coach) === 'hercules') localStorage.removeItem(oldKeyOf(uid))
-  } catch { /* the conversations are a convenience */ }
-}
+export const saveChats = (uid, data, coach = 'hercules') => putChatsOf(uid, coachOf(coach), data)
 
 /** `data` with the conversation `id` holding `messages` (a new one when `id` is null). */
 export function putChat(data, id, messages) {
@@ -92,12 +62,14 @@ export function dropChat(data, id) {
 export const herculesStatus = (coach = 'hercules') => api('/api/' + coachOf(coach))
 
 /** Sends the conversation (ending with the new message) to `coach`; resolves with { reply, left, perDay }. */
-export function askHercules(list, coach = 'hercules') {
+export function askHercules(list, coach = 'hercules', opts = {}) {
   const S = useStore.getState().S
   const messages = list.map(m => ({ role: m.role, content: m.content }))
   return api('/api/' + coachOf(coach), {
     method: 'POST',
     timeout: ANSWER_MS,
-    body: JSON.stringify({ messages, lang: getLang(), context: herculesContext(S) }),
+    // The memory every coach shares rides with the summary; the conversation in hand is sent as
+    // messages already.
+    body: JSON.stringify({ messages, lang: getLang(), context: herculesContext(S, undefined, { memory: memoryLines(useStore.getState().user?.id, { skipChat: opts.chatId }) }) }),
   })
 }

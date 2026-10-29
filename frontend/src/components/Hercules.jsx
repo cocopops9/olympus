@@ -22,6 +22,7 @@ import { ownCoachSheet } from './OwnCoach.jsx'
 import { avatarUrl } from '../lib/god-avatars.js'
 import hercules from '../assets/hercules.webp'
 import athena from '../assets/athena.webp'
+import { CHIRON_URL } from './ChironArt.js'
 import Icon from './Icon.jsx'
 import '../hercules.css'
 import { coachGoalsSheet } from './CoachGoals.jsx'
@@ -37,6 +38,8 @@ const GREET_FOR_MS = 9000
 export const COACHES = {
   hercules: { name: 'Hercules', portrait: hercules },
   athena: { name: 'Athena', portrait: athena },
+  // Only in the workout (components/Chiron.jsx), never one of the chat's pills.
+  chiron: { name: 'Chiron', portrait: CHIRON_URL },
 }
 // A coach of your own (lib/own-coach.js): its name and portrait, read from this device.
 const ownOf = id => (isOwn(id) ? ownCoach(useStore.getState().user?.id, id) : null)
@@ -235,7 +238,7 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)
     onSent?.()
     try {
-      const r = own ? await askOwnCoach(ownCoach(uid, coach) || {}, next) : await askHercules(next, coach)
+      const r = own ? await askOwnCoach(ownCoach(uid, coach) || {}, next) : await askHercules(next, coach, { chatId: sent.current })
       commit(putChat(latest.current, sent.current, [...next, { role: 'assistant', content: r.reply, ts: Date.now() }]))
       if (!own) { const s = { on: true, left: r.left, perDay: r.perDay }; setCached(uid, coach, s); setStatus(s) }
     } catch (e) {

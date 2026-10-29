@@ -71,13 +71,14 @@ function bests(S) {
 }
 
 /** The summary for the model. `today` as YYYY-MM-DD. */
-export function herculesContext(S, today = todayISO()) {
+export function herculesContext(S, today = todayISO(), { memory = [] } = {}) {
   if (!S) return ''
   const lines = []
   const first = S.workouts.length ? S.workouts.map(w => w.d).filter(Boolean).sort()[0] : null
   // Sex only when it is female: male is the default an untouched profile also has, so it says nothing.
   // What they train for and the workout in progress come first: the summary is cut from the end.
-  lines.push(...profileLines(S), ...liveWorkoutLines(S))
+  // Then what they told any of their coaches lately (lib/coach-memory.js), shared by all of them.
+  lines.push(...profileLines(S), ...liveWorkoutLines(S), ...memory)
   lines.push(`Today: ${today}. Units: ${S.unit === 'lb' ? 'lb' : 'kg'}.${S.body === 'female' ? ' Sex: female.' : ''}`)
   lines.push(`Workouts logged: ${S.workouts.length}${first ? ' since ' + first : ''}.`)
   const wk = weekMuscles(S, today)

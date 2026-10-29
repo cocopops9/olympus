@@ -195,3 +195,7 @@ button.prof-av .prof-av-cam .icn{width:15px;height:15px}
 .av-god{aspect-ratio:1;border-radius:50%;padding:0;border:2.5px solid transparent;background:var(--surface-2);overflow:hidden;cursor:pointer}
 .av-god img{width:100%;height:100%;object-fit:cover;display:block}
 .av-god.on{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
+/* Olympus: the camera next to the gallery in a post (components/Social.jsx PhotoInputs). */
+.cmp-pick{display:flex;gap:8px}
+.cmp-pick .btn{flex:1 1 0;width:auto;min-width:0}
+.pe-a .btn.pe-cam{flex:0 0 auto;padding-inline:12px}

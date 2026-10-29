@@ -7,7 +7,7 @@
 //   'state:<uid>' one profile's training  (the document GET/PUT /api/data move)
 //   'social'      the social layer        (api/social.js's document)
 //   'secret'      the key that signs sessions
-//   'hercules', 'athena'   today's count of messages to each coach, per profile (hercules.js)
+//   'hercules', 'athena', 'chiron'   today's count of messages to each coach, per profile (hercules.js)
 //   'tel:<uid>'   the usage statistics a profile shares, and 'feedback' (insights.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
 // are serialized the way the single Node process serialized them.
@@ -61,7 +61,7 @@ const sessionVersion = u => u.sv || 0;
  * `photos`: put(name, bytes, contentType), get(name) -> Uint8Array | null, del(name).
  */
 export function createApp({ store, photos, now = () => Date.now(), env = {}, fetchImpl = globalThis.fetch }) {
-  const coaches = { hercules: herculesConfig(env, 'hercules'), athena: herculesConfig(env, 'athena') };
+  const coaches = { hercules: herculesConfig(env, 'hercules'), athena: herculesConfig(env, 'athena'), chiron: herculesConfig(env, 'chiron') };
   let secret = null;
   async function key() {
     if (secret) return secret;
@@ -543,9 +543,12 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/hercules': coachAsk('hercules'),
     'GET /api/athena': coachStatus('athena'),
     'POST /api/athena': coachAsk('athena'),
+    'GET /api/chiron': coachStatus('chiron'),
+    'POST /api/chiron': coachAsk('chiron'),
 
     // The social layer, route for route as in api/server.js.
     'GET /api/social/search': async (req, q) => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.search(me, q.get('q') || '')) } }; },
+    'GET /api/social/suggested': async req => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.suggested(me)) } }; },
     'GET /api/social/profile': async (req, q) => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.profile(me, q.get('id') || '', { before: q.get('before') })) }; },
     'POST /api/social/profile': async req => {
       const { user: me } = await signedIn(req); const body = await readJson(req);

@@ -14,6 +14,10 @@
         "apple": true,
         "twitter": false
       }
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_olympus",
+      "iconColor": "#E0A526"
     }
   }
 }

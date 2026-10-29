@@ -4,8 +4,16 @@
 .gym-h .icn{color:var(--acc)}
 .gym-h .dim{margin-inline-start:auto;font-weight:400}
 .gym-why{margin:4px 0 10px;line-height:1.4}
-.gym-chips{flex-wrap:wrap;overflow:visible}
-.gym-chips .chip{background:var(--surface)}
-.gym-chips .chip.on{background:var(--acc)}
+.gym-row{display:flex;align-items:center;gap:6px;margin-top:8px}
+.gym-row .chip{background:var(--surface)}
+.gym-row .chip.on{background:var(--acc)}
 .gym-add{display:inline-flex;align-items:center;gap:4px;color:var(--acc)}
-.gym-new .input{height:34px;padding:4px 12px;min-width:160px}
+.gym-select{position:relative;flex:1;min-width:0;display:flex;align-items:center}
+.gym-select select{appearance:none;-webkit-appearance:none;width:100%;height:40px;padding:0 36px 0 12px;
+  border:0;border-radius:12px;background:var(--surface);color:var(--text);font:inherit;font-weight:600}
+.gym-select .icn{position:absolute;inset-inline-end:10px;pointer-events:none;color:var(--text-2)}
+[dir=rtl] .gym-select select{padding:0 12px 0 36px}
+.gym-one{flex:0 1 auto;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gym-btn{flex:0 0 auto;margin-inline-start:auto}
+.gym-btn + .gym-btn{margin-inline-start:0}
+.gym-btn:disabled{opacity:.35}

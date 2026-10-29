@@ -22,6 +22,22 @@ const post = (path, body) => api(path, { method: 'POST', body: JSON.stringify(bo
 
 export const searchUsers = text => api('/api/social/search' + q({ q: text })).then(r => r.users || [])
 export const fetchProfile = (id, before) => api('/api/social/profile' + q({ id, before }))
+
+/**
+ * People to follow, as the Home page's Suggested tab lists them: nobody already followed (or
+ * asked to follow), nobody blocked, and the founder first, then the people your friends follow,
+ * then the most followed. The server says (api/social.js suggested); a server from before that
+ * route gets the same order from its people list.
+ */
+export function rankSuggestions(users) {
+  return (Array.isArray(users) ? users : [])
+    .filter(u => u && !u.me && !u.isFollowing && !u.requested && !u.blockedByMe)
+    .sort((a, b) => (b.founder ? 1 : 0) - (a.founder ? 1 : 0) || (b.mutual || 0) - (a.mutual || 0)
+      || (b.followers || 0) - (a.followers || 0) || String(a.name || '').localeCompare(String(b.name || '')))
+}
+export const fetchSuggested = () => api('/api/social/suggested').then(
+  r => rankSuggestions(r.users),
+  e => { if (e?.status === 404) return searchUsers('').then(rankSuggestions); throw e })
 export const saveBio = bio => post('/api/social/profile', { bio }).then(r => r.user)
 /** Bio, `private`, `pushSocial` and `avatar` (a photo id, or null), any of them; answers your profile as it now is. */
 export const saveProfile = change => post('/api/social/profile', change).then(r => r.user)

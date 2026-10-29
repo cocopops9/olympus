@@ -2,18 +2,18 @@
    the fallback model, and the two servers' routes with a stand-in provider. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS } from '../hercules.js';
+import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS } from '../hercules.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const fakeFetch = (answers, seen = []) => async (url, init) => {
   const body = JSON.parse(init.body);
-  seen.push({ url, model: body.model, messages: body.messages, auth: init.headers.Authorization });
+  seen.push({ url, model: body.model, messages: body.messages, auth: init.headers.Authorization, max_tokens: body.max_tokens });
   const a = answers.shift() || { status: 200, reply: 'ok' };
   return { ok: a.status === 200, status: a.status, statusText: 'x', json: async () => (a.status === 200 ? { choices: [{ message: { content: a.reply } }] } : { error: { message: 'nope' } }) };
 };
 
 test('the provider comes from the environment, Groq by default, and is off without a key', () => {
-  assert.deepEqual(herculesConfig({}), { coach: 'hercules', key: '', baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, fallback: DEFAULTS.fallback, perDay: 20 });
+  assert.deepEqual(herculesConfig({}), { coach: 'hercules', key: '', baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, fallback: DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history });
   const c = herculesConfig({ HERCULES_API_KEY: ' k ', HERCULES_BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/openai/', HERCULES_MODEL: 'gemini-flash', HERCULES_PER_DAY: '5' });
   assert.equal(c.key, 'k');
   assert.equal(c.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
@@ -87,7 +87,7 @@ test('Supabase: the routes count per profile and report the limit', async () => 
     const res = await app.handle(new Request('https://x.supabase.co/functions/v1/olympus' + p, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body && JSON.stringify(body) }));
     return { status: res.status, body: await res.json() };
   };
-  const { token } = (await call('POST', '/api/app/signup', { name: 'Ada', password: 'correct horse battery staple' })).body;
+  const { token } = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body;
   assert.equal((await call('GET', '/api/hercules')).status, 401);
   assert.deepEqual((await call('GET', '/api/hercules', null, token)).body, { on: true, perDay: 2, left: 2 });
   const msg = { messages: [{ role: 'user', content: 'How many sets for chest?' }], lang: 'es', context: 'Workouts: none' };
@@ -101,7 +101,7 @@ test('Supabase: the routes count per profile and report the limit', async () => 
   assert.equal(c.body.code, 'hercules-limit');
   // without a key the app is told it is off
   const off = createApp({ store: memoryStore(), photos: memoryPhotos() });
-  const r = await off.handle(new Request('https://x/api/app/signup', { method: 'POST', body: JSON.stringify({ name: 'B', password: 'correct horse battery staple' }) }));
+  const r = await off.handle(new Request('https://x/api/app/signup', { method: 'POST', body: JSON.stringify({ name: 'bea_lifts', email: 'bea@example.com', password: 'correct horse battery staple' }) }));
   const t2 = (await r.json()).token;
   const st = await off.handle(new Request('https://x/api/hercules', { headers: { Authorization: 'Bearer ' + t2 } }));
   assert.equal((await st.json()).on, false);
@@ -110,7 +110,7 @@ test('Supabase: the routes count per profile and report the limit', async () => 
 test('Athena is another coach: her own model, allowance and voice, on Hercules\'s key unless she has one', () => {
   const env = { HERCULES_API_KEY: 'k', HERCULES_BASE_URL: 'https://p.example/v1' };
   const a = herculesConfig(env, 'athena');
-  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20 });
+  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history });
   assert.notEqual(ATHENA_DEFAULTS.model, DEFAULTS.model);
   const own = herculesConfig({ ...env, ATHENA_API_KEY: 'k2', ATHENA_MODEL: 'gemini-x', ATHENA_PER_DAY: '7', ATHENA_BASE_URL: 'https://g.example/openai/' }, 'athena');
   assert.equal(own.key, 'k2'); assert.equal(own.model, 'gemini-x'); assert.equal(own.perDay, 7); assert.equal(own.baseUrl, 'https://g.example/openai');
@@ -147,7 +147,7 @@ test('both servers\' routes: Athena has her own count, and her own model answers
     const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
     return { status: res.status, body: await res.json().catch(() => null) };
   };
-  const signup = await call('POST', '/api/app/signup', { name: 'Ada', password: 'correct horse battery staple' });
+  const signup = await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' });
   const token = signup.body?.token;
   assert.ok(token, JSON.stringify(signup));
   const msg = { messages: [{ role: 'user', content: 'hi' }], lang: 'en' };
@@ -160,4 +160,39 @@ test('both servers\' routes: Athena has her own count, and her own model answers
   assert.equal(seen[1].model, ATHENA_DEFAULTS.model);
   assert.match(seen[1].messages[0].content, /You are Athena/);
   assert.equal((await call('GET', '/api/hercules', null, token)).body.left, 19);
+});
+
+test('Chiron coaches in the workout: brief, on Hercules\'s key, more messages a day, less history', async () => {
+  const env = { HERCULES_API_KEY: 'k' };
+  const c = herculesConfig(env, 'chiron');
+  assert.equal(c.coach, 'chiron'); assert.equal(c.key, 'k');
+  assert.equal(c.perDay, CHIRON_DEFAULTS.perDay);
+  assert.ok(c.replyTokens < LIMITS.replyTokens);
+  assert.equal(herculesConfig({ ...env, CHIRON_PER_DAY: '9', CHIRON_MODEL: 'm' }, 'chiron').perDay, 9);
+  assert.equal(herculesConfig({ ...env, CHIRON_MODEL: 'm' }, 'chiron').model, 'm');
+  const p = systemPrompt({ coach: 'chiron', lang: 'it', context: 'WORKOUT IN PROGRESS' });
+  assert.match(p, /You are Chiron/);
+  assert.match(p, /under 60 words/);
+  assert.match(p, /only help with the training/);
+  assert.match(p, /not a doctor/);
+  assert.match(p, /Answer in Italian/);
+  assert.match(p, /WORKOUT IN PROGRESS/);
+  assert.doesNotMatch(p, /create_routine/);
+  // The history he gets is short: a quick question, not a long talk.
+  const long = Array.from({ length: 21 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'm' + i }));
+  assert.equal(cleanChat(long, c.history).length <= CHIRON_DEFAULTS.history, true);
+  const seen = [];
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env, fetchImpl: fakeFetch([{ status: 200, reply: 'Rest 2:30.' }], seen) });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const token = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body?.token;
+  assert.deepEqual((await call('GET', '/api/chiron', null, token)).body, { on: true, perDay: CHIRON_DEFAULTS.perDay, left: CHIRON_DEFAULTS.perDay });
+  const r = await call('POST', '/api/chiron', { messages: [{ role: 'user', content: 'How long should I rest?' }], lang: 'en' }, token);
+  assert.equal(r.body.reply, 'Rest 2:30.');
+  assert.equal(r.body.left, CHIRON_DEFAULTS.perDay - 1);
+  assert.equal(seen[0].max_tokens, CHIRON_DEFAULTS.replyTokens);
+  assert.match(seen[0].messages[0].content, /You are Chiron/);
+  assert.equal((await call('GET', '/api/hercules', null, token)).body.left, LIMITS.perDay);
 });

@@ -9,6 +9,10 @@ import { elapsedOf, fmtClock, isPaused, pauseClock, resumeClock, setElapsed } fr
 import { Button, Stepper } from './ui.jsx'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
+import Hourglass from './Hourglass.jsx'
+import Atlas from './Atlas.jsx'
+import { workoutVolume } from '../lib/history.js'
+import { fmtNum } from '../lib/format.js'
 import '../workout-clock.css'
 
 const edit = fn => useStore.getState().update(s => { if (s.active) fn(s.active) })
@@ -65,4 +69,35 @@ export function HeaderClock({ active }) {
     </button>
     <button className="wclock-t" onClick={workoutClockSheet} aria-label={t('Workout time') + ' ' + fmtClock(elapsedOf(active))}><Elapsed active={active} /></button>
   </span>
+}
+
+/**
+ * Olympus: the time and the volume of the workout in progress, big, under its name. The time
+ * runs beside an hourglass (held while the clock is paused) and opens the clock's sheet; the
+ * volume is that of the sets checked off so far (warm-ups left out, as everywhere), beside Atlas.
+ */
+export function WorkoutStats({ active, unit }) {
+  const paused = isPaused(active)
+  const vol = workoutVolume(active)
+  return <div className="wstats">
+    <div className={'wstat time' + (paused ? ' paused' : '')} role="group" aria-label={t('Workout time')}>
+      <Hourglass paused={paused} size={30} />
+      <button type="button" className="wstat-b" style={{ border: 0, background: 'none', padding: 0, color: 'inherit', font: 'inherit', textAlign: 'start', cursor: 'pointer' }}
+        onClick={workoutClockSheet} aria-label={t('Workout time') + ' ' + fmtClock(elapsedOf(active))}>
+        <span className="wstat-v"><Elapsed active={active} /></span>
+        <span className="wstat-l">{paused ? t('Paused') : t('Time')}</span>
+      </button>
+      <button className={'wclock-pp' + (paused ? ' paused' : '')} onClick={togglePause}
+        aria-label={paused ? t('Resume the clock') : t('Pause the clock')} title={paused ? t('Resume the clock') : t('Pause the clock')}>
+        <Icon name={paused ? 'play' : 'pause'} />
+      </button>
+    </div>
+    <div className="wstat vol" role="group" aria-label={t('Total volume')}>
+      <Atlas size={38} />
+      <span className="wstat-b">
+        <span className="wstat-v">{fmtNum(Math.round(vol))}<small style={{ fontSize: 14, fontWeight: 600, marginInlineStart: 3 }}>{unit}</small></span>
+        <span className="wstat-l">{t('Total volume')}</span>
+      </span>
+    </div>
+  </div>
 }

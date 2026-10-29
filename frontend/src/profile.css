@@ -43,3 +43,21 @@
 .prof-ai .chev{color:var(--label-3)}
 .prof-noacct{margin:10px auto 0;max-width:340px}
 .prof-noacct p{margin:0 0 10px;line-height:1.45}
+
+/* Olympus: a neon halo round the profile card. A ring of light runs round its edge in the
+   founder's nebula colours and the app's gold, and the glow outside it breathes through the same
+   colours. Still, with reduced motion. */
+@property --neon{syntax:'<angle>';inherits:false;initial-value:0deg}
+.prof-hero.neon{box-shadow:0 0 18px 1px color-mix(in srgb,#9d7bff 55%,transparent);animation:neon-glow 7.5s linear infinite}
+.prof-hero.neon::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;
+  background:conic-gradient(from var(--neon),#7af5ff,#9d7bff,#ff5ce1,var(--acc),#7af5ff);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:neon-turn 5s linear infinite}
+@keyframes neon-turn{to{--neon:360deg}}
+@keyframes neon-glow{
+  0%,100%{box-shadow:0 0 18px 1px color-mix(in srgb,#7af5ff 50%,transparent),0 0 2px 0 #7af5ff}
+  25%{box-shadow:0 0 24px 3px color-mix(in srgb,#9d7bff 55%,transparent),0 0 2px 0 #9d7bff}
+  50%{box-shadow:0 0 18px 1px color-mix(in srgb,#ff5ce1 50%,transparent),0 0 2px 0 #ff5ce1}
+  75%{box-shadow:0 0 24px 3px color-mix(in srgb,var(--acc) 55%,transparent),0 0 2px 0 var(--acc)}}
+@media (prefers-reduced-motion:reduce){.prof-hero.neon,.prof-hero.neon::before{animation:none}}

@@ -177,11 +177,11 @@ const SOCIAL = createSocial({
 // Photos uploaded and never posted are removed after a day; checked hourly and at start.
 setInterval(() => { try { SOCIAL.sweepOrphans(); } catch (e) { console.error('social: photo sweep failed', e.message); } }, 3600000).unref();
 setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ } }, 5000).unref();
-// Hercules and Athena, the free chat coaches (hercules.js): the provider from HERCULES_API_KEY and
-// friends (Athena: ATHENA_*, and Hercules's key unless she has her own), each one's message counts
-// for today in DATA_DIR/hercules.json and DATA_DIR/athena.json.
+// Hercules and Athena, the free chat coaches, and Chiron in the workout (hercules.js): the provider
+// from HERCULES_API_KEY and friends (Athena: ATHENA_*, Chiron: CHIRON_*, and Hercules's key unless
+// they have their own), each one's message counts for today in DATA_DIR/<coach>.json.
 const COACH_STATE = {};
-for (const id of ['hercules', 'athena']) {
+for (const id of ['hercules', 'athena', 'chiron']) {
   const file = path.join(DATA, id + '.json');
   const st = { config: herculesConfig(process.env, id), doc: null };
   try { st.doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { st.doc = null; }
@@ -2592,6 +2592,10 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, { users: SOCIAL.search(me, qs(req).get('q') || '') });
   },
+  'GET /api/social/suggested': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { users: SOCIAL.suggested(me) });
+  },
   'GET /api/social/profile': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, SOCIAL.profile(me, qs(req).get('id') || '', { before: qs(req).get('before') }));
@@ -2671,6 +2675,9 @@ const routes = {
   'POST /api/hercules': coachAsk('hercules'),
   'GET /api/athena': coachStatus('athena'),
   'POST /api/athena': coachAsk('athena'),
+  // Chiron, the coach woken up during a workout (frontend components/Chiron.jsx).
+  'GET /api/chiron': coachStatus('chiron'),
+  'POST /api/chiron': coachAsk('chiron'),
   'GET /api/social/feed': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, SOCIAL.feed(me, { before: qs(req).get('before') }));

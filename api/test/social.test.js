@@ -53,6 +53,26 @@ test('counts, search and the no-self-follow rule', t => {
   assert.throws(() => s.follow(ANNA, CARL.id), /not found/);
 });
 
+test('suggested people: the founder first, then friends of friends, then the most followed', t => {
+  const CHAOS = { id: 'u_chaos', name: 'Chaos', founder: true };
+  const DORA = { id: 'u_dora', name: 'Dora' };
+  const EMIL = { id: 'u_emil', name: 'Emil' };
+  const { s } = store(t, [ANNA, BEN, CARL, CHAOS, DORA, EMIL]);
+  // A new profile: the founder is the first suggestion, whoever has more followers.
+  s.follow(DORA, EMIL.id);
+  assert.deepEqual(s.suggested(ANNA).map(u => u.id), [CHAOS.id, EMIL.id, BEN.id, DORA.id]);
+  // Following Ben, who follows Dora: Dora moves up, Ben leaves the list.
+  s.follow(ANNA, BEN.id); s.follow(BEN, DORA.id);
+  const list = s.suggested(ANNA);
+  assert.deepEqual(list.map(u => u.id), [CHAOS.id, DORA.id, EMIL.id]);
+  assert.equal(list[1].mutual, 1);
+  assert.equal(list[0].founder, true);
+  // Followed, the founder is suggested no more; a blocked profile never is.
+  s.follow(ANNA, CHAOS.id);
+  s.block(EMIL, ANNA.id);
+  assert.deepEqual(s.suggested(ANNA).map(u => u.id), [DORA.id]);
+});
+
 test('likes and comments, and who may delete what', t => {
   const { s } = store(t, [ANNA, BEN]);
   const p = s.createPost(ANNA, { text: 'deadlift day' });

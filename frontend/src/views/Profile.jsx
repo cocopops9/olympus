@@ -174,7 +174,7 @@ export default function Profile() {
       </div>
     </div>
 
-    <div className="prof prof-hero">
+    <div className="prof prof-hero neon">
       {ready && me
         ? <button className="prof-av" onClick={() => avatarSheet(me, u => setMe(m => ({ ...m, ...u })))} aria-label={t('Change profile picture')}>
           <Avatar user={{ ...user, avatar: me.avatar }} size="lg" />

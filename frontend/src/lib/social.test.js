@@ -115,3 +115,18 @@ describe('labels', () => {
     expect(socialErrorText({ code: 'blocked', status: 409 }, t1)).toMatch(/Unblock/)
   })
 })
+
+describe('suggested people', () => {
+  it('the founder comes first, then friends of friends, then the most followed; followed people are left out', async () => {
+    const { rankSuggestions } = await import('./social.js')
+    const list = rankSuggestions([
+      { id: 'a', name: 'Ada', followers: 40 },
+      { id: 'b', name: 'Bea', followers: 2, mutual: 3 },
+      { id: 'c', name: 'Chaos', followers: 1, founder: true },
+      { id: 'd', name: 'Dan', followers: 99, isFollowing: true },
+      { id: 'e', name: 'Eve', followers: 5, requested: true },
+      { id: 'me', name: 'Me', me: true },
+    ])
+    expect(list.map(u => u.id)).toEqual(['c', 'b', 'a'])
+  })
+})
