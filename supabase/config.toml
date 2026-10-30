@@ -1,0 +1,5 @@
+project_id = "jmhvabcwzrnzscbtqblk"
+
+[functions.olympus]
+verify_jwt = false
+entrypoint = "./functions/olympus/index.js"
