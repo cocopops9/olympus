@@ -23,6 +23,7 @@ import { avatarUrl } from '../lib/god-avatars.js'
 import hercules from '../assets/hercules.webp'
 import athena from '../assets/athena.webp'
 import { CHIRON_URL } from './ChironArt.js'
+import { distillMemory } from '../lib/coach-memory.js'
 import Icon from './Icon.jsx'
 import '../hercules.css'
 import { coachGoalsSheet } from './CoachGoals.jsx'
@@ -239,6 +240,8 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     onSent?.()
     try {
       const r = own ? await askOwnCoach(ownCoach(uid, coach) || {}, next) : await askHercules(next, coach, { chatId: sent.current })
+      // The memory every coach reads catches up with what was just said, when there is enough new.
+      setTimeout(() => { distillMemory(uid, useStore.getState().S).catch(() => {}) }, 0)
       commit(putChat(latest.current, sent.current, [...next, { role: 'assistant', content: r.reply, ts: Date.now() }]))
       if (!own) { const s = { on: true, left: r.left, perDay: r.perDay }; setCached(uid, coach, s); setStatus(s) }
     } catch (e) {

@@ -15,7 +15,7 @@ import { nativeFetch } from './capacitor-fetch.js'
 import { getLang } from './i18n.js'
 import { useStore } from '../store/useStore.js'
 import { herculesContext } from './hercules-context.js'
-import { forgetCoach, memoryLines } from './coach-memory.js'
+import { forgetCoach, memoryContext } from './coach-memory.js'
 import { systemPrompt, cleanChat, withoutThinking, LIMITS } from '../../../api/hercules.js'
 
 export const PROVIDERS = [
@@ -111,7 +111,7 @@ const headersFor = (c, p) => (p.api === 'anthropic'
 export async function askOwnCoach(c, list, { fetchImpl = nativeFetch, S = useStore.getState().S, name = useStore.getState().user?.name } = {}) {
   const p = providerOf(c.provider)
   const messages = cleanChat(list.map(m => ({ role: m.role, content: m.content })))
-  const system = systemPrompt({ name, lang: getLang(), context: String(herculesContext(S, undefined, { memory: memoryLines(useStore.getState().user?.id) }) || '').slice(0, LIMITS.context), persona: { name: c.name, style: c.style } })
+  const system = systemPrompt({ name, lang: getLang(), context: String(herculesContext(S, undefined, { memory: memoryContext(useStore.getState().user?.id, S) }) || '').slice(0, LIMITS.context), persona: { name: c.name, style: c.style } })
   const base = String(c.baseUrl).replace(/\/+$/, '')
   if (p.api === 'anthropic') {
     const body = await call(base + '/messages', {

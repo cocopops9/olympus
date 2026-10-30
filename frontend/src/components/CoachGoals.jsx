@@ -6,6 +6,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { TRAINING_STYLES, PHASES, GOALS_MAX, coachProfileOf } from '../lib/coach-profile.js'
+import { loadNotes, addNote, editNote, deleteNote } from '../lib/coach-memory.js'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../coach-goals.css'
@@ -40,8 +41,39 @@ function Goals({ close }) {
       placeholder={t('e.g. I want progressive overload on the big lifts. Functional legs this week, but I play football in 3 days.')} />
     <div className="small dim" style={{ textAlign: 'end', marginTop: 4 }}>{p.goals.length}/{GOALS_MAX}</div>
 
+    <Memory />
+
     <div style={{ height: 12 }} />
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
+  </div>
+}
+
+// Olympus: their memory (lib/coach-memory.js), what they told any coach about themselves, as
+// notes they can correct, delete or add to. Each change is kept at once, whatever Save does.
+function Memory() {
+  const uid = useStore(s => s.user?.id)
+  const [notes, setNotes] = useState(() => loadNotes(uid))
+  const [editing, setEditing] = useState(null)   // { id, text }
+  const [draft, setDraft] = useState('')
+  const commit = () => { if (editing) setNotes(editNote(uid, editing.id, editing.text)); setEditing(null) }
+  const add = () => { if (!draft.trim()) return; setNotes(addNote(uid, draft)); setDraft('') }
+  return <div className="cg-mem">
+    <div className="cg-l"><Icon name="brain" /> {t('Your memory')}</div>
+    <p className="small muted" style={{ margin: '0 2px 8px' }}>{t('What you told your coaches about yourself. Every coach reads it, Chiron too. Correct it or delete what is no longer true.')}</p>
+    {notes.length === 0 && <p className="small dim" style={{ margin: '0 2px 8px' }}>{t('Nothing yet: tell a coach about your goals and it will appear here.')}</p>}
+    <ul className="cg-notes">
+      {notes.map(n => <li key={n.id}>
+        {editing?.id === n.id
+          ? <input className="field" autoFocus value={editing.text} maxLength={220} aria-label={t('Edit note')}
+            onChange={e => setEditing({ id: n.id, text: e.target.value })} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') commit() }} />
+          : <button className="cg-note" onClick={() => setEditing({ id: n.id, text: n.text })} title={t('Edit note')}>{n.text}</button>}
+        <button className="iconbtn" onClick={() => setNotes(deleteNote(uid, n.id))} aria-label={t('Delete note')} title={t('Delete note')}><Icon name="xmark" /></button>
+      </li>)}
+    </ul>
+    <form className="cg-add" onSubmit={e => { e.preventDefault(); add() }}>
+      <input className="field" value={draft} maxLength={220} placeholder={t('Add something your coaches should know')} aria-label={t('Add something your coaches should know')} onChange={e => setDraft(e.target.value)} />
+      <button type="submit" className="iconbtn" disabled={!draft.trim()} aria-label={t('Add')}><Icon name="plus" /></button>
+    </form>
   </div>
 }
 

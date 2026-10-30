@@ -1197,6 +1197,46 @@ paths:
         '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/coach/memory:
+    post:
+      tags: [coach]
+      operationId: coachMemory
+      summary: Distil the coaches' memory from recent chats
+      description: |
+        Updates the two memories every coach reads, both kept on the device: `notes`, what the
+        person said about themselves (they can read and edit them in the app), and `insights`,
+        what the app reads between the lines of their chats and data (used by the coaches, not
+        shown). Runs on Chiron's model, 4 times a day per profile; with no `messages` the lists
+        come back as sent and nothing is counted. An answer the model got wrong is not counted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  maxItems: 60
+                  items: { type: object, properties: { coach: { type: string }, content: { type: string, maxLength: 400 } } }
+                notes: { type: array, items: { type: string, maxLength: 220 }, maxItems: 25 }
+                insights: { type: array, items: { type: string, maxLength: 220 }, maxItems: 20 }
+                data: { type: string, maxLength: 6000, description: A short summary of their training data. }
+                lang: { type: string }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notes: { type: array, items: { type: string } }
+                  insights: { type: array, items: { type: string } }
+                  left: { type: [integer, 'null'] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { description: The memory was updated enough for today. }
+        '503': { description: No provider key on this server. }
   /api/chiron:
     get:
       tags: [coach]
@@ -1204,9 +1244,9 @@ paths:
       summary: Whether Chiron is on, and today's messages left
       description: |
         Chiron is the free coach woken up during a workout, between sets: the same exchange as
-        Hercules (`/api/hercules`), with replies kept under 60 words, only the last 6 turns read,
-        anything off the training declined in a sentence, and his own allowance (60 a day unless
-        `CHIRON_PER_DAY` says otherwise). He uses Hercules's provider key unless `CHIRON_API_KEY`
+        Hercules (`/api/hercules`), with replies kept under 60 words, the last 10 turns read, up
+        to 36000 characters of memory and training data, anything off the training declined in a
+        sentence, and his own allowance (15 a day unless `CHIRON_PER_DAY` says otherwise). He uses Hercules's provider key unless `CHIRON_API_KEY`
         is set; `CHIRON_MODEL` and `CHIRON_FALLBACK_MODEL` pick his models.
       responses:
         '200':
@@ -1219,14 +1259,14 @@ paths:
                   on: { type: boolean }
                   perDay: { type: integer }
                   left: { type: integer }
-              example: { on: true, perDay: 60, left: 57 }
+              example: { on: true, perDay: 15, left: 12 }
         '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       tags: [coach]
       operationId: chironAsk
       summary: Ask Chiron
       description: |
-        One message, with the conversation so far (the last 6 turns are used, 2000 characters
+        One message, with the conversation so far (the last 10 turns are used, 2000 characters
         each) and the app's written summary of the profile's training (up to 9000 characters).
         A message the model did not answer is not counted.
       requestBody:

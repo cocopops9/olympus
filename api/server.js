@@ -32,7 +32,7 @@ import {
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
-import { herculesConfig, handleHercules, leftToday, dayOf, HerculesError } from './hercules.js';
+import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
@@ -181,9 +181,10 @@ setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ }
 // from HERCULES_API_KEY and friends (Athena: ATHENA_*, Chiron: CHIRON_*, and Hercules's key unless
 // they have their own), each one's message counts for today in DATA_DIR/<coach>.json.
 const COACH_STATE = {};
-for (const id of ['hercules', 'athena', 'chiron']) {
+// 'coach-memory' counts the distillations of the coaches' memory (handleMemory), on Chiron's model.
+for (const id of ['hercules', 'athena', 'chiron', 'coach-memory']) {
   const file = path.join(DATA, id + '.json');
-  const st = { config: herculesConfig(process.env, id), doc: null };
+  const st = { config: herculesConfig(process.env, id === 'coach-memory' ? 'chiron' : id), doc: null };
   try { st.doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { st.doc = null; }
   st.quota = async fn => {
     st.doc = fn(st.doc);
@@ -203,6 +204,18 @@ const coachAsk = id => async (req, res) => {
   if (!s) return json(res, 401, { error: 'not signed in' });
   const body = await readBody(req);
   try { json(res, 200, await handleHercules({ user: s.user, body, config: st.config, quota: st.quota })); }
+  catch (e) {
+    if (!(e instanceof HerculesError)) throw e;
+    json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
+  }
+};
+// The coaches' memory, distilled from the person's chats (handleMemory).
+const coachMemory = async (req, res) => {
+  const st = COACH_STATE['coach-memory'];
+  const s = sessionOf(req);
+  if (!s) return json(res, 401, { error: 'not signed in' });
+  const body = await readBody(req);
+  try { json(res, 200, await handleMemory({ user: s.user, body, config: st.config, quota: st.quota })); }
   catch (e) {
     if (!(e instanceof HerculesError)) throw e;
     json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
@@ -2678,6 +2691,7 @@ const routes = {
   // Chiron, the coach woken up during a workout (frontend components/Chiron.jsx).
   'GET /api/chiron': coachStatus('chiron'),
   'POST /api/chiron': coachAsk('chiron'),
+  'POST /api/coach/memory': coachMemory,
   'GET /api/social/feed': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, SOCIAL.feed(me, { before: qs(req).get('before') }));

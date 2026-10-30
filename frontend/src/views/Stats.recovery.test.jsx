@@ -108,6 +108,8 @@ function allFatiguedWorkout(now = BASE_NOW) {
   const ids = [
     '1018', '1012', '1167', '1013', '3011', '1413', '1399', '1016', '1005',
     '1010', '1003', '1001', '1511', '1494', '1002', '1000', '1396',
+    // Olympus: the neck is a muscle of the map too (cable seated neck extension).
+    '2411',
   ]
   return workout(
     'all-fatigued',

@@ -15,8 +15,10 @@ import { workoutAt } from './history.js'
 
 // The muscles a map can shade, in head-to-toe order — also the order of any list
 // built from them, so "what am I neglecting" reads top-down like a body.
+// Olympus: the neck is one of them, so the map can be tapped there and the neck exercises of the
+// catalogue (neck flexion and extension, harness and plate work, the stretches) can be found.
 export const MUSCLES = [
-  'trapezius', 'deltoids', 'chest', 'upper-back', 'serratus',
+  'neck', 'trapezius', 'deltoids', 'chest', 'upper-back', 'serratus',
   'biceps', 'triceps', 'forearm',
   'abs', 'obliques', 'lower-back',
   'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors',
@@ -31,13 +33,13 @@ export const inMuscleOrder = list => {
 }
 
 // Drawn as the silhouette, never shaded: they carry no training load.
-export const INERT = ['head', 'hair', 'neck', 'hands', 'feet', 'knees', 'ankles']
+export const INERT = ['head', 'hair', 'hands', 'feet', 'knees', 'ankles']
 
 // English display names; these strings are the i18n keys (see lib/i18n.js). The packs know
 // the cardio pseudo-muscle only under the dataset's own lowercase spelling, and every place
 // that shows it capitalises with CSS — a capitalised key here rendered English everywhere.
 export const MUSCLE_NAME = {
-  trapezius: 'Traps', deltoids: 'Shoulders', chest: 'Chest', 'upper-back': 'Upper back',
+  neck: 'Neck', trapezius: 'Traps', deltoids: 'Shoulders', chest: 'Chest', 'upper-back': 'Upper back',
   serratus: 'Serratus', biceps: 'Biceps', triceps: 'Triceps', forearm: 'Forearms',
   abs: 'Abs', obliques: 'Obliques', 'lower-back': 'Lower back', gluteal: 'Glutes',
   quadriceps: 'Quads', hamstring: 'Hamstrings', adductors: 'Adductors',
@@ -51,7 +53,7 @@ const ALIAS = {
   triceps: 'triceps', 'upper back': 'upper-back', lats: 'upper-back', calves: 'calves',
   quads: 'quadriceps', forearms: 'forearm', hamstrings: 'hamstring', spine: 'lower-back',
   traps: 'trapezius', adductors: 'adductors', 'serratus anterior': 'serratus',
-  abductors: 'gluteal', 'levator scapulae': 'trapezius', 'cardiovascular system': 'cardiovascular system',
+  abductors: 'gluteal', 'levator scapulae': 'neck', 'cardiovascular system': 'cardiovascular system',
   // secondaries
   shoulders: 'deltoids', deltoids: 'deltoids', 'rear deltoids': 'deltoids',
   'rotator cuff': 'deltoids', quadriceps: 'quadriceps', core: 'abs', abdominals: 'abs',
@@ -62,7 +64,7 @@ const ALIAS = {
   'wrist flexors': 'forearm', 'wrist extensors': 'forearm', 'grip muscles': 'forearm',
   groin: 'adductors', 'inner thighs': 'adductors',
   ankles: null, feet: null, hands: null, 'ankle stabilizers': null,
-  sternocleidomastoid: null,
+  sternocleidomastoid: 'neck',
 }
 
 // Custom exercises carry only a body part, so they fall back to it. Weights inside a
@@ -76,7 +78,7 @@ const BY_BODYPART = {
   waist: { abs: 0.7, obliques: 0.3 },
   'upper legs': { quadriceps: 0.4, hamstring: 0.35, gluteal: 0.25 },
   'lower legs': { calves: 0.8, tibialis: 0.2 },
-  neck: { trapezius: 1 },
+  neck: { neck: 1 },
   'full body': { chest: 0.2, 'upper-back': 0.2, gluteal: 0.2, quadriceps: 0.2, hamstring: 0.1, abs: 0.1 },
   cardio: {},
 }

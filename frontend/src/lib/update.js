@@ -57,6 +57,11 @@ export async function checkForUpdate() {
   if (!cached) cached = fetchLatest().catch(e => { cached = null; throw e })
   return cached
 }
+/** The build number a release states ("Build 57"), or null. */
+export function buildOf(text) {
+  const m = /\bbuild\s+#?(\d+)\b/i.exec(String(text || ''))
+  return m ? Number(m[1]) : null
+}
 async function fetchLatest() {
   if (!REPO) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
   const res = await fetch(LATEST_URL, { headers: { Accept: 'application/vnd.github+json' } })
@@ -64,6 +69,23 @@ async function fetchLatest() {
   if (res.status === 404) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
   if (!res.ok) throw new Error(`GitHub API ${res.status}`)
   const latest = await res.json()
+  const assets0 = latest.assets || []
+  // Olympus: one release, "android", rebuilt on every push to main, its notes saying the build
+  // number ("Build 57", .github/workflows/android-apk.yml); the app knows its own from
+  // __APP_VERSION__ ("1.4.1+57"). A newer build is the update, whatever the version says.
+  const remoteBuild = buildOf(latest.body) ?? buildOf(latest.name)
+  if (latest.tag_name === 'android' || remoteBuild != null) {
+    const mine = Number(String(__APP_VERSION__).split('+')[1]) || 0
+    const apk0 = assets0.find(a => /\.apk$/i.test(a.name))
+    const hash0 = assets0.find(a => /\.apk\.sha256$/i.test(a.name))
+    return {
+      hasUpdate: remoteBuild != null && remoteBuild > mine,
+      latestVersion: String(__APP_VERSION__).split('+')[0] + (remoteBuild != null ? '+' + remoteBuild : ''),
+      build: remoteBuild,
+      apkUrl: apk0?.browser_download_url || null,
+      hashUrl: hash0?.browser_download_url || null,
+    }
+  }
   const latestVersion = String(latest.tag_name || '').replace(/^v/, '')
   if (!latestVersion) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
   const hasUpdate = compareSemver(latestVersion, __APP_VERSION__) > 0

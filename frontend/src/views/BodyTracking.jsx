@@ -16,6 +16,7 @@ import FeelCard from '../components/FeelCard.jsx'
 import Measurements from './Measurements.jsx'
 import { BodyWeightCard } from './Home.jsx'
 import '../feel.css'
+import { AddPhotoButtons } from './ProgressPhotos.jsx'
 
 export default function BodyTracking() {
   const nav = useNavigate()
@@ -33,6 +34,8 @@ export default function BodyTracking() {
     <Section>
       <Row icon="camera" iconTint="var(--pink)" title={t('Progress photos')} accessory="chevron" onClick={() => nav('/progress-photos')} />
     </Section>
+    {/* Olympus: a photo attached right here, taken now or from the gallery. */}
+    <AddPhotoButtons />
     {weightOn && <BodyWeightCard S={S} />}
     <Section footer={weightOn
       ? t('Switch it off to hide body weight here and from the AI coach. Your weigh-ins stay saved.')

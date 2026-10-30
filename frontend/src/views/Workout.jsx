@@ -1962,7 +1962,6 @@ function ActiveWorkout() {
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) + ' · ' : ''}{t('{0} sets', done + '/' + total)}</div></div>
-      <WorkoutChiron />
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
         onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
@@ -1970,6 +1969,8 @@ function ActiveWorkout() {
     {/* The time and the volume, big: the two numbers glanced at between sets. A past workout
         being logged or edited has no running clock. */}
     {!(A.backfill || editing) && <WorkoutStats active={A} unit={S.unit} />}
+    {/* Chiron lives in the page, asleep until he is woken (components/Chiron.jsx). */}
+    {!(A.backfill || editing) && <WorkoutChiron />}
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}

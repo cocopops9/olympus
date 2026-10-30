@@ -1,16 +1,14 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { checkForUpdate, resetUpdateCheck, RELEASES_PAGE, UPDATES_ON } from './update.js'
+import { describe, it, expect } from 'vitest'
+import { RELEASES_PAGE, UPDATES_ON } from './update.js'
+import { UPDATE_REPO } from './app-info.js'
 
-// Olympus as shipped: no release repository set in lib/app-info.js, so the app never asks
-// upstream openGym for an "update", which would be a different app with a different id.
-describe('updater with no repository set', () => {
-  afterEach(() => { vi.restoreAllMocks(); resetUpdateCheck() })
-  it('reports no update without a network request', async () => {
-    const spy = vi.spyOn(globalThis, 'fetch')
-    const r = await checkForUpdate()
-    expect(r.hasUpdate).toBe(false)
-    expect(spy).not.toHaveBeenCalled()
-    expect(UPDATES_ON).toBe(false)
-    expect(RELEASES_PAGE).toBe('')
+// Olympus checks its own releases (the "android" release the APK workflow publishes), never
+// upstream openGym's: an openGym APK is a different app with a different id.
+describe('the updater looks at Olympus only', () => {
+  it('points at this repository', () => {
+    expect(UPDATES_ON).toBe(true)
+    expect(UPDATE_REPO).toBe('cocopops9/olympus')
+    expect(RELEASES_PAGE).toBe('https://github.com/cocopops9/olympus/releases/latest')
+    expect(UPDATE_REPO).not.toMatch(/opengym/i)
   })
 })

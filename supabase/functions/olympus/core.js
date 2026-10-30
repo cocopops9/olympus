@@ -22,7 +22,7 @@ import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { stampPut } from './sync-stamps.js';
-import { herculesConfig, handleHercules, leftToday, dayOf, HerculesError } from './hercules.js';
+import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv } from './insights.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, googleClients, verifyGoogle } from './accounts.js';
@@ -407,7 +407,11 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/account/delete': async req => {
       const { user } = await signedIn(req);
       const body = await readJson(req);
-      if (!(await verifyPassword(text(body.password), user.pw?.h))) return { status: 401, body: { error: 'your current password is not right', code: 'current-wrong' } };
+      // A profile with a password confirms with it; one made with Google or Apple, which has
+      // none, confirms by typing DELETE (the app asks for it).
+      if (user.pw?.h) {
+        if (!(await verifyPassword(text(body.password), user.pw.h))) return { status: 401, body: { error: 'your current password is not right', code: 'current-wrong' } };
+      } else if (text(body.confirm) !== 'DELETE') return { status: 400, body: { error: 'type DELETE to confirm', code: 'confirm' } };
       await withSocial(s => s.removeUser(user.id));
       await store.update(['db', 'state:' + user.id, 'tel:' + user.id], ({ get, set }) => {
         set('tel:' + user.id, null);
@@ -474,6 +478,27 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const u = users.find(x => x.id === q.get('id'));
       if (!u) return { status: 404, body: { error: 'no such profile', code: 'not-found' } };
       return { status: 200, body: personDetail(u, tel[u.id]) };
+    },
+    // Olympus: the owner bans a profile, or lifts the ban. A banned profile cannot sign in, its
+    // sessions stop working (signedIn refuses a disabled account) and it disappears from the
+    // social layer (social.js leaves disabled profiles out); nothing of it is deleted, so the ban
+    // can be lifted. The founder cannot be banned, by anyone.
+    'POST /api/owner/ban': async req => {
+      const { user: me } = await signedIn(req);
+      if (!me.founder) throw new HttpError(403, 'only the owner of this server', 'forbidden');
+      const body = await readJson(req);
+      const id = text(body.id), on = body.on !== false;
+      let out = { status: 404, body: { error: 'no such profile', code: 'not-found' } };
+      await store.update(['db'], ({ get, set }) => {
+        const db = get('db');
+        const u = usersOf(db).find(x => x.id === id);
+        if (!u) return;
+        if (u.founder) { out = { status: 400, body: { error: 'the owner cannot be banned', code: 'founder' } }; return; }
+        if (on) u.disabled = true; else delete u.disabled;
+        set('db', db);
+        out = { status: 200, body: { ok: true, banned: on } };
+      });
+      return out;
     },
     'GET /api/owner/export': async (req, q) => {
       const { users, tel, feedback } = await ownerData(req);
@@ -545,6 +570,13 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/athena': coachAsk('athena'),
     'GET /api/chiron': coachStatus('chiron'),
     'POST /api/chiron': coachAsk('chiron'),
+    // The coaches' memory, distilled from the person's chats on Chiron's model (hercules.js).
+    'POST /api/coach/memory': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      const quota = fn => store.update(['coach-memory'], ({ get, set }) => { set('coach-memory', fn(get('coach-memory'))); });
+      return { status: 200, body: await handleMemory({ user, body, config: coaches.chiron, quota, now: now(), fetchImpl }) };
+    },
 
     // The social layer, route for route as in api/server.js.
     'GET /api/social/search': async (req, q) => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.search(me, q.get('q') || '')) } }; },

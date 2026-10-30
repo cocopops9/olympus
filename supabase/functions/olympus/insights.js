@@ -192,6 +192,7 @@ export function dashboard({ users, tel, feedback, now = Date.now(), days = 30 })
     const sum = (list, f) => list.reduce((a, [, x]) => a + (f(x) || 0), 0)
     return {
       id: u.id, name: u.name, created: u.created || null, email: u.email || null,
+      ...(u.disabled ? { banned: true } : {}), ...(u.founder ? { founder: true } : {}),
       referredBy: u.referredBy ? byId.get(u.referredBy)?.name || u.referredBy : null,
       invited: invitedBy(users, u.id).length,
       shares: !!d, lastSeen: d?.lastSeen || null, platform: d?.platform || null, version: d?.version || null,

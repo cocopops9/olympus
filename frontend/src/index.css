@@ -2171,3 +2171,17 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .wchip.lifted{transform:scale(1.18);box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--acc),0 6px 14px -4px rgba(0,0,0,.5);z-index:1;position:relative}
 .wchips.dragging{overflow-x:hidden}
 @media (prefers-reduced-motion:reduce){.wchip{transition:none}}
+
+/* Olympus: a workout's own photo as its thumbnail (sheets.jsx WorkoutRow). */
+.lrow-i.wrow-photo{padding:0;overflow:hidden;background:var(--surface-3)}
+.lrow-i.wrow-photo .thumb{width:100%;height:100%;object-fit:cover;display:block;border-radius:0}
+.lrow-i.wrow-photo .thumb-x{display:flex;align-items:center;justify-content:center;color:var(--acc)}
+/* Olympus: the update offered at launch (components/UpdatePrompt.jsx). */
+.upd{text-align:center}
+.upd-ic{width:56px;height:56px;margin:4px auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc);font-size:26px}
+.upd-bar{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;margin:4px 0 12px}
+.upd-bar i{display:block;height:100%;background:var(--acc);transition:width .2s}
+/* Olympus: photos straight from Body & wellbeing (views/ProgressPhotos.jsx AddPhotoButtons). */
+.body-photo{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 16px}
+.body-photo .btn{flex:1 1 0;width:auto;min-width:0}

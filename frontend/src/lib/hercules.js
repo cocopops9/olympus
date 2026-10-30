@@ -9,7 +9,7 @@ import { api } from './api.js'
 import { getLang } from './i18n.js'
 import { useStore } from '../store/useStore.js'
 import { herculesContext } from './hercules-context.js'
-import { chatsOf, putChatsOf, memoryLines } from './coach-memory.js'
+import { chatsOf, putChatsOf, memoryContext } from './coach-memory.js'
 
 const TITLE_LEN = 48
 const ANSWER_MS = 75000   // the model, and its fallback when the first is busy
@@ -17,6 +17,7 @@ const ANSWER_MS = 75000   // the model, and its fallback when the first is busy
 export const COACH_IDS = ['hercules', 'athena']
 // Chiron only coaches during a workout (components/Chiron.jsx): not one of the chat's coaches.
 export const WORKOUT_COACH = 'chiron'
+const CHIRON_CONTEXT = 36000
 // Hercules, Athena, Chiron, or a coach of your own (lib/own-coach.js, ids own_...).
 const coachOf = id => (COACH_IDS.includes(id) || id === WORKOUT_COACH || /^own_[a-z0-9]+$/.test(String(id)) ? id : 'hercules')
 const lastKeyOf = uid => 'olympus_coach_last_' + (uid || 'local')
@@ -63,6 +64,8 @@ export const herculesStatus = (coach = 'hercules') => api('/api/' + coachOf(coac
 
 /** Sends the conversation (ending with the new message) to `coach`; resolves with { reply, left, perDay }. */
 export function askHercules(list, coach = 'hercules', opts = {}) {
+  const chiron = coachOf(coach) === WORKOUT_COACH
+  const uid = useStore.getState().user?.id
   const S = useStore.getState().S
   const messages = list.map(m => ({ role: m.role, content: m.content }))
   return api('/api/' + coachOf(coach), {
@@ -70,6 +73,9 @@ export function askHercules(list, coach = 'hercules', opts = {}) {
     timeout: ANSWER_MS,
     // The memory every coach shares rides with the summary; the conversation in hand is sent as
     // messages already.
-    body: JSON.stringify({ messages, lang: getLang(), context: herculesContext(S, undefined, { memory: memoryLines(useStore.getState().user?.id, { skipChat: opts.chatId }) }) }),
+    body: JSON.stringify({ messages, lang: getLang(), context: herculesContext(S, undefined, chiron
+      // Chiron has fewer messages and four times the room for each (api/hercules.js CHIRON_DEFAULTS).
+      ? { memory: memoryContext(uid, S, { skipChat: opts.chatId, big: true }), max: CHIRON_CONTEXT }
+      : { memory: memoryContext(uid, S, { skipChat: opts.chatId }) }) }),
   })
 }

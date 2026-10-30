@@ -6,6 +6,8 @@ import { bindUI } from './components/ui.jsx'
 import { setWeightDecimals } from './lib/format.js'
 import { accentValue, applyAccent } from './lib/accent.js'
 import { needsDefaults, applyOlympusDefaults } from './lib/olympus-defaults.js'
+import { reloginOnNewVersion } from './lib/relogin.js'
+import { useUpdatePrompt } from './components/UpdatePrompt.jsx'
 import { aboutYouSheet } from './components/AboutYou.jsx'
 import HerculesButton from './components/Hercules.jsx'
 import { useWelcome } from './components/Welcome.jsx'
@@ -82,11 +84,24 @@ function applyPrefs(theme, accent) {
   if (MOBILE) setSystemBarsLight(de.dataset.theme === 'light')
 }
 
+// Olympus: the installed app asks for the sign-in again after an install or an update
+// (lib/relogin.js), once boot knows who is signed in.
+function useReloginOnUpdate(ready, user) {
+  const done = useRef(false)
+  useEffect(() => {
+    if (!MOBILE || !ready || done.current) return
+    done.current = true
+    reloginOnNewVersion({ current: __APP_VERSION__, signedIn: !!user, signOut: o => useStore.getState().signOut(o) })
+  }, [ready])
+}
+
 function Shell() {
   const navigate = useNavigate()
   const loc = useLocation()
   const navType = useNavigationType()
   const { S, user, ready, update } = useStore()
+  useReloginOnUpdate(ready, user)
+  useUpdatePrompt(ready)
   // iOS: whether timer sounds get past the ring/silent switch (Settings → Sounds). Page-level,
   // so it is applied here on load and on change rather than at each beep.
   useEffect(() => { setPlayOnSilent(!!S.soundOnSilent) }, [S.soundOnSilent])

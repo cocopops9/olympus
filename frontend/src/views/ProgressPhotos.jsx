@@ -221,3 +221,37 @@ export default function ProgressPhotos() {
     </div>}
   </>
 }
+
+/**
+ * Olympus: a photo of today, taken now or picked from the gallery, straight from Body & wellbeing
+ * (views/BodyTracking.jsx): the same flow as the button above, onto today's logged workout. With
+ * no workout today it says how photos are kept and offers to log one.
+ */
+export function AddPhotoButtons() {
+  const nav = useNavigate()
+  const S = useStore(s => s.S)
+  const today = todaysWorkout(S)
+  const { pick, busy, canAdd, showAdd } = useMediaPicker()
+  const cam = useRef(null), gal = useRef(null)
+  if (!showAdd) return null
+  const onFile = async ev => {
+    const file = ev.target.files && ev.target.files[0]
+    ev.target.value = ''
+    if (!file || !today) return
+    if (workoutMediaOf(today).length >= WORKOUT_MEDIA_MAX) { toast(t('Up to {0} photos or videos per workout.', WORKOUT_MEDIA_MAX)); return }
+    const got = await pick(file)
+    if (!got) return
+    let res
+    useStore.getState().update(s => { res = addWorkoutMedia(s, today, got) })
+    if (res === 'added') { toast(t('Photo added')); track('photo.add'); syncMedia({ force: true }) }
+    else if (res === 'full') toast(t('Up to {0} photos or videos per workout.', WORKOUT_MEDIA_MAX))
+  }
+  const open = ref => (today ? ref.current?.click() : nav('/workout'))
+  return <div className="body-photo">
+    <Button icon="camera" disabled={busy || (today && !canAdd)} onClick={() => open(cam)}>{t('Take a photo')}</Button>
+    <Button icon="image" disabled={busy || (today && !canAdd)} onClick={() => open(gal)}>{t('Add photos')}</Button>
+    {!today && <p className="small muted" style={{ margin: '6px 2px 0', flexBasis: '100%' }}>{t('Photos are kept with a workout: log today’s workout first.')}</p>}
+    <input ref={cam} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
+    <input ref={gal} type="file" accept="image/*" hidden onChange={onFile} />
+  </div>
+}

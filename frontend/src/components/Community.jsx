@@ -116,10 +116,11 @@ function ConsentSheet({ close }) {
   return <div className="cm-sheet">
     <div className="cm-ic"><Icon name="chartLine" /></div>
     <h3>{t('Help improve Olympus')}</h3>
-    <p className="small">{t('Would you share usage statistics with the developer? It shows what is used and what is hard to find.')}</p>
-    <p className="small muted">{TELEMETRY_WHAT()}</p>
-    <p className="small muted">{t('They are linked to your account. You can turn this off at any time in Settings, which also deletes what was sent.')}</p>
-    <Button variant="primary" onClick={() => answer(true)}>{t('Share statistics')}</Button>
+    {/* Olympus: said simply and calmly; the full list of what is collected stays in Settings,
+        Privacy (TELEMETRY_WHAT), one tap away. */}
+    <p className="small">{t('Olympus can collect some general information about how the app is used, to see what works well and what to improve.')}</p>
+    <p className="small muted">{t('It is linked to your profile and never includes your workouts, measurements or messages. You can change your mind at any time in Settings.')}</p>
+    <Button variant="primary" onClick={() => answer(true)}>{t('Allow')}</Button>
     <div style={{ height: 8 }} />
     <Button onClick={() => answer(false)}>{t('No thanks')}</Button>
   </div>

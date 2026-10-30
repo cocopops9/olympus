@@ -51,6 +51,51 @@ async function openPassword() {
   } catch (e) { toast(e?.message || t('Could not connect')) }
 }
 
+// Olympus: deleting the profile for good (POST /api/account/delete): the account, its training,
+// and everything of it in the social layer. Confirmed with the password, or, for a profile made
+// with Google or Apple that has none, by typing DELETE. Then this device signs out.
+function DeleteSheet({ status, close }) {
+  const hasPw = !!status?.set
+  const [v, setV] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const ok = hasPw ? v.length > 0 : v.trim() === 'DELETE'
+  const go = async () => {
+    if (!ok || busy) return
+    setBusy(true); setErr(null)
+    try {
+      await api('/api/account/delete', { method: 'POST', body: JSON.stringify(hasPw ? { password: v } : { confirm: 'DELETE' }) })
+      close()
+      await useStore.getState().signOut({ force: true }).catch(() => {})
+      toast(t('Your profile has been deleted.'))
+    } catch (e) {
+      setBusy(false)
+      setErr(e?.data?.code === 'current-wrong' ? t('That password is not right.') : (e?.message || t('Could not connect')))
+    }
+  }
+  return <form onSubmit={e => { e.preventDefault(); go() }}>
+    <h3>{t('Delete your profile?')}</h3>
+    <p className="muted" style={{ lineHeight: 1.5 }}>{t('Your profile, your training, your posts, photos, likes, comments and follows are deleted for good. This cannot be undone.')}</p>
+    {hasPw
+      ? <input className="field" type="password" autoComplete="current-password" value={v} onChange={e => setV(e.target.value)}
+        placeholder={t('Your password')} aria-label={t('Your password')} autoFocus />
+      : <input className="field" value={v} onChange={e => setV(e.target.value)} autoCapitalize="characters"
+        placeholder={t('Type DELETE to confirm')} aria-label={t('Type DELETE to confirm')} autoFocus />}
+    {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
+    <div style={{ height: 12 }} />
+    <button type="submit" className="btn danger" disabled={!ok || busy}>{busy ? t('Deleting…') : t('Delete my profile')}</button>
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" className="dim" type="button" onClick={close}>{t('Cancel')}</Button>
+  </form>
+}
+
+async function openDelete() {
+  try {
+    const status = await api('/api/account/password')
+    useUI.getState().openSheet(close => <DeleteSheet status={status} close={close} />)
+  } catch (e) { toast(e?.message || t('Could not connect')) }
+}
+
 /** Sex as the two body figures the app draws; '' when it was never chosen. */
 export const SEX_OPTIONS = () => [
   { value: 'male', label: t('Male') },
@@ -74,5 +119,6 @@ export function AccountSection({ onRenamed }) {
       <input className="input acct-birth" type="date" min="1920-01-01" max={new Date().toISOString().slice(0, 10)} value={birth || ''}
         aria-label={t('Date of birth')} onChange={e => update(s => { s.birth = e.target.value || null })} />
     </Row>
+    <Row icon="trash" iconTint="var(--red)" title={t('Delete profile')} danger accessory="chevron" onClick={openDelete} />
   </Section>
 }

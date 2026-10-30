@@ -136,6 +136,7 @@ function PersonSheet({ id, person, close }) {
       {person.invited > 0 && <span>Brought {person.invited}</span>}
       {person.platform && <span>{person.platform} {person.version}</span>}
       {person.email && <span>{person.email}</span>}
+      {person.banned && <span style={{ color: 'var(--red)' }}>Banned</span>}
     </div>
     {!person.shares ? <p className="ow-lead">Does not share usage statistics: only the account details are known.</p>
       : err ? <p className="ow-lead">{err}</p>
@@ -161,10 +162,37 @@ function PersonSheet({ id, person, close }) {
             </div>)}</div>
           </>}
     <div style={{ height: 10 }} />
+    {!person.founder && <BanButton person={person} />}
+    <div style={{ height: 8 }} />
     <Button onClick={close}>Done</Button>
   </div>
 }
 const personSheet = p => useUI.getState().openSheet(close => <PersonSheet id={p.id} person={p} close={close} />)
+
+// Olympus: banning a profile (POST /api/owner/ban): it can no longer sign in and disappears from
+// the feeds, its data kept so the ban can be lifted. Asked twice, as it locks someone out.
+function BanButton({ person }) {
+  const [banned, setBanned] = useState(!!person.banned)
+  const [asking, setAsking] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const set = async on => {
+    setBusy(true)
+    try {
+      await api('/api/owner/ban', { method: 'POST', body: JSON.stringify({ id: person.id, on }) })
+      setBanned(on); person.banned = on
+      useUI.getState().toast(on ? person.name + ' is banned' : 'Ban lifted for ' + person.name)
+    } catch (e) { useUI.getState().toast(e?.message || 'Could not connect') }
+    setBusy(false); setAsking(false)
+  }
+  if (banned) return <Button disabled={busy} onClick={() => set(false)}>Lift the ban</Button>
+  if (!asking) return <button className="btn danger" onClick={() => setAsking(true)}>Ban this profile</button>
+  return <div className="ow-ban">
+    <p className="ow-lead">{person.name} will not be able to sign in, and their profile and posts disappear for everyone. Nothing is deleted: you can lift the ban later.</p>
+    <button className="btn danger" disabled={busy} onClick={() => set(true)}>Ban {person.name}</button>
+    <div style={{ height: 8 }} />
+    <Button disabled={busy} onClick={() => setAsking(false)}>Cancel</Button>
+  </div>
+}
 
 /* ------------------------------ the page ----------------------------- */
 

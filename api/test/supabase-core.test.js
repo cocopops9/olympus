@@ -148,6 +148,17 @@ test('a profile deletes itself with its password, and nothing of it stays', asyn
   assert.equal((await s.call('GET', '/api/me', { token: ben.token })).body.user.admin, true, 'the admin role passes on');
 });
 
+test('a profile with no password (made with Google) deletes itself by typing DELETE', async () => {
+  const s = server();
+  const gia = await signup(s, 'Gia');
+  const db = s.store.docs.get('db');
+  delete (db.users || db).find(u => u.id === gia.user.id).pw;
+  assert.equal((await s.call('POST', '/api/account/delete', { token: gia.token, body: {} })).status, 400);
+  assert.equal((await s.call('POST', '/api/account/delete', { token: gia.token, body: { confirm: 'delete' } })).status, 400);
+  assert.equal((await s.call('POST', '/api/account/delete', { token: gia.token, body: { confirm: 'DELETE' } })).status, 200);
+  assert.equal((await s.call('GET', '/api/me', { token: gia.token })).status, 401);
+});
+
 test('a profile changes its name and its password, and keeps this device signed in', async () => {
   const s = server();
   const ana = await signup(s, 'Ana');
@@ -223,6 +234,17 @@ test('invites, usage statistics, feedback and the owner dashboard', async () => 
 
   await call('POST', '/api/telemetry/forget', { token: friend.token });
   assert.equal((await call('GET', '/api/owner/dashboard', { token: owner.token })).body.totals.sharing, 0);
+
+  // Olympus: the owner bans a profile: it is locked out at once, nothing of it deleted, and the
+  // ban can be lifted. Nobody else can ban, and the owner cannot be banned.
+  assert.equal((await call('POST', '/api/owner/ban', { token: friend.token, body: { id: owner.id || board.people.find(p => p.name === 'Boss').id } })).status, 403);
+  const bossId = board.people.find(p => p.name === 'Boss').id;
+  assert.equal((await call('POST', '/api/owner/ban', { token: owner.token, body: { id: bossId } })).status, 400);
+  assert.deepEqual((await call('POST', '/api/owner/ban', { token: owner.token, body: { id: f.id } })).body, { ok: true, banned: true });
+  assert.equal((await call('GET', '/api/data', { token: friend.token })).status, 401, 'the session stops working');
+  assert.equal((await call('GET', '/api/owner/dashboard', { token: owner.token })).body.people.find(p => p.id === f.id).banned, true);
+  assert.deepEqual((await call('POST', '/api/owner/ban', { token: owner.token, body: { id: f.id, on: false } })).body, { ok: true, banned: false });
+  assert.equal((await call('GET', '/api/data', { token: friend.token })).status, 200, 'lifted, the profile is back');
 });
 
 test('accounts: usernames, a required e-mail, the reset code by e-mail, Google sign-in', async () => {

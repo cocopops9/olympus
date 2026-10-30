@@ -13,7 +13,7 @@ const fakeFetch = (answers, seen = []) => async (url, init) => {
 };
 
 test('the provider comes from the environment, Groq by default, and is off without a key', () => {
-  assert.deepEqual(herculesConfig({}), { coach: 'hercules', key: '', baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, fallback: DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history });
+  assert.deepEqual(herculesConfig({}), { coach: 'hercules', key: '', baseUrl: DEFAULTS.baseUrl, model: DEFAULTS.model, fallback: DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history, context: LIMITS.context });
   const c = herculesConfig({ HERCULES_API_KEY: ' k ', HERCULES_BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/openai/', HERCULES_MODEL: 'gemini-flash', HERCULES_PER_DAY: '5' });
   assert.equal(c.key, 'k');
   assert.equal(c.baseUrl, 'https://generativelanguage.googleapis.com/v1beta/openai');
@@ -110,7 +110,7 @@ test('Supabase: the routes count per profile and report the limit', async () => 
 test('Athena is another coach: her own model, allowance and voice, on Hercules\'s key unless she has one', () => {
   const env = { HERCULES_API_KEY: 'k', HERCULES_BASE_URL: 'https://p.example/v1' };
   const a = herculesConfig(env, 'athena');
-  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history });
+  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history, context: LIMITS.context });
   assert.notEqual(ATHENA_DEFAULTS.model, DEFAULTS.model);
   const own = herculesConfig({ ...env, ATHENA_API_KEY: 'k2', ATHENA_MODEL: 'gemini-x', ATHENA_PER_DAY: '7', ATHENA_BASE_URL: 'https://g.example/openai/' }, 'athena');
   assert.equal(own.key, 'k2'); assert.equal(own.model, 'gemini-x'); assert.equal(own.perDay, 7); assert.equal(own.baseUrl, 'https://g.example/openai');
@@ -162,7 +162,7 @@ test('both servers\' routes: Athena has her own count, and her own model answers
   assert.equal((await call('GET', '/api/hercules', null, token)).body.left, 19);
 });
 
-test('Chiron coaches in the workout: brief, on Hercules\'s key, more messages a day, less history', async () => {
+test('Chiron coaches in the workout: brief, on Hercules\'s key, 15 messages a day, each with four times the memory', async () => {
   const env = { HERCULES_API_KEY: 'k' };
   const c = herculesConfig(env, 'chiron');
   assert.equal(c.coach, 'chiron'); assert.equal(c.key, 'k');
@@ -177,6 +177,10 @@ test('Chiron coaches in the workout: brief, on Hercules\'s key, more messages a 
   assert.match(p, /not a doctor/);
   assert.match(p, /Answer in Italian/);
   assert.match(p, /WORKOUT IN PROGRESS/);
+  // Fewer messages, each knowing more: four times the room for memory and data.
+  assert.equal(c.perDay, 15);
+  assert.equal(c.context, 4 * LIMITS.context);
+  assert.match(systemPrompt({ coach: 'chiron', context: 'x'.repeat(30000) + 'END' }), /END/);
   assert.doesNotMatch(p, /create_routine/);
   // The history he gets is short: a quick question, not a long talk.
   const long = Array.from({ length: 21 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'm' + i }));
@@ -195,4 +199,31 @@ test('Chiron coaches in the workout: brief, on Hercules\'s key, more messages a 
   assert.equal(seen[0].max_tokens, CHIRON_DEFAULTS.replyTokens);
   assert.match(seen[0].messages[0].content, /You are Chiron/);
   assert.equal((await call('GET', '/api/hercules', null, token)).body.left, LIMITS.perDay);
+});
+
+test('the coaches\' memory: notes they can edit and insights they do not see, distilled from their chats', async () => {
+  const { parseMemory, MEMORY } = await import('../hercules.js');
+  assert.deepEqual(parseMemory('```json\n{"notes": ["Wants to squat 140 kg by June", "Wants to squat 140 kg by June"], "insights": ["Asks about knees often"]}\n```'),
+    { notes: ['Wants to squat 140 kg by June'], insights: ['Asks about knees often'] });
+  assert.equal(parseMemory('Sure! Here is the memory.'), null);
+  const env = { HERCULES_API_KEY: 'k' };
+  const seen = [];
+  const answer = JSON.stringify({ notes: ['Trains Mondays and Thursdays'], insights: ['Prefers short, numeric advice'] });
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env, fetchImpl: fakeFetch([{ status: 200, reply: answer }, { status: 200, reply: 'not json' }], seen) });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const token = (await call('POST', '/api/app/signup', { name: 'mem_lifts', email: 'mem@example.com', password: 'correct horse battery staple' })).body?.token;
+  // Nothing new said: the lists come back as they are and nothing is spent.
+  const none = await call('POST', '/api/coach/memory', { messages: [], notes: ['Has a home gym'] }, token);
+  assert.deepEqual(none.body, { notes: ['Has a home gym'], insights: [], left: null });
+  const r = await call('POST', '/api/coach/memory', { messages: [{ coach: 'hercules', content: 'I can only train Mondays and Thursdays' }], notes: ['Has a home gym'], lang: 'it' }, token);
+  assert.deepEqual(r.body, { notes: ['Trains Mondays and Thursdays'], insights: ['Prefers short, numeric advice'], left: MEMORY.perDay - 1 });
+  assert.match(seen[0].messages[0].content, /keep the memory of the coaches/);
+  assert.match(seen[0].messages[1].content, /Has a home gym/);
+  assert.match(seen[0].messages[1].content, /Italian/);
+  // An answer that is not the JSON asked for changes nothing and costs nothing.
+  const bad = await call('POST', '/api/coach/memory', { messages: [{ coach: 'athena', content: 'x' }], notes: ['A'], insights: ['B'] }, token);
+  assert.deepEqual(bad.body, { notes: ['A'], insights: ['B'], left: MEMORY.perDay - 1 });
 });

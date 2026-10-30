@@ -17,3 +17,12 @@
 .whdr-coach{width:40px;height:40px;padding:0;border:0;background:transparent;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}
 /* Long questions wrap rather than run off the chat. */
 .hc .hc-sugg .chip{white-space:normal;max-width:100%;min-width:0;flex:0 1 auto;text-align:center;overflow-wrap:anywhere}
+/* Olympus: their memory, as notes they can edit (components/CoachGoals.jsx Memory). */
+.cg-mem .cg-l{display:flex;align-items:center;gap:6px}
+.cg-mem .cg-l .icn{color:var(--acc)}
+.cg-notes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cg-notes li{display:flex;align-items:center;gap:6px}
+.cg-notes .field{flex:1;min-width:0}
+.cg-note{flex:1;min-width:0;text-align:start;padding:9px 12px;border-radius:12px;border:0;background:var(--surface-2);color:var(--label);font:inherit;font-size:14px;line-height:1.35;cursor:text}
+.cg-add{display:flex;align-items:center;gap:6px;margin-top:8px}
+.cg-add .field{flex:1;min-width:0}

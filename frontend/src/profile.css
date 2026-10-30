@@ -44,20 +44,22 @@
 .prof-noacct{margin:10px auto 0;max-width:340px}
 .prof-noacct p{margin:0 0 10px;line-height:1.45}
 
-/* Olympus: a neon halo round the profile card. A ring of light runs round its edge in the
-   founder's nebula colours and the app's gold, and the glow outside it breathes through the same
-   colours. Still, with reduced motion. */
-@property --neon{syntax:'<angle>';inherits:false;initial-value:0deg}
-.prof-hero.neon{box-shadow:0 0 18px 1px color-mix(in srgb,#9d7bff 55%,transparent);animation:neon-glow 7.5s linear infinite}
-.prof-hero.neon::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;
-  background:conic-gradient(from var(--neon),#7af5ff,#9d7bff,#ff5ce1,var(--acc),#7af5ff);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
-  animation:neon-turn 5s linear infinite}
-@keyframes neon-turn{to{--neon:360deg}}
-@keyframes neon-glow{
-  0%,100%{box-shadow:0 0 18px 1px color-mix(in srgb,#7af5ff 50%,transparent),0 0 2px 0 #7af5ff}
-  25%{box-shadow:0 0 24px 3px color-mix(in srgb,#9d7bff 55%,transparent),0 0 2px 0 #9d7bff}
-  50%{box-shadow:0 0 18px 1px color-mix(in srgb,#ff5ce1 50%,transparent),0 0 2px 0 #ff5ce1}
-  75%{box-shadow:0 0 24px 3px color-mix(in srgb,var(--acc) 55%,transparent),0 0 2px 0 var(--acc)}}
-@media (prefers-reduced-motion:reduce){.prof-hero.neon,.prof-hero.neon::before{animation:none}}
+/* Olympus: the gold of the profile card is alive. The glow at the top of the card drifts from
+   side to side and breathes, and a second, softer one follows it a beat later, like light on
+   water; the card's edge stays as it was. Still, with reduced motion. */
+@property --gx{syntax:'<percentage>';inherits:false;initial-value:50%}
+@property --gy{syntax:'<percentage>';inherits:false;initial-value:0%}
+@property --gk{syntax:'<percentage>';inherits:false;initial-value:22%}
+.prof-hero.neon{isolation:isolate}
+.prof-hero.neon::before,.prof-hero.neon::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit}
+.prof-hero.neon{background:var(--surface)}
+.prof-hero.neon::before{background:radial-gradient(130% 90% at var(--gx) var(--gy),color-mix(in srgb,var(--acc) var(--gk),var(--surface)) 0%,var(--surface) 72%);
+  animation:gold-drift 9s ease-in-out infinite}
+.prof-hero.neon::after{background:radial-gradient(60% 45% at calc(100% - var(--gx)) 8%,color-mix(in srgb,var(--acc) 30%,transparent) 0%,transparent 70%);
+  mix-blend-mode:screen;opacity:.55;animation:gold-drift 9s ease-in-out -4.5s infinite}
+@keyframes gold-drift{
+  0%,100%{--gx:50%;--gy:0%;--gk:22%}
+  25%{--gx:22%;--gy:6%;--gk:34%}
+  50%{--gx:50%;--gy:-4%;--gk:18%}
+  75%{--gx:78%;--gy:6%;--gk:34%}}
+@media (prefers-reduced-motion:reduce){.prof-hero.neon::before,.prof-hero.neon::after{animation:none}}

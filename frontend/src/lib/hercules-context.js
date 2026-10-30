@@ -71,7 +71,7 @@ function bests(S) {
 }
 
 /** The summary for the model. `today` as YYYY-MM-DD. */
-export function herculesContext(S, today = todayISO(), { memory = [] } = {}) {
+export function herculesContext(S, today = todayISO(), { memory = [], max = MAX_CONTEXT } = {}) {
   if (!S) return ''
   const lines = []
   const first = S.workouts.length ? S.workouts.map(w => w.d).filter(Boolean).sort()[0] : null
@@ -98,7 +98,7 @@ export function herculesContext(S, today = todayISO(), { memory = [] } = {}) {
   const feel = feelSummary(S, today)
   if (feel) lines.push(feel)
   let out = lines.join('\n')
-  if (out.length > MAX_CONTEXT) out = out.slice(0, MAX_CONTEXT)
+  if (out.length > max) out = out.slice(0, max)
   return out
 }
 

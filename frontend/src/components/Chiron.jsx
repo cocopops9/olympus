@@ -154,9 +154,11 @@ export function chironSheet() {
 }
 
 /**
- * Chiron in the workout header, asleep. Three quick taps wake him; each tap before that makes him
- * stir, so it is clear that tapping is the way. Hidden when the coach is switched off for the
- * workout (Settings), and while logging or editing a past workout.
+ * Chiron in the workout page, not a little icon: he lies there asleep, breathing, the z's
+ * drifting up, with a line saying how to wake him. Each tap makes him stir; the third wakes him,
+ * and he wakes for real: he stretches, opens his eyes, rises with a glow and says he is ready,
+ * while his sheet comes up. Closed, he settles back to sleep. Hidden when the coach is switched
+ * off for the workout (Settings), and while logging or editing a past workout.
  */
 export function WorkoutChiron() {
   const on = useStore(s => s.S.coachInWorkout !== false && !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
@@ -166,7 +168,19 @@ export function WorkoutChiron() {
   const tapRef = useRef(null)
   const setTap = v => { tapRef.current = v; setTapState(v) }
   const timer = useRef(null)
+  const [waking, setWaking] = useState(false)
+  const wasAwake = useRef(false)
+  const [settling, setSettling] = useState(false)
   useEffect(() => () => clearTimeout(timer.current), [])
+  // Back to sleep when his sheet closes: a short settling animation, then asleep.
+  useEffect(() => {
+    if (awake) { wasAwake.current = true; return }
+    if (!wasAwake.current) return
+    wasAwake.current = false
+    setSettling(true)
+    const tm = setTimeout(() => setSettling(false), 900)
+    return () => clearTimeout(tm)
+  }, [awake])
   if (!on) return null
   const press = () => {
     if (awake) return
@@ -175,6 +189,8 @@ export function WorkoutChiron() {
     if (next.awake) {
       setTap(null)
       try { navigator.vibrate?.([12, 40, 12]) } catch { /* no haptics */ }
+      setWaking(true)
+      timer.current = setTimeout(() => setWaking(false), 1200)
       chironSheet()
       return
     }
@@ -183,9 +199,15 @@ export function WorkoutChiron() {
     timer.current = setTimeout(() => setTap(null), 1600)
   }
   const left = WAKE_TAPS - (tap?.taps || 0)
-  return <button className={'whdr-coach whdr-chiron' + (tap ? ' tapped' : '')} onClick={press}
+  const state = waking ? 'waking' : awake ? 'awake' : settling ? 'settling' : 'asleep'
+  return <button className={'chiron-stage whdr-chiron ' + state + (tap ? ' tapped' : '')} onClick={press}
     aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
-    <ChironFace awake={awake} stir={tap?.taps || 0} size={40} />
+    <span className="chs-halo" aria-hidden="true" />
+    <ChironFace awake={awake || waking} stir={tap?.taps || 0} size={64} />
+    <span className="chs-say">
+      <b>Chiron</b>
+      <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>
+    </span>
     {tap && !awake && <span className="chiron-taps" aria-hidden="true">{Array.from({ length: WAKE_TAPS }, (_, i) => <i key={i} className={i < WAKE_TAPS - left ? 'on' : ''} />)}</span>}
   </button>
 }

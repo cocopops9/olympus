@@ -7,7 +7,8 @@
 // SOURCE_URL  — where the source of THIS version can be read. AGPL §13 asks anyone who lets
 //   other people use a modified version over a network (a server your friends sign in to) to
 //   offer them its source; point this at your public repository before you do.
-export const UPDATE_REPO = ''
+// Olympus: the APK workflow publishes every build of main to the "android" release here.
+export const UPDATE_REPO = 'cocopops9/olympus'
 export const SOURCE_URL = 'https://github.com/cocopops9/olympus'
 export const UPSTREAM_URL = 'https://github.com/DuarteSantos8/openGym'
 
