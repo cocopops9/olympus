@@ -51,6 +51,15 @@ async function openPassword() {
   } catch (e) { toast(e?.message || t('Could not connect')) }
 }
 
+// Forgot the current password while signed in: the same reset as on the sign-in screen, a code
+// sent to the account's e-mail (views/MobileOnboarding.jsx AccountSheet), the address filled in.
+async function openReset() {
+  let email = ''
+  try { email = (await api('/api/account/password'))?.email || '' } catch { /* typed by hand */ }
+  const { openAccountSheet } = await import('../views/MobileOnboarding.jsx')
+  openAccountSheet('forgot', { email })
+}
+
 // Olympus: deleting the profile for good (POST /api/account/delete): the account, its training,
 // and everything of it in the social layer. Confirmed with the password, or, for a profile made
 // with Google or Apple that has none, by typing DELETE. Then this device signs out.
@@ -111,6 +120,7 @@ export function AccountSection({ onRenamed }) {
     <Row icon="person" iconTint="var(--blue)" title={t('Name')} subtitle={user?.name} accessory="chevron"
       onClick={() => useUI.getState().openSheet(close => <NameSheet close={close} onSaved={onRenamed} />)} />
     <Row icon="key" iconTint="var(--orange)" title={t('Change password')} accessory="chevron" onClick={openPassword} />
+    <Row icon="envelope" iconTint="var(--indigo)" title={t('Forgot your password?')} subtitle={t('Get a code by e-mail and choose a new one')} accessory="chevron" onClick={openReset} />
     <Row icon="figureStrength" iconTint="var(--pink)" title={t('Sex')}>
       <Segmented className="acct-sex" value={body === 'female' ? 'female' : 'male'} options={SEX_OPTIONS()}
         onChange={v => update(s => { s.body = v })} />

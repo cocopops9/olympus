@@ -361,6 +361,19 @@ test('a post\'s song: a WAV clip of its owner, on one post, taken off or replace
   assert.ok(!fs.existsSync(path.join(dir, 'social-photos', third + '.wav')));
 });
 
+test('a song from the free catalogue: only which track, its words, cover and start; no file kept', t => {
+  const { s, dir } = store(t, [ANNA, BEN]);
+  const p = s.createPost(ANNA, { text: 'Push day', song: { src: 'audius', id: 'D7KyD', title: 'Night Run', artist: 'Lumen', art: 'https://cdn.example/150.jpg', start: 47.4 } });
+  assert.deepEqual(p.song, { src: 'audius', id: 'D7KyD', title: 'Night Run', artist: 'Lumen', art: 'https://cdn.example/150.jpg', start: 47 });
+  assert.deepEqual(s.post(BEN, p.id).song.id, 'D7KyD');
+  assert.ok(!fs.existsSync(path.join(dir, 'social-photos')) || fs.readdirSync(path.join(dir, 'social-photos')).length === 0);
+  assert.throws(() => s.createPost(ANNA, { text: 'x', song: { src: 'audius', id: '../etc' } }), /unknown song/);
+  // a cover that is not an https address is left out
+  assert.equal(s.createPost(ANNA, { text: 'y', song: { src: 'audius', id: 'abc', art: 'javascript:alert(1)' } }).song.art, undefined);
+  // deleting the post deletes no file
+  s.deletePost(ANNA, p.id);
+});
+
 test('photos attach to one post of their owner, follow its visibility, and go with it', t => {
   const { s, dir, tick } = store(t, [ANNA, BEN, DANA]);
   const { id } = s.uploadPhoto(ANNA, jpeg().toString('base64'));

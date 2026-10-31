@@ -38,9 +38,9 @@ describe('one conversation for Hercules and Athena', () => {
     await askHercules([{ role: 'user', content: 'Plan?' }, { role: 'assistant', content: 'Squats.', coach: 'hercules' }], 'athena')
     expect(sent.calls[0][1].messages.at(-1)).toEqual({ role: 'user', content: '[Hercules answered this one] Squats.' })
   })
-  it('remembers Both as the coach talked to last', () => {
-    setLastCoach('u1', BOTH)
-    expect(lastCoach('u1')).toBe(BOTH)
+  it('a "both" kept by the version before reads as Hercules', () => {
+    localStorage.setItem('olympus_coach_last_u1', 'both')
+    expect(lastCoach('u1')).toBe('hercules')
   })
 })
 

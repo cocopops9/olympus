@@ -78,14 +78,14 @@
 @media (prefers-reduced-motion:reduce){.chiron-stage *{animation:none!important;transition:none!important}}
 
 /* Olympus: Chiron drawn whole in the page (components/ChironFigure.jsx), and awake by voice. */
-.chiron-stage .chs-fig{flex:none;margin:-10px -4px -6px -8px}
+.chiron-stage .chs-fig{flex:none;margin:4px 2px 4px 4px}
 .chiron-stage.stir1 .chs-fig{animation:ch-stir .35s ease-in-out}
 .chiron-stage.stir2 .chs-fig{animation:ch-stir .3s ease-in-out 2}
-.chiron-stage .chiron-taps{left:56px;bottom:4px}
+.chiron-stage .chiron-taps{left:30px;bottom:2px}
 .chiron-live{display:block;padding:6px 10px 10px 4px;cursor:default;
   background:radial-gradient(120% 140% at 15% 40%,color-mix(in srgb,var(--acc) 14%,var(--surface)) 0%,var(--surface) 60%)}
 .chv{display:flex;align-items:center;gap:8px}
-.chv-fig{flex:none;background:none;border:0;padding:0;margin:-6px -6px -8px -4px;cursor:pointer;color:inherit}
+.chv-fig{flex:none;background:none;border:0;padding:0;margin:8px 6px 4px 10px;cursor:pointer;color:inherit}
 .chv-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .chv-n{display:flex;flex-direction:column;gap:1px}
 .chv-n b{font-size:16px;color:var(--acc)}

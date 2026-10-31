@@ -34,7 +34,7 @@ const hello = name => {
 function ModelMenu({ coach, ons, pick, close, own }) {
   const uid = useStore.getState().user?.id
   return <div className="cai-models" role="menu">
-    {[...COACH_IDS, BOTH].map(id => {
+    {COACH_IDS.map(id => {
       const st = id === BOTH ? null : statusOf(uid, id)
       const on = id === BOTH ? COACH_IDS.every(x => ons[x]) : ons[id]
       return <button key={id} role="menuitem" className={'cai-model' + (id === coach ? ' on' : '')} disabled={!on}

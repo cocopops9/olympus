@@ -19,7 +19,6 @@ import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
 import { canSpeak, speak, speakable, listen, stopSpeaking } from '../lib/voice.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
-import { chironMarkup } from './ChironArt.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
 import { Button } from './ui.jsx'
@@ -30,13 +29,12 @@ import '../chiron.css'
 import '../chiron-figure.css'
 
 const clock = sec => Math.floor(sec / 60) + ':' + String(Math.round(sec % 60)).padStart(2, '0')
-const SLEEP = chironMarkup()
-const AWAKE = chironMarkup({ awake: true })
 
 /** His portrait: asleep (eyes shut, the z's drifting up), stirring as he is tapped, or awake. */
 export function ChironFace({ awake = false, stir = 0, size = 40 }) {
-  return <span className={'chiron-face' + (awake ? ' awake' : ' asleep') + (stir ? ' stir' + Math.min(stir, 2) : '')}
-    style={{ width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: awake ? AWAKE : SLEEP }} />
+  return <span className={'chiron-face' + (stir ? ' stir' + Math.min(stir, 2) : '')} aria-hidden="true">
+    <ChironFigure state={awake ? 'idle' : 'asleep'} size={size} />
+  </span>
 }
 
 // The sheet he is awake in, if it is open: the header figure opens its eyes while it is.
@@ -278,7 +276,7 @@ function ChironVoice({ tips, unit, online }) {
   const status = pose === 'listening' ? t('I am listening…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
   return <div className="chv" role="group" aria-label="Chiron">
     <button className="chv-fig" onClick={toggleMic} aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}>
-      <ChironFigure state={pose} mouth={mouth} size={150} />
+      <ChironFigure state={pose} mouth={mouth} size={112} />
     </button>
     <div className="chv-side">
       <div className="chv-n"><b>Chiron</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
@@ -355,7 +353,7 @@ export function WorkoutChiron() {
   const pose = waking ? 'waking' : awake ? 'idle' : 'asleep'
   return <button className={'chiron-stage whdr-chiron ' + (settling ? 'settling' : pose) + (tap ? ' tapped stir' + Math.min(tap.taps, 2) : '')} onClick={press}
     aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
-    <ChironFigure state={pose} size={112} className="chs-fig" />
+    <ChironFigure state={pose} size={64} className="chs-fig" />
     <span className="chs-say">
       <b>Chiron</b>
       <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>

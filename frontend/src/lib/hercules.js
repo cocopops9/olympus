@@ -31,11 +31,11 @@ const lastKeyOf = uid => 'olympus_coach_last_' + (uid || 'local')
 
 /** The coach this profile talked to last (the one on the button), or null. */
 export function lastCoach(uid) {
-  try { const v = localStorage.getItem(lastKeyOf(uid)); return v === BOTH ? BOTH : v && v !== WORKOUT_COACH && coachOf(v) === v ? v : null } catch { return null }
+  try { const v = localStorage.getItem(lastKeyOf(uid)); return v === BOTH ? 'hercules' : v && v !== WORKOUT_COACH && coachOf(v) === v ? v : null } catch { return null }
 }
 export function setLastCoach(uid, coach) {
   if (coach === WORKOUT_COACH) return
-  try { localStorage.setItem(lastKeyOf(uid), coach === BOTH ? BOTH : coachOf(coach)) } catch { /* the button shows Hercules again */ }
+  try { localStorage.setItem(lastKeyOf(uid), coachOf(coach)) } catch { /* the button shows Hercules again */ }
 }
 
 /** The title of a conversation: its first question, cut short. */

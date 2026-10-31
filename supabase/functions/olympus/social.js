@@ -272,7 +272,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     return {
       id: p.id, ts: p.ts, text: p.text || '', workout: p.workout || null, photos: p.photos || [], author,
       ...(p.uid === viewer.id && p.wid ? { wid: p.wid } : {}),
-      ...(p.song ? { song: { id: p.song.id, title: p.song.title || '' } } : {}),
+      ...(p.song ? { song: p.song.src ? { ...p.song } : { id: p.song.id, title: p.song.title || '' } } : {}),
       likes: likes.length, liked, reaction: liked ? kindOf(viewer.id) : null, reactions, comments, mine: p.uid === viewer.id,
     };
   }
@@ -363,6 +363,14 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
   function songFor(viewer, value, p = null) {
     if (value === undefined) return p?.song;
     if (value === null || value === false) return null;
+    // A track of the free music catalogue the app browses (Audius): only which one, its words and
+    // cover, and where its 30 seconds start; the phone plays it from the catalogue.
+    if (value?.src === 'audius') {
+      const id = typeof value.id === 'string' && /^[A-Za-z0-9]{1,32}$/.test(value.id) ? value.id : null;
+      if (!id) throw new SocialError(400, 'unknown song', 'bad-song');
+      const art = typeof value.art === 'string' && /^https:\/\/[^\s"<>]{1,290}$/.test(value.art) ? value.art : null;
+      return { src: 'audius', id, title: str(value.title, LIMITS.songTitle), artist: str(value.artist, 60), ...(art ? { art } : {}), start: int(value.start, 0, 3600) };
+    }
     const id = typeof value?.id === 'string' && ID_RE.test(value.id) ? value.id : null;
     const meta = id ? doc.photos[id] : null;
     if (!meta || meta.type !== 'wav' || meta.uid !== viewer.id || (meta.postId && meta.postId !== p?.id)) throw new SocialError(400, 'unknown song', 'bad-song');
@@ -574,11 +582,11 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         ...(wid ? { wid } : {}), ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), ...(song ? { song } : {}), likes: [], comments: [],
       };
       for (const id of photos) doc.photos[id].postId = p.id;
-      if (song) doc.photos[song.id].postId = p.id;
+      if (song && !song.src) doc.photos[song.id].postId = p.id;
       doc.posts.push(p);
       if (doc.posts.length > LIMITS.maxPosts) {
         const gone = doc.posts.splice(0, doc.posts.length - LIMITS.maxPosts);
-        dropPhotos(gone.flatMap(x => [...(x.photos || []), ...(x.song ? [x.song.id] : [])]));
+        dropPhotos(gone.flatMap(x => [...(x.photos || []), ...(x.song && !x.song.src ? [x.song.id] : [])]));
       }
       save();
       return view(p, viewer);
@@ -603,9 +611,9 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       if (!text && !workout && !photos.length) throw new SocialError(400, 'a post needs text, a workout or a photo', 'empty');
       const song = songFor(viewer, body?.song, p) || null;
       const gone = (p.photos || []).filter(id => !photos.includes(id));
-      if (p.song && p.song.id !== song?.id) gone.push(p.song.id);
+      if (p.song && !p.song.src && p.song.id !== song?.id) gone.push(p.song.id);
       for (const id of fresh) doc.photos[id].postId = p.id;
-      if (song) doc.photos[song.id].postId = p.id;
+      if (song && !song.src) doc.photos[song.id].postId = p.id;
       if (song) p.song = song; else delete p.song;
       p.text = text;
       if (workout) p.workout = workout; else delete p.workout;
@@ -619,7 +627,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const p = findPost(asAdmin ? null : viewer, id);
       if (p.uid !== viewer.id && !asAdmin) throw new SocialError(403, 'only the author can delete a post', 'forbidden');
       doc.posts = doc.posts.filter(x => x !== p);
-      dropPhotos([...(p.photos || []), ...(p.song ? [p.song.id] : [])]);
+      dropPhotos([...(p.photos || []), ...(p.song && !p.song.src ? [p.song.id] : [])]);
       for (const uid of Object.keys(doc.notes)) doc.notes[uid] = doc.notes[uid].filter(n => n.postId !== p.id);
       save();
       return { ok: true };

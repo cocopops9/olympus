@@ -24,3 +24,4 @@
 .acct-google:disabled{opacity:.6}
 .acct-welcome .acct-link{font-size:15px}
 .acct-welcome .acct-link.small{font-size:13px;font-weight:500}
+.acct-recover{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}

@@ -181,11 +181,11 @@ export function GoalsLine() {
 }
 
 /** The coaches as pills, to talk to another one, and + to set up one of your own. */
-// Who answers the next message: Hercules, Athena, both in turn (the same conversation either
-// way), or a coach of your own (its own conversations).
+// Who answers the next message: Hercules or Athena (the same conversation either way), or a
+// coach of your own (its own conversations).
 function Switch({ coach, ons, pick, own, onAdd }) {
   const team = COACH_IDS.filter(id => ons[id])
-  const ids = [...team, ...(team.length > 1 ? [BOTH] : []), ...own.map(c => c.id)]
+  const ids = [...team, ...own.map(c => c.id)]
   return <div className="hc-switch" role="tablist" aria-label={t('Who answers')}>
     {ids.map(id => <button key={id} role="tab" aria-selected={id === coach} className={'hc-pill' + (id === coach ? ' on' : '') + (id === BOTH ? ' hc-both' : '')}
       onClick={() => id !== coach && pick(id)}>

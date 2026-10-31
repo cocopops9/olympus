@@ -184,13 +184,13 @@ describe('Hercules', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('Hercules and Athena share the conversation: the pills pick who answers, Both asks one then the other', async () => {
+  it('Hercules and Athena share the conversation: the pills pick who answers', async () => {
     const uid = useStore.getState().user.id
     herculesSheet()
     const chat = renderTopSheet()
     await flush(); await flush()
-    // Hercules, Athena and Both
-    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Hercules', 'Athena', 'Both'])
+    // one or the other: no pill for both at once
+    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Hercules', 'Athena'])
     expect(chat.querySelector('.hc-name').textContent).toBe('Hercules')
     type(chat, 'Question for Hercules'); await flush(); await flush()
     act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Athena').click())
@@ -208,12 +208,6 @@ describe('Hercules', () => {
     // each answer is shown under the name of who gave it
     expect([...chat.querySelectorAll('.hc-by')].map(e => e.textContent)).toEqual(['Hercules', 'Athena'])
     expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('athena')
-    // Both: one message, two answers, Hercules then Athena
-    act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Both').click())
-    await flush()
-    type(chat, 'What do you both think?'); await flush(); await flush(); await flush()
-    expect(mocks.coaches).toEqual(['hercules', 'athena', 'hercules', 'athena'])
-    expect(chatsOf(uid, 'team').chats[0].messages.slice(-3).map(m => m.coach || m.role)).toEqual(['user', 'hercules', 'athena'])
     // the button remembers the coach talked to last
     act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Hercules').click())
     useUI.setState({ sheets: [] })

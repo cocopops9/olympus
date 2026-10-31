@@ -213,12 +213,12 @@ function GoogleButton({ clientId, busy, setBusy, setErr, done, invite }) {
   </>
 }
 
-export function AccountSheet({ close, mode: start = 'signup' }) {
+export function AccountSheet({ close, mode: start = 'signup', email: email0 = '' }) {
   const joinServer = useStore(s => s.joinServer)
   const cfg = useServerConfig()
   const [mode, setMode] = useState(start)
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(email0)
   const [pw, setPw] = useState('')
   const [again, setAgain] = useState('')
   const [code, setCode] = useState('')
@@ -229,12 +229,13 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [info, setInfo] = useState('')
+  const [wrongPw, setWrongPw] = useState(false)
   const firstRef = useRef(null)
   useEffect(() => { setTimeout(() => firstRef.current?.focus(), 250) }, [mode])
   const signup = mode === 'signup', login = mode === 'login', forgot = mode === 'forgot', reset = mode === 'reset'
   const user = useUsernameCheck(name, signup)
   const field = { autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false }
-  const go = m => { setErr(''); setInfo(''); setMode(m) }
+  const go = m => { setErr(''); setInfo(''); setWrongPw(false); setMode(m) }
   const done = (who, made) => {
     close()
     useUI.getState().toast(made ? t('Welcome, {0}', who) : t('Welcome back, {0}', useStore.getState().user?.name || who))
@@ -280,7 +281,7 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
         if (signup) clearPendingInvite()
         done(n, signup)
       }
-    } catch (e) { setErr(accountError(e)) }
+    } catch (e) { setErr(accountError(e)); setWrongPw(login && (e?.status === 401 || e?.data?.code === 'bad-credentials')) }
     finally { setBusy(false) }
   }
 
@@ -339,6 +340,9 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
         </>
         : <button type="button" className="acct-link" onClick={() => setShowRef(true)}>{t('Have an invite code?')}</button>)}
       {err && <div className="small acct-err" role="alert">{err}</div>}
+      {/* A wrong password: recovering it is the next thing to offer, not a small link above. */}
+      {login && wrongPw && <button type="button" className="btn tinted acct-recover" onClick={() => { setEmail(name.includes('@') ? name.trim() : ''); go('forgot') }}>
+        <Icon name="key" />{t('Forgot it? Reset it by e-mail')}</button>}
       <div style={{ height: 14 }} />
       <Button type="submit" variant="primary" disabled={busy || (forgot && cfg?.password_reset === false)}>
         {busy ? t('Connecting…') : signup ? t('Create account') : login ? t('Sign in') : forgot ? t('Send code') : t('Set new password')}</Button>
@@ -352,7 +356,7 @@ export function AccountSheet({ close, mode: start = 'signup' }) {
     </div>
   </div>
 }
-export const openAccountSheet = mode => useUI.getState().openSheet(close => <AccountSheet close={close} mode={mode} />)
+export const openAccountSheet = (mode, opts = {}) => useUI.getState().openSheet(close => <AccountSheet close={close} mode={mode} email={opts.email || ''} />)
 
 // Continuing without an account: said plainly what that leaves out before it is chosen.
 function LocalSheet({ close }) {
@@ -383,6 +387,7 @@ export default function MobileOnboarding() {
         <Button onClick={() => openAccountSheet('login')}>{t('Sign in')}</Button>
         <GoogleButton clientId={cfg?.google_client_id} busy={busy} setBusy={setBusy} setErr={setErr} done={who => useUI.getState().toast(t('Welcome, {0}', who))} invite={pendingInvite()} />
         {err && <div className="small acct-err" role="alert">{err}</div>}
+
         <div style={{ height: 18 }} />
         <button type="button" className="acct-link acct-center" onClick={() => useUI.getState().openSheet(close => <LocalSheet close={close} />)}>{t('Continue without an account')}</button>
         <div className="dim small" style={{ marginTop: 6, lineHeight: 1.45 }}>{t('Only on this phone: no feed, AI coaches or sync.')}</div>

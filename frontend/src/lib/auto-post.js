@@ -32,6 +32,13 @@ export const autoPostOn = S => S?.autoPost !== false
 const nameOfEntry = e => (EXIDX[e.id] ? exerciseNameFor(EXIDX[e.id]) : (e.n || e.id))
 export const summaryFor = (w, S) => workoutPostSummary(w, { unit: S.unit, nameOf: nameOfEntry, speedUnit: speedUnitOf(S) })
 
+// A post's song as kept until it is sent: an uploaded clip ({ id, title }) or a catalogue track
+// (lib/music.js: { src, id, title, artist, art, start }).
+const keepSong = x => ({
+  id: String(x.id), title: String(x.title || '').slice(0, 80),
+  ...(x.src ? { src: String(x.src), artist: String(x.artist || '').slice(0, 60), ...(x.art ? { art: String(x.art).slice(0, 300) } : {}), start: Math.max(0, Math.round(Number(x.start) || 0)) } : {}),
+})
+
 /** Marks logged workout `w` to be posted. In place on the document `s`. */
 export function queuePost(s, w) {
   // A workout finished with nothing checked off has nothing to show.
@@ -77,7 +84,7 @@ export function setPostDetails(s, w, { title, text = '', photos = [], song } = {
   const name = String(title ?? '').trim().slice(0, 80)
   if (rec && name && name !== rec.name) { rec.name = name; stampWorkout(rec) }
   // The song: { id, title }, null when taken off; left out when the editor never touched it.
-  const tune = song === undefined ? {} : { song: song && song.id ? { id: String(song.id), title: String(song.title || '').slice(0, 80) } : null }
+  const tune = song === undefined ? {} : { song: song && song.id ? keepSong(song) : null }
   s.wpostEdit = { ...(s.wpostEdit || {}), [w.id]: { text: String(text || '').trim().slice(0, 1000), photos: [...new Set(photos)].slice(0, 4), ...tune } }
   // The list shows the first photo as the workout's picture straight away (lib/workout-cover.js).
   setCover(w.id, photos[0] || null)
