@@ -32,6 +32,7 @@ import {
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
+import { topSongs, searchSongs } from './music.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
@@ -2662,6 +2663,17 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
     json(res, 200, SOCIAL.uploadPhoto(me, body.data));
+  },
+  // Songs for a post: what is popular now in a country, and search (api/music.js).
+  'GET /api/music/top': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    try { json(res, 200, { tracks: await topSongs(qs(req).get('country')) }); }
+    catch { json(res, 502, { error: 'the music catalogue is not answering', code: 'catalogue-down' }); }
+  },
+  'GET /api/music/search': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    try { json(res, 200, { tracks: await searchSongs(qs(req).get('q'), qs(req).get('country')) }); }
+    catch { json(res, 502, { error: 'the music catalogue is not answering', code: 'catalogue-down' }); }
   },
   // A post's song clip (the app cuts and encodes it), stored with the photos.
   'POST /api/social/song': async (req, res) => {

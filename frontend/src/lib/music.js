@@ -1,72 +1,35 @@
-// Olympus: songs for a post from a free catalogue online, the way Instagram offers music: Audius
-// (audius.co), an open music service whose public API needs no key, only the app's name. The
-// phone asks it directly for what is trending and for a search, and plays a track from its
-// stream address; nothing of the song goes through or stays on the Olympus server, the post only
-// keeps which track it is, its title, artist and cover, and where its 30 seconds start.
-//
-//   GET https://api.audius.co/v1/tracks/trending?app_name=…        { data: [track] }
-//   GET https://api.audius.co/v1/tracks/search?query=…&app_name=… { data: [track] }
-//   https://api.audius.co/v1/tracks/<id>/stream?app_name=…         the audio (a redirect to it)
-const BASE = 'https://api.audius.co/v1'
-const APP = 'Olympus'
-const TIMEOUT_MS = 12000
+// Olympus: songs for a post, the way Instagram offers them: what is popular now where the person
+// lives, and any song by search, each with its official 30-second preview. The catalogue is
+// Apple's (charts and previews), asked through the Olympus server (api/music.js), which keeps the
+// answers an hour. A post keeps which track it is, its title, artist, cover and preview address;
+// the phone plays the preview straight from Apple.
+import { api } from './api.js'
+import { getLang } from './i18n.js'
 
-export const CATALOGUE_CLIP_SEC = 30
+export const PREVIEW_SEC = 30
 
-/** A track as the app keeps it: { src: 'audius', id, title, artist, art, duration } or null. */
-export function trackOf(t) {
-  if (!t || typeof t.id !== 'string' || !/^[A-Za-z0-9]{1,32}$/.test(t.id)) return null
-  // Only what anyone may play: not gated behind a purchase or a follow, and streamable.
-  if (t.is_streamable === false || t.stream_conditions || t.is_stream_gated) return null
-  const art = t.artwork?.['150x150'] || t.artwork?.['480x480'] || null
-  return {
-    src: 'audius',
-    id: t.id,
-    title: String(t.title || '').slice(0, 80),
-    artist: String(t.user?.name || t.user?.handle || '').slice(0, 60),
-    art: typeof art === 'string' && art.startsWith('https://') ? art.slice(0, 300) : null,
-    duration: Number(t.duration) || 0,
-  }
+// The country whose chart to show: the phone's region when it says one (it-IT), otherwise the
+// country most people speaking the app's language live in.
+const LANG_COUNTRY = { en: 'us', it: 'it', es: 'es', fr: 'fr', de: 'de', pt: 'br', 'pt-br': 'br', nl: 'nl', pl: 'pl', ru: 'ru', uk: 'ua', tr: 'tr', ja: 'jp', ko: 'kr', zh: 'cn', ar: 'sa', hi: 'in', id: 'id', sv: 'se' }
+export function musicCountry(locale = typeof navigator !== 'undefined' ? navigator.language : '', lang = safeLang()) {
+  const region = String(locale || '').split(/[-_]/)[1]
+  if (region && /^[a-z]{2}$/i.test(region)) return region.toLowerCase()
+  const l = String(lang || '').toLowerCase()
+  return LANG_COUNTRY[l] || LANG_COUNTRY[l.split('-')[0]] || 'us'
 }
+function safeLang() { try { return getLang() } catch { return 'en' } }
 
-async function get(path, params = {}, fetchImpl = globalThis.fetch) {
-  const q = new URLSearchParams({ ...params, app_name: APP })
-  const ctl = typeof AbortController === 'function' ? new AbortController() : null
-  const timer = setTimeout(() => ctl?.abort(), TIMEOUT_MS)
-  try {
-    const r = await fetchImpl(`${BASE}${path}?${q}`, { signal: ctl?.signal, headers: { Accept: 'application/json' } })
-    if (!r.ok) throw Object.assign(new Error('catalogue ' + r.status), { code: 'catalogue-down' })
-    const body = await r.json()
-    return (Array.isArray(body?.data) ? body.data : []).map(trackOf).filter(Boolean)
-  } catch (e) {
-    throw e?.code ? e : Object.assign(new Error('catalogue unreachable'), { code: 'catalogue-down' })
-  } finally { clearTimeout(timer) }
-}
+const asked = (path, params) => api(path + '?' + new URLSearchParams(params)).then(r => (Array.isArray(r?.tracks) ? r.tracks : []))
+  .catch(e => { throw Object.assign(e instanceof Error ? e : new Error('catalogue'), { code: e?.code || 'catalogue-down' }) })
 
-/** What is trending now (`genre` optional), at most `limit`. */
-export const trendingTracks = ({ genre, limit = 30 } = {}, fetchImpl) =>
-  get('/tracks/trending', { limit: String(limit), ...(genre ? { genre } : {}) }, fetchImpl)
+/** The songs most played now in the person's country, in chart order. */
+export const topSongs = (country = musicCountry()) => asked('/api/music/top', { country })
 
-/** Tracks matching `query`. */
-export const searchTracks = (query, fetchImpl) =>
-  get('/tracks/search', { query: String(query || '').slice(0, 80), limit: '30' }, fetchImpl)
+/** Songs matching `query`. */
+export const searchSongs = (query, country = musicCountry()) => asked('/api/music/search', { q: String(query || '').slice(0, 80), country })
 
-/** The address the phone plays the track from. */
-export const streamUrl = id => `${BASE}/tracks/${encodeURIComponent(id)}/stream?app_name=${APP}`
+/** What a post keeps of a catalogue song. */
+export const songOf = tr => ({ src: 'apple', id: String(tr.id), title: tr.title, artist: tr.artist, ...(tr.art ? { art: tr.art } : {}), preview: tr.preview })
 
-/** Genres to browse, as the catalogue names them, with the words the app shows. */
-export const GENRES = [
-  { id: '', label: 'Trending' },
-  { id: 'Hip-Hop/Rap', label: 'Hip-hop' },
-  { id: 'Electronic', label: 'Electronic' },
-  { id: 'Rock', label: 'Rock' },
-  { id: 'Pop', label: 'Pop' },
-  { id: 'Metal', label: 'Metal' },
-  { id: 'Dance & EDM', label: 'Dance' },
-  { id: 'House', label: 'House' },
-  { id: 'Lo-Fi', label: 'Lo-fi' },
-]
-
-/** Where a 30-second clip may start in a track `duration` long, and a good default (a third in). */
-export const catalogueStartMax = duration => Math.max(0, Math.floor((Number(duration) || 0) - CATALOGUE_CLIP_SEC))
-export const catalogueDefaultStart = duration => Math.min(catalogueStartMax(duration), Math.round((Number(duration) || 0) / 3))
+/** The address a post's song plays from, for songs of the catalogue (null for a song from the phone). */
+export const onlineSource = song => (song?.src === 'apple' && typeof song.preview === 'string' ? song.preview : null)

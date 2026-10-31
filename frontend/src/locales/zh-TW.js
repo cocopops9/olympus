@@ -3075,4 +3075,10 @@ export default {
   "Dance": "舞曲",
   "House": "浩室",
   "Lo-fi": "Lo-fi",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "暫時無法寄出郵件。請稍後再試，或向應用程式擁有者求助。",
+  "Top songs": "熱門歌曲",
+  "Explicit": "含露骨內容",
+  "Charts and 30-second previews from Apple Music.": "排行榜和 30 秒試聽來自 Apple Music。",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "語音模式需要此手機支援語音辨識。請在手機設定（語言與輸入）中開啟 Google 語音輸入，然後再試一次。",
+  "Voice": "語音",
 }

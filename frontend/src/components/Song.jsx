@@ -1,14 +1,14 @@
-// Olympus: the song of a post. "Add a song" opens a music catalogue online (lib/music.js: what
-// is trending, by genre, and a search), each track with a preview; picking one shows where its
-// 30 seconds start. A song from the phone is the other way in (lib/song.js): its clip is cut on
-// the phone and uploaded. On a post, the song is a bar with its cover, title and artist and a
+// Olympus: the song of a post. "Add a song" opens the music catalogue (lib/music.js: the songs
+// most played now in the person's country, and a search), each with its 30-second preview; a tap
+// on the cover listens, a tap on the song picks it. A song from the phone is the other way in
+// (lib/song.js): its clip is cut on the phone and uploaded. On a post, the song is a bar with its cover, title and artist and a
 // play button; one song plays at a time, its 30 seconds only.
 import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { photoBlob } from '../lib/social.js'
 import { decodeSong, clipStartMax, defaultStart, clipBlob, uploadSong, titleFromFile, CLIP_SEC } from '../lib/song.js'
-import { trendingTracks, searchTracks, streamUrl, GENRES, catalogueStartMax, catalogueDefaultStart, CATALOGUE_CLIP_SEC } from '../lib/music.js'
+import { topSongs, searchSongs, songOf, onlineSource, musicCountry } from '../lib/music.js'
 import { SearchField } from './ui.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -19,12 +19,6 @@ const toast = msg => useUI.getState().toast(msg)
 const songError = e => (e?.code === 'song-file-large' ? t('That file is too large. Pick a song under 40 MB.')
   : e?.code === 'song-unreadable' || e?.code === 'song-unsupported' ? t('This file could not be read as a song.')
     : e?.status === 413 ? t('That clip is too large.') : e?.status == null ? t('The server could not be reached.') : (e?.message || t('Something went wrong.')))
-
-// The genres' names, written out so the translation check finds them (lib/music.js GENRES).
-const GENRE_LABEL = {
-  Trending: () => t('Trending'), 'Hip-hop': () => t('Hip-hop'), Electronic: () => t('Electronic'), Rock: () => t('Rock'), Pop: () => t('Pop'),
-  Metal: () => t('Metal'), Dance: () => t('Dance'), House: () => t('House'), 'Lo-fi': () => t('Lo-fi'),
-}
 
 // The one song playing anywhere in the app: starting another stops it.
 let playing = null
@@ -45,15 +39,20 @@ export function SongBar({ song }) {
     try {
       if (!audio.current) {
         setState('loading')
-        const online = song.src === 'audius'
+        // A song of the catalogue plays its preview from Apple; posts made before with the
+        // earlier catalogue (Audius) still play their 30 seconds from there.
+        const legacy = song.src === 'audius'
+        const online = onlineSource(song) || (legacy ? `https://api.audius.co/v1/tracks/${encodeURIComponent(song.id)}/stream?app_name=Olympus` : null)
         if (!online) url.current = URL.createObjectURL(await photoBlob(song.id))
-        const a = new Audio(online ? streamUrl(song.id) : url.current)
-        const from = online ? Math.max(0, Number(song.start) || 0) : 0
+        const a = new Audio(online || url.current)
+        const from = legacy ? Math.max(0, Number(song.start) || 0) : 0
         a.onplay = () => setState('playing')
         a.onpause = a.onended = () => { setState('idle'); if (playing === a) playing = null }
-        // A catalogue track: its 30 seconds, from where the post's author chose, then back.
-        if (online) a.ontimeupdate = () => { if (a.currentTime >= from + CATALOGUE_CLIP_SEC) { a.pause(); a.currentTime = from } }
-        if (online) { a.preload = 'auto'; a.currentTime = from; a.addEventListener('loadedmetadata', () => { if (a.currentTime < from) a.currentTime = from }, { once: true }) }
+        if (legacy) {
+          a.ontimeupdate = () => { if (a.currentTime >= from + 30) { a.pause(); a.currentTime = from } }
+          a.preload = 'auto'; a.currentTime = from
+          a.addEventListener('loadedmetadata', () => { if (a.currentTime < from) a.currentTime = from }, { once: true })
+        }
         audio.current = a
       }
       if (playing && playing !== audio.current) playing.pause()
@@ -113,102 +112,62 @@ function SongSheet({ file, decoded, close, onPicked }) {
   </div>
 }
 
-// A catalogue track's 30 seconds: where they start, a button to listen, and "Use this song".
-function TrackClipSheet({ track, close, onPicked }) {
-  const max = catalogueStartMax(track.duration)
-  const [start, setStart] = useState(() => catalogueDefaultStart(track.duration))
-  const [listening, setListening] = useState(false)
-  const a = useRef(null)
-  const stop = () => { a.current?.pause(); setListening(false) }
-  useEffect(() => () => { a.current?.pause() }, [])
-  const listen = () => {
-    if (listening) { stop(); return }
-    if (!a.current) {
-      a.current = new Audio(streamUrl(track.id))
-      a.current.ontimeupdate = () => { if (a.current.currentTime >= startRef.current + CATALOGUE_CLIP_SEC) stop() }
-      a.current.onended = stop
-    }
-    a.current.currentTime = start
-    setListening(true)
-    a.current.play().catch(() => { setListening(false); toast(t('This song cannot be played right now.')) })
-  }
-  const startRef = useRef(start)
-  startRef.current = start
-  const end = Math.min(track.duration || start + CATALOGUE_CLIP_SEC, start + CATALOGUE_CLIP_SEC)
-  return <div className="song-sheet">
-    <div className="mus-head">
-      {track.art ? <img className="mus-art lg" src={track.art} alt="" /> : <span className="mus-art lg"><Icon name="music" /></span>}
-      <div className="grow"><h3>{track.title}</h3><div className="small muted">{track.artist}</div></div>
-    </div>
-    <label className="song-l" htmlFor="track-start">{t('Clip from {0} to {1}', clock(start), clock(end))}</label>
-    <input id="track-start" type="range" className="song-range" min={0} max={max} step={1} value={start} disabled={max === 0}
-      onChange={e => { setStart(Number(e.target.value)); if (a.current && listening) a.current.currentTime = Number(e.target.value) }} />
-    <div className="song-ends small muted"><span>0:00</span><span>{clock(track.duration || 0)}</span></div>
-    <div className="song-a">
-      <Button icon={listening ? 'pause' : 'play'} onClick={listen}>{listening ? t('Stop') : t('Listen')}</Button>
-      <Button variant="primary" icon="check" onClick={() => { stop(); onPicked({ src: 'audius', id: track.id, title: track.title, artist: track.artist, art: track.art, start }); close() }}>{t('Use this song')}</Button>
-    </div>
-  </div>
-}
-
 /**
- * The music catalogue (lib/music.js): trending, by genre, or searched; a tap on a cover plays a
- * preview, a tap on a track picks it. At the bottom, a song from the phone instead.
+ * The music catalogue (lib/music.js): the chart of the person's country, or a search; a tap on a
+ * cover plays the preview, a tap on a song picks it. At the bottom, a song from the phone instead.
  */
 function MusicSheet({ close, onPicked, fromPhone }) {
   const [q, setQ] = useState('')
-  const [genre, setGenre] = useState('')
   const [list, setList] = useState(null)
   const [failed, setFailed] = useState(false)
-  const [preview, setPreview] = useState(null)   // id of the track playing
+  const [preview, setPreview] = useState(null)   // id of the song playing
+  const [tries, setTries] = useState(0)
   const a = useRef(null)
+  const country = musicCountry()
   useEffect(() => () => { a.current?.pause() }, [])
   useEffect(() => {
     let live = true
     setList(null); setFailed(false)
     const timer = setTimeout(() => {
-      const ask = q.trim() ? searchTracks(q.trim()) : trendingTracks({ genre })
+      const ask = q.trim() ? searchSongs(q.trim(), country) : topSongs(country)
       ask.then(l => { if (live) setList(l) }, () => { if (live) { setFailed(true); setList([]) } })
     }, q.trim() ? 350 : 0)
     return () => { live = false; clearTimeout(timer) }
-  }, [q, genre])
+  }, [q, country, tries])
   const play = tr => {
     if (preview === tr.id) { a.current?.pause(); setPreview(null); return }
     a.current?.pause()
-    const au = new Audio(streamUrl(tr.id))
-    au.currentTime = catalogueDefaultStart(tr.duration)
-    au.ontimeupdate = () => { if (au.currentTime >= catalogueDefaultStart(tr.duration) + 15) { au.pause(); setPreview(null) } }
+    const au = new Audio(tr.preview)
     au.onended = () => setPreview(null)
     a.current = au
     setPreview(tr.id)
     au.play().catch(() => { setPreview(null); toast(t('This song cannot be played right now.')) })
   }
-  const pick = tr => {
-    a.current?.pause(); setPreview(null)
-    useUI.getState().openSheet(c2 => <TrackClipSheet track={tr} close={() => { c2(); close() }} onPicked={onPicked} />)
-  }
+  const pick = tr => { a.current?.pause(); setPreview(null); onPicked(songOf(tr)); close() }
+  let regionName = country.toUpperCase()
+  try { regionName = new Intl.DisplayNames([navigator.language || 'en'], { type: 'region' }).of(country.toUpperCase()) || regionName } catch { /* old WebView */ }
   return <div className="mus">
     <h3>{t('Add a song')}</h3>
     <SearchField value={q} placeholder={t('Search songs and artists')} onChange={e => setQ(e.target.value)} onClear={() => setQ('')} />
-    {!q.trim() && <div className="chips mus-genres">
-      {GENRES.map(g => <button key={g.id || 'top'} className={'chip nocap' + (genre === g.id ? ' on' : '')} onClick={() => setGenre(g.id)}>{GENRE_LABEL[g.label] ? GENRE_LABEL[g.label]() : g.label}</button>)}
-    </div>}
+    {!q.trim() && <div className="mus-head"><Icon name="flame" /><b>{t('Top songs')}</b><small className="muted">{regionName}</small></div>}
     <div className="mus-list">
       {list === null ? <div className="empty small">{t('Loading…')}</div>
-        : failed ? <div className="empty small">{t('The music catalogue could not be reached. Try again, or pick a song from your phone.')}</div>
+        : failed ? <div className="empty small">{t('The music catalogue could not be reached. Try again, or pick a song from your phone.')}
+          <div><button className="btn ghost sm" onClick={() => setTries(n => n + 1)}>{t('Try again')}</button></div></div>
           : !list.length ? <div className="empty small">{t('No songs found.')}</div>
-            : list.map(tr => <div key={tr.id} className="mus-row">
+            : list.map((tr, i) => <div key={tr.id} className="mus-row">
+              {!q.trim() && <span className="mus-rank">{i + 1}</span>}
               <button className={'mus-art' + (preview === tr.id ? ' on' : '')} onClick={() => play(tr)} aria-label={(preview === tr.id ? t('Stop') : t('Listen')) + ': ' + tr.title}>
                 {tr.art && <img src={tr.art} alt="" loading="lazy" />}<span className="mus-pp"><Icon name={preview === tr.id ? 'pause' : 'play'} /></span>
               </button>
               <button className="mus-m" onClick={() => pick(tr)}>
-                <b>{tr.title}</b><small>{tr.artist}{tr.duration ? ' · ' + clock(tr.duration) : ''}</small>
+                <b>{tr.title}{tr.explicit && <span className="mus-e" title={t('Explicit')}>E</span>}</b><small>{tr.artist}</small>
               </button>
-              <button className="iconbtn sm" onClick={() => pick(tr)} aria-label={t('Use this song')}><Icon name="chevronRight" /></button>
+              <button className="iconbtn sm" onClick={() => pick(tr)} aria-label={t('Use this song')}><Icon name="plus" /></button>
             </div>)}
     </div>
     <button className="btn ghost mus-phone" onClick={() => { a.current?.pause(); close(); fromPhone() }}><Icon name="music" />{t('A song from your phone')}</button>
-    <p className="small muted mus-credit">{t('Music from Audius, free to play.')}</p>
+    <p className="small muted mus-credit">{t('Charts and 30-second previews from Apple Music.')}</p>
   </div>
 }
 

@@ -3137,4 +3137,10 @@ export default {
   "Dance": "دانس",
   "House": "هاوس",
   "Lo-fi": "لو-فاي",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "تعذر إرسال البريد الآن. حاول لاحقاً أو اطلب المساعدة من مالك التطبيق.",
+  "Top songs": "الأغاني الأكثر استماعاً",
+  "Explicit": "صريح",
+  "Charts and 30-second previews from Apple Music.": "قوائم ومقاطع معاينة مدتها 30 ثانية من Apple Music.",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "يحتاج الوضع الصوتي إلى التعرف على الكلام في هذا الهاتف. فعّل الكتابة الصوتية من Google في الإعدادات (اللغات والإدخال)، ثم حاول مجدداً.",
+  "Voice": "صوت",
 }

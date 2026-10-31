@@ -17,7 +17,7 @@ import { coachProfileOf } from '../lib/coach-profile.js'
 import { tapWake, quickTips, WAKE_TAPS } from '../lib/chiron.js'
 import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
-import { canSpeak, speak, speakable, listen, stopSpeaking } from '../lib/voice.js'
+import { canSpeak, speak, speakable, listen, stopSpeaking, canListen } from '../lib/voice.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
@@ -101,6 +101,7 @@ function ChironSheet({ close }) {
         <div className="chs-n">Chiron</div>
         <div className="chs-s">{t('Your coach between sets')}</div>
       </div>
+      <button className="btn ghost sm chs-voice" onClick={() => startVoiceMode({ closeSheet: close })} title={t('Voice mode')}><Icon name="mic" />{t('Voice mode')}</button>
       <button className="iconbtn" onClick={() => { close(); sleepNow() }} aria-label={t('Let him sleep')} title={t('Let him sleep')}><Icon name="moon" /></button>
     </div>
 
@@ -157,6 +158,22 @@ export function chironSheet() {
 // Whether he is awake in the page, shared by the figure and his sheet ("Let him sleep").
 export const useChiron = create(() => ({ awake: false }))
 const sleepNow = () => useChiron.setState({ awake: false })
+
+/**
+ * Voice mode, asked for by its button: Chiron wakes in the page and talks with you hands free
+ * (ChironVoice). A phone without speech recognition is told why it cannot, and what to turn on.
+ */
+export async function startVoiceMode({ closeSheet } = {}) {
+  let ok = false
+  try { ok = await canListen() } catch { ok = false }
+  if (!ok) {
+    useUI.getState().toast(t('Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.'))
+    return false
+  }
+  closeSheet?.()
+  useChiron.setState({ awake: true })
+  return true
+}
 
 // Short answers that put him back to sleep, said on their own.
 const SLEEP_WORDS = /^(?:ok(?:ay)?\s+)?(?:grazie\s+)?(?:basta|dormi|stop|sleep|go to sleep|that'?s all|thanks?|grazie|duerme|ya está|dors|schlaf|chega|dorme)[.!\s]*$/i
@@ -351,13 +368,18 @@ export function WorkoutChiron() {
   </div>
   const left = WAKE_TAPS - (tap?.taps || 0)
   const pose = waking ? 'waking' : awake ? 'idle' : 'asleep'
-  return <button className={'chiron-stage whdr-chiron ' + (settling ? 'settling' : pose) + (tap ? ' tapped stir' + Math.min(tap.taps, 2) : '')} onClick={press}
-    aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
-    <ChironFigure state={pose} size={64} className="chs-fig" />
-    <span className="chs-say">
-      <b>Chiron</b>
-      <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>
-    </span>
-    {tap && !awake && <span className="chiron-taps" aria-hidden="true">{Array.from({ length: WAKE_TAPS }, (_, i) => <i key={i} className={i < WAKE_TAPS - left ? 'on' : ''} />)}</span>}
-  </button>
+  return <div className="chs-wrap">
+    <button className={'chiron-stage whdr-chiron ' + (settling ? 'settling' : pose) + (tap ? ' tapped stir' + Math.min(tap.taps, 2) : '')} onClick={press}
+      aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
+      <ChironFigure state={pose} size={96} className="chs-fig" />
+      <span className="chs-say">
+        <b>Chiron</b>
+        <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>
+      </span>
+      {tap && !awake && <span className="chiron-taps" aria-hidden="true">{Array.from({ length: WAKE_TAPS }, (_, i) => <i key={i} className={i < WAKE_TAPS - left ? 'on' : ''} />)}</span>}
+    </button>
+    {!awake && <button className="chs-voice-go" onClick={() => startVoiceMode()} aria-label={t('Voice mode')} title={t('Voice mode')}>
+      <Icon name="mic" /><span>{t('Voice')}</span>
+    </button>}
+  </div>
 }

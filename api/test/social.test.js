@@ -374,6 +374,17 @@ test('a song from the free catalogue: only which track, its words, cover and sta
   s.deletePost(ANNA, p.id);
 });
 
+test('a popular song from Apple: which track, its words, cover and preview; foreign addresses refused', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  const preview = 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview/a/mzaf_1.plus.aac.p.m4a';
+  const art = 'https://is1-ssl.mzstatic.com/image/thumb/Music/a/300x300bb.jpg';
+  const p = s.createPost(ANNA, { text: 'Leg day', song: { src: 'apple', id: '1780000001', title: 'Hit', artist: 'Star', art, preview } });
+  assert.deepEqual(p.song, { src: 'apple', id: '1780000001', title: 'Hit', artist: 'Star', art, preview });
+  assert.equal(s.post(BEN, p.id).song.preview, preview);
+  assert.throws(() => s.createPost(ANNA, { text: 'x', song: { src: 'apple', id: '1', title: 'x', preview: 'https://evil.example/a.m4a' } }), /unknown song/);
+  assert.equal(s.createPost(ANNA, { text: 'y', song: { src: 'apple', id: '2', title: 'y', art: 'https://evil.example/a.jpg', preview } }).song.art, undefined);
+});
+
 test('photos attach to one post of their owner, follow its visibility, and go with it', t => {
   const { s, dir, tick } = store(t, [ANNA, BEN, DANA]);
   const { id } = s.uploadPhoto(ANNA, jpeg().toString('base64'));

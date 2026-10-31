@@ -3085,4 +3085,10 @@ export default {
   "Dance": "Dance",
   "House": "House",
   "Lo-fi": "Lo-fi",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "Az e-mailt most nem sikerült elküldeni. Próbáld később, vagy kérj segítséget az app tulajdonosától.",
+  "Top songs": "Toplista",
+  "Explicit": "Explicit",
+  "Charts and 30-second previews from Apple Music.": "Toplisták és 30 másodperces előzetesek az Apple Musictól.",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "A hangmódhoz beszédfelismerés kell ezen a telefonon. Kapcsold be a Google hangalapú gépelést a beállításokban (nyelvek és bevitel), majd próbáld újra.",
+  "Voice": "Hang",
 }

@@ -3086,4 +3086,10 @@ export default {
   "Dance": "Дэнс",
   "House": "Хаус",
   "Lo-fi": "Лоу-фай",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "Сейчас не удалось отправить письмо. Попробуйте позже или обратитесь к владельцу приложения.",
+  "Top songs": "Топ песен",
+  "Explicit": "Нецензурно",
+  "Charts and 30-second previews from Apple Music.": "Чарты и 30-секундные фрагменты из Apple Music.",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "Для голосового режима нужно распознавание речи на телефоне. Включите голосовой ввод Google в настройках (языки и ввод) и попробуйте снова.",
+  "Voice": "Голос",
 }

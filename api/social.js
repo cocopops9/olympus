@@ -21,6 +21,7 @@
  *     reach the one that blocked it. The blocker can still open the blocked profile, to unblock.
  */
 import fs from 'node:fs';
+import { cleanAppleSong } from './music.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
@@ -364,6 +365,13 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     if (value === null || value === false) return null;
     // A track of the free music catalogue the app browses (Audius): only which one, its words and
     // cover, and where its 30 seconds start; the phone plays it from the catalogue.
+    // A song of Apple's catalogue (api/music.js): which track, its words, cover and the address of
+    // its 30-second preview, played by the phone from Apple.
+    if (value?.src === 'apple') {
+      const song = cleanAppleSong(value, (v, n) => str(v, Math.min(n, LIMITS.songTitle)));
+      if (!song) throw new SocialError(400, 'unknown song', 'bad-song');
+      return song;
+    }
     if (value?.src === 'audius') {
       const id = typeof value.id === 'string' && /^[A-Za-z0-9]{1,32}$/.test(value.id) ? value.id : null;
       if (!id) throw new SocialError(400, 'unknown song', 'bad-song');

@@ -3082,4 +3082,10 @@ export default {
   "Dance": "Dans",
   "House": "House",
   "Lo-fi": "Lo-fi",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "E-posta şu anda gönderilemedi. Daha sonra tekrar dene ya da uygulamanın sahibinden yardım iste.",
+  "Top songs": "Popüler şarkılar",
+  "Explicit": "Müstehcen",
+  "Charts and 30-second previews from Apple Music.": "Apple Music'ten listeler ve 30 saniyelik önizlemeler.",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "Sesli mod bu telefonda konuşma tanıma gerektirir. Telefon ayarlarından (diller ve giriş) Google sesle yazmayı aç, sonra tekrar dene.",
+  "Voice": "Ses",
 }

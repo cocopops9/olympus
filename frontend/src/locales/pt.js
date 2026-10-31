@@ -3082,4 +3082,10 @@ export default {
   "Dance": "Dance",
   "House": "House",
   "Lo-fi": "Lo-fi",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "Não foi possível enviar o e-mail agora. Tenta mais tarde ou pede ajuda ao dono da app.",
+  "Top songs": "Top músicas",
+  "Explicit": "Explícito",
+  "Charts and 30-second previews from Apple Music.": "Tops e excertos de 30 segundos do Apple Music.",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "O modo de voz precisa de reconhecimento de voz neste telemóvel. Ativa a escrita por voz do Google nas definições (idiomas e introdução) e tenta de novo.",
+  "Voice": "Voz",
 }

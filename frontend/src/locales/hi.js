@@ -3082,4 +3082,10 @@ export default {
   "Dance": "डांस",
   "House": "हाउस",
   "Lo-fi": "लो-फ़ाई",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "ईमेल अभी नहीं भेजा जा सका। बाद में कोशिश करें या ऐप के मालिक से मदद लें।",
+  "Top songs": "टॉप गाने",
+  "Explicit": "स्पष्ट",
+  "Charts and 30-second previews from Apple Music.": "Apple Music से चार्ट और 30 सेकंड के प्रीव्यू।",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "वॉइस मोड के लिए इस फ़ोन पर वाक् पहचान चाहिए। फ़ोन की सेटिंग्स (भाषाएँ और इनपुट) में Google वॉइस टाइपिंग चालू करें, फिर कोशिश करें।",
+  "Voice": "आवाज़",
 }

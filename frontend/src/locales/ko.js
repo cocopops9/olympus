@@ -3082,4 +3082,10 @@ export default {
   "Dance": "댄스",
   "House": "하우스",
   "Lo-fi": "로파이",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "지금은 이메일을 보낼 수 없어요. 나중에 다시 시도하거나 앱 운영자에게 도움을 요청하세요.",
+  "Top songs": "인기곡",
+  "Explicit": "청소년 유해",
+  "Charts and 30-second previews from Apple Music.": "Apple Music의 차트와 30초 미리듣기.",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "음성 모드에는 이 휴대폰의 음성 인식이 필요해요. 설정(언어 및 입력)에서 Google 음성 입력을 켠 뒤 다시 시도하세요.",
+  "Voice": "음성",
 }

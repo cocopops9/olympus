@@ -161,6 +161,7 @@ export function accountError(e) {
     case 'reset-invalid': return t('That code is not right. Check the e-mail and try again.')
     case 'reset-expired': return t('That code has expired. Ask for a new one.')
     case 'mail-off': return t('Resetting a password by e-mail is not available yet. Ask the app’s owner for help.')
+    case 'mail-failed': return t('The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.')
     case 'google-off': return t('Google sign-in is not available yet.')
     case 'google-email': return t('That Google account has no verified e-mail.')
     case 'google-invalid': case 'google-failed': return t('Google sign-in did not work. Try again.')

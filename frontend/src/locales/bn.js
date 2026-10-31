@@ -3161,4 +3161,10 @@ export default {
   "Dance": "ডান্স",
   "House": "হাউস",
   "Lo-fi": "লো-ফাই",
+  "The e-mail could not be sent right now. Try again later, or ask the app’s owner for help.": "এখন ইমেল পাঠানো যায়নি। পরে চেষ্টা করুন বা অ্যাপের মালিকের সাহায্য নিন।",
+  "Top songs": "শীর্ষ গান",
+  "Explicit": "স্পষ্ট",
+  "Charts and 30-second previews from Apple Music.": "Apple Music থেকে চার্ট ও ৩০ সেকেন্ডের প্রিভিউ।",
+  "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "ভয়েস মোডের জন্য এই ফোনে স্পিচ রিকগনিশন দরকার। ফোনের সেটিংসে (ভাষা ও ইনপুট) Google ভয়েস টাইপিং চালু করে আবার চেষ্টা করুন।",
+  "Voice": "ভয়েস",
 }

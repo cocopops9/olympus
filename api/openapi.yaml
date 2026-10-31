@@ -3221,6 +3221,44 @@ paths:
         '415': { description: 'Not a JPEG or PNG (`photo-type`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: 'Too many uploads in the last hour (`rate-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/music/top:
+    get:
+      tags: [social]
+      operationId: musicTop
+      summary: The songs most played now in a country
+      description: Apple Music's most played chart for the country, each song with its 30-second preview. Kept an hour.
+      parameters:
+        - { name: country, in: query, required: false, schema: { type: string, example: it }, description: Two-letter country code; us when missing. }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tracks: { type: array, items: { type: object } }
+        '401': { description: Not signed in. }
+        '502': { description: The catalogue is not answering. }
+  /api/music/search:
+    get:
+      tags: [social]
+      operationId: musicSearch
+      summary: Songs matching a search
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string } }
+        - { name: country, in: query, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tracks: { type: array, items: { type: object } }
+        '401': { description: Not signed in. }
+        '502': { description: The catalogue is not answering. }
   /api/social/song:
     post:
       tags: [social]

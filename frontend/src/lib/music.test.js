@@ -1,32 +1,34 @@
-// The free music catalogue for posts (lib/music.js): Audius, asked directly by the phone.
+// Songs for a post (lib/music.js): Apple's charts and search, through the Olympus server.
 import { describe, it, expect, vi } from 'vitest'
-import { trackOf, trendingTracks, searchTracks, streamUrl, catalogueStartMax, catalogueDefaultStart } from './music.js'
 
-const raw = (id, extra = {}) => ({ id, title: 'Night Run', duration: 200, user: { name: 'Lumen' }, artwork: { '150x150': 'https://art.example/150.jpg' }, ...extra })
+vi.mock('./api.js', () => ({ api: vi.fn() }))
+import { api } from './api.js'
+import { musicCountry, topSongs, searchSongs, songOf, onlineSource } from './music.js'
 
 describe('music catalogue', () => {
-  it('keeps a free track as the app needs it, and leaves out gated or odd ones', () => {
-    expect(trackOf(raw('aB3'))).toEqual({ src: 'audius', id: 'aB3', title: 'Night Run', artist: 'Lumen', art: 'https://art.example/150.jpg', duration: 200 })
-    expect(trackOf(raw('x1', { stream_conditions: { usdc_purchase: {} } }))).toBe(null)
-    expect(trackOf(raw('x2', { is_streamable: false }))).toBe(null)
-    expect(trackOf(raw('../x'))).toBe(null)
-    expect(trackOf(raw('x3', { artwork: { '150x150': 'http://insecure/1.jpg' } })).art).toBe(null)
+  it('picks the chart of the phone’s region, else of the app’s language', () => {
+    expect(musicCountry('it-IT', 'en')).toBe('it')
+    expect(musicCountry('en_GB', 'en')).toBe('gb')
+    expect(musicCountry('es', 'es')).toBe('es')
+    expect(musicCountry('', 'pt-br')).toBe('br')
+    expect(musicCountry('', 'xx')).toBe('us')
   })
-  it('asks trending and search with the app name, and reads { data }', async () => {
-    const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => ({ data: [raw('a1'), raw('a2', { is_streamable: false })] }) }))
-    expect((await trendingTracks({ genre: 'Rock' }, fetchImpl)).map(t => t.id)).toEqual(['a1'])
-    expect(fetchImpl.mock.calls[0][0]).toBe('https://api.audius.co/v1/tracks/trending?limit=30&genre=Rock&app_name=Olympus')
-    await searchTracks('eye of the tiger', fetchImpl)
-    expect(fetchImpl.mock.calls[1][0]).toContain('/tracks/search?query=eye+of+the+tiger')
+  it('asks the server for the chart and for a search', async () => {
+    api.mockResolvedValueOnce({ tracks: [{ id: '1' }] }).mockResolvedValueOnce({ tracks: [] })
+    expect(await topSongs('it')).toEqual([{ id: '1' }])
+    expect(api.mock.calls[0][0]).toBe('/api/music/top?country=it')
+    await searchSongs('kid yugi', 'it')
+    expect(api.mock.calls[1][0]).toBe('/api/music/search?q=kid+yugi&country=it')
   })
-  it('says the catalogue is down rather than throwing a network error', async () => {
-    await expect(trendingTracks({}, async () => { throw new TypeError('Failed to fetch') })).rejects.toMatchObject({ code: 'catalogue-down' })
-    await expect(trendingTracks({}, async () => ({ ok: false, status: 503 }))).rejects.toMatchObject({ code: 'catalogue-down' })
+  it('says the catalogue is down when the server cannot answer', async () => {
+    api.mockRejectedValueOnce(Object.assign(new Error('x'), { status: 502 }))
+    await expect(topSongs('it')).rejects.toMatchObject({ code: 'catalogue-down' })
   })
-  it('plays from the stream address; a 30-second clip starts where it fits', () => {
-    expect(streamUrl('aB3')).toBe('https://api.audius.co/v1/tracks/aB3/stream?app_name=Olympus')
-    expect(catalogueStartMax(200)).toBe(170)
-    expect(catalogueDefaultStart(200)).toBe(67)
-    expect(catalogueStartMax(20)).toBe(0)
+  it('a post keeps the track and plays its preview', () => {
+    const tr = { id: '9', title: 'Hit', artist: 'Star', art: 'https://is1-ssl.mzstatic.com/a.jpg', preview: 'https://audio-ssl.itunes.apple.com/p.m4a', explicit: false }
+    const s = songOf(tr)
+    expect(s).toEqual({ src: 'apple', id: '9', title: 'Hit', artist: 'Star', art: tr.art, preview: tr.preview })
+    expect(onlineSource(s)).toBe(tr.preview)
+    expect(onlineSource({ id: 'abc', title: 'mine' })).toBe(null)
   })
 })

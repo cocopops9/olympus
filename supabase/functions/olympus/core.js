@@ -21,6 +21,7 @@
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
+import { topSongs, searchSongs } from './music.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
@@ -237,7 +238,14 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         set('db', db);
       } catch { /* too many e-mails: nothing sent, the same answer */ }
     });
-    if (mail) { try { await sendMail(env, mail, fetchImpl); } catch (e) { console.error('reset mail', e); } }
+    // A code the mail service refused never arrives: say so, rather than "on its way". (Only an
+    // address with an account gets this far, but the service refusing is the server's problem to
+    // fix, and someone waiting for an e-mail that will not come is worse.)
+    if (mail) {
+      let sent = false;
+      try { sent = await sendMail(env, mail, fetchImpl); } catch (e) { console.error('reset mail', e); }
+      if (!sent) return { status: 503, body: { error: 'the e-mail could not be sent', code: 'mail-failed' } };
+    }
     return { status: 200, body: { ok: true } };
   }
 
@@ -602,6 +610,17 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/social/photos': async req => {
       const { user: me } = await signedIn(req); const b = await readJson(req);
       return { body: await withSocial(s => { const r = s.uploadPhoto(me, b.data); s.sweepOrphans(); return r; }) };
+    },
+    // Songs for a post: what is popular now in a country, and search (api/music.js).
+    'GET /api/music/top': async (req, q) => {
+      await signedIn(req);
+      try { return { body: { tracks: await topSongs(q.get('country'), { fetchImpl }) } }; }
+      catch (e) { console.error('music top', e); return { status: 502, body: { error: 'the music catalogue is not answering', code: 'catalogue-down' } }; }
+    },
+    'GET /api/music/search': async (req, q) => {
+      await signedIn(req);
+      try { return { body: { tracks: await searchSongs(q.get('q'), q.get('country'), { fetchImpl }) } }; }
+      catch (e) { console.error('music search', e); return { status: 502, body: { error: 'the music catalogue is not answering', code: 'catalogue-down' } }; }
     },
     'POST /api/social/song': async req => {
       const { user: me } = await signedIn(req); const b = await readJson(req);

@@ -1,6 +1,6 @@
-// Olympus: Chiron, the old centaur who trained Achilles, as a portrait in the style of the other
-// coaches (illustrated in Canva, assets/chiron-*.webp): asleep with his eyes shut, or awake. One
-// figure, posed by `state`:
+// Olympus: Chiron, the old centaur who trained Achilles, drawn whole (illustrated in Canva,
+// assets/chiron-full-*.webp, cut out on a clear background): lying asleep with his legs folded
+// and his arms crossed, or standing awake on his four hooves. One figure, posed by `state`:
 //
 //   asleep     eyes shut, head low, breathing slowly; z's drift up
 //   waking     the awake portrait comes in with a rise and a flash of light
@@ -10,8 +10,8 @@
 //   speaking   he moves with his words (`mouth`, 0 to 1, set many times a second), waves going out
 //
 // The two portraits cross-fade; every move is CSS (chiron-figure.css).
-import awakeImg from '../assets/chiron-awake.webp'
-import asleepImg from '../assets/chiron-asleep.webp'
+import awakeImg from '../assets/chiron-full-awake.webp'
+import asleepImg from '../assets/chiron-full-asleep.webp'
 
 export const CHIRON_AWAKE = awakeImg
 export const CHIRON_ASLEEP = asleepImg
@@ -21,13 +21,14 @@ export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, 
   const awake = state !== 'asleep'
   return <span className={'chf chf-' + state + ' ' + className} style={{ width: size, height: size, '--talk': open }} role="img" aria-label="Chiron">
     <span className="chf-halo" />
+    <span className="chf-ground" />
     <span className="chf-body">
       <img className={'chf-img chf-sleep' + (awake ? '' : ' on')} src={asleepImg} alt="" draggable={false} />
       <img className={'chf-img chf-wake' + (awake ? ' on' : '')} src={awakeImg} alt="" draggable={false} />
     </span>
     <svg className="chf-fx" viewBox="0 0 100 100" aria-hidden="true">
       <g className="chf-z" fill="#f5c84a" stroke="#1a1200" strokeWidth=".6" fontFamily="Georgia,serif" fontWeight="700">
-        <text className="z1" x="70" y="30" fontSize="10">z</text><text className="z2" x="78" y="20" fontSize="13">z</text><text className="z3" x="87" y="9" fontSize="16">Z</text>
+        <text className="z1" x="34" y="22" fontSize="10">z</text><text className="z2" x="42" y="12" fontSize="13">z</text><text className="z3" x="51" y="2" fontSize="16">Z</text>
       </g>
       <g className="chf-rings" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
         <path className="r1" d="M84 34c3 4 3 10 0 14" /><path className="r2" d="M90 28c6 7 6 19 0 26" /><path className="r3" d="M96 22c8 10 8 28 0 38" />
