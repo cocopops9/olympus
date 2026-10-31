@@ -63,6 +63,11 @@ const bytes = Buffer.from(await pic.arrayBuffer());
 ok(pic.status === 200 && pic.headers.get('content-type') === 'image/jpeg' && bytes[0] === 0xff && !bytes.includes(Buffer.from('Exif')), 'photo served, metadata stripped', `${pic.status} ${bytes.length}`);
 
 // A new profile is never the founder: only the server's first profile is.
+// Songs for a post: the chart of a country and a search, with Apple's previews.
+const top = await call('GET', '/api/music/top?country=it', { token: a });
+ok(top.status === 200 && top.body?.tracks?.length >= 10 && /^https:\/\/[a-z0-9.-]+\.apple\.com\//.test(top.body.tracks[0].preview || ''), 'music chart with previews', `${top.status} ${top.body?.tracks?.length} ${JSON.stringify(top.body?.tracks?.[0] || top.body)}`);
+const found = await call('GET', '/api/music/search?q=eye%20of%20the%20tiger&country=us', { token: a });
+ok(found.status === 200 && found.body?.tracks?.length > 0, 'music search', `${found.status} ${found.body?.tracks?.length}`);
 const meA = await call('GET', '/api/social/profile', { token: a });
 ok(meA.status === 200 && !meA.body?.user?.founder, 'a new profile carries no founder mark', JSON.stringify(meA.body?.user?.founder));
 
