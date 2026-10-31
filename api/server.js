@@ -32,7 +32,7 @@ import {
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
-import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError } from './hercules.js';
+import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
@@ -196,7 +196,7 @@ const coachStatus = id => async (req, res) => {
   const st = COACH_STATE[id];
   const s = sessionOf(req);
   if (!s) return json(res, 401, { error: 'not signed in' });
-  json(res, 200, { on: !!st.config.key, perDay: st.config.perDay, left: leftToday(st.doc, s.user.id, dayOf(Date.now()), st.config.perDay) });
+  json(res, 200, { on: !!st.config.key, perDay: st.config.perDay, left: leftToday(st.doc, s.user.id, dayOf(Date.now()), st.config.perDay), model: modelLabel(st.config.model) });
 };
 const coachAsk = id => async (req, res) => {
   const st = COACH_STATE[id];
@@ -2662,6 +2662,12 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
     json(res, 200, SOCIAL.uploadPhoto(me, body.data));
+  },
+  // A post's song clip (the app cuts and encodes it), stored with the photos.
+  'POST /api/social/song': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, SOCIAL.uploadSong(me, body.data));
   },
   // The one social route that answers bytes: a photo of a post the caller may see.
   'GET /api/social/photo': async (req, res) => {

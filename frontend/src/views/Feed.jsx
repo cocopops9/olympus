@@ -1,15 +1,15 @@
 // Home: the Olympus feed. Posts from the people you follow (Following) or from everyone on the
 // server (Discover), a search for people, and a button to share a workout. The training
 // dashboard that used to be Home now lives at /today, one tap away from here and from Profile.
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useSocial, useWhenVisible } from '../store/useSocial.js'
-import { t } from '../lib/i18n.js'
+import { t, tn } from '../lib/i18n.js'
 import { socialReady, fetchFeed, fetchDiscover, searchUsers, socialErrorText, fetchSuggested, fetchProfile } from '../lib/social.js'
 import { Button, Segmented, SearchField } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import { PostCard, PersonRow, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
+import { PostCard, PersonRow, composeSheet, POSTED_EVENT, Avatar, Name, FollowButton } from '../components/Social.jsx'
 import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
@@ -67,51 +67,70 @@ function People({ onClose }) {
   </div>
 }
 
-// Olympus: people to follow (lib/social.js fetchSuggested), the founder first. The Suggested tab,
-// and the empty Following feed of someone who follows nobody yet. `limit` shortens the list.
-function Suggested({ limit, onMore }) {
+// Olympus: people to follow (lib/social.js fetchSuggested), the founder first, as a strip of
+// cards to swipe through inside the Following feed: at the top for someone who follows nobody
+// yet, otherwise after the third post. Followed from here, a card stays with its button showing
+// it; the X hides the strip for three days.
+const HIDE_KEY = 'olympus_suggest_hidden'
+const HIDE_MS = 3 * 86400000
+const hiddenNow = () => { try { return Date.now() - (+localStorage.getItem(HIDE_KEY) || 0) < HIDE_MS } catch { return false } }
+
+export function SuggestedStrip({ first }) {
+  const nav = useNavigate()
   const [users, setUsers] = useState(null)
-  const [error, setError] = useState(null)
+  const [hidden, setHidden] = useState(() => !first && hiddenNow())
   useEffect(() => {
+    if (hidden) return
     let live = true
-    fetchSuggested().then(u => { if (live) { setUsers(u); setError(null) } }, e => { if (live) setError(socialErrorText(e, t)) })
+    fetchSuggested().then(u => { if (live) setUsers(u) }, () => { if (live) setUsers([]) })
     return () => { live = false }
-  }, [])
-  // Followed from here, a person stays on the list with the button showing it, until next time.
+  }, [hidden])
   const update = u => setUsers(list => list.map(x => (x.id === u.id ? u : x)))
-  if (error) return <div className="empty">{error}</div>
-  if (users === null) return <div className="empty">{t('Loading…')}</div>
-  if (!users.length) return <div className="empty">{t('You follow everyone here. Invite a friend to join.')}</div>
-  const shown = limit ? users.slice(0, limit) : users
-  return <div className="suggested">
-    <h4 className="sec">{t('Suggested for you')}</h4>
-    {shown.map(u => <PersonRow key={u.id} user={u} onChange={update} />)}
-    {limit && users.length > limit && onMore && <div className="feed-loadmore"><Button size="sm" variant="tinted" onClick={onMore}>{t('See all suggestions')}</Button></div>}
-  </div>
+  if (hidden || !users || !users.length) return null
+  const hide = () => { try { localStorage.setItem(HIDE_KEY, String(Date.now())) } catch { /* only for this visit */ } setHidden(true) }
+  return <section className="sugg" aria-label={t('Suggested for you')}>
+    <div className="sugg-h">
+      <h4>{t('Suggested for you')}</h4>
+      {!first && <button className="iconbtn sm" onClick={hide} aria-label={t('Hide')}><Icon name="xmark" /></button>}
+    </div>
+    <div className="sugg-row">
+      {users.slice(0, 12).map(u => <div key={u.id} className="sugg-card" role="button" tabIndex={0}
+        onClick={() => nav('/u/' + u.id)} onKeyDown={e => { if (e.key === 'Enter') nav('/u/' + u.id) }}>
+        <Avatar user={u} size="lg" />
+        <div className="sugg-n"><Name user={u} /></div>
+        <div className="sugg-s">{u.mutual ? tn('{0} friend in common', '{0} friends in common', u.mutual) : tn('{0} follower', '{0} followers', u.followers || 0)}</div>
+        <FollowButton user={u} onChange={update} />
+      </div>)}
+    </div>
+  </section>
 }
+
+// Failures worth trying again without being asked: no answer at all, a timeout, the phone not
+// linked to its server yet, or the server busy for a moment.
+const RETRY_MS = [2000, 5000, 10000]
+const passing = e => !e || e.status == null || e.status === 0 || e.code === 'timeout' || e.code === 'not-paired' || [502, 503, 504].includes(e.status)
 
 export default function Feed() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
-  const ready = socialReady(user)
+  // On a phone the account is back from storage at once, but the server's address only once
+  // boot has read the pairing file: asked in between, every request failed as "not paired" and
+  // the feed waited on Retry at each start. It waits for the address (or for boot to end).
+  const server = useStore(s => s.sync.server)
+  const booted = useStore(s => s.ready)
+  const linked = !MOBILE || !!server || booted
+  const ready = socialReady(user) && linked
+  const waiting = socialReady(user) && !linked
   const news = useSocial(s => s.unread + s.requests)
   const [tab, setTab] = useState('following')
-  // Someone who follows nobody yet starts on Suggested, the founder at the top of it. Asked once
-  // per visit to Home; it changes nothing once a tab was picked by hand.
+  // How many people this profile follows: none yet, and the suggestions open the feed.
   const [follows, setFollows] = useState(null)
-  const picked = useRef(false)
   useEffect(() => {
     if (!ready) return
     let live = true
-    fetchProfile().then(p => {
-      if (!live) return
-      const n = Number(p?.user?.following) || 0
-      setFollows(n)
-      if (n === 0 && !picked.current) setTab('suggested')
-    }, () => {})
+    fetchProfile().then(p => { if (live) setFollows(Number(p?.user?.following) || 0) }, () => {})
     return () => { live = false }
   }, [ready, user?.id])
-  const pickTab = v => { picked.current = true; setTab(v) }
   const [searching, setSearching] = useState(false)
   const [posts, setPosts] = useState(null)
   const [next, setNext] = useState(null)
@@ -124,29 +143,41 @@ export default function Feed() {
     return { posts: page.posts || [], next: page.next || null }
   }, [])
 
+  // A failure that is likely to pass (no network yet, a timeout, the server's cold start) is
+  // tried again by itself, after 2, 5 and 10 seconds and when the phone comes back online;
+  // Try again stays for the rest. The error is kept as it came and worded when shown, so it
+  // follows the language once its pack has loaded.
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
-    if (!ready || tab === 'suggested') return
+    if (!ready) return
     let live = true
     setPosts(null); setError(null); setNext(null)
-    load(tab).then(p => { if (live) { setPosts(p.posts); setNext(p.next) } }, e => { if (live) setError(socialErrorText(e, t)) })
+    load(tab).then(p => { if (live) { setPosts(p.posts); setNext(p.next) } }, e => { if (live) setError(e) })
     return () => { live = false }
-  }, [ready, tab, load])
+  }, [ready, tab, load, attempt])
+  useEffect(() => {
+    if (!error || !passing(error)) return
+    const tries = retries.current
+    const again = () => { retries.current += 1; setAttempt(a => a + 1) }
+    const timer = tries < RETRY_MS.length ? setTimeout(again, RETRY_MS[tries]) : null
+    window.addEventListener('online', again)
+    return () => { clearTimeout(timer); window.removeEventListener('online', again) }
+  }, [error])
+  const retries = useRef(0)
+  useEffect(() => { if (posts) retries.current = 0 }, [posts])
 
   const loadMore = async () => {
     if (!next || more) return
     setMore(true)
     try { const p = await load(tab, next); setPosts(list => [...list, ...p.posts]); setNext(p.next) }
-    catch (e) { setError(socialErrorText(e, t)) }
+    catch (e) { setError(e) }
     finally { setMore(false) }
   }
-  const refresh = () => {
-    setPosts(null); setError(null)
-    load(tab).then(p => { setPosts(p.posts); setNext(p.next) }, e => setError(socialErrorText(e, t)))
-  }
+  const refresh = () => { retries.current = 0; setAttempt(a => a + 1) }
   // Back in front: the newest page again, quietly, keeping what is on screen until it arrives.
   useWhenVisible(() => {
-    if (!ready || searching || tab === 'suggested') return
-    load(tab).then(p => { setPosts(p.posts); setNext(p.next) }, () => {})
+    if (!ready || searching) return
+    load(tab).then(p => { setPosts(p.posts); setNext(p.next); setError(null) }, () => {})
   })
   const change = p => setPosts(list => list.map(x => (x.id === p.id ? p : x)))
   const remove = p => setPosts(list => list.filter(x => x.id !== p.id))
@@ -177,13 +208,17 @@ export default function Feed() {
       {t('Three tabs at the bottom: Home is this feed, the round Workout button starts training, and Profile holds your plan, progress and settings.')}
     </Tip>
 
-    {!ready ? <NoServer /> : searching ? <People onClose={() => setSearching(false)} /> : <>
-      <Segmented className="feed-tabs" value={tab} onChange={pickTab}
-        options={[{ value: 'following', label: t('Following') }, { value: 'discover', label: t('Discover') }, { value: 'suggested', label: t('Suggested') }]} />
-      {tab === 'suggested' ? <Suggested /> : error ? <div className="empty">{error}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={refresh}>{t('Try again')}</Button></div></div>
+    {waiting ? <div className="empty">{t('Loading…')}</div> : !ready ? <NoServer /> : searching ? <People onClose={() => setSearching(false)} /> : <>
+      <Segmented className="feed-tabs" value={tab} onChange={setTab}
+        options={[{ value: 'following', label: t('Following') }, { value: 'discover', label: t('Discover') }]} />
+      {tab === 'following' && follows === 0 && <SuggestedStrip first />}
+      {error ? <div className="empty">{socialErrorText(error, t)}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={refresh}>{t('Try again')}</Button></div></div>
         : posts === null ? <div className="empty">{t('Loading…')}</div>
           : posts.length ? <>
-            {posts.map(p => <PostCard key={p.id} post={p} onChange={change} onDelete={remove} />)}
+            {posts.map((p, i) => <Fragment key={p.id}>
+              <PostCard post={p} onChange={change} onDelete={remove} />
+              {tab === 'following' && follows > 0 && i === Math.min(2, posts.length - 1) && <SuggestedStrip />}
+            </Fragment>)}
             {next && <div className="feed-loadmore"><Button size="sm" variant="tinted" disabled={more} onClick={loadMore}>{more ? t('Loading…') : t('Load more')}</Button></div>}
           </> : <div className="feed-note">
             <div className="ico-big"><Icon name="person" /></div>
@@ -192,8 +227,6 @@ export default function Feed() {
             {tab === 'following' && <><Button variant="primary" icon="magnifier" onClick={() => setSearching(true)}>{t('Find people')}</Button><div style={{ height: 8 }} /></>}
             <Button icon="share" onClick={() => composeSheet({ onPosted: posted })}>{t('Share a workout')}</Button>
           </div>}
-      {/* Following nobody yet: the people to start with, under the posts (your own) or the empty note. */}
-      {tab === 'following' && follows === 0 && posts !== null && !error && <Suggested limit={5} onMore={() => pickTab('suggested')} />}
       <div style={{ height: 6 }} />
       <Button variant="ghost" icon="calendar" onClick={() => nav('/today')}>{t('Today’s training')}</Button>
     </>}

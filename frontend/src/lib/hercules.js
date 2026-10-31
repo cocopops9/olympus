@@ -9,12 +9,19 @@ import { api } from './api.js'
 import { getLang } from './i18n.js'
 import { useStore } from '../store/useStore.js'
 import { herculesContext } from './hercules-context.js'
-import { chatsOf, putChatsOf, memoryContext } from './coach-memory.js'
+import { chatsOf, putChatsOf, memoryContext, TEAM } from './coach-memory.js'
 
 const TITLE_LEN = 48
+const COACH_NAMES = { hercules: 'Hercules', athena: 'Athena' }
 const ANSWER_MS = 75000   // the model, and its fallback when the first is busy
 
 export const COACH_IDS = ['hercules', 'athena']
+// Hercules and Athena talk in the same conversations: the chat picks who answers the next
+// message, one of them or both in turn (BOTH), and each answer keeps the coach who gave it.
+export { TEAM }
+export const BOTH = 'both'
+/** The list a coach's conversations are kept in: the shared one for Hercules and Athena. */
+export const chatBucket = coach => (COACH_IDS.includes(coach) || coach === BOTH || coach === TEAM ? TEAM : coachOf(coach))
 // Chiron only coaches during a workout (components/Chiron.jsx): not one of the chat's coaches.
 export const WORKOUT_COACH = 'chiron'
 const CHIRON_CONTEXT = 36000
@@ -24,11 +31,11 @@ const lastKeyOf = uid => 'olympus_coach_last_' + (uid || 'local')
 
 /** The coach this profile talked to last (the one on the button), or null. */
 export function lastCoach(uid) {
-  try { const v = localStorage.getItem(lastKeyOf(uid)); return v && v !== WORKOUT_COACH && coachOf(v) === v ? v : null } catch { return null }
+  try { const v = localStorage.getItem(lastKeyOf(uid)); return v === BOTH ? BOTH : v && v !== WORKOUT_COACH && coachOf(v) === v ? v : null } catch { return null }
 }
 export function setLastCoach(uid, coach) {
   if (coach === WORKOUT_COACH) return
-  try { localStorage.setItem(lastKeyOf(uid), coachOf(coach)) } catch { /* the button shows Hercules again */ }
+  try { localStorage.setItem(lastKeyOf(uid), coach === BOTH ? BOTH : coachOf(coach)) } catch { /* the button shows Hercules again */ }
 }
 
 /** The title of a conversation: its first question, cut short. */
@@ -41,9 +48,9 @@ export function chatTitle(messages) {
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
 /** All the conversations of profile `uid` with `coach`: { current, chats }. */
-export const loadChats = (uid, coach = 'hercules') => chatsOf(uid, coachOf(coach))
+export const loadChats = (uid, coach = 'hercules') => chatsOf(uid, chatBucket(coach))
 
-export const saveChats = (uid, data, coach = 'hercules') => putChatsOf(uid, coachOf(coach), data)
+export const saveChats = (uid, data, coach = 'hercules') => putChatsOf(uid, chatBucket(coach), data)
 
 /** `data` with the conversation `id` holding `messages` (a new one when `id` is null). */
 export function putChat(data, id, messages) {
@@ -67,7 +74,13 @@ export function askHercules(list, coach = 'hercules', opts = {}) {
   const chiron = coachOf(coach) === WORKOUT_COACH
   const uid = useStore.getState().user?.id
   const S = useStore.getState().S
-  const messages = list.map(m => ({ role: m.role, content: m.content }))
+  // In a conversation both coaches answer in, an answer by the other one is not this coach's own
+  // turn: it goes as a message of the conversation, marked with who gave it, so this coach can
+  // build on it or disagree. (With Both, Athena is asked right after Hercules's answer, and a
+  // conversation sent to a model has to end on a message to answer.)
+  const asked = coachOf(coach)
+  const other = m => m.role === 'assistant' && m.coach && m.coach !== asked && COACH_NAMES[m.coach]
+  const messages = list.map(m => (other(m) ? { role: 'user', content: `[${COACH_NAMES[m.coach]} answered this one] ${m.content}` } : { role: m.role, content: m.content }))
   return api('/api/' + coachOf(coach), {
     method: 'POST',
     timeout: ANSWER_MS,

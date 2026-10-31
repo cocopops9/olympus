@@ -14,15 +14,18 @@ describe('one memory for every coach', () => {
     localStorage.setItem('olympus_hercules_chats_u1', JSON.stringify({ current: 'h1', chats: [{ id: 'h1', ts: 10, title: 'Squat', messages: [msg('user', 'My knee hurts on squats', 9)] }] }))
     localStorage.setItem('olympus_athena_chats_u1', JSON.stringify({ current: 'a1', chats: [{ id: 'a1', ts: 20, title: 'Plan', messages: [msg('user', 'I train 3 days', 19)] }] }))
     const mem = loadMemory('u1')
-    expect(mem.chats.map(c => [c.id, c.coach]).sort()).toEqual([['a1', 'athena'], ['h1', 'hercules']])
+    // Hercules's and Athena's lists become the one they share, the newest conversation open.
+    expect(mem.chats.map(c => [c.id, c.coach]).sort()).toEqual([['a1', 'team'], ['h1', 'team']])
     expect(localStorage.getItem('olympus_hercules_chats_u1')).toBe(null)
     expect(localStorage.getItem('olympus_athena_chats_u1')).toBe(null)
-    expect(chatsOf('u1', 'athena')).toMatchObject({ current: 'a1', chats: [{ id: 'a1', title: 'Plan' }] })
+    expect(chatsOf('u1', 'team')).toMatchObject({ current: 'a1', chats: [{ id: 'a1', title: 'Plan' }, { id: 'h1', title: 'Squat' }] })
   })
 
   it('turns the single conversation of the oldest versions into Hercules\'s first', () => {
     localStorage.setItem('olympus_hercules_u1', JSON.stringify([msg('user', 'Old question', 1), msg('assistant', 'Old answer', 2)]))
-    expect(chatsOf('u1', 'hercules').chats[0].messages.map(m => m.content)).toEqual(['Old question', 'Old answer'])
+    expect(chatsOf('u1', 'team').chats[0].messages.map(m => m.content)).toEqual(['Old question', 'Old answer'])
+    // the old answer was Hercules's
+    expect(chatsOf('u1', 'team').chats[0].messages[1].coach).toBe('hercules')
     expect(localStorage.getItem('olympus_hercules_u1')).toBe(null)
   })
 
@@ -44,8 +47,8 @@ describe('one memory for every coach', () => {
     const lines = memoryLines('u1', { now })
     expect(lines[0]).toMatch(/^WHAT THEY TOLD THEIR COACHES RECENTLY/)
     expect(lines.slice(1)).toEqual([
-      expect.stringContaining('to Hercules: "My left knee hurts on deep squats"'),
-      expect.stringContaining('to Athena: "Powerlifting meet on December 12"'),
+      expect.stringContaining('to Hercules and Athena: "My left knee hurts on deep squats"'),
+      expect.stringContaining('to Hercules and Athena: "Powerlifting meet on December 12"'),
     ])
     expect(lines.join('\n')).not.toContain('box squats')
     expect(memoryLines('u2', { now })).toEqual([])

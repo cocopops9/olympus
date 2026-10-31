@@ -7,6 +7,7 @@ import { t } from '../lib/i18n.js'
 import { equipFamilies, liveEquip, groupOf } from '../lib/equipment-groups.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import Icon from './Icon.jsx'
+import EquipIcon, { familyIcon } from './EquipIcon.jsx'
 
 const HOLD_MS = 450
 
@@ -24,11 +25,13 @@ function KindsSheet({ family, value, onChange, close }) {
     <div className="muted small" style={{ marginBottom: 10 }}>{t('Pick the kind you use')}</div>
     <div className="list menu-list">
       <div className={'item menu-item'} {...tappable(() => pick('g:' + family.id))}>
+        <span className="eq-tile"><EquipIcon eq={familyIcon(family.id)} size={30} /></span>
         <div className="grow"><div className="tt">{t('All of them')}</div></div>
         <span className="dim small">{family.count}</span>
         <span className={'menu-on' + (value === 'g:' + family.id ? ' is-on' : '')}><Icon name="check" /></span>
       </div>
       {family.variants.map(v => <div key={v.eq} className="item menu-item" {...tappable(() => pick('e:' + v.eq))}>
+        <span className="eq-tile"><EquipIcon eq={v.eq} size={30} /></span>
         <div className="grow"><div className="tt capitalize">{t(v.eq)}</div></div>
         <span className="dim small">{v.count}</span>
         <span className={'menu-on' + (value === 'e:' + v.eq ? ' is-on' : '')}><Icon name="check" /></span>
@@ -67,10 +70,14 @@ function FamilyChip({ family, value, onChange }) {
     onPointerDown={down} onPointerMove={move} onPointerUp={cancel} onPointerLeave={cancel} onPointerCancel={cancel}
     onContextMenu={e => { if (many) { e.preventDefault(); cancel(); held.current = true; openKinds() } }}
     aria-label={many ? t('{0}, hold for the kinds', (kind ? t(kind) : familyLabel(family))) : undefined}>
-    <span className="capitalize">{(kind ? t(kind) : familyLabel(family))}</span>
-    {many && <span className="eq-more" role="button" aria-label={t('Kinds of {0}', familyLabel(family))}
-      onPointerDown={e => e.stopPropagation()}
-      onClick={e => { e.stopPropagation(); openKinds() }}><Icon name="chevronDown" /></span>}
+    <span className="eq-top">
+      <span className="capitalize">{(kind ? t(kind) : familyLabel(family))}</span>
+      {many && <span className="eq-more" role="button" aria-label={t('Kinds of {0}', familyLabel(family))}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); openKinds() }}><Icon name="chevronDown" /></span>}
+    </span>
+    {/* The drawing under the name: the chosen kind's, or the family's. */}
+    <EquipIcon eq={kind || (family.variants.length === 1 ? family.variants[0].eq : familyIcon(family.id))} size={26} />
   </button>
 }
 
@@ -81,7 +88,9 @@ export default function EquipChips({ list, value, onChange, stripRef, className 
   if (families.length < 2 && !(families[0]?.variants.length > 1)) return lead ? <div className={'chips ' + className} ref={stripRef} style={style}>{lead}</div> : null
   return <div className={'chips ' + className} ref={stripRef} style={style}>
     {lead}
-    <button className={'chip nocap' + (!on ? ' on' : '')} onClick={() => onChange('')}>{t('Any equipment')}</button>
+    <button className={'chip nocap eq-fam' + (!on ? ' on' : '')} onClick={() => onChange('')}>
+      <span className="eq-top">{t('Any equipment')}</span><EquipIcon eq="any" size={26} />
+    </button>
     {families.map(f => <FamilyChip key={f.id} family={f} value={on} onChange={onChange} />)}
   </div>
 }

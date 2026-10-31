@@ -1,0 +1,75 @@
+/* Olympus: Chiron's whole figure and its poses (components/ChironFigure.jsx). Origins are in the
+   drawing's own units (transform-box: view-box), set on each part in the markup. */
+.chf{display:block;overflow:visible}
+.chf g,.chf path,.chf ellipse{transform-box:view-box}
+.chf-horse,.chf-man,.chf-leg,.chf-head,.chf-arm,.chf-fore,.chf-halo,.chf-shadow{transition:transform .9s cubic-bezier(.3,.7,.2,1),opacity .6s}
+.chf-horse{transform-origin:96px 110px}
+.chf-tail{transform-origin:50px 82px;transition:transform .9s;animation:chf-tail 6s ease-in-out infinite}
+.chf-halo{opacity:0;transform-origin:118px 62px;transform:scale(.6)}
+.chf-z,.chf-rings,.chf-dots,.chf-waves{opacity:0;transition:opacity .4s}
+
+/* asleep: lying on the ground, legs folded, bent over, breathing */
+.chf-asleep .chf-horse{transform:translateY(28px)}
+.chf-asleep .chf-leg{transform:scaleY(.22)}
+.chf-asleep .chf-man{transform:translateY(28px) rotate(9deg)}
+.chf-asleep .chf-head{transform:rotate(16deg) translateY(2px)}
+.chf-asleep .chf-arm{transform:rotate(8deg)}
+.chf-asleep .chf-all{animation:chf-breathe 4.4s ease-in-out infinite;transform-origin:96px 140px}
+.chf-asleep .chf-tail{animation:none;transform:rotate(48deg)}
+.chf-asleep .chf-z{opacity:1}
+.chf-z text{opacity:0;animation:chf-z 3.6s ease-in-out infinite}
+.chf-z .z2{animation-delay:1.2s}.chf-z .z3{animation-delay:2.4s}
+.chf-asleep .chf-shadow{transform:scaleX(1.08)}
+
+/* awake: standing, the light around him */
+.chf:not(.chf-asleep) .chf-halo{opacity:.55;transform:scale(1)}
+.chf:not(.chf-asleep) .chf-eyes{transform-origin:127px 31px;animation:chf-blink 5.2s infinite}
+
+/* waking: up from the ground with a stretch */
+.chf-waking .chf-arm{animation:chf-stretch 1.3s cubic-bezier(.3,.7,.2,1)}
+.chf-waking .chf-fore{animation:chf-stretch-f 1.3s cubic-bezier(.3,.7,.2,1)}
+.chf-waking .chf-halo{animation:chf-flash 1.3s ease-out}
+.chf-waking .chf-head{animation:chf-yawn 1.3s ease-in-out}
+
+/* listening: a hand cupped at his ear, head turned to it */
+.chf-listening .chf-arm{transform:rotate(-122deg)}
+.chf-listening .chf-fore{transform:rotate(-104deg)}
+.chf-listening .chf-head{transform:rotate(-7deg)}
+.chf-listening .chf-rings{opacity:1}
+.chf-rings path{opacity:0;animation:chf-ring 1.5s ease-out infinite}
+.chf-rings .r2{animation-delay:.25s}.chf-rings .r3{animation-delay:.5s}
+
+/* thinking: hand on his beard, eyes up */
+.chf-thinking .chf-arm{transform:rotate(12deg)}
+.chf-thinking .chf-fore{transform:rotate(146deg)}
+.chf-thinking .chf-head{transform:rotate(-5deg) translateY(-1px)}
+.chf-thinking .chf-eyes{transform:translateY(-1px)}
+.chf-thinking .chf-dots{opacity:1}
+.chf-dots circle{animation:chf-dot 1.2s ease-in-out infinite}
+.chf-dots .d2{animation-delay:.2s}.chf-dots .d3{animation-delay:.4s}
+
+/* speaking: an arm out as he explains, nodding, waves going out */
+.chf-speaking .chf-arm{transform:rotate(-55deg);animation:chf-gesture 2.4s ease-in-out infinite}
+.chf-speaking .chf-fore{transform:rotate(-68deg)}
+.chf-speaking .chf-head{animation:chf-nod 1.8s ease-in-out infinite}
+.chf-speaking .chf-waves{opacity:1}
+.chf-speaking .chf-halo{animation:chf-pulse 1.4s ease-in-out infinite}
+.chf-waves path{opacity:0;animation:chf-wave 1.2s ease-out infinite}
+.chf-waves .w2{animation-delay:.2s}.chf-waves .w3{animation-delay:.4s}
+.chf-mouth{transition:ry .08s linear}
+
+@keyframes chf-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.015,1.03)}}
+@keyframes chf-z{0%{opacity:0;transform:translate(0,4px)}30%{opacity:1}100%{opacity:0;transform:translate(6px,-8px)}}
+@keyframes chf-tail{0%,80%,100%{transform:rotate(0)}86%{transform:rotate(-12deg)}92%{transform:rotate(8deg)}}
+@keyframes chf-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+@keyframes chf-stretch{0%{transform:rotate(8deg)}45%{transform:rotate(-168deg)}70%{transform:rotate(-160deg)}100%{transform:rotate(0)}}
+@keyframes chf-stretch-f{0%{transform:rotate(0)}45%{transform:rotate(-12deg)}100%{transform:rotate(0)}}
+@keyframes chf-flash{0%{opacity:0;transform:scale(.6)}45%{opacity:1;transform:scale(1.2)}100%{opacity:.55;transform:scale(1)}}
+@keyframes chf-yawn{0%{transform:rotate(16deg)}40%{transform:rotate(-10deg)}100%{transform:rotate(0)}}
+@keyframes chf-ring{0%{opacity:0;transform:translateX(10px)}40%{opacity:1}100%{opacity:0;transform:translateX(-8px)}}
+@keyframes chf-dot{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
+@keyframes chf-gesture{0%,100%{transform:rotate(-55deg)}50%{transform:rotate(-38deg)}}
+@keyframes chf-nod{0%,100%{transform:rotate(0)}50%{transform:rotate(4deg)}}
+@keyframes chf-pulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.75;transform:scale(1.06)}}
+@keyframes chf-wave{0%{opacity:0;transform:translateX(-6px)}40%{opacity:1}100%{opacity:0;transform:translateX(8px)}}
+@media (prefers-reduced-motion:reduce){.chf *{animation:none!important;transition:none!important}.chf-z text{opacity:1}}

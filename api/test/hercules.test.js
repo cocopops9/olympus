@@ -2,7 +2,7 @@
    the fallback model, and the two servers' routes with a stand-in provider. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS } from '../hercules.js';
+import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS, modelLabel } from '../hercules.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const fakeFetch = (answers, seen = []) => async (url, init) => {
@@ -74,7 +74,7 @@ test('a message the model never answered is given back', async () => {
   await assert.rejects(handleHercules({ user, body: { messages: [{ role: 'user', content: 'hi' }] }, config, quota, now, fetchImpl: fakeFetch([{ status: 500 }]) }));
   assert.equal(leftToday(doc, 'u1', '2026-10-25', 2), 2);
   const ok = await handleHercules({ user, body: { messages: [{ role: 'user', content: 'hi' }] }, config, quota, now, fetchImpl: fakeFetch([{ status: 200, reply: 'Hi!' }]) });
-  assert.deepEqual(ok, { reply: 'Hi!', left: 1, perDay: 2 });
+  assert.deepEqual(ok, { reply: 'Hi!', left: 1, perDay: 2, model: 'GPT-OSS 120B' });
   await handleHercules({ user, body: { messages: [{ role: 'user', content: 'again' }] }, config, quota, now, fetchImpl: fakeFetch([]) });
   await assert.rejects(handleHercules({ user, body: { messages: [{ role: 'user', content: 'more' }] }, config, quota, now, fetchImpl: fakeFetch([]) }), e => e.code === 'hercules-limit' && e.status === 429);
 });
@@ -89,7 +89,7 @@ test('Supabase: the routes count per profile and report the limit', async () => 
   };
   const { token } = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body;
   assert.equal((await call('GET', '/api/hercules')).status, 401);
-  assert.deepEqual((await call('GET', '/api/hercules', null, token)).body, { on: true, perDay: 2, left: 2 });
+  assert.deepEqual((await call('GET', '/api/hercules', null, token)).body, { on: true, perDay: 2, left: 2, model: 'GPT-OSS 120B' });
   const msg = { messages: [{ role: 'user', content: 'How many sets for chest?' }], lang: 'es', context: 'Workouts: none' };
   const a = await call('POST', '/api/hercules', msg, token);
   assert.equal(a.status, 200);
@@ -151,7 +151,7 @@ test('both servers\' routes: Athena has her own count, and her own model answers
   const token = signup.body?.token;
   assert.ok(token, JSON.stringify(signup));
   const msg = { messages: [{ role: 'user', content: 'hi' }], lang: 'en' };
-  assert.deepEqual(await call('GET', '/api/athena', null, token).then(r => r.body), { on: true, perDay: 20, left: 20 });
+  assert.deepEqual(await call('GET', '/api/athena', null, token).then(r => r.body), { on: true, perDay: 20, left: 20, model: 'Qwen 3.8 27B' });
   const h = await call('POST', '/api/hercules', msg, token);
   assert.equal(h.body.reply, 'Hercules here.'); assert.equal(h.body.left, 19);
   const a = await call('POST', '/api/athena', msg, token);
@@ -192,7 +192,7 @@ test('Chiron coaches in the workout: brief, on Hercules\'s key, 15 messages a da
     return { status: res.status, body: await res.json().catch(() => null) };
   };
   const token = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body?.token;
-  assert.deepEqual((await call('GET', '/api/chiron', null, token)).body, { on: true, perDay: CHIRON_DEFAULTS.perDay, left: CHIRON_DEFAULTS.perDay });
+  assert.deepEqual((await call('GET', '/api/chiron', null, token)).body, { on: true, perDay: CHIRON_DEFAULTS.perDay, left: CHIRON_DEFAULTS.perDay, model: 'GPT-OSS 120B' });
   const r = await call('POST', '/api/chiron', { messages: [{ role: 'user', content: 'How long should I rest?' }], lang: 'en' }, token);
   assert.equal(r.body.reply, 'Rest 2:30.');
   assert.equal(r.body.left, CHIRON_DEFAULTS.perDay - 1);
@@ -226,4 +226,15 @@ test('the coaches\' memory: notes they can edit and insights they do not see, di
   // An answer that is not the JSON asked for changes nothing and costs nothing.
   const bad = await call('POST', '/api/coach/memory', { messages: [{ coach: 'athena', content: 'x' }], notes: ['A'], insights: ['B'] }, token);
   assert.deepEqual(bad.body, { notes: ['A'], insights: ['B'], left: MEMORY.perDay - 1 });
+});
+
+test('Athena thinks with other models than Hercules, and both know they share the conversation', () => {
+  // Qwen first, Llama when it is busy: never one of the OpenAI open models Hercules runs on.
+  for (const m of [ATHENA_DEFAULTS.model, ATHENA_DEFAULTS.fallback]) assert.doesNotMatch(m, /gpt-oss|openai/);
+  assert.match(DEFAULTS.model, /gpt-oss/);
+  assert.equal(modelLabel(ATHENA_DEFAULTS.model), 'Qwen 3.8 27B');
+  assert.equal(modelLabel(ATHENA_DEFAULTS.fallback), 'Llama 3.3 70B');
+  assert.match(systemPrompt({ coach: 'athena' }), /\[Hercules answered this one\]/);
+  assert.match(systemPrompt({ coach: 'hercules' }), /\[Athena answered this one\]/);
+  assert.doesNotMatch(systemPrompt({ coach: 'chiron' }), /answered this one/);
 });

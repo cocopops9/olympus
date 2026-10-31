@@ -21,6 +21,8 @@ import { exerciseNameFor } from './i18n.js'
 import { speedUnitOf } from './speed.js'
 import { createPost, editPost, deletePost, socialReady, workoutPostSummary } from './social.js'
 import { stampWorkout } from './sync-merge.js'
+import { setCover, learnCovers } from './workout-cover.js'
+import { fetchProfile } from './social.js'
 
 export const POSTED_EVENT = 'olympus:posted'
 const RETRY_MS = 60000
@@ -69,12 +71,16 @@ export const postDetails = (S, w) => (w?.id && S?.wpostEdit?.[w.id]) || null
  * shows in the history too. Writing any of it means the workout is meant to be posted: one taken
  * back or never queued goes in the queue. In place on `s`.
  */
-export function setPostDetails(s, w, { title, text = '', photos = [] } = {}) {
+export function setPostDetails(s, w, { title, text = '', photos = [], song } = {}) {
   if (!w?.id) return
   const rec = s.workouts.find(x => x.id === w.id)
   const name = String(title ?? '').trim().slice(0, 80)
   if (rec && name && name !== rec.name) { rec.name = name; stampWorkout(rec) }
-  s.wpostEdit = { ...(s.wpostEdit || {}), [w.id]: { text: String(text || '').trim().slice(0, 1000), photos: [...new Set(photos)].slice(0, 4) } }
+  // The song: { id, title }, null when taken off; left out when the editor never touched it.
+  const tune = song === undefined ? {} : { song: song && song.id ? { id: String(song.id), title: String(song.title || '').slice(0, 80) } : null }
+  s.wpostEdit = { ...(s.wpostEdit || {}), [w.id]: { text: String(text || '').trim().slice(0, 1000), photos: [...new Set(photos)].slice(0, 4), ...tune } }
+  // The list shows the first photo as the workout's picture straight away (lib/workout-cover.js).
+  setCover(w.id, photos[0] || null)
   const v = s.wposts?.[w.id]
   if (v === undefined || v === '-') s.wposts = { ...(s.wposts || {}), [w.id]: '' }
 }
@@ -82,7 +88,10 @@ export function setPostDetails(s, w, { title, text = '', photos = [] } = {}) {
 const dropDetails = wid => useStore.getState().update(s => {
   if (s.wpostEdit && wid in s.wpostEdit) { const n = { ...s.wpostEdit }; delete n[wid]; s.wpostEdit = n }
 })
-const announce = post => { if (post?.id && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POSTED_EVENT, { detail: post })) }
+const announce = post => {
+  if (post?.wid) learnCovers([post])
+  if (post?.id && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POSTED_EVENT, { detail: post }))
+}
 
 /** The post state of workout `w`: 'none', 'waiting', 'posted' (with its id) or 'off'. */
 export function postState(S, w) {
@@ -119,7 +128,7 @@ export function flushPosts() {
       if (!w) { useStore.getState().update(s => { if (s.wposts) { const n = { ...s.wposts }; delete n[wid]; s.wposts = n } }); continue }
       const details = S.wpostEdit?.[wid] || null
       let post
-      try { post = await createPost({ text: details?.text || '', photos: details?.photos, workout: summaryFor(w, S), wid }) } catch (e) {
+      try { post = await createPost({ text: details?.text || '', photos: details?.photos, song: details?.song || undefined, workout: summaryFor(w, S), wid }) } catch (e) {
         if (!final(e)) return
         useStore.getState().update(s => { s.wposts = { ...(s.wposts || {}), [wid]: '-' } })
         dropDetails(wid)
@@ -133,7 +142,8 @@ export function flushPosts() {
       })
       // A retry finds the post made the first time, before the description was written: the
       // edit pass below brings it up to date. Otherwise what was written went out with it.
-      if (!gone && details && post && (post.text || '') === details.text && JSON.stringify(post.photos || []) === JSON.stringify(details.photos || [])) dropDetails(wid)
+      if (!gone && details && post && (post.text || '') === details.text && JSON.stringify(post.photos || []) === JSON.stringify(details.photos || [])
+        && (details.song === undefined || (post.song?.id || null) === (details.song?.id || null))) dropDetails(wid)
       if (!gone) announce(post)
     }
     // Descriptions, photos and titles written for posts already in the feed.
@@ -143,7 +153,7 @@ export function flushPosts() {
       const w = S.workouts.find(x => x.id === wid)
       if (!id || id === '-' || !w) { if (id !== '') dropDetails(wid); continue }
       let post
-      try { post = await editPost({ id, text: details.text, photos: details.photos, workout: summaryFor(w, S) }) } catch (e) {
+      try { post = await editPost({ id, text: details.text, photos: details.photos, workout: summaryFor(w, S), ...(details.song !== undefined ? { song: details.song } : {}) }) } catch (e) {
         if (e?.status === 404) { useStore.getState().update(s => { s.wposts = { ...(s.wposts || {}), [wid]: '-' } }); dropDetails(wid); continue }
         if (!final(e)) return
         dropDetails(wid)
@@ -168,5 +178,16 @@ export function startAutoPost() {
   window.addEventListener('online', kick)
   const timer = setInterval(kick, RETRY_MS)
   kick()
-  return () => { unsub(); window.removeEventListener('online', kick); clearInterval(timer) }
+  // Once per start, as soon as the account can reach its server: the pictures of your own
+  // recent posts, for the workouts they came from (lib/workout-cover.js).
+  let learned = false
+  const learn = () => {
+    const st = useStore.getState()
+    if (learned || !socialReady(st.user) || !st.ready) return
+    learned = true
+    fetchProfile().then(p => learnCovers(p?.posts), () => { learned = false })
+  }
+  const unlearn = useStore.subscribe(learn)
+  learn()
+  return () => { unsub(); unlearn(); window.removeEventListener('online', kick); clearInterval(timer) }
 }

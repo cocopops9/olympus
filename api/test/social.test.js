@@ -332,6 +332,35 @@ test('a photo loses its metadata, keeps its picture', () => {
   assert.equal(photoType(Buffer.from('GIF89a')), null);
 });
 
+test('a post\'s song: a WAV clip of its owner, on one post, taken off or replaced on an edit, gone with the post', t => {
+  const { s, dir } = store(t, [ANNA, BEN]);
+  const wav = n => { const b = Buffer.alloc(44 + n * 2); b.write('RIFF', 0, 'latin1'); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVE', 8, 'latin1'); b.write('fmt ', 12, 'latin1'); b.write('data', 36, 'latin1'); return b; };
+  const { id } = s.uploadSong(ANNA, 'data:audio/wav;base64,' + wav(1000).toString('base64'));
+  const onDisk = path.join(dir, 'social-photos', id + '.wav');
+  assert.ok(fs.existsSync(onDisk));
+  assert.throws(() => s.createPost(BEN, { text: 'x', song: { id, title: 'Mine' } }), /unknown song/, 'someone else’s clip');
+  assert.throws(() => s.createPost(ANNA, { photos: [id] }), /unknown photo/, 'a song is not a photo');
+  const p = s.createPost(ANNA, { text: 'Leg day', song: { id, title: '  Eye of the Tiger  ' } });
+  assert.deepEqual(p.song, { id, title: 'Eye of the Tiger' });
+  assert.equal(s.photo(BEN, id).type, 'audio/wav');
+  assert.throws(() => s.createPost(ANNA, { text: 'again', song: { id } }), /unknown song/, 'already on a post');
+  // An edit that leaves the song out keeps it; a new one replaces it (the old file goes); null takes it off.
+  assert.deepEqual(s.editPost(ANNA, { id: p.id, text: 'Leg day!' }).song, { id, title: 'Eye of the Tiger' });
+  const other = s.uploadSong(ANNA, wav(10).toString('base64')).id;
+  assert.deepEqual(s.editPost(ANNA, { id: p.id, song: { id: other, title: 'Lose Yourself' } }).song, { id: other, title: 'Lose Yourself' });
+  assert.ok(!fs.existsSync(onDisk));
+  assert.equal(s.editPost(ANNA, { id: p.id, song: null }).song, undefined);
+  assert.ok(!fs.existsSync(path.join(dir, 'social-photos', other + '.wav')));
+  // Refusals: not a WAV, too large.
+  assert.throws(() => s.uploadSong(ANNA, Buffer.from('ID3....mp3 data here and more').toString('base64')), /WAV/);
+  assert.throws(() => s.uploadSong(ANNA, wav(LIMITS.songBytes).toString('base64')), /too large/);
+  // Gone with its post.
+  const third = s.uploadSong(ANNA, wav(5).toString('base64')).id;
+  const q = s.createPost(ANNA, { text: 'Arms', song: { id: third, title: 'x' } });
+  s.deletePost(ANNA, q.id);
+  assert.ok(!fs.existsSync(path.join(dir, 'social-photos', third + '.wav')));
+});
+
 test('photos attach to one post of their owner, follow its visibility, and go with it', t => {
   const { s, dir, tick } = store(t, [ANNA, BEN, DANA]);
   const { id } = s.uploadPhoto(ANNA, jpeg().toString('base64'));

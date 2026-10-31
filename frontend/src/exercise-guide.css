@@ -58,3 +58,14 @@
 .eqv{margin:6px 0 10px}
 .eqv-h{margin:0 2px 6px}
 .eqv .chips{flex-wrap:wrap;overflow:visible}
+/* Olympus: the equipment chips with a drawing under the name (components/EquipIcon.jsx). */
+.chip.eq-fam:has(.eq-ico){flex-direction:column;justify-content:center;gap:3px;padding-top:7px;padding-bottom:6px;height:auto;min-height:0}
+.chip.eq-fam .eq-top{display:inline-flex;align-items:center;gap:4px;line-height:1.15}
+.eq-ico{flex:none;display:block}
+.eq-ico .f{fill:color-mix(in srgb,var(--acc) 26%,transparent)}
+.chip.eq-fam .eq-ico{opacity:.85}
+.chip.eq-fam.on .eq-ico{opacity:1}
+.chip.eq-fam.on .eq-ico .f{fill:color-mix(in srgb,var(--on-acc,#000) 18%,transparent)}
+.eq-tile{width:44px;height:44px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);color:var(--label);margin-inline-end:12px}
+.chip.eq-fam:has(.eq-ico){border-radius:16px;min-width:76px;padding-left:12px;padding-right:12px}

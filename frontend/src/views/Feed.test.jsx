@@ -124,9 +124,10 @@ describe('Feed with a server profile', () => {
 })
 
 describe('Suggested people (Olympus)', () => {
-  beforeEach(() => useStore.setState({ user: { id: 'u_a', name: 'Anna' } }))
+  beforeEach(() => { localStorage.clear(); useStore.setState({ user: { id: 'u_a', name: 'Anna' } }) })
+  const cards = () => [...host.querySelectorAll('.sugg-card .sugg-n')].map(n => n.textContent)
 
-  it('opens on Suggested for someone who follows nobody, with the founder first', async () => {
+  it('shows the people to follow at the top of Following for someone who follows nobody, the founder first', async () => {
     mocks.profile.mockResolvedValue({ user: { id: 'u_a', following: 0 } })
     mocks.feed.mockResolvedValue({ posts: [], next: null })
     mocks.suggested.mockResolvedValue([
@@ -136,21 +137,49 @@ describe('Suggested people (Olympus)', () => {
     await act(async () => root.render(<Feed />))
     await flush(); await flush()
     expect(text()).toContain('Suggested for you')
-    const names = [...host.querySelectorAll('.person-n')].map(n => n.textContent)
-    expect(names[0]).toContain('Chaos')
-    expect(names[1]).toContain('Ben')
+    expect(cards()[0]).toContain('Chaos')
+    expect(cards()[1]).toContain('Ben')
+    // no tab of its own any more
+    expect(host.querySelector('.feed-tabs').textContent).not.toContain('Suggested')
   })
 
-  it('stays on Following for someone who follows people, with Suggested one tap away', async () => {
-    mocks.feed.mockResolvedValue({ posts: [post('p1')], next: null })
+  it('slips the strip in after the third post for someone who follows people, and the X hides it', async () => {
+    mocks.feed.mockResolvedValue({ posts: [post('p1'), post('p2'), post('p3'), post('p4')], next: null })
     mocks.suggested.mockResolvedValue([{ id: 'u_c', name: 'Chaos', founder: true, followers: 12, posts: 3 }])
     await act(async () => root.render(<Feed />))
+    await flush(); await flush()
+    expect(text()).toContain('Leg day p1')
+    const strip = host.querySelector('.sugg')
+    expect(strip).not.toBeNull()
+    // after p3, before p4
+    const order = [...host.querySelectorAll('.post, .sugg')].map(e => (e.classList.contains('sugg') ? 'S' : e.textContent.match(/p\d/)?.[0]))
+    expect(order).toEqual(['p1', 'p2', 'p3', 'S', 'p4'])
+    expect(cards()).toEqual([expect.stringContaining('Chaos')])
+    await act(async () => strip.querySelector('[aria-label="Hide"]').click())
+    expect(host.querySelector('.sugg')).toBeNull()
+  })
+})
+
+describe('the feed at start (Olympus)', () => {
+  beforeEach(() => { localStorage.clear(); useStore.setState({ user: { id: 'u_a', name: 'Anna' } }) })
+  it('a first try that does not reach the server is tried again by itself, without Try again', async () => {
+    mocks.feed
+      .mockRejectedValueOnce(Object.assign(new Error('This phone is not connected to a server.'), { code: 'not-paired', status: 0 }))
+      .mockResolvedValue({ posts: [post('p1')], next: null })
+    await act(async () => root.render(<Feed />))
+    await flush()
+    expect(text()).toContain('Connect to the internet to use the feed.')
+    await act(() => new Promise(r => setTimeout(r, 2100)))
     await flush()
     expect(text()).toContain('Leg day p1')
-    expect(text()).not.toContain('Suggested for you')
-    await act(async () => button('Suggested').click())
+    expect(mocks.feed).toHaveBeenCalledTimes(2)
+  })
+  it('a refusal that will not pass waits for Try again', async () => {
+    mocks.feed.mockRejectedValue(Object.assign(new Error('nope'), { status: 401 }))
+    await act(async () => root.render(<Feed />))
     await flush()
-    expect(text()).toContain('Suggested for you')
-    expect(text()).toContain('Chaos')
+    await act(() => new Promise(r => setTimeout(r, 2100)))
+    expect(mocks.feed).toHaveBeenCalledTimes(1)
+    expect(text()).toContain('Sign in again to use the feed.')
   })
 })

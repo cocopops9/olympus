@@ -17,6 +17,7 @@ import Media, { Thumb } from './components/Media.jsx'
 import CustomMediaField from './components/CustomMediaField.jsx'
 import WorkoutMediaSection, { workoutMediaCount } from './components/WorkoutMedia.jsx'
 import { CustomThumb } from './components/CustomMedia.jsx'
+import { useCover } from './lib/workout-cover.js'
 import { mediaOf, normalizeMediaRef, cleanUrl, workoutMediaOf } from './lib/media-refs.js'
 import { syncMedia } from './lib/media-sync.js'
 import LineChart from './components/LineChart.jsx'
@@ -40,7 +41,7 @@ import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
 import { titleWorkout } from './lib/workout-title.js'
 import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn } from './lib/auto-post.js'
-import { socialReady } from './lib/social.js'
+import { socialReady, avatarUrl } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
 import { parseImport, mergeImport, sessionClash } from './lib/import-csv.js'
@@ -2814,6 +2815,20 @@ export function Calendar({ start, close }) {
 export const calendarSheet = start => ui().openSheet(close => <Calendar start={start} close={close} />)
 
 /* shared small workout row (used in lists) */
+// A post's photo, small: the routine's icon until it has loaded, and if it cannot be.
+function CoverThumb({ id, glyph }) {
+  const [url, setUrl] = useState(null)
+  useEffect(() => {
+    let live = true
+    setUrl(null)
+    avatarUrl(id).then(u => { if (live) setUrl(u) }, () => {})
+    return () => { live = false }
+  }, [id])
+  return url
+    ? <span className="lrow-i wrow-photo" style={{ width: 34, height: 34, borderRadius: 8 }}><img src={url} alt="" /></span>
+    : <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
+}
+
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
@@ -2821,9 +2836,12 @@ export function WorkoutRow({ w, onClick }) {
   // Olympus: a workout with a photo shows it, small, where the routine's icon would be: the week
   // reads at a glance as the sessions it was. Only a photo (a video shows its icon as before).
   const photo = workoutMediaOf(w).find(m => m && m.kind !== 'video')
+  // Otherwise the first photo of the workout's post in the feed (lib/workout-cover.js).
+  const cover = useCover(w.id)
   return <div className="item" {...tappable(onClick)}>
     {photo
       ? <span className="lrow-i wrow-photo" style={{ width: 34, height: 34, borderRadius: 8 }}><CustomThumb ex={{ custom: true, media: photo }} /></span>
+      : cover ? <CoverThumb id={cover} glyph={glyph} />
       : <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>}
     <div className="grow"><div className="tt">{w.name}</div>
       <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), tn('{0} set', '{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>

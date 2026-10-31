@@ -14,6 +14,11 @@ import { getLang } from './i18n.js'
 
 export const MAX_KEPT = 40       // messages kept per conversation
 export const MAX_CHATS = 20      // conversations kept per coach
+// Hercules and Athena share their conversations (lib/hercules.js TEAM): one list, each answer
+// marked with the coach who gave it. Kept under this coach id; their older separate lists are
+// folded in when the memory is read.
+export const TEAM = 'team'
+const TEAM_OF = ['hercules', 'athena']
 const LEGACY = ['hercules', 'athena']
 const DAY = 86400000
 
@@ -72,6 +77,22 @@ export function loadMemory(uid) {
       mem.current.hercules = mem.current.hercules || id
     }
   }
+  // Hercules's and Athena's separate conversations of earlier versions: one shared list, each
+  // answer keeping who gave it, the one open last staying open.
+  const apart = mem.chats.filter(c => TEAM_OF.includes(c.coach))
+  if (apart.length) {
+    migrated = true
+    const last = apart.slice().sort((a, b) => b.ts - a.ts)[0]
+    const lastCoach = last.coach
+    for (const c of apart) {
+      const was = c.coach
+      c.messages = c.messages.map(m => (m.role === 'assistant' && !m.coach ? { ...m, coach: was } : m))
+      c.coach = TEAM
+    }
+    if (!mem.current[TEAM]) mem.current[TEAM] = mem.current[lastCoach] || mem.current.hercules || mem.current.athena || last.id
+    delete mem.current.hercules
+    delete mem.current.athena
+  }
   if (migrated) {
     saveMemory(uid, mem)
     try {
@@ -118,7 +139,7 @@ export function forgetCoach(uid, coach) {
   saveMemory(uid, mem)
 }
 
-const NAMES = { hercules: 'Hercules', athena: 'Athena', chiron: 'Chiron' }
+const NAMES = { hercules: 'Hercules', athena: 'Athena', chiron: 'Chiron', team: 'Hercules and Athena' }
 const clip = (s, n) => { const v = String(s || '').replace(/\s+/g, ' ').trim(); return v.length > n ? v.slice(0, n - 1).trimEnd() + '\u2026' : v }
 
 /**

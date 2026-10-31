@@ -9,7 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
 import { socialReady } from '../lib/social.js'
-import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS } from '../lib/hercules.js'
+import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS, BOTH, chatBucket, TEAM } from '../lib/hercules.js'
 import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine, Reply } from '../components/Hercules.jsx'
 import { ownCoachSheet } from '../components/OwnCoach.jsx'
 import { isOwn, ownCoach, providerOf } from '../lib/own-coach.js'
@@ -23,6 +23,7 @@ import { splitActions } from '../lib/coach-actions.js'
 const ROLE = {
   hercules: () => t('Your motivator: training, technique and nutrition.'),
   athena: () => t('Your strategist: the data, the plan and the why.'),
+  both: () => t('Both answer each message: Hercules first, then Athena builds on it.'),
 }
 
 const hello = name => {
@@ -33,9 +34,10 @@ const hello = name => {
 function ModelMenu({ coach, ons, pick, close, own }) {
   const uid = useStore.getState().user?.id
   return <div className="cai-models" role="menu">
-    {COACH_IDS.map(id => {
-      const st = statusOf(uid, id)
-      return <button key={id} role="menuitem" className={'cai-model' + (id === coach ? ' on' : '')} disabled={!ons[id]}
+    {[...COACH_IDS, BOTH].map(id => {
+      const st = id === BOTH ? null : statusOf(uid, id)
+      const on = id === BOTH ? COACH_IDS.every(x => ons[x]) : ons[id]
+      return <button key={id} role="menuitem" className={'cai-model' + (id === coach ? ' on' : '')} disabled={!on}
         onClick={() => { close(); pick(id) }}>
         <Avatar size="md" coach={id} />
         <span className="grow">
@@ -65,11 +67,12 @@ function Drawer({ coach, current, open, onOpen, onNew, onClose, version, bump, o
   const uid = useStore(s => s.user?.id)
   const [hidden, setHidden] = useState(() => fabHidden())
   // Both coaches' conversations, read again whenever one changes (`version`).
-  const lists = useMemo(() => [...COACH_IDS, ...own.map(c => c.id)].map(id => [id, loadChats(uid, id).chats]), [uid, version, open, own])
+  // Hercules and Athena share one list (lib/hercules.js TEAM); each coach of your own has its own.
+  const lists = useMemo(() => [TEAM, ...own.map(c => c.id)].map(id => [id, loadChats(uid, id).chats]), [uid, version, open, own])
   const remove = (id, chatId) => {
     saveChats(uid, dropChat(loadChats(uid, id), chatId), id)
     // The conversation on screen is gone: a new one takes its place.
-    if (id === coach && chatId === current) onNew()
+    if (id === chatBucket(coach) && chatId === current) onNew()
     bump()
   }
   return <>
@@ -83,8 +86,8 @@ function Drawer({ coach, current, open, onOpen, onNew, onClose, version, bump, o
       <div className="cai-dl">
         {lists.every(([, l]) => !l.length) && <div className="cai-dempty small muted">{t('No conversations yet.')}</div>}
         {lists.map(([id, list]) => list.length > 0 && <div key={id} className="cai-dgroup">
-          <div className="cai-dgh"><Avatar size="xs" badge={false} coach={id} />{coachName(id)}</div>
-          {list.map(c => <div key={c.id} className={'cai-ditem' + (id === coach && c.id === current ? ' on' : '')}>
+          <div className="cai-dgh"><Avatar size="xs" badge={false} coach={id === TEAM ? BOTH : id} />{coachName(id === TEAM ? BOTH : id)}</div>
+          {list.map(c => <div key={c.id} className={'cai-ditem' + (id === chatBucket(coach) && c.id === current ? ' on' : '')}>
             <button className="cai-dopen" onClick={() => onOpen(id, c.id)}>
               <span className="cai-dt">{c.title || t('New conversation')}</span>
               <span className="cai-dd">{whenOf(c.ts)}</span>
@@ -115,6 +118,8 @@ function Conversation({ coach, chatId, onChange, voice = false }) {
   const mic = useRef(null)
   const seen = useRef(list.length)
   const [speaking, setSpeaking] = useState(false)
+  // With both coaches answering, each answer is read as it comes, and the microphone opens once
+  // the last one has been read.
   useEffect(() => {
     const grew = list.length > seen.current
     seen.current = list.length
@@ -122,9 +127,11 @@ function Conversation({ coach, chatId, onChange, voice = false }) {
     if (!voice || !grew || lastMsg?.role !== 'assistant') return
     let gone = false
     setSpeaking(true)
-    speak(splitActions(lastMsg.content).text).finally(() => { if (gone) return; setSpeaking(false); mic.current?.start() })
+    speak(splitActions(lastMsg.content).text).finally(() => { if (gone) return; setSpeaking(false); if (!busyRef.current) mic.current?.start() })
     return () => { gone = true; stopSpeaking(); setSpeaking(false) }
   }, [list.length, voice])
+  const busyRef = useRef(busy)
+  busyRef.current = busy
   useEffect(() => { if (!voice) { stopSpeaking(); mic.current?.stop() } }, [voice])
   const first = String(user?.name || '').split(/\s+/)[0]
   return <>
@@ -132,21 +139,24 @@ function Conversation({ coach, chatId, onChange, voice = false }) {
       <div className="cai-col">
         {!list.length && <div className="cai-hi">
           <Avatar size="xl" coach={coach} />
-          <h2>{first ? hello(first) : t('Hi, I am {0}.', name)}</h2>
+          <h2>{first ? hello(first) : coach === BOTH ? t('Hi, we are Hercules and Athena.') : t('Hi, I am {0}.', name)}</h2>
           <p className="muted">{ROLE[coach] ? ROLE[coach]() : t('Your own AI coach')}</p>
           <div className="cai-sugg">
             {suggestions.map(s => <button key={s} className="cai-card" onClick={() => send(s)}><Icon name="sparkles" /><span>{s}</span></button>)}
           </div>
           <div style={{ width: '100%', maxWidth: 560 }}><GoalsLine /></div>
         </div>}
-        {list.map((m, i) => (m.role === 'user'
-          ? <div key={i} className="cai-me">{m.content}</div>
-          : <div key={i} className="cai-him">
-            {list[i - 1]?.role !== 'assistant' && <div className="cai-who"><Avatar size="sm" badge={false} coach={coach} />{name}</div>}
+        {list.map((m, i) => {
+          if (m.role === 'user') return <div key={i} className="cai-me">{m.content}</div>
+          const by = c.authorOf(m)
+          const prev = list[i - 1]
+          return <div key={i} className="cai-him">
+            {!(prev?.role === 'assistant' && c.authorOf(prev) === by) && <div className="cai-who"><Avatar size="sm" badge={false} coach={by} />{coachName(by)}</div>}
             <div className="cai-text"><Reply m={m} onApplied={k => markApplied(i, k)} /></div>
-          </div>))}
-        {busy && <div className="cai-him"><div className="cai-who"><Avatar size="sm" badge={false} live coach={coach} />{name}</div>
-          <div className="hc-typing" aria-label={t('{0} is writing…', name)}><i /><i /><i /></div></div>}
+          </div>
+        })}
+        {busy && <div className="cai-him"><div className="cai-who"><Avatar size="sm" badge={false} live coach={c.writing} />{coachName(c.writing)}</div>
+          <div className="hc-typing" aria-label={t('{0} is writing…', coachName(c.writing))}><i /><i /><i /></div></div>}
         {err && <div className="hc-err" role="alert">{err}</div>}
         <div ref={end} />
       </div>
@@ -171,7 +181,7 @@ export default function CoachAI() {
   const user = useStore(s => s.user)
   const ready = socialReady(user)
   const asked = params.get('c')
-  const [coach, setCoach] = useState(() => (COACH_IDS.includes(asked) || (isOwn(asked) && ownCoach(user?.id, asked)) ? asked : lastCoach(user?.id) || 'hercules'))
+  const [coach, setCoach] = useState(() => (COACH_IDS.includes(asked) || asked === BOTH || (isOwn(asked) && ownCoach(user?.id, asked)) ? asked : lastCoach(user?.id) || 'hercules'))
   const [chat, setChat] = useState(() => params.get('chat') || null)
   const [drawer, setDrawer] = useState(false)
   const [models, setModels] = useState(false)
@@ -192,8 +202,17 @@ export default function CoachAI() {
   useEffect(() => { if (!models) return; const off = e => { if (!e.target.closest?.('.cai-models, .cai-pick')) setModels(false) }; document.addEventListener('pointerdown', off); return () => document.removeEventListener('pointerdown', off) }, [models])
 
   const own = useOwnCoaches()
-  const pick = id => { setCoach(id); setChat(null); setLastCoach(user?.id, id); setParams({ c: id }, { replace: true }) }
-  const openChat = (id, chatId) => { setCoach(id); setChat(chatId); setLastCoach(user?.id, id); setDrawer(false); setParams({ c: id, chat: chatId }, { replace: true }); bump() }
+  const pick = id => {
+    const keep = chatBucket(id) === chatBucket(coach)
+    setCoach(id); if (!keep) setChat(null); setLastCoach(user?.id, id)
+    setParams(keep && chat ? { c: id, chat } : { c: id }, { replace: true })
+  }
+  // A conversation of the shared list opens with whoever answers there now.
+  const openChat = (id, chatId) => {
+    const last = lastCoach(user?.id)
+    const next = id === TEAM ? (chatBucket(coach) === TEAM ? coach : chatBucket(last) === TEAM ? last : 'hercules') : id
+    setCoach(next); setChat(chatId); setLastCoach(user?.id, next); setDrawer(false); setParams({ c: next, chat: chatId }, { replace: true }); bump()
+  }
   const newChat = () => { setChat('new'); setDrawer(false); setParams({ c: coach }, { replace: true }); bump() }
   const leave = () => (window.history.length > 1 ? nav(-1) : nav('/profile'))
 
@@ -214,7 +233,7 @@ export default function CoachAI() {
         <button className="iconbtn" onClick={leave} aria-label={t('Close')}><Icon name="xmark" /></button>
         {models && <ModelMenu coach={coach} ons={ons} pick={pick} close={() => setModels(false)} own={own} />}
       </header>
-      <Conversation key={coach} coach={coach} chatId={chat} voice={voice && canVoice}
+      <Conversation key={chatBucket(coach)} coach={coach} chatId={chat} voice={voice && canVoice}
         onChange={id => { if (id && id !== chat) { setChat(id); setParams({ c: coach, chat: id }, { replace: true }) } bump() }} />
     </div>
   </div>

@@ -34,7 +34,7 @@ const type = text => {
 }
 
 describe('AI coach, full screen', () => {
-  it('greets by name, sends to the coach picked like a model, and lists both coaches in the drawer', async () => {
+  it('greets by name; switching Hercules to Athena keeps the conversation, and the drawer lists it once', async () => {
     act(() => root.render(<MemoryRouter initialEntries={['/ai']}><CoachAI /></MemoryRouter>))
     await flush()
     expect(host.textContent).toMatch(/Giuseppe/)
@@ -42,17 +42,23 @@ describe('AI coach, full screen', () => {
     type('Squat tips'); await flush(); await flush()
     expect(host.textContent).toContain('Answer from hercules')
     act(() => host.querySelector('.cai-pick').click())
-    act(() => [...host.querySelectorAll('.cai-model')].find(b => b.textContent.includes('Athena')).click())
+    act(() => [...host.querySelectorAll('.cai-model')].find(b => b.textContent.includes('Athena') && !b.textContent.includes('Hercules')).click())
     await flush()
     expect(host.querySelector('.cai-pick').textContent).toContain('Athena')
+    // the same conversation: Hercules's answer is still on screen, Athena answers the next one
+    expect(host.querySelector('.cai-me').textContent).toBe('Squat tips')
     type('Deload plan'); await flush(); await flush()
     expect(mocks.coaches).toEqual(['hercules', 'athena'])
+    expect([...host.querySelectorAll('.cai-who')].map(e => e.textContent)).toEqual(['Hercules', 'Athena'])
     const titles = [...host.querySelectorAll('.cai-dt')].map(e => e.textContent)
-    expect(titles).toEqual(['Squat tips', 'Deload plan'])
-    // the Hercules conversation opens again, under Hercules
-    act(() => host.querySelectorAll('.cai-dopen')[0].click())
+    expect(titles).toEqual(['Squat tips'])
+    // a new conversation, then the first one again: it opens with Athena still answering
+    act(() => host.querySelector('.cai-new').click())
     await flush()
-    expect(host.querySelector('.cai-pick').textContent).toContain('Hercules')
+    type('Mobility'); await flush(); await flush()
+    expect([...host.querySelectorAll('.cai-dt')].map(e => e.textContent)).toEqual(['Mobility', 'Squat tips'])
+    act(() => host.querySelectorAll('.cai-dopen')[1].click())
+    await flush()
     expect(host.querySelector('.cai-me').textContent).toBe('Squat tips')
   })
 

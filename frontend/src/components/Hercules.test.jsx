@@ -86,10 +86,12 @@ describe('Hercules', () => {
     expect(chat.querySelectorAll('.hc-m.him li')).toHaveLength(2)
     expect(chat.textContent).toContain('19 messages left today')
     // kept on the device for next time
-    const kept = chatsOf(useStore.getState().user.id, 'hercules')
+    const kept = chatsOf(useStore.getState().user.id, 'team')
     expect(kept.chats).toHaveLength(1)
     expect(kept.chats[0].title).toBe('Plan my training for next week')
     expect(kept.chats[0].messages.map(m => m.role)).toEqual(['user', 'assistant'])
+    // the answer keeps who gave it: Hercules and Athena share the conversations
+    expect(kept.chats[0].messages[1].coach).toBe('hercules')
     // his answer comes with his avatar
     expect(chat.querySelector('.hc-row .hc-av')).not.toBeNull()
   })
@@ -136,7 +138,7 @@ describe('Hercules', () => {
     act(() => menuBtn().click())
     act(() => chat.querySelector('.hc-conv [aria-label="Delete conversation"]').click())
     expect([...chat.querySelectorAll('.hc-conv-t')].map(e => e.textContent)).toEqual(['How much protein?'])
-    const kept = chatsOf(useStore.getState().user.id, 'hercules')
+    const kept = chatsOf(useStore.getState().user.id, 'team')
     expect(kept.chats.map(c => c.title)).toEqual(['How much protein?'])
   })
 
@@ -182,38 +184,42 @@ describe('Hercules', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('Athena is the other coach: pills to switch, her own conversations, and the button remembers her', async () => {
+  it('Hercules and Athena share the conversation: the pills pick who answers, Both asks one then the other', async () => {
     const uid = useStore.getState().user.id
     herculesSheet()
     const chat = renderTopSheet()
     await flush(); await flush()
-    expect(chat.querySelectorAll('.hc-pill:not(.hc-add)')).toHaveLength(2)
+    // Hercules, Athena and Both
+    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Hercules', 'Athena', 'Both'])
     expect(chat.querySelector('.hc-name').textContent).toBe('Hercules')
     type(chat, 'Question for Hercules'); await flush(); await flush()
     act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Athena').click())
     await flush()
+    // the same conversation stays open; Athena answers the next message
     expect(chat.querySelector('.hc-name').textContent).toBe('Athena')
-    expect(chat.textContent).toContain('Hi, I am Athena.')
-    expect(chat.textContent).toContain('Analyze my last 4 weeks of training')
-    expect(chat.querySelector('.hc-m.me')).toBeNull()
-    type(chat, 'Question for Athena'); await flush(); await flush()
-    expect(mocks.coaches).toEqual(['hercules', 'athena'])
-    expect(chat.querySelector('.hc-m.me').textContent).toBe('Question for Athena')
-    expect(chatsOf(uid, 'athena').chats[0].title).toBe('Question for Athena')
-    expect(chatsOf(uid, 'hercules').chats[0].title).toBe('Question for Hercules')
-    // One memory: both conversations sit in the same store on the device.
-    expect(JSON.parse(localStorage.getItem('olympus_coach_memory_' + uid)).chats.map(c => c.coach).sort()).toEqual(['athena', 'hercules'])
-    expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('athena')
-    // back to the first: his conversation is still his
-    act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Hercules').click())
-    await flush()
     expect(chat.querySelector('.hc-m.me').textContent).toBe('Question for Hercules')
-    // the chat is closed: the button shows the coach talked to last (Hercules was picked again)
+    type(chat, 'And you, Athena?'); await flush(); await flush()
+    expect(mocks.coaches).toEqual(['hercules', 'athena'])
+    // she is sent Hercules's answer as his (lib/hercules.js marks it for her)
+    expect(mocks.sent[1].find(m => m.role === 'assistant')).toMatchObject({ coach: 'hercules' })
+    const one = chatsOf(uid, 'team').chats
+    expect(one).toHaveLength(1)
+    expect(one[0].messages.filter(m => m.role === 'assistant').map(m => m.coach)).toEqual(['hercules', 'athena'])
+    // each answer is shown under the name of who gave it
+    expect([...chat.querySelectorAll('.hc-by')].map(e => e.textContent)).toEqual(['Hercules', 'Athena'])
+    expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('athena')
+    // Both: one message, two answers, Hercules then Athena
+    act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Both').click())
+    await flush()
+    type(chat, 'What do you both think?'); await flush(); await flush(); await flush()
+    expect(mocks.coaches).toEqual(['hercules', 'athena', 'hercules', 'athena'])
+    expect(chatsOf(uid, 'team').chats[0].messages.slice(-3).map(m => m.coach || m.role)).toEqual(['user', 'hercules', 'athena'])
+    // the button remembers the coach talked to last
+    act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Hercules').click())
     useUI.setState({ sheets: [] })
     const fab = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
     await flush(); await flush()
     expect(fab.querySelector('.hc-fab').getAttribute('aria-label')).toContain('Hercules')
-    expect(localStorage.getItem('olympus_coach_last_' + uid)).toBe('hercules')
     localStorage.setItem('olympus_coach_last_' + uid, 'athena')
     const again = mount(<MemoryRouter initialEntries={['/home']}><HerculesButton /></MemoryRouter>)
     await flush(); await flush()

@@ -29,6 +29,8 @@ import { MOBILE, isAndroid, shareExport, shareExportBlob, syncReminder } from '.
 import { NUDGE_COPY, NUDGE_TONES, toneOf } from '../lib/nudge.js'
 import { referencedFiles } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
+import { socialReady, fetchProfile } from '../lib/social.js'
+import { Avatar } from '../components/Social.jsx'
 import { syncMedia, fetchToStore } from '../lib/media-sync.js'
 import { getMediaStatus, subscribeMediaStatus, pendingRefCount } from '../lib/media-owed.js'
 import { limitsFrom, fmtMB, MB } from '../lib/media-limits.js'
@@ -953,6 +955,8 @@ export default function Settings({ page = null, find = null, via = null }) {
     }} />
 }
 
+const FACE_KEY = 'olympus_settings_face'
+
 function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
   // The router's key for this history entry (what useLocation().key reads), taken once.
   const [key] = useState(() => window.history.state?.key || null)
@@ -968,6 +972,20 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
     : MOBILE ? { title: t('This phone'), sub: t('All data stays on this phone') }
     : { title: t('Guest'), sub: t('Your data lives on this device. Sign in to sync.') }
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
+  // The profile picture, as everyone else sees it: asked once the account can reach its server,
+  // kept from the last time so it does not blink in on every visit.
+  const [face, setFace] = useState(() => { try { return user ? JSON.parse(localStorage.getItem(FACE_KEY))?.[user.id] ?? null : null } catch { return null } })
+  useEffect(() => {
+    if (!socialReady(user) || DEMO) return
+    let live = true
+    fetchProfile().then(p => {
+      if (!live) return
+      const a = p?.user?.avatar || null
+      setFace(a)
+      try { localStorage.setItem(FACE_KEY, JSON.stringify({ [user.id]: a })) } catch { /* shown, not kept */ }
+    }, () => {})
+    return () => { live = false }
+  }, [user?.id])
   return <div className="narrow">
     <div className="sp-nav">
       <button className="sp-back" onClick={home} aria-label={t('Profile')}><Icon name="chevronLeft" /><span>{t('Profile')}</span></button>
@@ -984,7 +1002,8 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
     </Section> : <div className="sp-empty">{t('No setting matches “{0}”.', q.trim())}</div>) : <>
       <Section>
         <button className="lrow tap sp-acct" onClick={() => open('account')}>
-          <span className={'sp-avatar' + (initial ? ' on' : '')} aria-hidden="true">{initial || <Icon name="personCircle" />}</span>
+          {initial && socialReady(user) ? <span className="sp-avatar sp-face"><Avatar user={{ ...user, avatar: face }} /></span>
+            : <span className={'sp-avatar' + (initial ? ' on' : '')} aria-hidden="true">{initial || <Icon name="personCircle" />}</span>}
           <span className="lrow-m"><span className="lrow-t">{acct.title}</span><span className="lrow-s">{acct.sub}</span></span>
           <Icon name="chevronRight" className="lrow-c" />
         </button>

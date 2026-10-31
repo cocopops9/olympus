@@ -129,7 +129,9 @@ describe('the root', () => {
     expect(titles()).toContain('Reminders')
     expect(titles()).not.toContain('AI Coach')
     expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('Dana')
-    expect(host.querySelector('.sp-avatar').textContent).toBe('D')
+    // the profile picture, as everyone sees it (a god's portrait until one is chosen; its
+    // initials while it loads)
+    expect(host.querySelector('.sp-avatar.sp-face .avatar')).not.toBeNull()
     mocks.user = null
     mocks.MOBILE = true
     mount()

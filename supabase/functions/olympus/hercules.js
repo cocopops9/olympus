@@ -29,11 +29,25 @@ export const DEFAULTS = {
   fallback: 'openai/gpt-oss-20b',
 };
 
-// Athena answers from another model family than Hercules, so the two can disagree.
+// Athena answers from other model families than Hercules, so the two think differently and can
+// disagree: Alibaba's Qwen, and Meta's Llama when Qwen is busy (or retired: it is a preview model
+// on Groq), never one of OpenAI's open models that Hercules runs on. All free on Groq's free tier.
 export const ATHENA_DEFAULTS = {
   model: 'qwen/qwen3.8-27b',
-  fallback: 'openai/gpt-oss-20b',
+  fallback: 'llama-3.3-70b-versatile',
 };
+
+/** A model id as people read it: 'openai/gpt-oss-120b' is "GPT-OSS 120B". */
+export function modelLabel(id) {
+  const m = String(id || '').split('/').pop();
+  const known = [
+    [/^gpt-oss-(\d+)b/i, x => `GPT-OSS ${x[1]}B`],
+    [/^qwen-?(\d[\d.]*)-(\d+)b/i, x => `Qwen ${x[1]} ${x[2]}B`],
+    [/^llama-(\d[\d.]*)-(\d+)b/i, x => `Llama ${x[1]} ${x[2]}B`],
+  ];
+  for (const [re, f] of known) { const x = re.exec(m); if (x) return f(x); }
+  return m.slice(0, 40);
+}
 
 // Chiron coaches during a workout, between sets: short questions, short answers. 15 a day, a
 // quarter of the 60 he started with, and the three quarters saved go into what each answer
@@ -214,6 +228,10 @@ export function systemPrompt({ name = '', lang = 'en', context = '', coach = 'he
     'Coach like a real expert who knows this person: use their training data below, refer to their actual exercises, sessions, volume and progress, and give concrete, practical answers (exercises, sets, reps, effort as RIR or RPE, rest, progression, substitutions, technique cues, food examples and amounts).',
     'Base what you say on current evidence and well-established practice; when the evidence is mixed or individual, say so in one line. Do not invent facts about the person: if something you need is missing, ask one short question.',
     c.style + ' Keep answers short: usually under 160 words, short paragraphs or a few bullet points, unless the person asks for a full plan or more detail.',
+    // Hercules and Athena share one conversation in the app; an answer by the other is marked.
+    !persona && ['hercules', 'athena'].includes(coachOf(coach))
+      ? `Hercules and Athena talk with the person in the same conversation. An earlier answer that begins with "[${coachOf(coach) === 'hercules' ? 'Athena' : 'Hercules'} answered this one]" was given by ${coachOf(coach) === 'hercules' ? 'Athena' : 'Hercules'}, not by you: build on it, add what it missed, or disagree with a reason, without repeating it. Never begin your own answer with such a mark.`
+      : '',
     'Safety: you are not a doctor. For pain, injury, numbness, dizziness, chest pain, or a medical condition, pregnancy or medication question, give general guidance at most and tell them to see a doctor or physiotherapist; never diagnose. Never give protocols for anabolic steroids or other performance-enhancing drugs.',
     'Be body-neutral. Do not push weight loss, weight targets or aesthetics, and never comment negatively on anyone\'s body; focus on strength, health, performance and how training feels. Talk about body weight or calories only when the person asks.',
     'If the person shows signs of disordered eating, compulsive exercise or self-harm, do not give calorie targets, numbers or plans; answer with care and encourage them to talk to a professional or someone they trust.',
@@ -298,8 +316,8 @@ export async function handleHercules({ user, body, config, quota, now = Date.now
   await quota(doc => { const r = spend(doc, user.id, day, config.perDay); allowed = r.ok; left = r.left; return r.doc; });
   if (!allowed) throw Object.assign(new HerculesError(429, 'no ' + COACHES[coachOf(config.coach)].name + ' messages left today', 'hercules-limit'), { left: 0 });
   try {
-    const { reply } = await askHercules({ config, messages, name: user.name, lang: clip(body?.lang, 10) || 'en', context: clip(body?.context, config?.context || LIMITS.context), fetchImpl });
-    return { reply, left, perDay: config.perDay };
+    const { reply, model } = await askHercules({ config, messages, name: user.name, lang: clip(body?.lang, 10) || 'en', context: clip(body?.context, config?.context || LIMITS.context), fetchImpl });
+    return { reply, left, perDay: config.perDay, model: modelLabel(model) };
   } catch (e) {
     await quota(doc => refund(doc, user.id, day));
     throw e;

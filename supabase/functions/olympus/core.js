@@ -22,7 +22,7 @@ import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { stampPut } from './sync-stamps.js';
-import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError } from './hercules.js';
+import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv } from './insights.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, googleClients, verifyGoogle } from './accounts.js';
@@ -279,7 +279,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         io: {
           read: () => (raw ? JSON.stringify(raw) : null),
           save: t => { saved = t; },
-          writePhoto: (id, type, buf) => { writes.push([`${id}.${type}`, buf, type === 'png' ? 'image/png' : 'image/jpeg']); },
+          writePhoto: (id, type, buf) => { writes.push([`${id}.${type}`, buf, type === 'png' ? 'image/png' : type === 'wav' ? 'audio/wav' : 'image/jpeg']); },
           deletePhoto: (id, type) => { deletes.push(`${id}.${type}`); },
         },
       });
@@ -296,7 +296,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
   const coachStatus = id => async req => {
     const { user } = await signedIn(req);
     const doc = await store.read(id);
-    return { status: 200, body: { on: !!coaches[id].key, perDay: coaches[id].perDay, left: leftToday(doc, user.id, dayOf(now()), coaches[id].perDay) } };
+    return { status: 200, body: { on: !!coaches[id].key, perDay: coaches[id].perDay, left: leftToday(doc, user.id, dayOf(now()), coaches[id].perDay), model: modelLabel(coaches[id].model) } };
   };
   const coachAsk = id => async req => {
     const { user } = await signedIn(req);
@@ -602,6 +602,10 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/social/photos': async req => {
       const { user: me } = await signedIn(req); const b = await readJson(req);
       return { body: await withSocial(s => { const r = s.uploadPhoto(me, b.data); s.sweepOrphans(); return r; }) };
+    },
+    'POST /api/social/song': async req => {
+      const { user: me } = await signedIn(req); const b = await readJson(req);
+      return { body: await withSocial(s => { const r = s.uploadSong(me, b.data); s.sweepOrphans(); return r; }) };
     },
     'GET /api/social/photo': async (req, q) => {
       const { user: me } = await signedIn(req);

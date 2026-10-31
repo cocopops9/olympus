@@ -170,3 +170,14 @@ body.no-tabbar .hc-bubble{bottom:calc(var(--sab) + 94px)}
 .hc-bubble.at-left::after{inset-inline-end:auto;inset-inline-start:22px}
 .hc-av img{-webkit-user-drag:none;user-select:none}
 .hc-av-letter{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:#f6efe0;color:#8a6200;font-weight:800;font-size:calc(var(--sz) * .42)}
+
+/* Olympus: Hercules and Athena in the same conversation (components/Hercules.jsx Switch, Chat). */
+.hc-switch{overflow-x:auto;scrollbar-width:none}
+.hc-switch::-webkit-scrollbar{display:none}
+.hc-switch .hc-pill{flex:1 0 auto;white-space:nowrap}
+.hc-switch .hc-pill.hc-add{flex:none}
+.hc-pair{display:inline-flex;align-items:center;flex:none}
+.hc-pair > .hc-av + .hc-av{margin-inline-start:calc(var(--sz) * -.38)}
+.hc-pair-xs{--sz:22px}.hc-pair-sm{--sz:30px}.hc-pair-md{--sz:46px}.hc-pair-lg{--sz:62px}.hc-pair-xl{--sz:96px}
+.hc-by{font-size:12px;font-weight:700;color:var(--acc);margin:-1px 0 3px;letter-spacing:.01em}
+.hc-by span{font-weight:500;color:var(--label-3);margin-inline-start:6px}

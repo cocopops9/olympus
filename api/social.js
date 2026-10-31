@@ -50,6 +50,9 @@ export const LIMITS = Object.freeze({
   photosPerUser: 500,
   photoOrphanMs: 24 * 3600 * 1000,   // uploaded but never posted: gone after a day
   notesPerUser: 200,
+  // A post's song: a clip the app cuts from a song on the phone (30 seconds, mono WAV), with a title.
+  songBytes: 1800 * 1024,
+  songTitle: 80,
 });
 
 const EMPTY = () => ({ v: 2, follows: {}, posts: [], profiles: {}, requests: {}, blocks: {}, notes: {}, photos: {} });
@@ -94,6 +97,9 @@ export function cleanWorkout(w) {
 }
 
 /* ---------------- photos ---------------- */
+
+/** Whether `buf` is a WAV file (RIFF....WAVE), the only kind of song clip stored. */
+export const isWav = buf => buf.length > 44 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WAVE';
 
 /** 'jpg' or 'png' from the first bytes, or null: nothing else is stored. */
 export function photoType(buf) {
@@ -265,6 +271,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     return {
       id: p.id, ts: p.ts, text: p.text || '', workout: p.workout || null, photos: p.photos || [], author,
       ...(p.uid === viewer.id && p.wid ? { wid: p.wid } : {}),
+      ...(p.song ? { song: { id: p.song.id, title: p.song.title || '' } } : {}),
       likes: likes.length, liked, reaction: liked ? kindOf(viewer.id) : null, reactions, comments, mine: p.uid === viewer.id,
     };
   }
@@ -345,9 +352,20 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     if (ids.length > LIMITS.photosPerPost) throw new SocialError(400, `at most ${LIMITS.photosPerPost} photos per post`, 'too-many-photos');
     for (const id of ids) {
       const meta = doc.photos[id];
-      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar) throw new SocialError(400, 'unknown photo', 'bad-photos');
+      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar || meta.type === 'wav') throw new SocialError(400, 'unknown photo', 'bad-photos');
     }
     return ids;
+  }
+
+  // A song for post `p` from `body.song`: { id, title } of a clip `viewer` uploaded and has not
+  // posted (or this post's own), null to take it off, undefined to leave it as it is.
+  function songFor(viewer, value, p = null) {
+    if (value === undefined) return p?.song;
+    if (value === null || value === false) return null;
+    const id = typeof value?.id === 'string' && ID_RE.test(value.id) ? value.id : null;
+    const meta = id ? doc.photos[id] : null;
+    if (!meta || meta.type !== 'wav' || meta.uid !== viewer.id || (meta.postId && meta.postId !== p?.id)) throw new SocialError(400, 'unknown song', 'bad-song');
+    return { id, title: str(value.title, LIMITS.songTitle) };
   }
 
   return {
@@ -544,6 +562,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const text = str(body?.text, LIMITS.postText);
       const workout = cleanWorkout(body?.workout);
       const photos = attachable(viewer, body?.photos);
+      const song = songFor(viewer, body?.song) || null;
       if (!text && !workout && !photos.length) throw new SocialError(400, 'a post needs text, a workout or a photo', 'empty');
       budget(viewer.id, 'post', LIMITS.postsPerHour);
       // Strictly increasing timestamps: the feed pages by timestamp, and two posts in the same
@@ -551,13 +570,14 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const last = doc.posts.length ? doc.posts[doc.posts.length - 1].ts : 0;
       const p = {
         id: rid(9), uid: viewer.id, ts: Math.max(now(), last + 1), text,
-        ...(wid ? { wid } : {}), ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), likes: [], comments: [],
+        ...(wid ? { wid } : {}), ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), ...(song ? { song } : {}), likes: [], comments: [],
       };
       for (const id of photos) doc.photos[id].postId = p.id;
+      if (song) doc.photos[song.id].postId = p.id;
       doc.posts.push(p);
       if (doc.posts.length > LIMITS.maxPosts) {
         const gone = doc.posts.splice(0, doc.posts.length - LIMITS.maxPosts);
-        dropPhotos(gone.flatMap(x => x.photos || []));
+        dropPhotos(gone.flatMap(x => [...(x.photos || []), ...(x.song ? [x.song.id] : [])]));
       }
       save();
       return view(p, viewer);
@@ -580,8 +600,12 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         photos = list;
       }
       if (!text && !workout && !photos.length) throw new SocialError(400, 'a post needs text, a workout or a photo', 'empty');
+      const song = songFor(viewer, body?.song, p) || null;
       const gone = (p.photos || []).filter(id => !photos.includes(id));
+      if (p.song && p.song.id !== song?.id) gone.push(p.song.id);
       for (const id of fresh) doc.photos[id].postId = p.id;
+      if (song) doc.photos[song.id].postId = p.id;
+      if (song) p.song = song; else delete p.song;
       p.text = text;
       if (workout) p.workout = workout; else delete p.workout;
       if (photos.length) p.photos = photos; else delete p.photos;
@@ -594,7 +618,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const p = findPost(asAdmin ? null : viewer, id);
       if (p.uid !== viewer.id && !asAdmin) throw new SocialError(403, 'only the author can delete a post', 'forbidden');
       doc.posts = doc.posts.filter(x => x !== p);
-      dropPhotos(p.photos);
+      dropPhotos([...(p.photos || []), ...(p.song ? [p.song.id] : [])]);
       for (const uid of Object.keys(doc.notes)) doc.notes[uid] = doc.notes[uid].filter(n => n.postId !== p.id);
       save();
       return { ok: true };
@@ -676,6 +700,28 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return { id };
     },
 
+    // A song clip before it is posted: a WAV the app cut and encoded, checked and stored with the
+    // photos (same storage, same clean-up of what is never posted).
+    uploadSong(viewer, data) {
+      const b64 = typeof data === 'string' ? data.replace(/^data:audio\/[a-z0-9.+-]+;base64,/, '') : '';
+      if (!b64 || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) throw new SocialError(400, 'send the song as base64', 'bad-song');
+      const buf = Buffer.from(b64, 'base64');
+      if (buf.length > LIMITS.songBytes) throw new SocialError(413, 'song too large', 'song-too-large');
+      if (!isWav(buf)) throw new SocialError(415, 'only WAV clips are accepted', 'song-type');
+      const mine = Object.values(doc.photos).filter(m => m.uid === viewer.id).length;
+      if (mine >= LIMITS.photosPerUser) throw new SocialError(409, 'photo storage for this profile is full', 'photos-full');
+      budget(viewer.id, 'photo', LIMITS.photosPerHour);
+      const id = rid(12);
+      if (io) io.writePhoto(id, 'wav', buf);
+      else {
+        fs.mkdirSync(photoDir, { recursive: true, mode: 0o700 });
+        write(photoPath(id, 'wav'), buf);
+      }
+      doc.photos[id] = { uid: viewer.id, ts: now(), type: 'wav', size: buf.length, postId: null };
+      save();
+      return { id };
+    },
+
     // Where a photo's bytes are, if `viewer` may see it: its owner, anyone who can see its post,
     // or, for a profile picture, anyone the profile has not blocked (it shows in search too).
     photo(viewer, id) {
@@ -687,7 +733,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         const p = meta.postId ? doc.posts.find(x => x.id === meta.postId) : null;
         if (!p || !canSee(viewer.id, p.uid)) throw new SocialError(404, 'photo not found', 'no-photo');
       }
-      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : 'image/jpeg', size: meta.size };
+      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : meta.type === 'wav' ? 'audio/wav' : 'image/jpeg', size: meta.size };
     },
 
     sweepOrphans,

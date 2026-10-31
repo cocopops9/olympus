@@ -20,6 +20,7 @@ import { preparePhoto, prepareAvatar } from '../lib/social-photo.js'
 import { Button, TextArea, TextField, SelectRow, Section, Row, Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { AccountSection } from './AccountEdit.jsx'
+import { SongBar, SongField } from './Song.jsx'
 import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
@@ -326,12 +327,13 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
         <div className="post-ago">{fmtAgo(post.ts)}</div>
       </button>
       {post.mine && post.wid && useStore.getState().S.workouts.some(w => w.id === post.wid) && <button className="iconbtn"
-        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos })}
+        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos, song: post.song || null })}
         aria-label={t('Edit post')}><Icon name="pencil" /></button>}
       {(post.mine || me?.admin) && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
     </div>
     {post.text && <p className="post-text">{post.text}</p>}
     <PostPhotos ids={post.photos} />
+    {post.song && <SongBar song={post.song} />}
     <WorkoutSummary workout={post.workout} />
     <div className="post-a">
       <ReactButton post={post} onTap={toggleLike} onPick={react} />
@@ -407,6 +409,7 @@ function Composer({ close, workout, onPosted }) {
   const [pick, setPick] = useState(() => (workout ? workout.id || '__given' : ''))
   // { key, preview (data URL), id (once uploaded) | null, failed }
   const [photos, setPhotos] = useState([])
+  const [song, setSong] = useState(null)
   const [busy, setBusy] = useState(false)
   const ref = useRef(null)
   const fileRef = useRef(null)
@@ -442,7 +445,7 @@ function Composer({ close, workout, onPosted }) {
     if (busy || uploading || empty) return
     setBusy(true)
     try {
-      const post = await createPost({ text: text.trim(), workout: summary, photos: ready })
+      const post = await createPost({ text: text.trim(), workout: summary, photos: ready, song })
       track('post.create')
       close()
       toast(t('Posted to your feed'))
@@ -468,6 +471,8 @@ function Composer({ close, workout, onPosted }) {
         {photos.length ? t('Add another photo') : t('Add photos')}
       </Button>
     </div>
+    <div style={{ height: 8 }} />
+    <div className="cmp-song"><SongField value={song} onChange={setSong} /></div>
     <div style={{ height: 8 }} />
     {recent.length > 0 || workout
       ? <SelectRow icon="dumbbell" title={t('Attach a workout')} value={pick} options={options} onChange={setPick} sheetTitle={t('Attach a workout')} />
@@ -501,6 +506,9 @@ export function PostEditor({ w, initial = null, onSaved }) {
   const [title, setTitle] = useState(rec.name || '')
   const [text, setText] = useState(pending?.text ?? initial?.text ?? '')
   const [photos, setPhotos] = useState(() => (pending?.photos ?? initial?.photos ?? []).map(id => ({ key: id, id, preview: null })))
+  // The post's song, as last saved here or as the server has it; undefined until touched.
+  const [song, setSongState] = useState(() => (pending && pending.song !== undefined ? pending.song : initial?.song ?? null))
+  const [songTouched, setSongTouched] = useState(false)
   const [saved, setSaved] = useState(false)
   const [dirty, setDirty] = useState(false)
   const fileRef = useRef(null)
@@ -512,7 +520,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
   // photo still uploading by then is waited for. Before this, back while writing the post of a
   // finished workout threw it away.
   const latest = useRef(null)
-  latest.current = { rec, title, text, photos, saved, dirty }
+  latest.current = { rec, title, text, photos, saved, dirty, song: songTouched ? song : undefined }
   const uploads = useRef(new Map())   // key -> promise of the photo's id
   useEffect(() => () => {
     const d = latest.current
@@ -523,7 +531,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
       .map(k => uploads.current.get(k).then(id => { known.set(k, id) }, () => {}))
     Promise.all(waiting).then(() => {
       const ids = keys.map(k => known.get(k)).filter(Boolean)
-      useStore.getState().update(s => setPostDetails(s, d.rec, { title: d.title, text: d.text, photos: ids }))
+      useStore.getState().update(s => setPostDetails(s, d.rec, { title: d.title, text: d.text, photos: ids, song: d.song }))
       flushPosts().catch(() => {})
       toast(offline() ? t('Saved. It will be sent when you are back online.') : t('Post saved'))
     })
@@ -549,7 +557,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
   }
   const save = () => {
     if (uploading) return
-    useStore.getState().update(s => setPostDetails(s, rec, { title, text, photos: photos.map(p => p.id) }))
+    useStore.getState().update(s => setPostDetails(s, rec, { title, text, photos: photos.map(p => p.id), song: songTouched ? song : undefined }))
     flushPosts().catch(() => {})
     setSaved(true); setDirty(false)
     latest.current = { ...latest.current, saved: true, dirty: false }
@@ -571,6 +579,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
       </div>)}
     </div>}
     <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
+    <div className="pe-song"><SongField value={song} onChange={v => { setSaved(false); setDirty(true); setSongTouched(true); setSongState(v) }} /></div>
     <div className="pe-a">
       <Button size="sm" icon="camera" className="pe-cam" disabled={photos.length >= MAX_PHOTOS} onClick={() => camRef.current?.click()}
         aria-label={t('Take a photo')} title={t('Take a photo')} />

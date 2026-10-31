@@ -17,14 +17,17 @@ import { coachProfileOf } from '../lib/coach-profile.js'
 import { tapWake, quickTips, WAKE_TAPS } from '../lib/chiron.js'
 import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
-import { canSpeak, speak, speakable } from '../lib/voice.js'
+import { canSpeak, speak, speakable, listen, stopSpeaking } from '../lib/voice.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { chironMarkup } from './ChironArt.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
-import { MicButton } from './Voice.jsx'
+import { MicButton, useCanListen } from './Voice.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
+import ChironFigure from './ChironFigure.jsx'
+import { create } from 'zustand'
 import '../chiron.css'
+import '../chiron-figure.css'
 
 const clock = sec => Math.floor(sec / 60) + ':' + String(Math.round(sec % 60)).padStart(2, '0')
 const SLEEP = chironMarkup()
@@ -100,7 +103,7 @@ function ChironSheet({ close }) {
         <div className="chs-n">Chiron</div>
         <div className="chs-s">{t('Your coach between sets')}</div>
       </div>
-      <button className="iconbtn" onClick={close} aria-label={t('Let him sleep')} title={t('Let him sleep')}><Icon name="moon" /></button>
+      <button className="iconbtn" onClick={() => { close(); sleepNow() }} aria-label={t('Let him sleep')} title={t('Let him sleep')}><Icon name="moon" /></button>
     </div>
 
     {tips ? <div className="chs-tips">
@@ -153,16 +156,158 @@ export function chironSheet() {
   return h
 }
 
+// Whether he is awake in the page, shared by the figure and his sheet ("Let him sleep").
+export const useChiron = create(() => ({ awake: false }))
+const sleepNow = () => useChiron.setState({ awake: false })
+
+// Short answers that put him back to sleep, said on their own.
+const SLEEP_WORDS = /^(?:ok(?:ay)?\s+)?(?:grazie\s+)?(?:basta|dormi|stop|sleep|go to sleep|that'?s all|thanks?|grazie|duerme|ya está|dors|schlaf|chega|dorme)[.!\s]*$/i
+const isSleepWord = text => SLEEP_WORDS.test(String(text || '').trim()) && String(text).trim().split(/\s+/).length <= 4
+
+// What he says first, with no network: the rest before the next set and that set.
+// Said aloud, so in words: "2 minutes 30", not "2:30" (which a voice reads as a time of day).
+function restWords(sec) {
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60)
+  if (!m) return tn('{0} second', '{0} seconds', s)
+  return s ? t('{0} min {1} s', m, s) : tn('{0} minute', '{0} minutes', m)
+}
+function nextWords(next, mode, unit) {
+  if (!next) return ''
+  if (mode === 'time') return next.sec ? tn('{0} second', '{0} seconds', next.sec) : ''
+  if (mode === 'cardio') return next.min ? tn('{0} minute', '{0} minutes', next.min) : ''
+  if (next.w && next.r != null) return t('{0} {1} for {2} reps', fmtNum(next.w), unit, next.r)
+  return next.r != null ? tn('{0} repetition', '{0} repetitions', next.r) : ''
+}
+function greeting(tips, unit) {
+  if (!tips) return t('I am awake. Start an exercise and ask me anything about it.')
+  const next = nextWords(tips.next, tips.mode, unit)
+  return next ? t('Rest {0}, then {1}. What do you need?', restWords(tips.rest.sec), next) : t('Rest {0}. What do you need?', restWords(tips.rest.sec))
+}
+
 /**
- * Chiron in the workout page, not a little icon: he lies there asleep, breathing, the z's
- * drifting up, with a line saying how to wake him. Each tap makes him stir; the third wakes him,
- * and he wakes for real: he stretches, opens his eyes, rises with a glow and says he is ready,
- * while his sheet comes up. Closed, he settles back to sleep. Hidden when the coach is switched
- * off for the workout (Settings), and while logging or editing a past workout.
+ * Chiron awake in the page, by voice: he greets with the rest and the next set, then listens; a
+ * question goes to him (api/hercules.js chiron), the answer is read aloud while his mouth moves,
+ * and he listens again, until "basta", a tap on the moon, or two silences in a row (then the
+ * microphone waits for a tap). The keyboard opens his sheet, to read or type instead.
+ */
+function ChironVoice({ tips, unit, online }) {
+  const c = useCoachChat({ coach: WORKOUT_COACH })
+  const chat = useRef(c)
+  chat.current = c
+  const [pose, setPose] = useState('waking')
+  const [mouth, setMouth] = useState(0)
+  const [heard, setHeard] = useState('')
+  const [said, setSaid] = useState('')
+  const [paused, setPaused] = useState(false)
+  const live = useRef(true)
+  const stopListening = useRef(null)
+  const mouthTimer = useRef(null)
+  const loop = useRef(0)   // which run of the loop is current: a new one makes the old stop
+
+  // One conversation per workout, as in the sheet.
+  useEffect(() => {
+    const cur = c.data.chats.find(x => x.id === c.data.current)
+    if (cur && useStore.getState().S.active && cur.ts < (useStore.getState().S.active.start || 0)) c.start()
+  }, [])
+
+  const say = async text => {
+    const words = speakable(text)
+    if (!words) return
+    setSaid(words); setPose('speaking')
+    // The mouth: open and shut at the pace of syllables, a little irregular, while the voice reads.
+    const t0 = Date.now()
+    mouthTimer.current = setInterval(() => {
+      const k = (Date.now() - t0) / 1000
+      setMouth(Math.max(0, Math.abs(Math.sin(k * 11.5)) * (0.55 + 0.45 * Math.abs(Math.sin(k * 2.3)))))
+    }, 80)
+    // A voice that never says it has finished (a WebView without voices) does not hold him: he
+    // goes on after about the time the words take to say.
+    const enough = new Promise(r => setTimeout(r, 3000 + words.length * 90))
+    try { if (canSpeak()) await Promise.race([speak(words), enough]) } catch { /* read on screen instead */ }
+    clearInterval(mouthTimer.current); setMouth(0)
+  }
+  const hear = () => new Promise(resolve => {
+    setPose('listening'); setHeard('')
+    let last = '', done = false
+    // A recogniser that never starts or never stops counts as silence after 20 seconds.
+    const guard = setTimeout(() => { stopListening.current?.(); end(last.trim()) }, 20000)
+    const end = v => { if (!done) { done = true; clearTimeout(guard); stopListening.current = null; resolve(v) } }
+    listen({ onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: () => end(last.trim()) })
+      .then(stop => { stopListening.current = stop; if (!live.current) stop() }, e => end(e?.code === 'permission' ? false : ''))
+  })
+
+  const run = async (greet) => {
+    const me = ++loop.current
+    const going = () => live.current && loop.current === me
+    setPaused(false)
+    if (greet) {
+      await new Promise(r => setTimeout(r, 1100))   // the waking animation first
+      if (!going()) return
+      await say(greeting(tips, unit))
+      if (!online && going()) await say(t('To answer questions I need your Olympus account and a connection. The advice above works anywhere.'))
+    }
+    if (!online) { if (going()) setPose('idle'); return }
+    let silent = 0
+    while (going()) {
+      const text = await hear()
+      if (!going()) return
+      if (text === false) { useUI.getState().toast(t('Allow the microphone to talk to your coach.')); break }
+      if (!text) { if (++silent >= 2) break; continue }
+      silent = 0
+      if (isSleepWord(text)) { await say(t('Good work. Call me when you need me.')); if (going()) sleepNow(); return }
+      setPose('thinking')
+      const reply = await chat.current.send(text)
+      if (!going()) return
+      await say(reply || chat.current.err || t('I could not answer that. Try again.'))
+    }
+    if (going()) { setPose('idle'); setPaused(true) }
+  }
+  const halt = () => { loop.current++; stopListening.current?.(); stopSpeaking().catch(() => {}); clearInterval(mouthTimer.current); setMouth(0) }
+
+  useEffect(() => {
+    live.current = true
+    run(true)
+    return () => { live.current = false; halt() }
+  }, [])
+
+  const toggleMic = () => {
+    if (pose === 'listening') { halt(); setPose('idle'); setPaused(true); return }
+    halt(); run(false)
+  }
+  const keyboard = () => { halt(); setPose('idle'); setPaused(true); chironSheet() }
+  const status = pose === 'listening' ? t('I am listening…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
+  return <div className="chv" role="group" aria-label="Chiron">
+    <button className="chv-fig" onClick={toggleMic} aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}>
+      <ChironFigure state={pose} mouth={mouth} size={150} />
+    </button>
+    <div className="chv-side">
+      <div className="chv-n"><b>Chiron</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
+      {heard && pose !== 'speaking' && <p className="chv-heard">“{heard}”</p>}
+      {said && <p className="chv-said">{said.length > 220 ? said.slice(0, 219) + '…' : said}</p>}
+      <div className="chv-ctl">
+        <button className={'chv-b mic' + (pose === 'listening' ? ' on' : '')} onClick={toggleMic} disabled={!online}
+          aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}><Icon name="mic" /></button>
+        <button className="chv-b" onClick={keyboard} aria-label={t('Ask Chiron about this workout')}><Icon name="chat" /></button>
+        <button className="chv-b" onClick={() => { halt(); sleepNow() }} aria-label={t('Let him sleep')}><Icon name="moon" /></button>
+      </div>
+    </div>
+  </div>
+}
+
+/**
+ * Chiron in the workout page, drawn whole (components/ChironFigure.jsx): he lies there asleep,
+ * breathing, the z's drifting up. Each tap makes him stir; the third wakes him: he gets up with a
+ * stretch and, on a phone that can listen, talks with you by voice right there (ChironVoice);
+ * otherwise his sheet opens, as it does from the voice panel's keyboard. Hidden when the coach is
+ * switched off for the workout (Settings), and while logging or editing a past workout.
  */
 export function WorkoutChiron() {
   const on = useStore(s => s.S.coachInWorkout !== false && !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
-  const awake = useUI(s => !!openId && s.sheets.some(x => x.id === openId))
+  const S = useStore(s => s.S)
+  const user = useStore(s => s.user)
+  const sheetOpen = useUI(s => !!openId && s.sheets.some(x => x.id === openId))
+  const voiceAwake = useChiron(s => s.awake)
+  const canHear = useCanListen()
   const [tap, setTapState] = useState(null)
   // The count lives in a ref too: quick taps can come before the figure has drawn the last one.
   const tapRef = useRef(null)
@@ -171,8 +316,9 @@ export function WorkoutChiron() {
   const [waking, setWaking] = useState(false)
   const wasAwake = useRef(false)
   const [settling, setSettling] = useState(false)
-  useEffect(() => () => clearTimeout(timer.current), [])
-  // Back to sleep when his sheet closes: a short settling animation, then asleep.
+  const awake = voiceAwake || sheetOpen
+  useEffect(() => () => { clearTimeout(timer.current); sleepNow() }, [])
+  // Back to sleep when his sheet closes (without the voice panel): a short settling, then asleep.
   useEffect(() => {
     if (awake) { wasAwake.current = true; return }
     if (!wasAwake.current) return
@@ -182,6 +328,9 @@ export function WorkoutChiron() {
     return () => clearTimeout(tm)
   }, [awake])
   if (!on) return null
+  const p = coachProfileOf(S)
+  const tips = quickTips(S, { exOf: id => EXIDX[id] || null, modeOf: ex => modeOf(ex), isWarmup: isWarmupRow, styles: p.styles, phase: p.phase })
+  const online = socialReady(user)
   const press = () => {
     if (awake) return
     const next = tapWake(tapRef.current, Date.now())
@@ -190,20 +339,23 @@ export function WorkoutChiron() {
       setTap(null)
       try { navigator.vibrate?.([12, 40, 12]) } catch { /* no haptics */ }
       setWaking(true)
-      timer.current = setTimeout(() => setWaking(false), 1200)
-      chironSheet()
+      timer.current = setTimeout(() => setWaking(false), 1300)
+      if (canHear) useChiron.setState({ awake: true })
+      else chironSheet()
       return
     }
     setTap(next)
     // Left alone, he settles back to sleep and the count starts again.
     timer.current = setTimeout(() => setTap(null), 1600)
   }
+  if (voiceAwake) return <div className="chiron-stage chiron-live">
+    <ChironVoice tips={tips} unit={S.unit} online={online} />
+  </div>
   const left = WAKE_TAPS - (tap?.taps || 0)
-  const state = waking ? 'waking' : awake ? 'awake' : settling ? 'settling' : 'asleep'
-  return <button className={'chiron-stage whdr-chiron ' + state + (tap ? ' tapped' : '')} onClick={press}
+  const pose = waking ? 'waking' : awake ? 'idle' : 'asleep'
+  return <button className={'chiron-stage whdr-chiron ' + (settling ? 'settling' : pose) + (tap ? ' tapped stir' + Math.min(tap.taps, 2) : '')} onClick={press}
     aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
-    <span className="chs-halo" aria-hidden="true" />
-    <ChironFace awake={awake || waking} stir={tap?.taps || 0} size={64} />
+    <ChironFigure state={pose} size={112} className="chs-fig" />
     <span className="chs-say">
       <b>Chiron</b>
       <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>

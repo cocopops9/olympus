@@ -199,3 +199,18 @@ button.prof-av .prof-av-cam .icn{width:15px;height:15px}
 .cmp-pick{display:flex;gap:8px}
 .cmp-pick .btn{flex:1 1 0;width:auto;min-width:0}
 .pe-a .btn.pe-cam{flex:0 0 auto;padding-inline:12px}
+
+/* Olympus: people to follow, a strip of cards to swipe through inside the feed (views/Feed.jsx). */
+.sugg{margin:4px -16px 14px;padding:12px 0 4px;background:color-mix(in srgb,var(--surface) 55%,transparent);border-block:var(--hair) solid var(--sep)}
+.sugg-h{display:flex;align-items:center;justify-content:space-between;padding:0 16px;margin-bottom:8px}
+.sugg-h h4{margin:0;font-size:15px;font-weight:700}
+.sugg-row{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 10px;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sugg-row::-webkit-scrollbar{display:none}
+.sugg-card{flex:none;width:142px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  padding:14px 10px 12px;border-radius:var(--r-card);background:var(--surface);cursor:pointer}
+.sugg-card:active{transform:scale(.98)}
+.sugg-n{font-weight:650;font-size:14.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg-s{font-size:12px;color:var(--label-2);min-height:15px}
+.sugg-card .btn{margin-top:4px;width:100%}
+.sugg-card .avatar{--av:64px}
+.cmp-song,.pe-song{margin:2px 0 8px}

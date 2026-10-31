@@ -3221,6 +3221,34 @@ paths:
         '415': { description: 'Not a JPEG or PNG (`photo-type`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: 'Too many uploads in the last hour (`rate-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/social/song:
+    post:
+      tags: [social]
+      operationId: socialUploadSong
+      summary: Upload a post's song clip
+      description: A WAV clip the app cut from a song (base64, about 1.8 MB at most), stored with the photos. Attach the returned id to a post as `song` (`{ id, title }`) within a day, or it is removed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data: { type: string, description: Base64 or a data URL. }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { description: 'Too large (`song-too-large`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '415': { description: 'Not a WAV (`song-type`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/social/photo:
     get:
       tags: [social]
