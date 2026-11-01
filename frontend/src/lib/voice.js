@@ -1,10 +1,12 @@
 // Olympus: talking to the AI coaches. Dictation (speech to text) for the message, and a voice mode
 // where the coach's answers are read aloud and, once one has been read, the microphone listens
-// for the next question. Done on the device: the phone's own speech recogniser and voice
-// (Capacitor plugins @capacitor-community/speech-recognition and text-to-speech) in the app, the
-// browser's Web Speech API on the web. The models only ever see text.
+// for the next question. In the app, what is said is recorded here and written out on the server
+// (Whisper); answers are read by the server's natural voices when it has them, by the phone's own
+// voices (Capacitor text-to-speech) otherwise. In a browser with the Web Speech API, the browser's
+// own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
+import { api } from './api.js'
 
 // BCP 47 tags for the app's languages: recognisers want a region.
 const TAGS = {
@@ -19,17 +21,97 @@ const WebRecognition = () => (typeof window !== 'undefined' ? window.SpeechRecog
 // and waits on that `then` forever: every voice feature hung without an error. So the plugins are
 // handed over inside an object ({ p }), never returned from an async function or a then() by
 // themselves, and only ever awaited through their methods.
-const nativeSR = () => import('@capacitor-community/speech-recognition').then(m => ({ p: m.SpeechRecognition }))
 const nativeTTS = () => import('@capacitor-community/text-to-speech').then(m => ({ p: m.TextToSpeech }))
+
+// The app's own recorder (getUserMedia and MediaRecorder): what is said is recorded here and written
+// out on the server (api/voice.js, Whisper). On the phone this replaces Android's recogniser, which
+// on many phones answered every start with "client side error".
+export const canRecord = () => typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof window !== 'undefined' && typeof window.MediaRecorder === 'function'
+const useRecorder = () => canRecord() && (MOBILE || !WebRecognition())
 
 /** Whether dictation can work here at all (the answer may still be no permission). */
 export async function canListen() {
-  if (MOBILE) {
-    try { const { p: SR } = await nativeSR(); return !!(await SR.available()).available } catch { return false }
-  }
-  return !!WebRecognition()
+  if (useRecorder()) return true
+  return !MOBILE && !!WebRecognition()
 }
 export const canSpeak = () => MOBILE || (typeof window !== 'undefined' && 'speechSynthesis' in window)
+
+const RECORD_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
+const blobToBase64 = blob => new Promise((resolve, reject) => {
+  const r = new FileReader()
+  r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ''))
+  r.onerror = () => reject(r.error)
+  r.readAsDataURL(blob)
+})
+
+// When to stop on its own: a pause after speaking, nothing said at all, or a long talk.
+export const LISTEN = { pauseMs: 1100, nothingMs: 8000, maxMs: 20000, calibrateMs: 350 }
+
+/**
+ * One question, recorded and written out. Speech is told from silence by the loudness of the
+ * microphone against the room's own noise, measured in the first moments. The stop it returns
+ * sends what was said so far; stop({ cancel: true }) throws it away.
+ */
+async function recordAndWrite({ onText, onEnd, lang }) {
+  let stream
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+  } catch (e) {
+    throw Object.assign(new Error(e?.name || 'unavailable'), { code: e?.name === 'NotAllowedError' || e?.name === 'SecurityError' ? 'permission' : 'unavailable' })
+  }
+  const type = RECORD_TYPES.find(m => window.MediaRecorder.isTypeSupported?.(m)) || ''
+  let rec
+  try { rec = new window.MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : undefined) } catch (e) {
+    stream.getTracks().forEach(x => x.stop())
+    throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
+  }
+  const chunks = []
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data) }
+  const AC = window.AudioContext || window.webkitAudioContext
+  let ac = null, analyser = null, buf = null
+  try {
+    ac = new AC()
+    analyser = ac.createAnalyser()
+    analyser.fftSize = 1024
+    buf = new Float32Array(analyser.fftSize)
+    ac.createMediaStreamSource(stream).connect(analyser)
+    ac.resume?.().catch?.(() => {})
+  } catch { analyser = null }
+  const t0 = Date.now()
+  let spoke = !analyser, lastVoice = t0, floor = null, cancelled = false, finished = false, sent = false
+  const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
+  const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
+  const release = () => { clearInterval(tick); stream.getTracks().forEach(x => x.stop()); try { ac?.close() } catch { /* closed */ } }
+  const send = async () => {
+    if (sent) return
+    sent = true
+    release()
+    if (cancelled || !spoke) return done('')
+    const blob = new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' })
+    if (blob.size < 1200) return done('')
+    try {
+      const data = await blobToBase64(blob)
+      const r = await api('/api/voice/transcribe', { method: 'POST', body: JSON.stringify({ data, type: blob.type, lang }), timeout: 25000 })
+      done(cancelled ? '' : r?.text || '')
+    } catch (e) { done('', cancelled ? null : e?.message || 'transcription failed') }
+  }
+  const stop = () => { if (rec.state !== 'inactive') { try { rec.stop() } catch { send() } } else send() }
+  rec.onstop = send
+  const tick = setInterval(() => {
+    const now = Date.now()
+    if (analyser) {
+      const v = loud()
+      if (now - t0 < LISTEN.calibrateMs) { floor = floor == null ? v : (floor + v) / 2; return }
+      const threshold = Math.max(0.015, (floor || 0) * 2.8)
+      if (v > threshold) { if (!spoke) spoke = true; lastVoice = now }
+      if (spoke && now - lastVoice > LISTEN.pauseMs) return stop()
+      if (!spoke && now - t0 > LISTEN.nothingMs) return stop()
+    } else if (now - t0 > 7000) return stop()
+    if (now - t0 > LISTEN.maxMs) stop()
+  }, 50)
+  rec.start(250)
+  return ({ cancel = false } = {}) => { if (cancel) cancelled = true; else spoke = spoke || chunks.length > 0; stop() }
+}
 
 /**
  * Listens once. `onText(text, final)` gets what was understood (on the web as it is said; on the
@@ -38,36 +120,7 @@ export const canSpeak = () => MOBILE || (typeof window !== 'undefined' && 'speec
  * { code: 'permission' | 'unavailable' } when it cannot start.
  */
 export async function listen({ onText, onEnd, lang = voiceTag() } = {}) {
-  if (MOBILE) {
-    const { p: SR } = await nativeSR()
-    if (!(await SR.available()).available) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
-    let perm = await SR.checkPermissions()
-    if (perm.speechRecognition !== 'granted') perm = await SR.requestPermissions()
-    if (perm.speechRecognition !== 'granted') throw Object.assign(new Error('permission'), { code: 'permission' })
-    // Without partial results the plugin answers start() itself, once: with what was said, or
-    // with the recogniser's error ("No match" when nothing was said). With them, start() returns
-    // at once and an error after that never reaches the app, so a pause or a silence left the
-    // microphone "on" for ever: the reason voice mode seemed dead.
-    let done = false
-    const finish = (text, error) => {
-      if (done) return
-      done = true
-      clearTimeout(guard)
-      onText?.(text || '', true)
-      onEnd?.(error || null)
-    }
-    const guard = setTimeout(() => { SR.stop().catch(() => {}); finish('') }, 30000)
-    SR.start({ language: lang, partialResults: false, popup: false, maxResults: 1 }).then(
-      r => finish(r?.matches?.[0] || ''),
-      e => {
-        const why = String(e?.message || e || '')
-        // Nothing said, or said too softly: a silence, not a failure.
-        finish('', /no match|no speech|timeout/i.test(why) ? null : why)
-      })
-    // Stopped by hand: what was said so far comes as the result; if the recogniser never answers,
-    // the stop still ends it.
-    return () => { SR.stop().catch(() => {}); setTimeout(() => finish(''), 2500) }
-  }
+  if (useRecorder()) return recordAndWrite({ onText, onEnd, lang })
   const R = WebRecognition()
   if (!R) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
   const rec = new R()
@@ -99,13 +152,15 @@ export function speakable(text) {
 }
 
 // Who is talking: Chiron, an old giant of a centaur, has a deep man's voice in every language;
-// Hercules a man's voice; Athena a woman's. A voice of the right kind is picked from the ones the
-// phone has for the language when one can be told apart by its name (Google's voices are named
-// it-it-x-itd-local and so on, a code per speaker), and the pitch does the rest.
+// Hercules a man's voice; Athena a woman's. The server reads with a natural voice of that kind when
+// it has one (api/voice.js); otherwise a voice of the right kind is picked from the phone's own
+// ones for the language when one can be told apart by its name (Google's voices are named
+// it-it-x-itd-local and so on, a code per speaker). The pitch is left alone: lowered, the phone's
+// voices sound like a robot.
 export const VOICES = {
-  chiron: { male: true, pitch: 0.72, rate: 0.93 },
-  hercules: { male: true, pitch: 0.88, rate: 1 },
-  athena: { male: false, pitch: 1.05, rate: 1 },
+  chiron: { male: true, rate: 0.95 },
+  hercules: { male: true, rate: 1 },
+  athena: { male: false, rate: 1 },
 }
 // Speakers of Google's voices known to be men, by the code in the voice's name.
 const MALE_CODES = ['iol', 'iom', 'tpd', 'rjs', 'gbd', 'aud', 'itd', 'itc', 'eed', 'esd', 'frd', 'frb', 'deg', 'ptd', 'pmj', 'jmn', 'rud', 'ruf']
@@ -133,14 +188,66 @@ export function pickVoice(voices, lang, male) {
   return exact.length ? exact[0].i : -1
 }
 
+// The server's voice: unknown until asked, then on or off for the rest of the session.
+let serverVoice = null
+let playing = null   // { audio, stop } of what the server's voice is reading now
+let speakRun = 0
+
+// Short pieces, a sentence or a few: the first is heard while the next is being made.
+export function pieces(text, max = 240) {
+  const sentences = String(text).match(/[^.!?…\n]+[.!?…]*[\s\n]*/g) || [String(text)]
+  const out = []
+  for (const raw of sentences) {
+    const x = raw.trim()
+    if (!x) continue
+    if (out.length && (out[out.length - 1] + ' ' + x).length <= max && out.length > 1) out[out.length - 1] += ' ' + x
+    else if (x.length > max) for (let i = 0; i < x.length; i += max) out.push(x.slice(i, i + max))
+    else out.push(x)
+  }
+  return out
+}
+
+async function speakOnServer(say, lang, who, run) {
+  const ask = piece => api('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text: piece, lang, who }), timeout: 15000 })
+  const parts = pieces(say)
+  let next = ask(parts[0])
+  for (let i = 0; i < parts.length; i++) {
+    let r
+    try { r = await next } catch (e) {
+      if (e?.status === 501 || e?.status === 404 || e?.status === 401) serverVoice = false
+      if (i === 0) return false
+      return true
+    }
+    if (run !== speakRun) return true
+    serverVoice = true
+    next = i + 1 < parts.length ? ask(parts[i + 1]) : null
+    next?.catch(() => {})
+    await new Promise(resolve => {
+      const audio = new Audio('data:' + (r.type || 'audio/mpeg') + ';base64,' + r.audio)
+      const end = () => { if (playing?.audio === audio) playing = null; resolve() }
+      playing = { audio, stop: () => { audio.pause(); end() } }
+      audio.onended = audio.onerror = end
+      audio.play().catch(end)
+    })
+    if (run !== speakRun) return true
+  }
+  return true
+}
+
 let nativeVoiceList = null
 let webUtterance = null
 /** Reads `text` aloud as `who` (VOICES); resolves when it is done (or stopped). */
 export async function speak(text, { lang = voiceTag(), rate, who } = {}) {
   const say = speakable(text)
   if (!say) return
+  const run = ++speakRun
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
+  if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 1500))])
+  if (kind && serverVoice === true) {
+    try { if (await speakOnServer(say, lang, who, run)) return } catch { /* the phone's voice instead */ }
+    if (run !== speakRun) return
+  }
   if (MOBILE) {
     try {
       const { p: TTS } = await nativeTTS()
@@ -149,9 +256,7 @@ export async function speak(text, { lang = voiceTag(), rate, who } = {}) {
         if (!nativeVoiceList) { try { nativeVoiceList = (await TTS.getSupportedVoices()).voices || [] } catch { nativeVoiceList = [] } }
         voice = pickVoice(nativeVoiceList, lang, kind.male)
       }
-      // A man's voice found: a little lower still. None: the pitch alone makes it deeper.
-      const pitch = kind ? (voice >= 0 ? Math.min(1, kind.pitch + 0.12) : kind.pitch) : 1
-      await TTS.speak({ text: say, lang, rate: pace, pitch, ...(voice >= 0 ? { voice } : {}) })
+      await TTS.speak({ text: say, lang, rate: pace, pitch: 1, ...(voice >= 0 ? { voice } : {}) })
     } catch { /* no voice installed */ }
     return
   }
@@ -165,14 +270,22 @@ export async function speak(text, { lang = voiceTag(), rate, who } = {}) {
       const list = window.speechSynthesis.getVoices?.() || []
       const i = pickVoice(list, lang, kind.male)
       if (i >= 0) u.voice = list[i]
-      u.pitch = i >= 0 ? Math.min(1, kind.pitch + 0.12) : kind.pitch
     }
     u.onend = u.onerror = () => resolve()
     webUtterance = u
     window.speechSynthesis.speak(u)
   })
 }
+/** Asks the server once whether it has a voice, so the first answer is not kept waiting. */
+let warming = null
+export function warmVoice() {
+  if (serverVoice !== null || warming) return warming
+  warming = api('/api/voice').then(r => { serverVoice = !!r?.speak }, () => {}).finally(() => { warming = null })
+  return warming
+}
 export async function stopSpeaking() {
+  speakRun++
+  playing?.stop()
   if (MOBILE) { try { const { p: TTS } = await nativeTTS(); await TTS.stop() } catch { /* nothing playing */ } return }
   if (canSpeak()) window.speechSynthesis.cancel()
   webUtterance = null

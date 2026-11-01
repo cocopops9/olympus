@@ -17,7 +17,7 @@ import { Switch } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import '../coach-ai.css'
 import { MicButton, useCanListen } from '../components/Voice.jsx'
-import { speak, stopSpeaking, canSpeak } from '../lib/voice.js'
+import { speak, stopSpeaking, canSpeak, warmVoice } from '../lib/voice.js'
 import { useUI } from '../store/useUI.js'
 import { splitActions } from '../lib/coach-actions.js'
 
@@ -137,7 +137,8 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff }) {
   // microphone button ends it. Two silences in a row end it too.
   const silences = useRef(0)
   useEffect(() => {
-    if (!voice) { stopSpeaking(); mic.current?.stop(); return }
+    if (!voice) { stopSpeaking(); mic.current?.stop({ cancel: true }); return }
+    warmVoice()
     silences.current = 0
     const tm = setTimeout(() => { if (!busyRef.current) mic.current?.start() }, 300)
     return () => clearTimeout(tm)

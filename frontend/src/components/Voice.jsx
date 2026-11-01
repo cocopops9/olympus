@@ -44,11 +44,11 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
       useUI.getState().toast(e?.code === 'permission' ? t('Allow the microphone to talk to your coach.') : t('Dictation is not available on this device.'))
     }
   }
-  const stop = () => { stopRef.current?.() }
-  useEffect(() => () => stopRef.current?.(), [])
+  const stop = opts => { stopRef.current?.(opts) }
+  useEffect(() => () => stopRef.current?.({ cancel: true }), [])
   if (control) control.current = { start, stop, get on() { return !!stopRef.current } }
   if (!can) return null
-  if (onStopVoice) return <button type="button" className={'mic voice' + (on ? ' on' : '')} onClick={() => { stop(); onStopVoice() }}
+  if (onStopVoice) return <button type="button" className={'mic voice' + (on ? ' on' : '')} onClick={() => { stopRef.current?.({ cancel: true }); onStopVoice() }}
     aria-label={t('Stop voice mode')} title={t('Stop voice mode')}>
     <Icon name="mic" />
   </button>

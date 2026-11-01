@@ -22,6 +22,7 @@ import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { topSongs, searchSongs } from './music.js';
+import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
@@ -611,6 +612,19 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const { user: me } = await signedIn(req); const b = await readJson(req);
       return { body: await withSocial(s => { const r = s.uploadPhoto(me, b.data); s.sweepOrphans(); return r; }) };
     },
+    // The coaches' ears and voice (api/voice.js).
+    'POST /api/voice/transcribe': async req => {
+      await signedIn(req); const b = await readJson(req);
+      const cfg = herculesConfig(env, 'chiron');
+      try { return { body: { text: await transcribe({ data: b.data, type: b.type, lang: b.lang }, { key: cfg.key, baseUrl: cfg.baseUrl, fetchImpl }) } }; }
+      catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
+    },
+    'POST /api/voice/speak': async req => {
+      await signedIn(req); const b = await readJson(req);
+      try { return { body: await synthesize({ text: b.text, lang: b.lang, who: b.who }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), fetchImpl }) }; }
+      catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
+    },
+    'GET /api/voice': async req => { await signedIn(req); return { body: { speak: canSynthesize(env), listen: !!herculesConfig(env, 'chiron').key } }; },
     // Songs for a post: what is popular now in a country, and search (api/music.js).
     'GET /api/music/top': async (req, q) => {
       await signedIn(req);

@@ -3221,6 +3221,58 @@ paths:
         '415': { description: 'Not a JPEG or PNG (`photo-type`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: 'Too many uploads in the last hour (`rate-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/voice:
+    get:
+      tags: [coach]
+      operationId: voiceStatus
+      summary: Whether the server can transcribe recordings and read text aloud
+      responses:
+        '200': { description: '`{ listen, speak }`.' }
+        '401': { description: Not signed in. }
+  /api/voice/transcribe:
+    post:
+      tags: [coach]
+      operationId: voiceTranscribe
+      summary: The words in a short recording (Whisper)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, type]
+              properties:
+                data: { type: string, description: Base64 audio, about 1.5 MB at most. }
+                type: { type: string, example: audio/webm }
+                lang: { type: string, example: it-IT }
+      responses:
+        '200': { description: '`{ text }`, empty when nothing was said.' }
+        '400': { description: An empty clip or an unknown format. }
+        '401': { description: Not signed in. }
+        '413': { description: Too long. }
+        '502': { description: The transcription service did not answer. }
+        '503': { description: No provider key on this server. }
+  /api/voice/speak:
+    post:
+      tags: [coach]
+      operationId: voiceSpeak
+      summary: Text read aloud by a coach's voice (Google Chirp 3 HD)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+                lang: { type: string }
+                who: { type: string, enum: [chiron, hercules, athena] }
+      responses:
+        '200': { description: '`{ audio, type }`, base64 MP3.' }
+        '401': { description: Not signed in. }
+        '501': { description: No server voice; the phone reads with its own. }
+        '502': { description: The voice service did not answer. }
   /api/music/top:
     get:
       tags: [social]

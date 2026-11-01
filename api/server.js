@@ -33,6 +33,7 @@ import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } fro
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
 import { topSongs, searchSongs } from './music.js';
+import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
@@ -2663,6 +2664,24 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
     json(res, 200, SOCIAL.uploadPhoto(me, body.data));
+  },
+  // The coaches' ears and voice (api/voice.js).
+  'POST /api/voice/transcribe': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    const cfg = herculesConfig(process.env, 'chiron');
+    try { json(res, 200, { text: await transcribe({ data: body.data, type: body.type, lang: body.lang }, { key: cfg.key, baseUrl: cfg.baseUrl }) }); }
+    catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
+  },
+  'POST /api/voice/speak': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    try { json(res, 200, await synthesize({ text: body.text, lang: body.lang, who: body.who }, { key: String(process.env.GOOGLE_TTS_API_KEY || '').trim() })); }
+    catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
+  },
+  'GET /api/voice': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { speak: canSynthesize(process.env), listen: !!herculesConfig(process.env, 'chiron').key });
   },
   // Songs for a post: what is popular now in a country, and search (api/music.js).
   'GET /api/music/top': async (req, res) => {

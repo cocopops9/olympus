@@ -61,3 +61,16 @@ describe('a voice for each character', () => {
     expect(pickVoice([{ name: 'Microsoft Zira', lang: 'en-US' }, { name: 'Google UK English Male', lang: 'en-GB' }], 'en-GB', true)).toBe(1)
   })
 })
+
+import { pieces } from './voice.js'
+describe('reading in pieces', () => {
+  it('the first sentence alone, so it is heard at once; the rest in bigger pieces', () => {
+    const p = pieces('Rest two minutes. Then 100 kg for 5. Keep your back straight. Breathe out as you push.')
+    expect(p[0]).toBe('Rest two minutes.')
+    expect(p.join(' ')).toBe('Rest two minutes. Then 100 kg for 5. Keep your back straight. Breathe out as you push.')
+    expect(p.length).toBeLessThan(4)
+  })
+  it('a long sentence is cut', () => {
+    expect(pieces('a'.repeat(500), 240).every(x => x.length <= 240)).toBe(true)
+  })
+})

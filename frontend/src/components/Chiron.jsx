@@ -17,7 +17,7 @@ import { coachProfileOf } from '../lib/coach-profile.js'
 import { tapWake, quickTips, WAKE_TAPS } from '../lib/chiron.js'
 import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
-import { canSpeak, speak, speakable, listen, stopSpeaking, canListen } from '../lib/voice.js'
+import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice } from '../lib/voice.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
@@ -256,7 +256,7 @@ function ChironVoice({ tips, unit, online }) {
     const going = () => live.current && loop.current === me
     setPaused(false)
     if (greet) {
-      await new Promise(r => setTimeout(r, 1100))   // the waking animation first
+      await new Promise(r => setTimeout(r, 350))   // the waking animation starts first
       if (!going()) return
       await say(greeting(tips, unit))
       if (!online && going()) await say(t('To answer questions I need your Olympus account and a connection. The advice above works anywhere.'))
@@ -277,10 +277,11 @@ function ChironVoice({ tips, unit, online }) {
     }
     if (going()) { setPose('idle'); setPaused(true) }
   }
-  const halt = () => { loop.current++; stopListening.current?.(); stopSpeaking().catch(() => {}); clearInterval(mouthTimer.current); setMouth(0) }
+  const halt = () => { loop.current++; stopListening.current?.({ cancel: true }); stopSpeaking().catch(() => {}); clearInterval(mouthTimer.current); setMouth(0) }
 
   useEffect(() => {
     live.current = true
+    warmVoice()
     run(true)
     return () => { live.current = false; halt() }
   }, [])
