@@ -40,7 +40,7 @@ import { equipFamilies, liveEquip, matchesEquip, equipmentVariants } from './lib
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
 import { titleWorkout } from './lib/workout-title.js'
-import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn } from './lib/auto-post.js'
+import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn, holdPost, releasePost } from './lib/auto-post.js'
 import { socialReady, avatarUrl } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
@@ -72,7 +72,7 @@ import { finishCompare, finishCardio } from './lib/finish-compare.js'
 import { workoutFit, fitFileName } from './lib/fit-export.js'
 import { joinSessionNoProg } from './lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
-import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, sessionHistory } from './lib/backfill.js'
+import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, sessionHistory, markAllSetsDone } from './lib/backfill.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from './lib/workout-date.js'
 import { editCompletedSession, editLeftEmpty, editedRecord, editChangesNothing, resumeCompletedSession, resumedKeyOf } from './lib/session-edit.js'
 import { stampWorkout, mergeWorkoutMedia } from './lib/sync-merge.js'
@@ -3419,10 +3419,9 @@ function PostStatus({ w }) {
   // workout finished without one has nothing to show; with auto-posting off, one tap posts it.
   if (state === 'none') {
     const empty = !(w.entries || []).length
-    if (!empty && autoPostOn(st)) return null
     return <div className="post-status off">
       <Icon name="xmark" />
-      <span className="grow">{empty ? t('Not posted: no set was checked off.') : t('Not posted: posting every workout is off.')}</span>
+      <span className="grow">{empty ? t('Not posted: no set was checked off.') : autoPostOn(st) ? t('Not posted yet.') : t('Not posted: posting every workout is off.')}</span>
       {!empty && w.id && <button className="chip nocap" onClick={() => { update(s => repost(s, w)); flushPosts().catch(() => {}) }}>{t('Post it')}</button>}
     </div>
   }
@@ -3439,6 +3438,10 @@ function PostStatus({ w }) {
 function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
   const st = useStore(s => s.S)
   const user = useStore(s => s.user)
+  // The post was held while this screen is open (doFinishWorkout); it goes when the screen does,
+  // after the editor below has saved what was written (its own cleanup runs before this one's
+  // timer fires).
+  useEffect(() => () => { setTimeout(() => releasePost(w.id), 0) }, [])
   // A new strength level gets the fanfare as the summary opens.
   useEffect(() => { if (ups.length) triumph(st.sound) }, [])
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
@@ -3462,8 +3465,10 @@ function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
     {/* Olympus: the workout is posted on its own; this says where that stands and can take it back,
         and the post's title, description and photos are written right here. */}
     <GymPicker w={w} />
-    {socialReady(user) && <PostStatus w={w} />}
-    {socialReady(user) && ['waiting', 'posted'].includes(postState(st, w).state) && <PostEditor w={w} />}
+    {socialReady(user) && (postState(st, w).state === 'waiting'
+      ? <div className="post-status waiting"><Icon name="share" /><span className="grow">{t('Your post goes to the feed when you tap Done. Add photos, a song and a few words first.')}</span></div>
+      : <PostStatus w={w} />)}
+    {socialReady(user) && (w.entries || []).length > 0 && postState(st, w).state !== 'off' && <PostEditor w={w} />}
     <h4 className="sec" style={{ textAlign: 'start' }}>{t('What you just trained')}</h4>
     <BodyMap load={loadOfWorkouts([w])} body={st.body} />
     <div style={{ height: 14 }} />
@@ -3505,9 +3510,25 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
     subtitle: !done ? t('You haven’t checked off any sets. Finish the workout anyway?')
       : done < total ? tn('{0} set still unchecked. Finish the workout now?', '{0} sets still unchecked. Finish the workout now?', total - done) : null,
     sections: [
-      { items: [{ icon: 'flag', accent: true, label: t('Finish and save'), onClick: doFinishWorkout }] },
+      { items: [
+        // Only checked-off sets are saved. Sets filled in but never ticked were the usual way a
+        // workout came out empty ("my workout was not saved"): one tap ticks them all and saves.
+        done < total && { icon: 'checkCircle', accent: true, label: t('Check off every set and save'), onClick: () => { checkOffAll(); doFinishWorkout() } },
+        { icon: 'flag', accent: done >= total, label: done < total ? (done ? t('Save only the checked sets') : t('Finish without saving any set')) : t('Finish and save'), onClick: doFinishWorkout },
+      ] },
       { items: [onDiscard && { icon: 'trash', danger: true, label: t('Discard workout'), onClick: onDiscard }] },
     ],
+  })
+}
+// Every set of the live workout ticked, each with the moment it was ticked when it had none.
+function checkOffAll() {
+  const now = Date.now()
+  const stamp = x => (x && x.at == null ? { ...x, at: now } : x)
+  update(s => {
+    if (!s.active) return
+    s.active.entries = markAllSetsDone(s.active.entries).map(e => ({
+      ...e, sets: e.sets.map(x => (x?.sides ? { ...stamp(x), sides: { L: stamp(x.sides.L), R: stamp(x.sides.R) } } : stamp(x))),
+    }))
   })
 }
 function doFinishWorkout() {
@@ -3579,7 +3600,11 @@ function doFinishWorkout() {
     refillAfter(s, w)
     // Olympus: every workout becomes a post, now or once the phone is back online (lib/auto-post.js).
     // A workout picked up again was posted the first time it was finished.
-    if (resumed == null && socialReady(useStore.getState().user)) queuePost(s, shown)
+    // A workout picked up again was posted the first time it was finished, unless it had nothing
+    // to post then (finished with no set checked off): then it is posted now.
+    if (socialReady(useStore.getState().user) && (resumed == null || s.wposts?.[shown.id] === undefined)) queuePost(s, shown)
+    // Its post waits for the finish screen, where photos and a song can go on it first.
+    if (s.wposts?.[shown.id] === '') holdPost(shown.id)
   })
   flushPosts().catch(() => {})
   useStore.getState().autoBackupNow()

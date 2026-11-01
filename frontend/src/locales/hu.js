@@ -3091,4 +3091,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Toplisták és 30 másodperces előzetesek az Apple Musictól.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "A hangmódhoz beszédfelismerés kell ezen a telefonon. Kapcsold be a Google hangalapú gépelést a beállításokban (nyelvek és bevitel), majd próbáld újra.",
   "Voice": "Hang",
+  "Check off every set and save": "Minden szett kipipálása és mentés",
+  "Save only the checked sets": "Csak a kipipált szettek mentése",
+  "Finish without saving any set": "Befejezés szettek mentése nélkül",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "A bejegyzés a Kész gomb megérintésekor kerül a hírfolyamba. Előbb adj hozzá fotókat, egy dalt és pár szót.",
+  "Not posted yet.": "Még nincs közzétéve.",
 }

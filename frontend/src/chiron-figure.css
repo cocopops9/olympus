@@ -8,7 +8,7 @@
   background:radial-gradient(circle,rgba(247,212,102,.75) 0%,rgba(247,212,102,0) 68%);transition:opacity .8s,transform .8s}
 .chf-ground{position:absolute;left:14%;right:14%;bottom:1%;height:9%;border-radius:50%;pointer-events:none;
   background:radial-gradient(closest-side,rgba(0,0,0,.38),rgba(0,0,0,0));transition:left .9s,right .9s}
-.chf-asleep .chf-ground{left:4%;right:4%;bottom:19%}
+.chf-asleep .chf-ground{left:4%;right:4%}
 .chf-fx{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .chf-z,.chf-rings,.chf-dots,.chf-waves{opacity:0;transition:opacity .4s}
 

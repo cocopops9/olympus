@@ -3088,4 +3088,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Apple Music'ten listeler ve 30 saniyelik önizlemeler.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "Sesli mod bu telefonda konuşma tanıma gerektirir. Telefon ayarlarından (diller ve giriş) Google sesle yazmayı aç, sonra tekrar dene.",
   "Voice": "Ses",
+  "Check off every set and save": "Tüm setleri işaretle ve kaydet",
+  "Save only the checked sets": "Yalnızca işaretli setleri kaydet",
+  "Finish without saving any set": "Set kaydetmeden bitir",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Gönderin Bitti'ye dokunduğunda akışa gider. Önce fotoğraf, bir şarkı ve birkaç söz ekle.",
+  "Not posted yet.": "Henüz paylaşılmadı.",
 }

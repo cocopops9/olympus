@@ -293,7 +293,7 @@ function ChironVoice({ tips, unit, online }) {
   const status = pose === 'listening' ? t('I am listening…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
   return <div className="chv" role="group" aria-label="Chiron">
     <button className="chv-fig" onClick={toggleMic} aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}>
-      <ChironFigure state={pose} mouth={mouth} size={112} />
+      <ChironFigure state={pose} mouth={mouth} size={140} />
     </button>
     <div className="chv-side">
       <div className="chv-n"><b>Chiron</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
@@ -371,15 +371,15 @@ export function WorkoutChiron() {
   return <div className="chs-wrap">
     <button className={'chiron-stage whdr-chiron ' + (settling ? 'settling' : pose) + (tap ? ' tapped stir' + Math.min(tap.taps, 2) : '')} onClick={press}
       aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
-      <ChironFigure state={pose} size={96} className="chs-fig" />
-      <span className="chs-say">
+      <ChironFigure state={pose} size={150} className="chs-fig" />
+      <span className="chs-bubble">
         <b>Chiron</b>
         <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>
       </span>
       {tap && !awake && <span className="chiron-taps" aria-hidden="true">{Array.from({ length: WAKE_TAPS }, (_, i) => <i key={i} className={i < WAKE_TAPS - left ? 'on' : ''} />)}</span>}
     </button>
     {!awake && <button className="chs-voice-go" onClick={() => startVoiceMode()} aria-label={t('Voice mode')} title={t('Voice mode')}>
-      <Icon name="mic" /><span>{t('Voice')}</span>
+      <Icon name="mic" /><span>{t('Voice mode')}</span>
     </button>}
   </div>
 }

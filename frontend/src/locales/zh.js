@@ -3088,4 +3088,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "排行榜和 30 秒试听来自 Apple Music。",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "语音模式需要此手机支持语音识别。请在手机设置（语言和输入法）中开启 Google 语音输入，然后重试。",
   "Voice": "语音",
+  "Check off every set and save": "勾选所有组并保存",
+  "Save only the checked sets": "只保存已勾选的组",
+  "Finish without saving any set": "结束且不保存任何组",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "点击“完成”后帖子会发布到动态。先添加照片、一首歌和几句话吧。",
+  "Not posted yet.": "尚未发布。",
 }

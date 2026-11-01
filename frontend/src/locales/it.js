@@ -3088,4 +3088,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Classifiche e anteprime di 30 secondi da Apple Music.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "La modalità vocale richiede il riconoscimento vocale su questo telefono. Attiva la digitazione vocale Google nelle impostazioni del telefono (lingue e immissione), poi riprova.",
   "Voice": "Voce",
+  "Check off every set and save": "Spunta tutte le serie e salva",
+  "Save only the checked sets": "Salva solo le serie spuntate",
+  "Finish without saving any set": "Termina senza salvare serie",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Il post va nel feed quando tocchi Fatto. Prima aggiungi foto, una canzone e qualche parola.",
+  "Not posted yet.": "Non ancora pubblicato.",
 }

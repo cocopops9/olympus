@@ -14,13 +14,18 @@ const TAGS = {
 export const voiceTag = (lang = getLang()) => TAGS[lang] || TAGS[String(lang).split('-')[0]] || 'en-US'
 
 const WebRecognition = () => (typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null)
-const nativeSR = () => import('@capacitor-community/speech-recognition').then(m => m.SpeechRecognition)
-const nativeTTS = () => import('@capacitor-community/text-to-speech').then(m => m.TextToSpeech)
+// A Capacitor plugin is a proxy that answers every property, `then` included, with a call to the
+// native side. Handed back from a promise as it is, the promise takes it for a promise of its own
+// and waits on that `then` forever: every voice feature hung without an error. So the plugins are
+// handed over inside an object ({ p }), never returned from an async function or a then() by
+// themselves, and only ever awaited through their methods.
+const nativeSR = () => import('@capacitor-community/speech-recognition').then(m => ({ p: m.SpeechRecognition }))
+const nativeTTS = () => import('@capacitor-community/text-to-speech').then(m => ({ p: m.TextToSpeech }))
 
 /** Whether dictation can work here at all (the answer may still be no permission). */
 export async function canListen() {
   if (MOBILE) {
-    try { return !!(await (await nativeSR()).available()).available } catch { return false }
+    try { const { p: SR } = await nativeSR(); return !!(await SR.available()).available } catch { return false }
   }
   return !!WebRecognition()
 }
@@ -33,7 +38,7 @@ export const canSpeak = () => MOBILE || (typeof window !== 'undefined' && 'speec
  */
 export async function listen({ onText, onEnd, lang = voiceTag() } = {}) {
   if (MOBILE) {
-    const SR = await nativeSR()
+    const { p: SR } = await nativeSR()
     if (!(await SR.available()).available) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
     let perm = await SR.checkPermissions()
     if (perm.speechRecognition !== 'granted') perm = await SR.requestPermissions()
@@ -84,7 +89,7 @@ export async function speak(text, { lang = voiceTag(), rate = 1 } = {}) {
   const say = speakable(text)
   if (!say) return
   if (MOBILE) {
-    try { await (await nativeTTS()).speak({ text: say, lang, rate }) } catch { /* no voice installed */ }
+    try { const { p: TTS } = await nativeTTS(); await TTS.speak({ text: say, lang, rate }) } catch { /* no voice installed */ }
     return
   }
   if (!canSpeak()) return
@@ -99,7 +104,7 @@ export async function speak(text, { lang = voiceTag(), rate = 1 } = {}) {
   })
 }
 export async function stopSpeaking() {
-  if (MOBILE) { try { await (await nativeTTS()).stop() } catch { /* nothing playing */ } return }
+  if (MOBILE) { try { const { p: TTS } = await nativeTTS(); await TTS.stop() } catch { /* nothing playing */ } return }
   if (canSpeak()) window.speechSynthesis.cancel()
   webUtterance = null
 }

@@ -3081,4 +3081,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "排行榜和 30 秒試聽來自 Apple Music。",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "語音模式需要此手機支援語音辨識。請在手機設定（語言與輸入）中開啟 Google 語音輸入，然後再試一次。",
   "Voice": "語音",
+  "Check off every set and save": "勾選所有組並儲存",
+  "Save only the checked sets": "只儲存已勾選的組",
+  "Finish without saving any set": "結束且不儲存任何組",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "點擊「完成」後貼文會發布到動態。先加入照片、一首歌和幾句話吧。",
+  "Not posted yet.": "尚未發布。",
 }

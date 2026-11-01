@@ -3085,4 +3085,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Чарти та 30-секундні фрагменти з Apple Music.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "Для голосового режиму потрібне розпізнавання мовлення на телефоні. Увімкніть голосове введення Google у налаштуваннях (мови та введення) і спробуйте ще раз.",
   "Voice": "Голос",
+  "Check off every set and save": "Позначити всі підходи й зберегти",
+  "Save only the checked sets": "Зберегти лише позначені підходи",
+  "Finish without saving any set": "Завершити без збереження підходів",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Допис з’явиться у стрічці, коли ви натиснете «Готово». Спершу додайте фото, пісню й кілька слів.",
+  "Not posted yet.": "Ще не опубліковано.",
 }

@@ -102,15 +102,26 @@
 @keyframes chv-rec{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 55%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
 @media (prefers-reduced-motion:reduce){.chv-b.mic.on{animation:none}}
 
-/* The stage with his whole figure, and the voice mode button beside it. */
-.chs-wrap{position:relative}
-.chs-wrap .chiron-stage{padding-right:84px}
-.chiron-stage .chs-fig{margin:0 2px 0 0}
-.chiron-stage .chiron-taps{left:52px;bottom:4px}
-.chs-voice-go{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;
-  width:62px;padding:8px 0 6px;border:0;border-radius:16px;background:color-mix(in srgb,var(--acc) 18%,var(--surface-2));color:var(--acc);
-  font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
-.chs-voice-go svg{width:22px;height:22px}
-.chs-voice-go:active{transform:translateY(-50%) scale(.95)}
+/* Chiron standing in the page itself rather than in a card: the figure on a line of floor at
+   the left, what he says in a speech bubble beside his head, the voice button under it. */
+.chs-wrap{position:relative;margin:2px 0 8px}
+.chs-wrap::after{content:'';position:absolute;left:0;right:0;bottom:7px;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--label) 18%,transparent) 20%,color-mix(in srgb,var(--label) 18%,transparent) 70%,transparent)}
+.chs-wrap .chiron-stage{display:flex;align-items:flex-end;gap:4px;min-height:150px;margin:0;padding:0 0 4px;background:none;border-radius:0}
+.chs-wrap .chiron-stage .chs-fig{margin:0 0 0 -8px}
+.chs-wrap .chiron-stage .chiron-taps{left:66px;bottom:0}
+.chs-bubble{position:relative;align-self:flex-start;margin:10px 0 0 4px;max-width:calc(100% - 156px);padding:9px 13px 10px;border-radius:18px 18px 18px 6px;
+  background:var(--surface);display:flex;flex-direction:column;gap:1px;box-shadow:0 6px 18px -12px rgba(0,0,0,.6)}
+.chs-bubble::before{content:'';position:absolute;left:-7px;bottom:10px;width:14px;height:14px;background:inherit;transform:rotate(45deg);border-radius:2px}
+.chs-bubble b{font-size:14px;position:relative}
+.chs-bubble span{font-size:12.5px;line-height:1.3;color:var(--text-2,var(--label-2));position:relative}
+.chiron-stage.waking .chs-bubble b,.chiron-stage.idle .chs-bubble b{color:var(--acc)}
+.chiron-stage.asleep .chs-bubble{opacity:.85}
+.chs-voice-go{position:absolute;left:162px;bottom:16px;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px 0 11px;border:0;border-radius:18px;
+  background:color-mix(in srgb,var(--acc) 18%,var(--surface));color:var(--acc);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.chs-voice-go svg{width:18px;height:18px}
+.chs-voice-go:active{transform:scale(.96)}
 .chs-voice{display:inline-flex;align-items:center;gap:6px;margin-right:4px}
 .chs-voice svg{width:16px;height:16px}
+/* by voice: the same figure, bigger, the controls beside him */
+.chiron-live{background:none!important;padding:0 0 6px!important}

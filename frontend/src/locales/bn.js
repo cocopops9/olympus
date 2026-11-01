@@ -3167,4 +3167,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Apple Music থেকে চার্ট ও ৩০ সেকেন্ডের প্রিভিউ।",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "ভয়েস মোডের জন্য এই ফোনে স্পিচ রিকগনিশন দরকার। ফোনের সেটিংসে (ভাষা ও ইনপুট) Google ভয়েস টাইপিং চালু করে আবার চেষ্টা করুন।",
   "Voice": "ভয়েস",
+  "Check off every set and save": "সব সেট টিক দিন ও সেভ করুন",
+  "Save only the checked sets": "শুধু টিক দেওয়া সেট সেভ করুন",
+  "Finish without saving any set": "কোনো সেট সেভ না করে শেষ করুন",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "হয়ে গেছে চাপলে আপনার পোস্ট ফিডে যাবে। আগে ছবি, একটি গান ও কয়েকটি কথা যোগ করুন।",
+  "Not posted yet.": "এখনো পোস্ট হয়নি।",
 }

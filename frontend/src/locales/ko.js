@@ -3088,4 +3088,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Apple Music의 차트와 30초 미리듣기.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "음성 모드에는 이 휴대폰의 음성 인식이 필요해요. 설정(언어 및 입력)에서 Google 음성 입력을 켠 뒤 다시 시도하세요.",
   "Voice": "음성",
+  "Check off every set and save": "모든 세트 체크 후 저장",
+  "Save only the checked sets": "체크한 세트만 저장",
+  "Finish without saving any set": "세트 저장 없이 종료",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "완료를 누르면 게시물이 피드에 올라가요. 먼저 사진, 노래, 몇 마디를 추가하세요.",
+  "Not posted yet.": "아직 게시되지 않았어요.",
 }

@@ -28,15 +28,15 @@ export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, 
     </span>
     <svg className="chf-fx" viewBox="0 0 100 100" aria-hidden="true">
       <g className="chf-z" fill="#f5c84a" stroke="#1a1200" strokeWidth=".6" fontFamily="Georgia,serif" fontWeight="700">
-        <text className="z1" x="34" y="22" fontSize="10">z</text><text className="z2" x="42" y="12" fontSize="13">z</text><text className="z3" x="51" y="2" fontSize="16">Z</text>
+        <text className="z1" x="30" y="38" fontSize="9">z</text><text className="z2" x="37" y="29" fontSize="12">z</text><text className="z3" x="45" y="19" fontSize="15">Z</text>
       </g>
-      <g className="chf-rings" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
+      <g className="chf-rings" transform="translate(-10 -16)" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
         <path className="r1" d="M84 34c3 4 3 10 0 14" /><path className="r2" d="M90 28c6 7 6 19 0 26" /><path className="r3" d="M96 22c8 10 8 28 0 38" />
       </g>
       <g className="chf-dots" fill="#f5c84a" stroke="#1a1200" strokeWidth=".8">
         <circle className="d1" cx="80" cy="18" r="3" /><circle className="d2" cx="88" cy="11" r="3.6" /><circle className="d3" cx="96" cy="4" r="4.2" />
       </g>
-      <g className="chf-waves" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
+      <g className="chf-waves" transform="translate(-12 -24)" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
         <path className="w1" d="M82 40c3 2 3 7 0 9" /><path className="w2" d="M88 36c5 4 5 13 0 17" /><path className="w3" d="M94 32c7 6 7 19 0 25" />
       </g>
     </svg>

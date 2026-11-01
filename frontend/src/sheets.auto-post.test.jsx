@@ -12,7 +12,9 @@ vi.mock('./lib/social.js', async orig => ({
 }))
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { finishWorkout } from './sheets.jsx'
+import { finishWorkout, finishWorkoutSheet } from './sheets.jsx'
+import { createPost } from './lib/social.js'
+import { flushPosts } from './lib/auto-post.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
 const mounted = []
@@ -53,7 +55,7 @@ describe('finishing a workout posts it', () => {
     expect(w.name).toMatch(/^Chest /)
     expect(useStore.getState().S.wposts).toEqual({ fin1: '' })
     const host = renderTop()
-    expect(host.querySelector('.post-status').textContent).toMatch(/Posting to your feed|posted when you are back online/)
+    expect(host.querySelector('.post-status').textContent).toMatch(/goes to the feed when you tap Done/)
     // the title, description and photos can be written right there
     const editor = host.querySelector('.pe')
     expect(editor).toBeTruthy()
@@ -87,6 +89,32 @@ describe('finishing a workout posts it', () => {
     const host = renderTop()
     expect(host.querySelector('.post-status').textContent).toContain('posting every workout is off')
     act(() => [...host.querySelectorAll('.post-status button')][0].click())
+    expect(useStore.getState().S.wposts).toEqual({ fin1: '' })
+  })
+
+  it('sets filled in but not ticked are saved with one tap, and the post waits for the finish screen', async () => {
+    install([{ w: 60, r: 8, done: false }, { w: 60, r: 8, done: false }])
+    act(() => finishWorkoutSheet())
+    const menu = renderTop()
+    act(() => [...menu.querySelectorAll('.menu-item')].find(b => b.textContent.includes('Check off every set and save')).click())
+    const w = useStore.getState().S.workouts.at(-1)
+    expect(w.entries[0].sets.every(x => x.done && x.at > 0)).toBe(true)
+    expect(useStore.getState().S.wposts).toEqual({ fin1: '' })
+    createPost.mockClear()
+    await act(async () => { await flushPosts() })
+    expect(createPost).not.toHaveBeenCalled()
+    // Done: the summary goes, and the post with it
+    const host = renderTop()
+    expect(host.querySelector('.pe')).toBeTruthy()
+    act(() => mounted.splice(0).forEach(r => r.unmount()))
+    await act(async () => { await new Promise(r => setTimeout(r, 10)) })
+    expect(createPost).toHaveBeenCalledTimes(1)
+  })
+
+  it('a workout finished empty, picked up and finished again, is posted then', () => {
+    install([{ w: 60, r: 8, done: true }])
+    useStore.setState(st => ({ S: { ...st.S, active: { ...st.S.active, resumeOf: 'fin1' }, workouts: [{ id: 'fin1', d: '2026-10-25', start: 1, end: 2, entries: [] }] } }))
+    act(() => finishWorkout())
     expect(useStore.getState().S.wposts).toEqual({ fin1: '' })
   })
 })

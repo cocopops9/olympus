@@ -3143,4 +3143,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "قوائم ومقاطع معاينة مدتها 30 ثانية من Apple Music.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "يحتاج الوضع الصوتي إلى التعرف على الكلام في هذا الهاتف. فعّل الكتابة الصوتية من Google في الإعدادات (اللغات والإدخال)، ثم حاول مجدداً.",
   "Voice": "صوت",
+  "Check off every set and save": "حدد كل المجموعات واحفظ",
+  "Save only the checked sets": "احفظ المجموعات المحددة فقط",
+  "Finish without saving any set": "أنهِ دون حفظ أي مجموعة",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "يُنشر منشورك في الصفحة عند الضغط على تم. أضف قبل ذلك صوراً وأغنية وبضع كلمات.",
+  "Not posted yet.": "لم يُنشر بعد.",
 }

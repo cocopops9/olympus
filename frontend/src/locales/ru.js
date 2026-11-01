@@ -3092,4 +3092,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Чарты и 30-секундные фрагменты из Apple Music.",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "Для голосового режима нужно распознавание речи на телефоне. Включите голосовой ввод Google в настройках (языки и ввод) и попробуйте снова.",
   "Voice": "Голос",
+  "Check off every set and save": "Отметить все подходы и сохранить",
+  "Save only the checked sets": "Сохранить только отмеченные подходы",
+  "Finish without saving any set": "Завершить, не сохраняя подходы",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Пост появится в ленте, когда вы нажмёте «Готово». Сначала добавьте фото, песню и пару слов.",
+  "Not posted yet.": "Ещё не опубликовано.",
 }

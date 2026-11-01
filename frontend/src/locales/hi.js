@@ -3088,4 +3088,9 @@ export default {
   "Charts and 30-second previews from Apple Music.": "Apple Music से चार्ट और 30 सेकंड के प्रीव्यू।",
   "Voice mode needs speech recognition on this phone. Turn on Google voice typing in the phone’s settings (languages and input), then try again.": "वॉइस मोड के लिए इस फ़ोन पर वाक् पहचान चाहिए। फ़ोन की सेटिंग्स (भाषाएँ और इनपुट) में Google वॉइस टाइपिंग चालू करें, फिर कोशिश करें।",
   "Voice": "आवाज़",
+  "Check off every set and save": "सभी सेट चिह्नित करें और सहेजें",
+  "Save only the checked sets": "केवल चिह्नित सेट सहेजें",
+  "Finish without saving any set": "कोई सेट सहेजे बिना समाप्त करें",
+  "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "हो गया दबाने पर आपकी पोस्ट फ़ीड में जाएगी। पहले फ़ोटो, एक गाना और कुछ शब्द जोड़ें।",
+  "Not posted yet.": "अभी पोस्ट नहीं हुआ।",
 }

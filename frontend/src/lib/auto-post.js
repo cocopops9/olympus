@@ -115,6 +115,21 @@ const final = e => e?.status === 400 || e?.status === 403 || e?.status === 413
 
 let running = null
 
+// Workouts whose post waits while the finish screen is open, so the photos, song and words put
+// there go out with the post itself rather than as an edit after it (FinishSummary). Kept in
+// memory only: if the app is closed meanwhile, the post simply goes out at the next start.
+const held = new Set()
+/** Keeps workout `wid`'s post from going out until releasePost(wid). */
+export const holdPost = wid => { if (wid) held.add(wid) }
+/** Lets workout `wid`'s post go out, and sends what is waiting. */
+export function releasePost(wid) {
+  if (!wid || !held.delete(wid)) return
+  // A flush already running skipped this post; the next one, after it, sends it.
+  const go = () => flushPosts().catch(() => {})
+  if (running) running.finally(go); else go()
+}
+export const isHeld = wid => held.has(wid)
+
 /**
  * Posts what is waiting and deletes what was deleted, one at a time; stops at the first failure
  * that may pass (no network, the server down) and leaves the rest for the next try.
@@ -130,6 +145,7 @@ export function flushPosts() {
     }
     const waiting = Object.entries(useStore.getState().S.wposts || {}).filter(([, v]) => v === '').map(([k]) => k)
     for (const wid of waiting) {
+      if (held.has(wid)) continue
       const S = useStore.getState().S
       const w = S.workouts.find(x => x.id === wid)
       if (!w) { useStore.getState().update(s => { if (s.wposts) { const n = { ...s.wposts }; delete n[wid]; s.wposts = n } }); continue }
@@ -155,6 +171,7 @@ export function flushPosts() {
     }
     // Descriptions, photos and titles written for posts already in the feed.
     for (const [wid, details] of Object.entries(useStore.getState().S.wpostEdit || {})) {
+      if (held.has(wid)) continue
       const S = useStore.getState().S
       const id = S.wposts?.[wid]
       const w = S.workouts.find(x => x.id === wid)
