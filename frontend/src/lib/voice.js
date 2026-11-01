@@ -45,7 +45,9 @@ const blobToBase64 = blob => new Promise((resolve, reject) => {
 })
 
 // When to stop on its own: a pause after speaking, nothing said at all, or a long talk.
-export const LISTEN = { pauseMs: 1100, nothingMs: 8000, maxMs: 20000, calibrateMs: 350 }
+// A question is rarely said in one breath: the stop waits for a long pause (longer still before the
+// first words are well under way), and a long talk is allowed.
+export const LISTEN = { pauseMs: 2200, earlyPauseMs: 3000, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350 }
 
 /**
  * One question, recorded and written out. Speech is told from silence by the loudness of the
@@ -78,7 +80,7 @@ async function recordAndWrite({ onText, onEnd, lang }) {
     ac.resume?.().catch?.(() => {})
   } catch { analyser = null }
   const t0 = Date.now()
-  let spoke = !analyser, lastVoice = t0, floor = null, cancelled = false, finished = false, sent = false
+  let spoke = !analyser, lastVoice = t0, firstVoice = t0, floor = null, cancelled = false, finished = false, sent = false
   const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
   const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
   const release = () => { clearInterval(tick); stream.getTracks().forEach(x => x.stop()); try { ac?.close() } catch { /* closed */ } }
@@ -102,9 +104,10 @@ async function recordAndWrite({ onText, onEnd, lang }) {
     if (analyser) {
       const v = loud()
       if (now - t0 < LISTEN.calibrateMs) { floor = floor == null ? v : (floor + v) / 2; return }
-      const threshold = Math.max(0.015, (floor || 0) * 2.8)
-      if (v > threshold) { if (!spoke) spoke = true; lastVoice = now }
-      if (spoke && now - lastVoice > LISTEN.pauseMs) return stop()
+      const threshold = Math.max(0.008, (floor || 0) * 2.2)
+      if (v > threshold) { if (!spoke) { spoke = true; firstVoice = now } lastVoice = now }
+      const pause = spoke && lastVoice - firstVoice < LISTEN.earlyMs ? LISTEN.earlyPauseMs : LISTEN.pauseMs
+      if (spoke && now - lastVoice > pause) return stop()
       if (!spoke && now - t0 > LISTEN.nothingMs) return stop()
     } else if (now - t0 > 7000) return stop()
     if (now - t0 > LISTEN.maxMs) stop()
@@ -192,6 +195,7 @@ export function pickVoice(voices, lang, male) {
 let serverVoice = null
 let playing = null   // { audio, stop } of what the server's voice is reading now
 let speakRun = 0
+let voiceFails = 0
 
 // Short pieces, a sentence or a few: the first is heard while the next is being made.
 export function pieces(text, max = 240) {
@@ -215,9 +219,12 @@ async function speakOnServer(say, lang, who, run) {
     let r
     try { r = await next } catch (e) {
       if (e?.status === 501 || e?.status === 404 || e?.status === 401) serverVoice = false
+      // A voice that fails twice in a row (a quota used up, no connection) rests for ten minutes.
+      else if (i === 0 && ++voiceFails >= 2) { serverVoice = false; setTimeout(() => { serverVoice = null; voiceFails = 0 }, 10 * 60 * 1000) }
       if (i === 0) return false
       return true
     }
+    voiceFails = 0
     if (run !== speakRun) return true
     serverVoice = true
     next = i + 1 < parts.length ? ask(parts[i + 1]) : null

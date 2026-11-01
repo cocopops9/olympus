@@ -621,7 +621,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     },
     'POST /api/voice/speak': async req => {
       await signedIn(req); const b = await readJson(req);
-      try { return { body: await synthesize({ text: b.text, lang: b.lang, who: b.who }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), fetchImpl }) }; }
+      try { return { body: await synthesize({ text: b.text, lang: b.lang, who: b.who }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(env.GEMINI_API_KEY || '').trim(), geminiModel: String(env.GEMINI_TTS_MODEL || '').trim(), fetchImpl }) }; }
       catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
     },
     'GET /api/voice': async req => { await signedIn(req); return { body: { speak: canSynthesize(env), listen: !!herculesConfig(env, 'chiron').key } }; },

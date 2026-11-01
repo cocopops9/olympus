@@ -2676,7 +2676,7 @@ const routes = {
   'POST /api/voice/speak': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
-    try { json(res, 200, await synthesize({ text: body.text, lang: body.lang, who: body.who }, { key: String(process.env.GOOGLE_TTS_API_KEY || '').trim() })); }
+    try { json(res, 200, await synthesize({ text: body.text, lang: body.lang, who: body.who }, { key: String(process.env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(process.env.GEMINI_API_KEY || '').trim(), geminiModel: String(process.env.GEMINI_TTS_MODEL || '').trim() })); }
     catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
   },
   'GET /api/voice': async (req, res) => {
