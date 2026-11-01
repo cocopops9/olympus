@@ -6,3 +6,6 @@
 .voice-on{color:var(--acc)!important;background:color-mix(in srgb,var(--acc) 18%,var(--surface-2))!important}
 .voice-banner{display:flex;align-items:center;gap:8px;justify-content:center;font-size:13px;color:var(--acc);margin:0 0 6px}
 .voice-banner i{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:mic-pulse 1.3s ease-out infinite}
+/* voice mode's own microphone: on while voice mode lasts, a tap ends it */
+.mic.voice{background:var(--acc);color:var(--on-acc)}
+.mic.voice.on{background:var(--red);color:#fff}

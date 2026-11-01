@@ -3096,4 +3096,10 @@ export default {
   "Finish without saving any set": "Befejezés szettek mentése nélkül",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "A bejegyzés a Kész gomb megérintésekor kerül a hírfolyamba. Előbb adj hozzá fotókat, egy dalt és pár szót.",
   "Not posted yet.": "Még nincs közzétéve.",
+  "Stop voice mode": "Hangmód leállítása",
+  "{0} is thinking…": "{0} gondolkodik…",
+  "The microphone stopped: {0}": "A mikrofon leállt: {0}",
+  "Voice mode is off: I did not hear anything.": "A hangmód kikapcsolt: nem hallottam semmit.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} beszél. Koppints a mikrofonra a hangmód befejezéséhez.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "Hangmód: beszélj, figyelek. Koppints a mikrofonra a leállításhoz.",
 }

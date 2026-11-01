@@ -86,7 +86,7 @@ function ChironSheet({ close }) {
   useEffect(() => {
     if (!spoken.current || !last || last.role !== 'assistant') return
     spoken.current = false
-    if (canSpeak()) speak(speakable(last.content)).catch(() => {})
+    if (canSpeak()) speak(speakable(last.content), { who: 'chiron' }).catch(() => {})
   }, [last?.ts])
 
   const ask = (text, byVoice = false) => { spoken.current = byVoice; setHeard(''); c.send(text) }
@@ -238,16 +238,16 @@ function ChironVoice({ tips, unit, online }) {
     // A voice that never says it has finished (a WebView without voices) does not hold him: he
     // goes on after about the time the words take to say.
     const enough = new Promise(r => setTimeout(r, 3000 + words.length * 90))
-    try { if (canSpeak()) await Promise.race([speak(words), enough]) } catch { /* read on screen instead */ }
+    try { if (canSpeak()) await Promise.race([speak(words, { who: 'chiron' }), enough]) } catch { /* read on screen instead */ }
     clearInterval(mouthTimer.current); setMouth(0)
   }
   const hear = () => new Promise(resolve => {
     setPose('listening'); setHeard('')
     let last = '', done = false
     // A recogniser that never starts or never stops counts as silence after 20 seconds.
-    const guard = setTimeout(() => { stopListening.current?.(); end(last.trim()) }, 20000)
+    const guard = setTimeout(() => { stopListening.current?.(); end(last.trim()) }, 35000)
     const end = v => { if (!done) { done = true; clearTimeout(guard); stopListening.current = null; resolve(v) } }
-    listen({ onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: () => end(last.trim()) })
+    listen({ onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
       .then(stop => { stopListening.current = stop; if (!live.current) stop() }, e => end(e?.code === 'permission' ? false : ''))
   })
 

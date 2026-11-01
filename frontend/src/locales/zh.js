@@ -3093,4 +3093,10 @@ export default {
   "Finish without saving any set": "结束且不保存任何组",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "点击“完成”后帖子会发布到动态。先添加照片、一首歌和几句话吧。",
   "Not posted yet.": "尚未发布。",
+  "Stop voice mode": "关闭语音模式",
+  "{0} is thinking…": "{0}正在思考…",
+  "The microphone stopped: {0}": "麦克风已停止：{0}",
+  "Voice mode is off: I did not hear anything.": "语音模式已关闭：我没听到任何声音。",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0}正在说话。点按麦克风退出语音模式。",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "语音模式：请说话，我在听。点按麦克风停止。",
 }

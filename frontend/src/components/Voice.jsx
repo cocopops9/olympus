@@ -16,10 +16,12 @@ export function useCanListen() {
 }
 
 /**
- * The mic button. `onText(text)` while talking, `onFinal(text)` once it stops. `control` (a ref)
- * gets { start, stop } so voice mode can start listening after an answer has been read.
+ * The mic button. `onText(text)` while talking, `onFinal(text)` once it stops, `onSilence()` when
+ * it stopped with nothing heard. `control` (a ref) gets { start, stop } so voice mode can start
+ * listening after an answer has been read. With `onStopVoice` (voice mode), the button is voice
+ * mode's own: it shows the microphone as on and a tap ends voice mode.
  */
-export function MicButton({ onText, onFinal, disabled, control }) {
+export function MicButton({ onText, onFinal, onSilence, disabled, control, onStopVoice }) {
   const can = useCanListen()
   const [on, setOn] = useState(false)
   const stopRef = useRef(null)
@@ -28,22 +30,30 @@ export function MicButton({ onText, onFinal, disabled, control }) {
     let last = ''
     try {
       setOn(true)
+      stopRef.current = () => {}   // starting: a second start waits
       stopRef.current = await listen({
         onText: text => { if (text) { last = text; onText?.(text) } },
-        onEnd: () => { stopRef.current = null; setOn(false); if (last.trim()) onFinal?.(last.trim()) },
+        onEnd: error => {
+          stopRef.current = null; setOn(false)
+          if (error) useUI.getState().toast(t('The microphone stopped: {0}', error))
+          if (last.trim()) onFinal?.(last.trim()); else onSilence?.()
+        },
       })
     } catch (e) {
       stopRef.current = null; setOn(false)
       useUI.getState().toast(e?.code === 'permission' ? t('Allow the microphone to talk to your coach.') : t('Dictation is not available on this device.'))
     }
   }
-  const stop = () => { stopRef.current?.(); }
+  const stop = () => { stopRef.current?.() }
   useEffect(() => () => stopRef.current?.(), [])
   if (control) control.current = { start, stop, get on() { return !!stopRef.current } }
   if (!can) return null
+  if (onStopVoice) return <button type="button" className={'mic voice' + (on ? ' on' : '')} onClick={() => { stop(); onStopVoice() }}
+    aria-label={t('Stop voice mode')} title={t('Stop voice mode')}>
+    <Icon name="mic" />
+  </button>
   return <button type="button" className={'mic' + (on ? ' on' : '')} disabled={disabled && !on} onClick={() => (on ? stop() : start())}
     aria-pressed={on} aria-label={on ? t('Stop dictation') : t('Dictate a message')} title={on ? t('Stop dictation') : t('Dictate a message')}>
     <Icon name="mic" />
   </button>
 }
-

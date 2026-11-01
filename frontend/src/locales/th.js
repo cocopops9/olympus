@@ -3104,4 +3104,10 @@ export default {
   "Finish without saving any set": "จบโดยไม่บันทึกเซ็ต",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "โพสต์จะขึ้นฟีดเมื่อคุณแตะเสร็จสิ้น เพิ่มรูป เพลง และข้อความสั้นๆ ก่อน",
   "Not posted yet.": "ยังไม่ได้โพสต์",
+  "Stop voice mode": "หยุดโหมดเสียง",
+  "{0} is thinking…": "{0} กำลังคิด…",
+  "The microphone stopped: {0}": "ไมโครโฟนหยุดทำงาน: {0}",
+  "Voice mode is off: I did not hear anything.": "ปิดโหมดเสียงแล้ว: ไม่ได้ยินอะไรเลย",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} กำลังพูด แตะไมโครโฟนเพื่อออกจากโหมดเสียง",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "โหมดเสียง: พูดได้เลย ฉันฟังอยู่ แตะไมโครโฟนเพื่อหยุด",
 }

@@ -3113,4 +3113,10 @@ export default {
   "Finish without saving any set": "Beenden, ohne Sätze zu speichern",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Dein Beitrag erscheint im Feed, wenn du auf Fertig tippst. Füge vorher Fotos, einen Song und ein paar Worte hinzu.",
   "Not posted yet.": "Noch nicht gepostet.",
+  "Stop voice mode": "Sprachmodus beenden",
+  "{0} is thinking…": "{0} denkt nach…",
+  "The microphone stopped: {0}": "Das Mikrofon hat gestoppt: {0}",
+  "Voice mode is off: I did not hear anything.": "Sprachmodus aus: Ich habe nichts gehört.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} spricht. Tippe auf das Mikrofon, um den Sprachmodus zu beenden.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "Sprachmodus: Sprich, ich höre zu. Tippe auf das Mikrofon, um ihn zu beenden.",
 }

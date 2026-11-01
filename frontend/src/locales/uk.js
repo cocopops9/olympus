@@ -3090,4 +3090,10 @@ export default {
   "Finish without saving any set": "Завершити без збереження підходів",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Допис з’явиться у стрічці, коли ви натиснете «Готово». Спершу додайте фото, пісню й кілька слів.",
   "Not posted yet.": "Ще не опубліковано.",
+  "Stop voice mode": "Вимкнути голосовий режим",
+  "{0} is thinking…": "{0} думає…",
+  "The microphone stopped: {0}": "Мікрофон зупинився: {0}",
+  "Voice mode is off: I did not hear anything.": "Голосовий режим вимкнено: я нічого не почув.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} говорить. Натисніть мікрофон, щоб вийти з голосового режиму.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "Голосовий режим: говоріть, я слухаю. Натисніть мікрофон, щоб зупинити.",
 }

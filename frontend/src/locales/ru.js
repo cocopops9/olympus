@@ -3097,4 +3097,10 @@ export default {
   "Finish without saving any set": "Завершить, не сохраняя подходы",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Пост появится в ленте, когда вы нажмёте «Готово». Сначала добавьте фото, песню и пару слов.",
   "Not posted yet.": "Ещё не опубликовано.",
+  "Stop voice mode": "Выключить голосовой режим",
+  "{0} is thinking…": "{0} думает…",
+  "The microphone stopped: {0}": "Микрофон остановился: {0}",
+  "Voice mode is off: I did not hear anything.": "Голосовой режим выключен: я ничего не услышал.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} говорит. Нажмите на микрофон, чтобы выйти из голосового режима.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "Голосовой режим: говорите, я слушаю. Нажмите на микрофон, чтобы остановить.",
 }

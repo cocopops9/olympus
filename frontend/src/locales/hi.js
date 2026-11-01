@@ -3093,4 +3093,10 @@ export default {
   "Finish without saving any set": "कोई सेट सहेजे बिना समाप्त करें",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "हो गया दबाने पर आपकी पोस्ट फ़ीड में जाएगी। पहले फ़ोटो, एक गाना और कुछ शब्द जोड़ें।",
   "Not posted yet.": "अभी पोस्ट नहीं हुआ।",
+  "Stop voice mode": "वॉइस मोड बंद करें",
+  "{0} is thinking…": "{0} सोच रहा है…",
+  "The microphone stopped: {0}": "माइक्रोफ़ोन रुक गया: {0}",
+  "Voice mode is off: I did not hear anything.": "वॉइस मोड बंद: मुझे कुछ सुनाई नहीं दिया।",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} बोल रहा है। वॉइस मोड से निकलने के लिए माइक्रोफ़ोन दबाएँ।",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "वॉइस मोड: बोलिए, मैं सुन रहा हूँ। रोकने के लिए माइक्रोफ़ोन दबाएँ।",
 }

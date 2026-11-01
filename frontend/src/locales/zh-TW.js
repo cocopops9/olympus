@@ -3086,4 +3086,10 @@ export default {
   "Finish without saving any set": "結束且不儲存任何組",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "點擊「完成」後貼文會發布到動態。先加入照片、一首歌和幾句話吧。",
   "Not posted yet.": "尚未發布。",
+  "Stop voice mode": "關閉語音模式",
+  "{0} is thinking…": "{0}正在思考…",
+  "The microphone stopped: {0}": "麥克風已停止：{0}",
+  "Voice mode is off: I did not hear anything.": "語音模式已關閉：我沒聽到任何聲音。",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0}正在說話。點按麥克風結束語音模式。",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "語音模式：請說話，我在聽。點按麥克風停止。",
 }

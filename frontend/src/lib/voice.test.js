@@ -38,3 +38,26 @@ describe('activity', () => {
     expect(tiersFor([]).ranges).toEqual([])
   })
 })
+
+import { pickVoice } from './voice.js'
+describe('a voice for each character', () => {
+  const phone = [
+    { name: 'en-us-x-sfg-local', lang: 'en-US' },
+    { name: 'it-it-x-itb-local', lang: 'it-IT' },
+    { name: 'it-it-x-itd-network', lang: 'it-IT' },
+    { name: 'it-it-x-itd-local', lang: 'it-IT' },
+    { name: 'es-es-x-eed-local', lang: 'es-ES' },
+  ]
+  it('picks a man’s voice for the language, offline first', () => {
+    expect(pickVoice(phone, 'it-IT', true)).toBe(3)
+    expect(pickVoice(phone, 'es-ES', true)).toBe(4)
+    expect(pickVoice(phone, 'it-IT', false)).toBe(1)
+  })
+  it('none of the kind: -1, and the pitch does the rest', () => {
+    expect(pickVoice(phone, 'en-US', true)).toBe(-1)
+    expect(pickVoice([], 'fr-FR', true)).toBe(-1)
+  })
+  it('reads the browser’s voices by name', () => {
+    expect(pickVoice([{ name: 'Microsoft Zira', lang: 'en-US' }, { name: 'Google UK English Male', lang: 'en-GB' }], 'en-GB', true)).toBe(1)
+  })
+})

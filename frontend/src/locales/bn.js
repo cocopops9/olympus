@@ -3172,4 +3172,10 @@ export default {
   "Finish without saving any set": "কোনো সেট সেভ না করে শেষ করুন",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "হয়ে গেছে চাপলে আপনার পোস্ট ফিডে যাবে। আগে ছবি, একটি গান ও কয়েকটি কথা যোগ করুন।",
   "Not posted yet.": "এখনো পোস্ট হয়নি।",
+  "Stop voice mode": "ভয়েস মোড বন্ধ করুন",
+  "{0} is thinking…": "{0} ভাবছে…",
+  "The microphone stopped: {0}": "মাইক্রোফোন থেমে গেছে: {0}",
+  "Voice mode is off: I did not hear anything.": "ভয়েস মোড বন্ধ: আমি কিছু শুনতে পাইনি।",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} কথা বলছে। ভয়েস মোড থেকে বেরোতে মাইক্রোফোনে চাপুন।",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "ভয়েস মোড: বলুন, আমি শুনছি। থামাতে মাইক্রোফোনে চাপুন।",
 }

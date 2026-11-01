@@ -3093,4 +3093,10 @@ export default {
   "Finish without saving any set": "Set kaydetmeden bitir",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "Gönderin Bitti'ye dokunduğunda akışa gider. Önce fotoğraf, bir şarkı ve birkaç söz ekle.",
   "Not posted yet.": "Henüz paylaşılmadı.",
+  "Stop voice mode": "Sesli modu durdur",
+  "{0} is thinking…": "{0} düşünüyor…",
+  "The microphone stopped: {0}": "Mikrofon durdu: {0}",
+  "Voice mode is off: I did not hear anything.": "Sesli mod kapandı: hiçbir şey duymadım.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} konuşuyor. Sesli moddan çıkmak için mikrofona dokun.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "Sesli mod: konuş, dinliyorum. Durdurmak için mikrofona dokun.",
 }

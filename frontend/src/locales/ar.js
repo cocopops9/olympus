@@ -3148,4 +3148,10 @@ export default {
   "Finish without saving any set": "أنهِ دون حفظ أي مجموعة",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "يُنشر منشورك في الصفحة عند الضغط على تم. أضف قبل ذلك صوراً وأغنية وبضع كلمات.",
   "Not posted yet.": "لم يُنشر بعد.",
+  "Stop voice mode": "إيقاف الوضع الصوتي",
+  "{0} is thinking…": "{0} يفكر…",
+  "The microphone stopped: {0}": "توقف الميكروفون: {0}",
+  "Voice mode is off: I did not hear anything.": "تم إيقاف الوضع الصوتي: لم أسمع شيئاً.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0} يتحدث. اضغط على الميكروفون للخروج من الوضع الصوتي.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "الوضع الصوتي: تحدث، أنا أستمع. اضغط على الميكروفون للإيقاف.",
 }

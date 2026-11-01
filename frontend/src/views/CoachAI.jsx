@@ -18,6 +18,7 @@ import Icon from '../components/Icon.jsx'
 import '../coach-ai.css'
 import { MicButton, useCanListen } from '../components/Voice.jsx'
 import { speak, stopSpeaking, canSpeak } from '../lib/voice.js'
+import { useUI } from '../store/useUI.js'
 import { splitActions } from '../lib/coach-actions.js'
 
 const ROLE = {
@@ -104,7 +105,7 @@ function Drawer({ coach, current, open, onOpen, onNew, onClose, version, bump, o
   </>
 }
 
-function Conversation({ coach, chatId, onChange, voice = false }) {
+function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff }) {
   const user = useStore(s => s.user)
   const c = useCoachChat({ coach, chatId, onSent: onChange })
   const { name, list, draft, setDraft, busy, err, left, input, send, suggestions, data, markApplied } = c
@@ -127,12 +128,25 @@ function Conversation({ coach, chatId, onChange, voice = false }) {
     if (!voice || !grew || lastMsg?.role !== 'assistant') return
     let gone = false
     setSpeaking(true)
-    speak(splitActions(lastMsg.content).text).finally(() => { if (gone) return; setSpeaking(false); if (!busyRef.current) mic.current?.start() })
+    speak(splitActions(lastMsg.content).text, { who: c.authorOf(lastMsg) }).finally(() => { if (gone) return; setSpeaking(false); if (!busyRef.current) { silences.current = 0; mic.current?.start() } })
     return () => { gone = true; stopSpeaking(); setSpeaking(false) }
   }, [list.length, voice])
   const busyRef = useRef(busy)
   busyRef.current = busy
-  useEffect(() => { if (!voice) { stopSpeaking(); mic.current?.stop() } }, [voice])
+  // Voice mode is hands free: it listens as soon as it is on, and after every answer read; the
+  // microphone button ends it. Two silences in a row end it too.
+  const silences = useRef(0)
+  useEffect(() => {
+    if (!voice) { stopSpeaking(); mic.current?.stop(); return }
+    silences.current = 0
+    const tm = setTimeout(() => { if (!busyRef.current) mic.current?.start() }, 300)
+    return () => clearTimeout(tm)
+  }, [voice])
+  const heardNothing = () => {
+    if (!voice) return
+    if (++silences.current >= 2) { onVoiceOff?.(); useUI.getState().toast(t('Voice mode is off: I did not hear anything.')); return }
+    mic.current?.start()
+  }
   const first = String(user?.name || '').split(/\s+/)[0]
   return <>
     <main className="cai-main">
@@ -162,12 +176,13 @@ function Conversation({ coach, chatId, onChange, voice = false }) {
       </div>
     </main>
     <form className="cai-in" onSubmit={e => { e.preventDefault(); send() }}>
-      {voice && <div className="voice-banner" role="status"><i />{speaking ? t('{0} is speaking. Tap the microphone to answer.', name) : t('Voice mode: tap the microphone and talk.')}</div>}
+      {voice && <div className="voice-banner" role="status"><i />{speaking ? t('{0} is speaking. Tap the microphone to stop voice mode.', name) : busy ? t('{0} is thinking…', name) : t('Voice mode: talk, I am listening. Tap the microphone to stop.')}</div>}
       <div className="cai-box">
         <textarea ref={input} rows={1} maxLength={2000} value={draft} placeholder={t('Ask {0}…', name)}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
-        <MicButton control={mic} disabled={busy} onText={setDraft} onFinal={text => { if (voice) send(text); else setDraft(text) }} />
+        <MicButton control={mic} disabled={busy} onText={setDraft} onFinal={text => { if (voice) { silences.current = 0; send(text) } else setDraft(text) }}
+          onSilence={heardNothing} onStopVoice={voice ? () => { stopSpeaking(); onVoiceOff?.() } : undefined} />
         <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
       </div>
       <div className="cai-note">{left != null && tn('{0} message left today', '{0} messages left today', left) + ' · '}{t('{0} is an AI and can be wrong. For pain or health problems, see a doctor.', name)}</div>
@@ -234,6 +249,7 @@ export default function CoachAI() {
         {models && <ModelMenu coach={coach} ons={ons} pick={pick} close={() => setModels(false)} own={own} />}
       </header>
       <Conversation key={chatBucket(coach)} coach={coach} chatId={chat} voice={voice && canVoice}
+        onVoiceOff={() => { setVoice(false); try { localStorage.setItem('olympus_voice_mode', '0') } catch { /* a convenience */ } }}
         onChange={id => { if (id && id !== chat) { setChat(id); setParams({ c: coach, chat: id }, { replace: true }) } bump() }} />
     </div>
   </div>

@@ -3093,4 +3093,10 @@ export default {
   "Finish without saving any set": "세트 저장 없이 종료",
   "Your post goes to the feed when you tap Done. Add photos, a song and a few words first.": "완료를 누르면 게시물이 피드에 올라가요. 먼저 사진, 노래, 몇 마디를 추가하세요.",
   "Not posted yet.": "아직 게시되지 않았어요.",
+  "Stop voice mode": "음성 모드 끄기",
+  "{0} is thinking…": "{0}이(가) 생각 중…",
+  "The microphone stopped: {0}": "마이크가 멈췄어요: {0}",
+  "Voice mode is off: I did not hear anything.": "음성 모드 꺼짐: 아무것도 듣지 못했어요.",
+  "{0} is speaking. Tap the microphone to stop voice mode.": "{0}이(가) 말하는 중이에요. 마이크를 누르면 음성 모드가 끝나요.",
+  "Voice mode: talk, I am listening. Tap the microphone to stop.": "음성 모드: 말하세요, 듣고 있어요. 마이크를 누르면 멈춰요.",
 }
