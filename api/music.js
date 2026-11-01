@@ -34,7 +34,7 @@ export function trackOf(r) {
 
 async function json(url, fetchImpl) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 10000);
+  const timer = setTimeout(() => ctl.abort(), 20000);
   try {
     const r = await fetchImpl(url, { signal: ctl.signal, headers: { Accept: 'application/json' } });
     if (!r.ok) throw new Error('catalogue ' + r.status);
