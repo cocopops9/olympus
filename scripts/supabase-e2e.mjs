@@ -68,6 +68,18 @@ const top = await call('GET', '/api/music/top?country=it', { token: a });
 ok(top.status === 200 && top.body?.tracks?.length >= 10 && /^https:\/\/[a-z0-9.-]+\.apple\.com\//.test(top.body.tracks[0].preview || ''), 'music chart with previews', `${top.status} ${top.body?.tracks?.length} ${JSON.stringify(top.body?.tracks?.[0] || top.body)}`);
 const found = await call('GET', '/api/music/search?q=eye%20of%20the%20tiger&country=us', { token: a });
 ok(found.status === 200 && found.body?.tracks?.length > 0, 'music search', `${found.status} ${found.body?.tracks?.length}`);
+// The coaches' ears: a second of tone, written out by Whisper (nothing said, so little or no text).
+const vs = await call('GET', '/api/voice', { token: a });
+ok(vs.status === 200 && vs.body?.listen === true, 'voice status', JSON.stringify(vs.body));
+const tone = (() => {
+  const rate = 16000, n = rate, buf = Buffer.alloc(44 + n * 2);
+  buf.write('RIFF', 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write('WAVEfmt ', 8); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write('data', 36); buf.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) buf.writeInt16LE(Math.round(Math.sin(2 * Math.PI * 220 * i / rate) * 8000), 44 + i * 2);
+  return buf.toString('base64');
+})();
+const stt = await call('POST', '/api/voice/transcribe', { token: a, body: { data: tone, type: 'audio/wav', lang: 'it-IT' } });
+ok(stt.status === 200 && typeof stt.body?.text === 'string', 'voice transcription answers', `${stt.status} ${JSON.stringify(stt.body)}`);
 const meA = await call('GET', '/api/social/profile', { token: a });
 ok(meA.status === 200 && !meA.body?.user?.founder, 'a new profile carries no founder mark', JSON.stringify(meA.body?.user?.founder));
 
