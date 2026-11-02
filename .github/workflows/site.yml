@@ -1,0 +1,67 @@
+# Olympus: the website on GitHub Pages, https://cocopops9.github.io/olympus/
+#   /      the landing page (site/), with the Android download (the APK on the "android" release)
+#   /app/  the app itself for iPhone: the same build as the APK (VITE_MOBILE=1, the same server),
+#          added to the Home Screen from Safari. No build number (APP_BUILD): a new version of the
+#          site must not ask for the sign-in again (lib/relogin.js), it only does so on a new
+#          package version.
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'frontend/**'
+      - 'catalogue/**'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-site
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - name: The app, as on Android
+        working-directory: frontend
+        env:
+          VITE_MOBILE: '1'
+          VITE_OLYMPUS_SERVER: ${{ vars.OLYMPUS_SERVER || 'https://jmhvabcwzrnzscbtqblk.supabase.co/functions/v1/olympus' }}
+        run: npx vite build --outDir ../_site/app --emptyOutDir
+      - run: node scripts/catalogue/stage-media.mjs _site/app
+      - name: The landing page
+        run: |
+          cp -r site/. _site/
+          touch _site/.nojekyll
+          du -sh _site
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
