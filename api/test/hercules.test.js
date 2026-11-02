@@ -162,7 +162,7 @@ test('both servers\' routes: Athena has her own count, and her own model answers
   assert.equal((await call('GET', '/api/hercules', null, token)).body.left, 19);
 });
 
-test('Chiron coaches in the workout: brief, on Hercules\'s key, 15 messages a day, each with four times the memory', async () => {
+test('Chiron coaches in the workout: brief, on Hercules\'s key, 30 messages a day, each with four times the memory', async () => {
   const env = { HERCULES_API_KEY: 'k' };
   const c = herculesConfig(env, 'chiron');
   assert.equal(c.coach, 'chiron'); assert.equal(c.key, 'k');
@@ -172,13 +172,13 @@ test('Chiron coaches in the workout: brief, on Hercules\'s key, 15 messages a da
   assert.equal(herculesConfig({ ...env, CHIRON_MODEL: 'm' }, 'chiron').model, 'm');
   const p = systemPrompt({ coach: 'chiron', lang: 'it', context: 'WORKOUT IN PROGRESS' });
   assert.match(p, /You are Chiron/);
-  assert.match(p, /under 60 words/);
-  assert.match(p, /only help with the training/);
+  assert.match(p, /40 to 110 words/);
+  assert.match(p, /only help with training/);
   assert.match(p, /not a doctor/);
   assert.match(p, /Answer in Italian/);
   assert.match(p, /WORKOUT IN PROGRESS/);
   // Fewer messages, each knowing more: four times the room for memory and data.
-  assert.equal(c.perDay, 15);
+  assert.equal(c.perDay, 30);
   assert.equal(c.context, 4 * LIMITS.context);
   assert.match(systemPrompt({ coach: 'chiron', context: 'x'.repeat(30000) + 'END' }), /END/);
   assert.doesNotMatch(p, /create_routine/);

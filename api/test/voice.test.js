@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transcribe, synthesize, VoiceError } from '../voice.js';
+import { transcribe, synthesize, VoiceError, _clearResting } from '../voice.js';
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
 
@@ -64,4 +64,27 @@ test('with a Gemini key the voice is Gemini\'s, streamed, joined into one WAV, a
   assert.equal(calls[1].key, 'AQ.x');
   assert.equal(calls[1].body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, 'Algenib');
   assert.equal(calls[1].body.contents[0].parts[0].text, 'Riposa due minuti.');
+});
+
+test('a model out of quota rests, the next one speaks, and with every quota gone the answer is 429', async () => {
+  _clearResting();
+  const pcm = Buffer.alloc(240, 1).toString('base64');
+  const urls = [];
+  const sse = 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: pcm } }] } }] }) + '\n';
+  const fetchImpl = async url => {
+    urls.push(url);
+    if (/3\.8-flash-lite/.test(url)) return { ok: false, status: 429, text: async () => 'quota' };
+    return { ok: true, status: 200, text: async () => sse };
+  };
+  const out = await synthesize({ text: 'Via.', lang: 'it', who: 'hercules' }, { geminiKey: 'k', fetchImpl });
+  assert.equal(out.type, 'audio/wav');
+  assert.equal(urls.length, 2);
+  urls.length = 0;
+  await synthesize({ text: 'Ancora.', lang: 'it', who: 'hercules' }, { geminiKey: 'k', fetchImpl });
+  assert.equal(urls.length, 1);   // the resting model is not asked again
+  assert.match(urls[0], /3\.8-flash-tts/);
+  _clearResting();
+  const none = async () => ({ ok: false, status: 429, text: async () => 'quota' });
+  await assert.rejects(synthesize({ text: 'Via.', who: 'chiron' }, { geminiKey: 'k', fetchImpl: none }), e => e.status === 429 && e.code === 'tts-quota');
+  _clearResting();
 });

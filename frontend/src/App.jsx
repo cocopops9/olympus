@@ -23,6 +23,7 @@ import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE } from './lib/mobile.js'
+import { DEFAULT_SERVER } from './lib/app-info.js'
 import { exitWorkoutEdit, startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
@@ -261,7 +262,7 @@ function Shell() {
           re-mounts the boundary, so the tab bar is always a way out */}
       <div id="app" className="vfade" key={loc.pathname}>
         <ErrorBoundary>
-          {!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : (
+          {!authed ? (MOBILE && DEFAULT_SERVER ? <MobileOnboarding /> : <Login />) : needsMobileOnboarding ? <MobileOnboarding /> : (
             <Routes>
               {/* Olympus: Home is the social feed; the training dashboard that was Home is /today. */}
               <Route path="/home" element={<Feed />} />

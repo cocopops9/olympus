@@ -1,3 +1,4 @@
+// Copied from api/voice.js by scripts/supabase-bundle.mjs. Edit that file, then run the script.
 // Olympus: the coaches' ears and voice, on the server.
 //
 // Ears: what the phone recorded (a short clip, webm/opus or mp4/aac) is written out by Whisper on
@@ -130,13 +131,22 @@ function pcmOf(part) {
 
 // Streamed: measured from the server, the whole sentence arrives in about 2 s instead of 3 to 5 s
 // for the same request unstreamed.
-async function geminiSpeak(words, who, { key, model, fetchImpl }) {
-  const models = [model, ...GEMINI_MODELS].filter((m, i, a) => m && a.indexOf(m) === i);
+// A model whose free quota is used up is left alone for a while: each model has a quota of its own,
+// so the next one answers meanwhile.
+const resting = new Map();
+export const _clearResting = () => resting.clear();
+const REST_MS = 5 * 60 * 1000;
+
+async function geminiSpeak(words, who, { key, model, fetchImpl, now = Date.now() }) {
+  const all = [model, ...GEMINI_MODELS].filter((m, i, a) => m && a.indexOf(m) === i);
+  const ready = all.filter(m => (resting.get(m) || 0) <= now);
+  const models = ready.length ? ready : all;   // all resting: try them anyway, the quota may be back
   const body = JSON.stringify({
     // Only the words: a style instruction put before them is read aloud as part of the speech.
     contents: [{ parts: [{ text: words }] }],
     generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: SPEAKER[who] || SPEAKER.hercules } } } },
   });
+  let quota = false;
   for (const m of models) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 25000);
@@ -144,8 +154,11 @@ async function geminiSpeak(words, who, { key, model, fetchImpl }) {
       const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?alt=sse`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body, signal: ctl.signal,
       });
-      if (r.status === 404 || r.status === 400) { console.error('gemini voice', m, r.status, (await r.text().catch(() => '')).slice(0, 200)); continue; }
-      if (!r.ok) { console.error('gemini voice', m, r.status, (await r.text().catch(() => '')).slice(0, 200)); throw new VoiceError(502, 'the voice service did not answer', 'tts-failed'); }
+      if (!r.ok) {
+        console.error('gemini voice', m, r.status, (await r.text().catch(() => '')).slice(0, 120));
+        if (r.status === 429) { quota = true; resting.set(m, now + REST_MS); }
+        continue;   // retired, out of quota or busy: the next model
+      }
       const parts = [];
       let rate = 24000;
       for (const line of (await r.text()).split('\n')) {
@@ -163,11 +176,10 @@ async function geminiSpeak(words, who, { key, model, fetchImpl }) {
       for (const p of parts) { pcm.set(p, at); at += p.length; }
       return { audio: toBase64(wavOf(pcm, rate)), type: 'audio/wav' };
     } catch (e) {
-      if (e instanceof VoiceError) throw e;
       console.error('gemini voice', m, e?.name || e);
-      throw new VoiceError(502, 'the voice service did not answer', 'tts-failed');
     } finally { clearTimeout(timer); }
   }
+  if (quota) throw new VoiceError(429, 'the voice has no quota left for now', 'tts-quota');
   throw new VoiceError(502, 'the voice service did not answer', 'tts-failed');
 }
 

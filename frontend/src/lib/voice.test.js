@@ -68,7 +68,7 @@ describe('reading in pieces', () => {
     const p = pieces('Rest two minutes. Then 100 kg for 5. Keep your back straight. Breathe out as you push.')
     expect(p[0]).toBe('Rest two minutes.')
     expect(p.join(' ')).toBe('Rest two minutes. Then 100 kg for 5. Keep your back straight. Breathe out as you push.')
-    expect(p.length).toBeLessThan(4)
+    expect(p.length).toBe(2)
   })
   it('a long sentence is cut', () => {
     expect(pieces('a'.repeat(500), 240).every(x => x.length <= 240)).toBe(true)

@@ -47,7 +47,7 @@ const blobToBase64 = blob => new Promise((resolve, reject) => {
 // When to stop on its own: a pause after speaking, nothing said at all, or a long talk.
 // A question is rarely said in one breath: the stop waits for a long pause (longer still before the
 // first words are well under way), and a long talk is allowed.
-export const LISTEN = { pauseMs: 2200, earlyPauseMs: 3000, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350 }
+export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350 }
 
 /**
  * One question, recorded and written out. Speech is told from silence by the loudness of the
@@ -198,29 +198,28 @@ let speakRun = 0
 let voiceFails = 0
 
 // Short pieces, a sentence or a few: the first is heard while the next is being made.
-export function pieces(text, max = 240) {
+export function pieces(text, max = 800) {
   const sentences = String(text).match(/[^.!?…\n]+[.!?…]*[\s\n]*/g) || [String(text)]
-  const out = []
-  for (const raw of sentences) {
-    const x = raw.trim()
-    if (!x) continue
-    if (out.length && (out[out.length - 1] + ' ' + x).length <= max && out.length > 1) out[out.length - 1] += ' ' + x
-    else if (x.length > max) for (let i = 0; i < x.length; i += max) out.push(x.slice(i, i + max))
-    else out.push(x)
-  }
-  return out
+  const clean = sentences.map(x => x.trim()).filter(Boolean)
+  if (clean.length <= 1) return clean.flatMap(x => x.length > max ? x.match(new RegExp('.{1,' + max + '}', 'g')) : [x])
+  // The first sentence alone, so it is heard soon; the rest in one request, so the server's quota
+  // is spent twice at most on an answer.
+  const rest = clean.slice(1).join(' ')
+  return [clean[0], ...(rest.length > max ? rest.match(new RegExp('.{1,' + max + '}', 'g')) : [rest])]
 }
 
 async function speakOnServer(say, lang, who, run, onStart) {
   // One more try when a piece fails: a cold start or a busy moment is not a reason for the phone's voice.
   const once = piece => api('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text: piece, lang, who }), timeout: 25000 })
-  const ask = piece => once(piece).catch(e => (e?.status === 501 || e?.status === 404 || e?.status === 401 ? Promise.reject(e) : once(piece)))
+  const ask = piece => once(piece).catch(e => ([501, 404, 401, 429].includes(e?.status) ? Promise.reject(e) : once(piece)))
   const parts = pieces(say)
   let next = ask(parts[0])
   for (let i = 0; i < parts.length; i++) {
     let r
     try { r = await next } catch (e) {
       if (e?.status === 501 || e?.status === 404 || e?.status === 401) serverVoice = false
+      // No quota left (429): the phone's voice at once, and the server's is not asked again for a while.
+      else if (e?.status === 429) { serverVoice = false; setTimeout(() => { serverVoice = null; voiceFails = 0 }, 5 * 60 * 1000) }
       // A voice that fails twice in a row (a quota used up, no connection) rests for ten minutes.
       else if (i === 0 && ++voiceFails >= 3) { serverVoice = false; setTimeout(() => { serverVoice = null; voiceFails = 0 }, 2 * 60 * 1000) }
       if (i === 0) return false

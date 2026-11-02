@@ -341,7 +341,10 @@ export function WorkoutChiron() {
   const wasAwake = useRef(false)
   const [settling, setSettling] = useState(false)
   const awake = voiceAwake || sheetOpen
+  const online0 = socialReady(user)
   useEffect(() => () => { clearTimeout(timer.current); sleepNow() }, [])
+  // The server's voice is asked about while he sleeps, so waking him does not wait for it.
+  useEffect(() => { if (on && online0) warmVoice() }, [on, online0])
   // Back to sleep when his sheet closes (without the voice panel): a short settling, then asleep.
   useEffect(() => {
     if (awake) { wasAwake.current = true; return }
