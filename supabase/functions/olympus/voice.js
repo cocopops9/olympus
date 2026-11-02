@@ -19,7 +19,7 @@ export class VoiceError extends Error {
   constructor(status, message, code) { super(message); this.status = status; this.code = code; }
 }
 
-export const VOICE_LIMITS = Object.freeze({ clipBytes: 1_500_000, textChars: 900 });
+export const VOICE_LIMITS = Object.freeze({ clipBytes: 2_000_000, textChars: 900 });
 
 const MIME = { webm: 'audio/webm', ogg: 'audio/ogg', mp4: 'audio/mp4', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', mpeg: 'audio/mpeg' };
 const extOf = type => {
@@ -72,7 +72,7 @@ export function looping(text) {
 }
 
 /** The words in a recorded clip ({ data: base64, type, lang }), or '' when nothing was said. */
-export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', fetchImpl = globalThis.fetch } = {}) {
+export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', geminiKey = '', geminiModel = '', fetchImpl = globalThis.fetch } = {}) {
   if (!key) throw new VoiceError(503, 'voice is not set up on this server', 'voice-off');
   const ext = extOf(type);
   if (!ext) throw new VoiceError(400, 'unknown recording format', 'clip-format');
@@ -89,6 +89,9 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
   const l = langOf(lang);
   if (l) form.append('language', l);
   const words = String(hint || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 500);
+  // Gemini hears the same clip at the same time (it can use what a gym talk is about, which Whisper
+  // cannot); its answer is the one used when it comes, Whisper's (corrected) when it does not.
+  const heard = geminiKey && GEMINI_HEARS.includes(ext) ? geminiHear({ data: String(data || '').replace(/^data:[^,]*,/, ''), mime: MIME[ext], lang: l, words }, { key: geminiKey, model: geminiModel, fetchImpl }).catch(() => null) : Promise.resolve(null);
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20000);
   try {
@@ -96,6 +99,8 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     if (!r.ok) {
       const why = await r.text().catch(() => '');
       console.error('transcribe', r.status, why.slice(0, 300));
+      const g = await heard;
+      if (g) return g;
       throw new VoiceError(502, 'the transcription service did not answer', 'stt-failed');
     }
     const j = await r.json();
@@ -103,8 +108,61 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     // Whisper's well-known inventions over silence or noise.
     if (/^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|grazie(?: a tutti)?\.?|sottotitoli .*|gracias\.?|merci\.?|you)$/i.test(text)) return '';
     if (looping(text)) { console.error('transcribe: a loop of words dropped', text.slice(0, 120)); return ''; }
+    const g = await heard;
+    if (g) return g;
     return await mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
   } finally { clearTimeout(timer); }
+}
+
+// Formats Gemini takes as audio: WAV (what the app sends), MP3, Ogg. Not WebM.
+const GEMINI_HEARS = ['wav', 'mpeg', 'ogg'];
+const HEAR_MODELS = ['gemini-3.8-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+const hearResting = new Map();   // model -> time it may be asked again (out of quota, or not there)
+export const _clearHearResting = () => hearResting.clear();
+
+/**
+ * What a person said to their coach, heard by Gemini from the audio itself and the context: a gym,
+ * training, their own exercises. Returns the text, '' when it heard nobody, or null when it could not
+ * (no quota, no model, no answer): the caller then relies on Whisper.
+ */
+export async function geminiHear({ data, mime = 'audio/wav', lang, words }, { key, model, fetchImpl, now = Date.now() }) {
+  const all = [model, ...HEAR_MODELS].filter((m, i, a) => m && a.indexOf(m) === i);
+  const ready = all.filter(m => (hearResting.get(m) || 0) <= now);
+  const prompt = [
+    `A person is speaking to their strength and conditioning coach during a workout, most likely in ${LANG_NAME[lang] || 'their own language'} (they may have an accent, and the room may be noisy or echo). Write down exactly what they said, in the language they spoke, as one line, and nothing else.`,
+    'Use what they are likely talking about to choose between words that sound alike: training, exercises, sets, reps, weights, rest, muscles, pain, goals, their past workouts and progress. A sensible question or remark to a coach is far more likely than a strange sentence. Do not answer them, translate, explain or add anything.',
+    words ? `Their exercises and words: ${words}` : '',
+    'If nobody is speaking, or it is only noise, answer with the single word NOTHING.',
+  ].filter(Boolean).join('\n');
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: mime, data } }] }],
+    generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+  });
+  for (const m of ready) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 9000);
+    try {
+      const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body, signal: ctl.signal,
+      });
+      if (!r.ok) {
+        console.error('gemini hear', m, r.status, (await r.text().catch(() => '')).slice(0, 120));
+        if (r.status === 429) hearResting.set(m, now + REST_MS);
+        else if (r.status === 404 || r.status === 400) hearResting.set(m, now + 6 * 3600 * 1000);
+        continue;
+      }
+      const j = await r.json();
+      const parts = j?.candidates?.[0]?.content?.parts || [];
+      let out = parts.filter(p => !p.thought).map(p => String(p.text || '')).join(' ').replace(/\s+/g, ' ').trim().replace(/^["“”']+|["“”']+$/g, '').trim();
+      if (!out) continue;
+      if (/^NOTHING\.?$/i.test(out)) return '';
+      if (out.length > 600) out = out.slice(0, 600);
+      return out;
+    } catch (e) {
+      console.error('gemini hear', m, e?.name || e);
+    } finally { clearTimeout(timer); }
+  }
+  return null;
 }
 
 const LANG_NAME = { en: 'English', it: 'Italian', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ru: 'Russian', uk: 'Ukrainian', pl: 'Polish', tr: 'Turkish', hu: 'Hungarian', ar: 'Arabic', hi: 'Hindi', bn: 'Bengali', ko: 'Korean', th: 'Thai', zh: 'Chinese' };

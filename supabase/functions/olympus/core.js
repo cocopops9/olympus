@@ -616,7 +616,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/voice/transcribe': async req => {
       await signedIn(req); const b = await readJson(req);
       const cfg = herculesConfig(env, 'chiron');
-      try { return { body: { text: await transcribe({ data: b.data, type: b.type, lang: b.lang, hint: b.hint }, { key: cfg.key, baseUrl: cfg.baseUrl, fixModel: String(env.VOICE_FIX_MODEL ?? 'llama-3.3-70b-versatile'), fetchImpl }) } }; }
+      try { return { body: { text: await transcribe({ data: b.data, type: b.type, lang: b.lang, hint: b.hint }, { key: cfg.key, baseUrl: cfg.baseUrl, fixModel: String(env.VOICE_FIX_MODEL ?? 'llama-3.3-70b-versatile'), geminiKey: String(env.GEMINI_API_KEY || '').trim(), geminiModel: String(env.GEMINI_HEAR_MODEL || '').trim(), fetchImpl }) } }; }
       catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
     },
     'POST /api/voice/speak': async req => {

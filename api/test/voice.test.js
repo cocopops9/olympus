@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transcribe, synthesize, VoiceError, _clearResting } from '../voice.js';
+import { transcribe, synthesize, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
 
@@ -23,7 +23,7 @@ test('a clip that is empty, too big, of an unknown kind, or with no key is refus
   await assert.rejects(transcribe({ data: clip, type: 'audio/webm' }, { key: '' }), e => e instanceof VoiceError && e.code === 'voice-off');
   await assert.rejects(transcribe({ data: 'AAAA', type: 'audio/webm' }, { key: 'k' }), e => e.code === 'clip-empty');
   await assert.rejects(transcribe({ data: clip, type: 'video/x-flv' }, { key: 'k' }), e => e.code === 'clip-format');
-  await assert.rejects(transcribe({ data: 'A'.repeat(2_200_000), type: 'audio/webm' }, { key: 'k' }), e => e.code === 'clip-large');
+  await assert.rejects(transcribe({ data: 'A'.repeat(2_900_000), type: 'audio/webm' }, { key: 'k' }), e => e.code === 'clip-large');
 });
 
 test('each coach has a voice of his own, in the language asked', async () => {
@@ -127,4 +127,59 @@ test('stretches Whisper made up, and loops of words, are not taken for what was 
   const loop = 'barbell lunge, barbell lunge, full barbell counter barbell bench press barbell step, curl up, barbell lunge bench, biceps';
   const fetchImpl = async () => ({ ok: true, json: async () => ({ text: loop, segments: [{ text: loop, avg_logprob: -0.5, no_speech_prob: 0.1, compression_ratio: 1.9 }] }) });
   assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'en' }, { key: 'k', fetchImpl }), '');
+});
+
+test('Gemini hears a WAV clip beside Whisper and its words are the ones used; without it, or when it fails, Whisper\'s stand', async () => {
+  _clearHearResting();
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init });
+    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'how do i bring in school' }) };
+    if (url.includes('generativelanguage')) {
+      const body = JSON.parse(init.body);
+      assert.equal(body.contents[0].parts[1].inlineData.mimeType, 'audio/wav');
+      assert.match(body.contents[0].parts[0].text, /Barbell Squat/);
+      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ thought: true, text: 'thinking' }, { text: ' "How do I train explosiveness in basketball?" ' }] } }] }) };
+    }
+    return { ok: true, json: async () => ({ choices: [{ message: { content: 'unused' } }] }) };
+  };
+  const out = await transcribe({ data: clip, type: 'audio/wav', lang: 'en-US', hint: 'Barbell Squat' }, { key: 'k', geminiKey: 'g', fetchImpl });
+  assert.equal(out, 'How do I train explosiveness in basketball?');
+  assert.match(calls.find(c => c.url.includes('generativelanguage')).url, /gemini-3\.8-flash-lite:generateContent$/);
+  assert.equal(calls.some(c => c.url.includes('/chat/completions')), false);
+
+  // WebM is not a format Gemini takes: Whisper alone.
+  calls.length = 0;
+  assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl }), 'how do i bring in school');
+  assert.equal(calls.some(c => c.url.includes('generativelanguage')), false);
+});
+
+test('when Gemini is out of quota or retired its model rests and the next is tried, and with all failing Whisper\'s words stay', async () => {
+  _clearHearResting();
+  const urls = [];
+  const fetchImpl = async url => {
+    urls.push(url);
+    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'what exercises am i weaker' }) };
+    if (url.includes('/chat/completions')) return { ok: false, status: 500, json: async () => ({}) };
+    return { ok: false, status: url.includes('3.8-flash-lite') ? 429 : 404, text: async () => 'no' };
+  };
+  assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl }), 'what exercises am i weaker');
+  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 4);
+  urls.length = 0;
+  await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl });
+  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 0);   // all resting
+});
+
+test('Gemini saying NOTHING is silence, and a Whisper failure leaves Gemini\'s words', async () => {
+  _clearHearResting();
+  const fetchImpl = async url => {
+    if (url.includes('/audio/transcriptions')) return { ok: false, status: 500, text: async () => 'down' };
+    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Quanto riposo?' }] } }] }) };
+  };
+  assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'it' }, { key: 'k', geminiKey: 'g', fetchImpl }), 'Quanto riposo?');
+  _clearHearResting();
+  const quiet = async url => (url.includes('/audio/transcriptions')
+    ? { ok: true, json: async () => ({ text: '' }) }
+    : { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'NOTHING' }] } }] }) });
+  assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'it' }, { key: 'k', geminiKey: 'g', fetchImpl: quiet }), '');
 });

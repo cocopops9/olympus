@@ -8,6 +8,7 @@ import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
 import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey } from './local-voice.js'
 import { api } from './api.js'
+import { clipOf } from './wav.js'
 
 // BCP 47 tags for the app's languages: recognisers want a region.
 const TAGS = {
@@ -67,7 +68,7 @@ let held = null   // { stream, timer }
 async function micStream() {
   if (held && held.stream.getTracks().every(x => x.readyState === 'live')) { clearTimeout(held.timer); return held.stream }
   held = null
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1 } })
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 } })
   held = { stream, timer: null }
   return stream
 }
@@ -100,26 +101,38 @@ async function recordAndWrite({ onText, onEnd, onReady, lang }) {
   const chunks = []
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data) }
   const AC = window.AudioContext || window.webkitAudioContext
-  let ac = null, analyser = null, buf = null
+  let ac = null, analyser = null, buf = null, proc = null
+  const pcm = []
   try {
     ac = new AC()
     analyser = ac.createAnalyser()
     analyser.fftSize = 1024
     buf = new Float32Array(analyser.fftSize)
-    ac.createMediaStreamSource(stream).connect(analyser)
-    ac.resume?.().catch?.(() => {})
-  } catch { analyser = null }
+    const src = ac.createMediaStreamSource(stream)
+    src.connect(analyser)
+    // The raw samples too: sent as an uncompressed 16 kHz clip (lib/wav.js), which the recognisers
+    // hear better than a 48 kbps compressed one. The recorder stays as the fallback.
+    try {
+      proc = ac.createScriptProcessor(4096, 1, 1)
+      proc.onaudioprocess = e => { if (!finished) pcm.push(new Float32Array(e.inputBuffer.getChannelData(0))) }
+      src.connect(proc)
+      proc.connect(ac.destination)
+    } catch { proc = null }
+    try { await ac.resume?.() } catch { /* the first sound resumes it */ }
+  } catch { analyser = null; proc = null }
   const t0 = Date.now()
   let spoke = !analyser, lastVoice = t0, firstVoice = t0, floor = null, cancelled = false, finished = false, sent = false
   const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
   const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
-  const release = () => { clearInterval(tick); micLater(stream); try { ac?.close() } catch { /* closed */ } }
+  const release = () => { clearInterval(tick); micLater(stream); try { proc?.disconnect() } catch { /* gone */ } try { ac?.close() } catch { /* closed */ } }
   const send = async () => {
     if (sent) return
     sent = true
     release()
     if (cancelled || !spoke) return done('')
-    const blob = new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' })
+    const rate = ac?.sampleRate || 48000
+    const wav = proc && pcm.length ? clipOf(pcm, rate, lastVoice > t0 ? { fromMs: firstVoice - t0, toMs: lastVoice - t0 } : {}) : null
+    const blob = wav || new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' })
     if (blob.size < 1200) return done('')
     try {
       const data = await blobToBase64(blob)

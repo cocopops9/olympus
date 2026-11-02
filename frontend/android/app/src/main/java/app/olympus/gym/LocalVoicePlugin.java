@@ -3,6 +3,8 @@ package app.olympus.gym;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
+import java.util.ArrayList;
+import java.util.List;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -173,7 +175,7 @@ public class LocalVoicePlugin extends Plugin {
             try {
                 OfflineTts tts = engine(lang);
                 // One sentence at a time: the first is heard while the next is made.
-                String[] parts = text.trim().split("(?<=[.!?…。！？])\\s+");
+                List<String> parts = pieces(text);
                 boolean started = false;
                 for (String part : parts) {
                     if (me != run) break;
@@ -188,6 +190,34 @@ public class LocalVoicePlugin extends Plugin {
                 call.reject("the voice failed: " + e.getMessage());
             }
         });
+    }
+
+    // The text as the voice can read it: no markdown or pictures (it would read them as noise), and
+    // sentences cut at a comma when they run long (these voices babble on a very long stretch).
+    static List<String> pieces(String text) {
+        String clean = text
+                .replaceAll("[\\p{So}\\p{Cn}\\p{Cs}*_#`~|<>\\[\\]{}\\\\]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        List<String> out = new ArrayList<>();
+        for (String sentence : clean.split("(?<=[.!?…。！？])\\s+")) {
+            String rest = sentence.trim();
+            while (rest.length() > 160) {
+                int cut = -1;
+                for (int i = Math.min(rest.length() - 1, 160); i > 60; i--) {
+                    char c = rest.charAt(i);
+                    if (c == ',' || c == ';' || c == ':' || c == '，' || c == '、') { cut = i + 1; break; }
+                }
+                if (cut < 0) {
+                    cut = rest.lastIndexOf(' ', 160);
+                    if (cut < 60) cut = 160;
+                }
+                out.add(rest.substring(0, cut).trim());
+                rest = rest.substring(cut).trim();
+            }
+            if (!rest.isEmpty()) out.add(rest);
+        }
+        return out;
     }
 
     @PluginMethod
