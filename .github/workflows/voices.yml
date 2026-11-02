@@ -1,0 +1,100 @@
+# Olympus: the coaches' offline voices. For every app language that has one, a man's Piper voice
+# (from the sherpa-onnx model releases, which carry the voice, its tokens and the espeak-ng data it
+# reads with) is repacked as one zip and published on the "voices" release, with voices.json saying
+# which voice each language has, its size and its checksum. The app downloads the one for its
+# language on the first start (frontend/src/lib/local-voice.js) and reads aloud on the phone with
+# it (LocalVoicePlugin.java): no quota, no connection.
+#
+# Run by hand (workflow_dispatch) or by a change to this file. The first voice listed that exists
+# for a language is the one taken.
+name: Offline voices
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/voices.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: voices
+  cancel-in-progress: false
+
+jobs:
+  voices:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fetch and repack the voices
+        run: |
+          set -u
+          base=https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models
+          mkdir -p out work
+          # app language | voice candidates, best first (locale-name-quality[:speaker id])
+          cat > list.txt <<'EOF'
+          en|en_US-ryan-medium en_US-joe-medium en_GB-alan-medium en_US-hfc_male-medium en_US-ryan-low
+          it|it_IT-riccardo-x_low
+          es|es_ES-davefx-medium es_ES-carlfm-x_low es_MX-ald-medium
+          fr|fr_FR-tom-medium fr_FR-gilles-low fr_FR-upmc-medium
+          de|de_DE-thorsten-medium de_DE-thorsten-high de_DE-karlsson-low
+          pt|pt_PT-tugao-medium pt_BR-faber-medium
+          pt-BR|pt_BR-faber-medium pt_BR-cadu-medium pt_BR-jeff-medium
+          pl|pl_PL-darkman-medium pl_PL-mc_speech-medium
+          tr|tr_TR-fahrettin-medium tr_TR-dfki-medium
+          ru|ru_RU-dmitri-medium ru_RU-denis-medium ru_RU-ruslan-medium
+          uk|uk_UA-ukrainian_tts-medium:1
+          zh|zh_CN-chaowen-medium zh_CN-huayan-medium
+          hi|hi_IN-pratham-medium hi_IN-rohan-medium
+          hu|hu_HU-imre-medium
+          ar|ar_JO-kareem-medium ar_JO-kareem-low
+          EOF
+          echo '{' > out/entries.txt
+          while IFS='|' read -r lang cands; do
+            lang=$(echo "$lang" | xargs)
+            [ -z "$lang" ] && continue
+            done_one=0
+            for c in $cands; do
+              name=${c%%:*}; sid=0
+              [ "$c" != "$name" ] && sid=${c##*:}
+              url="$base/vits-piper-$name.tar.bz2"
+              if curl -fsSL -o "work/$name.tar.bz2" "$url"; then
+                rm -rf "work/x" && mkdir -p work/x
+                tar xjf "work/$name.tar.bz2" -C work/x
+                dir=$(ls -d work/x/*/ | head -1)
+                model=$(ls "$dir"*.onnx | head -1)
+                if [ -z "$model" ] || [ ! -f "$dir/tokens.txt" ] || [ ! -d "$dir/espeak-ng-data" ]; then echo "::warning::$name has no model, tokens or espeak data"; continue; fi
+                rm -rf work/p && mkdir -p work/p
+                cp "$model" work/p/model.onnx
+                cp "$dir/tokens.txt" work/p/tokens.txt
+                cp -r "$dir/espeak-ng-data" work/p/espeak-ng-data
+                (cd work/p && zip -qr9 "../../out/voice-$lang.zip" .)
+                bytes=$(stat -c %s "out/voice-$lang.zip")
+                sum=$(sha256sum "out/voice-$lang.zip" | cut -d' ' -f1)
+                echo "  \"$lang\": {\"file\": \"voice-$lang.zip\", \"name\": \"$name\", \"sid\": $sid, \"bytes\": $bytes, \"sha256\": \"$sum\"}," >> out/entries.txt
+                echo "$lang: $name ($bytes bytes)"
+                done_one=1
+                rm -f "work/$name.tar.bz2"
+                break
+              else
+                echo "$lang: no $name"
+              fi
+            done
+            [ $done_one = 0 ] && echo "::warning::no voice found for $lang"
+          done < list.txt
+          python3 - <<'PY'
+          import json, re
+          body = open('out/entries.txt').read().strip().rstrip(',')
+          voices = json.loads(body + '\n}')
+          json.dump({'version': 1, 'voices': voices}, open('out/voices.json', 'w'), indent=1)
+          print(json.dumps(voices, indent=1))
+          PY
+          ls -la out
+
+      - name: Publish to the "voices" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view voices > /dev/null 2>&1 || gh release create voices --title "Olympus offline voices" --notes "The coaches' offline voices, downloaded by the app (see .github/workflows/voices.yml). Not an app release." --latest=false
+          gh release upload voices out/voices.json out/voice-*.zip --clobber
