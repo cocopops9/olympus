@@ -44,6 +44,10 @@ const blobToBase64 = blob => new Promise((resolve, reject) => {
   r.readAsDataURL(blob)
 })
 
+// The person's own exercise names, asked for at each recording: set once by the app (App.jsx).
+let hintOf = null
+export const setVoiceHint = fn => { hintOf = typeof fn === 'function' ? fn : null }
+
 // When to stop on its own: a pause after speaking, nothing said at all, or a long talk.
 // A question is rarely said in one breath: the stop waits for a long pause (longer still before the
 // first words are well under way), and a long talk is allowed.
@@ -93,7 +97,7 @@ async function recordAndWrite({ onText, onEnd, lang }) {
     if (blob.size < 1200) return done('')
     try {
       const data = await blobToBase64(blob)
-      const r = await api('/api/voice/transcribe', { method: 'POST', body: JSON.stringify({ data, type: blob.type, lang }), timeout: 25000 })
+      const r = await api('/api/voice/transcribe', { method: 'POST', body: JSON.stringify({ data, type: blob.type, lang, hint: (() => { try { return hintOf?.() || '' } catch { return '' } })() }), timeout: 25000 })
       done(cancelled ? '' : r?.text || '')
     } catch (e) { done('', cancelled ? null : e?.message || 'transcription failed') }
   }

@@ -2670,7 +2670,7 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
     const cfg = herculesConfig(process.env, 'chiron');
-    try { json(res, 200, { text: await transcribe({ data: body.data, type: body.type, lang: body.lang }, { key: cfg.key, baseUrl: cfg.baseUrl }) }); }
+    try { json(res, 200, { text: await transcribe({ data: body.data, type: body.type, lang: body.lang, hint: body.hint }, { key: cfg.key, baseUrl: cfg.baseUrl, fixModel: String(process.env.VOICE_FIX_MODEL ?? 'llama-3.3-70b-versatile') }) }); }
     catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
   },
   'POST /api/voice/speak': async (req, res) => {

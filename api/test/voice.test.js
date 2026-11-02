@@ -88,3 +88,26 @@ test('a model out of quota rests, the next one speaks, and with every quota gone
   await assert.rejects(synthesize({ text: 'Via.', who: 'chiron' }, { geminiKey: 'k', fetchImpl: none }), e => e.status === 429 && e.code === 'tts-quota');
   _clearResting();
 });
+
+test('what Whisper heard is mended by what makes sense in a gym, with the person\'s exercises as the hint', async () => {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, init });
+    if (/transcriptions$/.test(url)) return { ok: true, json: async () => ({ text: 'I want to do pull up squats' }) };
+    return { ok: true, json: async () => ({ choices: [{ message: { content: ' I want to do full squats ' } }] }) };
+  };
+  const text = await transcribe({ data: clip, type: 'audio/webm', lang: 'en-US', hint: 'Barbell Back Squat, Bench Press' }, { key: 'k', fetchImpl });
+  assert.equal(text, 'I want to do full squats');
+  assert.match(calls[0].init.body.get('prompt'), /Barbell Back Squat, Bench Press/);
+  const chat = JSON.parse(calls[1].init.body);
+  assert.equal(chat.model, 'llama-3.3-70b-versatile');
+  assert.match(chat.messages[1].content, /Barbell Back Squat/);
+  assert.match(chat.messages[1].content, /pull up squats/);
+  // A correction that is not one (an answer, a different length), a failure, or no model: as heard.
+  const wrong = answer => async url => (/transcriptions$/.test(url) ? { ok: true, json: async () => ({ text: 'Quanto devo riposare?' }) } : { ok: true, json: async () => ({ choices: [{ message: { content: answer } }] }) });
+  assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fetchImpl: wrong('Riposa tre minuti, poi riprova con più carico, senza fretta e con calma.') }), 'Quanto devo riposare?');
+  assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fetchImpl: wrong('') }), 'Quanto devo riposare?');
+  const down = async url => (/transcriptions$/.test(url) ? { ok: true, json: async () => ({ text: 'Quanto devo riposare?' }) } : { ok: false, status: 429 });
+  assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fetchImpl: down }), 'Quanto devo riposare?');
+  assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fixModel: '', fetchImpl: wrong('x') }), 'Quanto devo riposare?');
+});

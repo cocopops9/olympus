@@ -53,7 +53,7 @@ const HINT = {
 };
 
 /** The words in a recorded clip ({ data: base64, type, lang }), or '' when nothing was said. */
-export async function transcribe({ data, type, lang } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fetchImpl = globalThis.fetch } = {}) {
+export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', fetchImpl = globalThis.fetch } = {}) {
   if (!key) throw new VoiceError(503, 'voice is not set up on this server', 'voice-off');
   const ext = extOf(type);
   if (!ext) throw new VoiceError(400, 'unknown recording format', 'clip-format');
@@ -67,7 +67,11 @@ export async function transcribe({ data, type, lang } = {}, { key, baseUrl = 'ht
   // it, so the words it expects (sets, reps, rest, the lifts) are the ones it hears.
   const l = langOf(lang);
   if (l) form.append('language', l);
-  if (HINT[l]) form.append('prompt', HINT[l]);
+  // The exercises of the person's own workout and routines go in the hint too, so the words Whisper
+  // weighs are the ones likely to be said.
+  const words = String(hint || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 500);
+  const prompt = [HINT[l], words].filter(Boolean).join(' ').trim();
+  if (prompt) form.append('prompt', prompt);
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20000);
   try {
@@ -81,8 +85,44 @@ export async function transcribe({ data, type, lang } = {}, { key, baseUrl = 'ht
     const text = String(j?.text || '').trim();
     // Whisper's well-known inventions over silence or noise.
     if (/^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|grazie(?: a tutti)?\.?|sottotitoli .*|gracias\.?|merci\.?|you)$/i.test(text)) return '';
-    return text.slice(0, 600);
+    return await mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
   } finally { clearTimeout(timer); }
+}
+
+const LANG_NAME = { en: 'English', it: 'Italian', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', ru: 'Russian', uk: 'Ukrainian', pl: 'Polish', tr: 'Turkish', hu: 'Hungarian', ar: 'Arabic', hi: 'Hindi', bn: 'Bengali', ko: 'Korean', th: 'Thai', zh: 'Chinese' };
+
+/**
+ * What was heard, corrected by what is likely to be said: a language model reads the transcript with
+ * the person's exercises beside it and fixes the words the recogniser took for others ("pull up
+ * squats" said by someone doing full squats). The sentence that makes sense in a gym wins over the
+ * one that only sounds like the audio. Anything odd about its answer and the transcript stays as
+ * heard.
+ */
+async function mended(text, { lang, words }, { key, baseUrl, model, fetchImpl }) {
+  if (!text || !model || text.split(/\s+/).length < 2) return text;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 7000);
+  try {
+    const r = await fetchImpl(baseUrl.replace(/\/+$/, '') + '/chat/completions', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, signal: ctl.signal,
+      body: JSON.stringify({
+        model, temperature: 0, max_tokens: 300,
+        messages: [
+          { role: 'system', content: [
+            `You fix speech-to-text errors. The text is what a person said to their strength and conditioning coach during a workout, in ${LANG_NAME[lang] || 'their language'}, written by a recogniser that sometimes hears a different word that sounds alike.`,
+            'Replace a word or phrase only when the transcript does not make sense as said in a gym, and put what is most likely meant by the sound and by the context (exercises, sets, reps, weights, rest, muscles, pain, goals). Example: "I want to do pull up squats" becomes "I want to do full squats".',
+            'Keep the language, the meaning and the length. Do not answer, translate, add, explain or drop anything. If it already makes sense, return it exactly as it is.',
+            'Reply with the corrected text only, on one line.',
+          ].join(' ') },
+          { role: 'user', content: (words ? `Exercises and words of this person: ${words}\n` : '') + `Transcript: ${text}` },
+        ],
+      }),
+    });
+    if (!r.ok) return text;
+    const out = String((await r.json())?.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim().replace(/^["“”']+|["“”']+$/g, '').replace(/^Transcript:\s*/i, '').trim();
+    if (!out || /\n/.test(out) || out.length > text.length * 1.6 + 20 || out.length < text.length * 0.5) return text;
+    return out;
+  } catch { return text; } finally { clearTimeout(timer); }
 }
 
 // Chirp 3 HD speakers: Algenib is a gravelly, deep man's voice; Orus a firm one; Kore a woman's.

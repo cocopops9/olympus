@@ -22,7 +22,9 @@ import { useWakeLock } from './lib/wakelock.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { syncPushSubscription } from './lib/push.js'
-import { MOBILE } from './lib/mobile.js'
+import { MOBILE, saveRemoteFile } from './lib/mobile.js'
+import { setVoiceHint } from './lib/voice.js'
+import { voiceHint } from './lib/voice-hint.js'
 import { DEFAULT_SERVER } from './lib/app-info.js'
 import { exitWorkoutEdit, startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
@@ -92,11 +94,22 @@ function useReloginOnUpdate(ready, user) {
   useEffect(() => {
     if (!MOBILE || !ready || done.current) return
     done.current = true
-    reloginOnNewVersion({ current: __APP_VERSION__, signedIn: !!user, signOut: o => useStore.getState().signOut(o) })
+    // Signed out for good: the phone also forgets its saved sign-in (the token in its pairing file),
+    // or the next start would take it back in at once, and the welcome screen is what comes up.
+    reloginOnNewVersion({ current: __APP_VERSION__, signedIn: !!user, signOut: async o => {
+      const st = useStore.getState()
+      const r = await st.disconnectServer(o)
+      if (r && r.owed && !r.stashed) return r
+      await saveRemoteFile(null)
+      st.setGuest(false)
+      useStore.setState({ needsMobileOnboarding: true })
+      return r
+    } })
   }, [ready])
 }
 
 function Shell() {
+  useEffect(() => { setVoiceHint(() => voiceHint(useStore.getState().S)); return () => setVoiceHint(null) }, [])
   const navigate = useNavigate()
   const loc = useLocation()
   const navType = useNavigationType()
