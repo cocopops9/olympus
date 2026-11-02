@@ -129,6 +129,7 @@ async function mended(text, { lang, words }, { key, baseUrl, model, fetchImpl })
           { role: 'system', content: [
             `You fix speech-to-text errors. The text is what a person said to their strength and conditioning coach during a workout, in ${LANG_NAME[lang] || 'their language'}, written by a recogniser that sometimes hears a different word that sounds alike.`,
             'Replace a word or phrase only when the transcript does not make sense as said in a gym, and put what is most likely meant by the sound and by the context (exercises, sets, reps, weights, rest, muscles, pain, goals). Example: "I want to do pull up squats" becomes "I want to do full squats".',
+            'The speaker usually asks about their own training: which exercises they are weak at given past workouts, what to train next, rest, weights, reps, technique, progress. Prefer the reading that is a sensible question or remark to a coach, even if it means changing several words that sound alike. Example (Italian): "i quali eserizio sono più carino i dati di unità di passi" becomes "in quali esercizi sono più carente, dati gli allenamenti passati".',
             'Keep the language, the meaning and the length. Do not answer, translate, add, explain or drop anything. If it already makes sense, return it exactly as it is.',
             'Reply with the corrected text only, on one line.',
           ].join(' ') },
