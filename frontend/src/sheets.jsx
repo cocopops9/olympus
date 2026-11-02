@@ -1,4 +1,5 @@
 import { track } from './lib/telemetry.js'
+import { backTrap } from './lib/back.js'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -1317,6 +1318,8 @@ const SAME = '≈'
 const guideFirst = () => import.meta.env?.MODE !== 'test' || globalThis.__olympusGuide === true
 function ExercisePicker({ onPick, title, close, like }) {
   const [mode, setMode] = useState(() => (!like && guideFirst() ? 'guide' : 'search'))
+  // The search list opened from the body: the system back returns to the body.
+  useEffect(() => (mode === 'search' && !like && guideFirst() ? backTrap(() => { setMode('guide'); return true }) : undefined), [mode])
   if (mode === 'guide') return <ExerciseGuide onPick={onPick} title={title}
     onSearch={() => setMode('search')} onCreate={() => customExSheet(null, ex => onPick(ex))} />
   return <ExerciseSearch onPick={onPick} title={title} close={close} like={like} onBody={guideFirst() && !like ? () => setMode('guide') : null} />

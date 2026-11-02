@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { runBackTrap } from '../lib/back.js'
 import { useUI } from '../store/useUI.js'
 import { keyboardOpen } from '../lib/viewport-guard.js'
 
@@ -216,6 +217,7 @@ export default function Modals() {
     if (!sheets.length) return
     const onKey = e => {
       if (e.key !== 'Escape') return
+      if (runBackTrap()) return
       const top = useUI.getState().sheets[useUI.getState().sheets.length - 1]
       if (top && !top.locked) useUI.getState().closeSheet(top.id)
       else if (top?.onBack) top.onBack(() => useUI.getState().closeSheet(top.id))

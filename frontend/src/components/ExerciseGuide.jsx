@@ -8,7 +8,8 @@
 //
 // Rows behave as in the search list: a tap opens the exercise's sets and reps before adding it,
 // the + adds it at once with the default sets (onPick(ex) and onPick(ex, true)).
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { backTrap } from '../lib/back.js'
 import { useStore } from '../store/useStore.js'
 import { allExercises, BODYPARTS, searchExercises } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
@@ -125,6 +126,8 @@ export default function ExerciseGuide({ onPick, title, onSearch, onCreate, start
   const counts = useMemo(() => countsFor(catalog, MUSCLES), [catalog])
   const mineCount = useMemo(() => new Set([...Object.keys(usage), ...(S.favEx || [])]).size, [usage, S.favEx])
 
+  // The system back with a muscle's list open returns to the body, not out of the picker.
+  useEffect(() => (target ? backTrap(() => { setTarget(null); return true }) : undefined), [target])
   // The tapped muscle lights up for a moment before its list opens, so the tap reads as a press.
   const tapMuscle = m => {
     if (!counts[m]) return

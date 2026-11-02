@@ -13,6 +13,21 @@ import { MOBILE } from './mobile.js'
 import { useUI } from '../store/useUI.js'
 import { t } from './i18n.js'
 
+// Back traps: a screen with a step of its own (a muscle chosen in the exercise picker) takes the back
+// press for that step first. A trap counts only while no sheet has opened above the one it was set
+// in. backTrap(fn) returns its removal; fn returns true when it used the press.
+const traps = []
+export function backTrap(fn) {
+  const t0 = { fn, depth: useUI.getState().sheets.length }
+  traps.push(t0)
+  return () => { const i = traps.indexOf(t0); if (i >= 0) traps.splice(i, 1) }
+}
+export function runBackTrap(depth = useUI.getState().sheets.length) {
+  const top = traps[traps.length - 1]
+  if (!top || top.depth !== depth) return false
+  try { return !!top.fn() } catch { return false }
+}
+
 // How long a first back press stays armed as "press again to exit" (the toast shows 2.2s).
 export const EXIT_WINDOW = 2000
 
@@ -28,6 +43,7 @@ export function makeBackHandler({ getSheets, closeSheet, toast, goBack, exit, no
   let armedAt = -Infinity
   return (ev = {}) => {
     const sheets = getSheets()
+    if (runBackTrap(sheets.length)) return 'trap'
     const action = decideBack({
       top: sheets[sheets.length - 1],
       canGoBack: !!ev.canGoBack,

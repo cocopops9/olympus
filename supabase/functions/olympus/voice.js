@@ -43,15 +43,33 @@ function bytesOf(data) {
   return out;
 }
 
-// A sentence of what is said between sets, in each language Whisper is asked in.
-const HINT = {
-  en: 'Chiron, how long should I rest? Bench press, 80 kilos for 6 reps, 3 sets. Squat, deadlift, pull-ups.',
-  it: 'Chirone, quanto devo recuperare? Panca piana, 80 chili per 6 ripetizioni, 3 serie. Squat, stacco, trazioni.',
-  es: 'Quirón, ¿cuánto debo descansar? Press de banca, 80 kilos por 6 repeticiones, 3 series. Sentadilla, peso muerto, dominadas.',
-  fr: 'Chiron, combien de repos ? Développé couché, 80 kilos pour 6 répétitions, 3 séries. Squat, soulevé de terre, tractions.',
-  de: 'Chiron, wie lange Pause? Bankdrücken, 80 Kilo für 6 Wiederholungen, 3 Sätze. Kniebeugen, Kreuzheben, Klimmzüge.',
-  pt: 'Quíron, quanto devo descansar? Supino, 80 quilos para 6 repetições, 3 séries. Agachamento, levantamento terra, barra fixa.',
-};
+
+/**
+ * The text of a verbose Whisper answer without the stretches it made up: Whisper's own signs of an
+ * invention are a stretch that is mostly silence yet worded with low confidence, and one whose text
+ * compresses far too well (the same words over and over). These are the thresholds Whisper itself
+ * uses to decide that a stretch failed (no_speech 0.6 with logprob under -1; compression over 2.4).
+ */
+export function believable(j) {
+  const segs = Array.isArray(j?.segments) ? j.segments : null;
+  if (!segs) return String(j?.text || '').trim();
+  return segs.filter(s => {
+    const silent = Number(s?.no_speech_prob) > 0.6 && Number(s?.avg_logprob) < -1;
+    const repeats = Number(s?.compression_ratio) > 2.4;
+    const unsure = Number(s?.avg_logprob) < -1.2;
+    return !silent && !repeats && !unsure;
+  }).map(s => String(s?.text || '').trim()).filter(Boolean).join(' ').trim();
+}
+
+/** A transcript that is a loop: one word making up much of a long text ("barbell, barbell, ..."). */
+export function looping(text) {
+  const w = String(text).toLowerCase().match(/[\p{L}\p{N}']+/gu) || [];
+  if (w.length < 8) return false;
+  const n = {};
+  for (const x of w) n[x] = (n[x] || 0) + 1;
+  const top = Math.max(...Object.values(n));
+  return top >= 4 && top / w.length > 0.2 || (String(text).match(/,/g) || []).length >= 6;
+}
 
 /** The words in a recorded clip ({ data: base64, type, lang }), or '' when nothing was said. */
 export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', fetchImpl = globalThis.fetch } = {}) {
@@ -62,17 +80,15 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
   const form = new FormData();
   form.append('file', new Blob([bytes], { type: MIME[ext] }), 'clip.' + ext);
   form.append('model', model);
-  form.append('response_format', 'json');
+  // verbose_json: each stretch of the clip comes with how sure Whisper was of it.
+  form.append('response_format', 'verbose_json');
   form.append('temperature', '0');
-  // The person speaks the app's language: Whisper is told which, and given a sentence of gym talk in
-  // it, so the words it expects (sets, reps, rest, the lifts) are the ones it hears.
+  // The person speaks the app's language, and Whisper is told which. No prompt: given a list of
+  // words, Whisper fills an unclear clip with that list ("barbell bench press, barbell squat, ..."),
+  // so the person's exercises go to the correction below, never to the recogniser.
   const l = langOf(lang);
   if (l) form.append('language', l);
-  // The exercises of the person's own workout and routines go in the hint too, so the words Whisper
-  // weighs are the ones likely to be said.
   const words = String(hint || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 500);
-  const prompt = [HINT[l], words].filter(Boolean).join(' ').trim();
-  if (prompt) form.append('prompt', prompt);
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20000);
   try {
@@ -83,9 +99,10 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
       throw new VoiceError(502, 'the transcription service did not answer', 'stt-failed');
     }
     const j = await r.json();
-    const text = String(j?.text || '').trim();
+    const text = believable(j);
     // Whisper's well-known inventions over silence or noise.
     if (/^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|grazie(?: a tutti)?\.?|sottotitoli .*|gracias\.?|merci\.?|you)$/i.test(text)) return '';
+    if (looping(text)) { console.error('transcribe: a loop of words dropped', text.slice(0, 120)); return ''; }
     return await mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
   } finally { clearTimeout(timer); }
 }

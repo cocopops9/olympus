@@ -4,7 +4,7 @@ import { transcribe, synthesize, VoiceError, _clearResting } from '../voice.js';
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
 
-test('a recorded clip goes to Whisper in the app language with a hint of gym words, and silence inventions read as nothing', async () => {
+test('a recorded clip goes to Whisper in the app language with no prompt to echo, and silence inventions read as nothing', async () => {
   const calls = [];
   const fetchImpl = async (url, init) => { calls.push({ url, init }); return { ok: true, json: async () => ({ text: calls.length === 1 ? ' Quanto riposo? ' : 'Grazie.' }) }; };
   assert.equal(await transcribe({ data: clip, type: 'audio/webm;codecs=opus', lang: 'it-IT' }, { key: 'k', fetchImpl }), 'Quanto riposo?');
@@ -13,7 +13,8 @@ test('a recorded clip goes to Whisper in the app language with a hint of gym wor
   const form = calls[0].init.body;
   assert.equal(form.get('model'), 'whisper-large-v3');
   assert.equal(form.get('language'), 'it');
-  assert.match(form.get('prompt'), /Panca piana/);
+  assert.equal(form.get('prompt'), null);
+  assert.equal(form.get('response_format'), 'verbose_json');
   assert.equal(form.get('file').name, 'clip.webm');
   assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fetchImpl }), '');
 });
@@ -98,7 +99,7 @@ test('what Whisper heard is mended by what makes sense in a gym, with the person
   };
   const text = await transcribe({ data: clip, type: 'audio/webm', lang: 'en-US', hint: 'Barbell Back Squat, Bench Press' }, { key: 'k', fetchImpl });
   assert.equal(text, 'I want to do full squats');
-  assert.match(calls[0].init.body.get('prompt'), /Barbell Back Squat, Bench Press/);
+  assert.equal(calls[0].init.body.get('prompt'), null);
   const chat = JSON.parse(calls[1].init.body);
   assert.equal(chat.model, 'llama-3.3-70b-versatile');
   assert.match(chat.messages[1].content, /Barbell Back Squat/);
@@ -110,4 +111,20 @@ test('what Whisper heard is mended by what makes sense in a gym, with the person
   const down = async url => (/transcriptions$/.test(url) ? { ok: true, json: async () => ({ text: 'Quanto devo riposare?' }) } : { ok: false, status: 429 });
   assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fetchImpl: down }), 'Quanto devo riposare?');
   assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'it' }, { key: 'k', fixModel: '', fetchImpl: wrong('x') }), 'Quanto devo riposare?');
+});
+
+test('stretches Whisper made up, and loops of words, are not taken for what was said', async () => {
+  const { believable, looping } = await import('../voice.js');
+  assert.equal(believable({ text: 'x', segments: [
+    { text: ' What should I train tomorrow?', avg_logprob: -0.3, no_speech_prob: 0.01, compression_ratio: 1.2 },
+    { text: ' barbell bench press, barbell squat, barbell bench press', avg_logprob: -0.4, no_speech_prob: 0.1, compression_ratio: 2.9 },
+    { text: ' Thank you.', avg_logprob: -1.4, no_speech_prob: 0.9, compression_ratio: 0.8 },
+  ] }), 'What should I train tomorrow?');
+  assert.equal(believable({ text: ' plain ' }), 'plain');
+  assert.equal(looping('barbell glute bridge, barbell bench press, barbell straddle barbell bench press, barbell heel push, barbell bench press'), true);
+  assert.equal(looping('How was my workout of yesterday?'), false);
+  assert.equal(looping('Quanto devo recuperare tra una serie e l\'altra di squat pesante oggi?'), false);
+  const loop = 'barbell lunge, barbell lunge, full barbell counter barbell bench press barbell step, curl up, barbell lunge bench, biceps';
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ text: loop, segments: [{ text: loop, avg_logprob: -0.5, no_speech_prob: 0.1, compression_ratio: 1.9 }] }) });
+  assert.equal(await transcribe({ data: clip, type: 'audio/webm', lang: 'en' }, { key: 'k', fetchImpl }), '');
 });

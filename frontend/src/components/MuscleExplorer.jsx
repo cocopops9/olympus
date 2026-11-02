@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { backTrap } from '../lib/back.js'
 import { useStore } from '../store/useStore.js'
 import { BODYPARTS, allExercises, equipmentOf, searchExercises } from '../lib/exercises.js'
 import EquipChips from './EquipChips.jsx'
@@ -38,6 +39,8 @@ export default function MuscleExplorer({ onPick, onDetail, onPlan }) {
   const counts = useMemo(() => Object.fromEntries(MUSCLES.map(m => [m,
     catalog.filter(e => musclesOf(e)[m]).length
   ])), [catalog])
+  // Back with a muscle chosen returns to the body, not out of the picker.
+  useEffect(() => (selected ? backTrap(() => { setSelected(null); return true }) : undefined), [selected])
   const pick = muscle => { setSelected(muscle === selected ? null : muscle); setEq(''); setShown(40) }
   const targeted = selected ? catalog.filter(e => musclesOf(e)[selected]) : []
   const base = searchExercises(targeted.filter(e => !bp || e.bp === bp), q)

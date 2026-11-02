@@ -273,7 +273,10 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart } = {}
         voice = pickVoice(nativeVoiceList, lang, kind.male)
       }
       begin()
-      await TTS.speak({ text: say, lang, rate: pace, pitch: 1, ...(voice >= 0 ? { voice } : {}) })
+      // No man's voice installed for the language: the default one (a woman's on most phones) read
+      // lower, so Chiron and Hercules still sound like men.
+      const pitch = kind?.male && voice < 0 ? 0.78 : 1
+      await TTS.speak({ text: say, lang, rate: pace, pitch, ...(voice >= 0 ? { voice } : {}) })
     } catch { /* no voice installed */ }
     return
   }

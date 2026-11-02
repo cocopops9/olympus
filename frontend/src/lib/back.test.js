@@ -111,3 +111,17 @@ describe('makeBackHandler', () => {
     expect(h.handler()).toBe('arm-exit')
   })
 })
+
+describe('back traps', () => {
+  it('a trap set in the sheet on top takes the press; one below a newer sheet does not', async () => {
+    const { backTrap, runBackTrap } = await import('./back.js')
+    const { useUI } = await import('../store/useUI.js')
+    let used = 0
+    const off = backTrap(() => { used++; return true })
+    expect(runBackTrap(useUI.getState().sheets.length)).toBe(true)
+    expect(runBackTrap(useUI.getState().sheets.length + 1)).toBe(false)
+    expect(used).toBe(1)
+    off()
+    expect(runBackTrap(useUI.getState().sheets.length)).toBe(false)
+  })
+})
