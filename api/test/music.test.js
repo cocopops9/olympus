@@ -45,3 +45,31 @@ test('a post keeps only songs whose preview and cover are Apple addresses', () =
   const s = cleanAppleSong({ id: '5', title: 'T', artist: 'A', art: 'https://evil.example/x.jpg', preview: PREVIEW }, str);
   assert.deepEqual(s, { src: 'apple', id: '5', title: 'T', artist: 'A', preview: PREVIEW });
 });
+
+test('the server keeps the last chart and serves it when Apple does not answer', async () => {
+  const { createApp, memoryStore, memoryPhotos } = await import('../../supabase/functions/olympus/core.js');
+  const { _clearMusicCache } = await import('../music.js');
+  _clearMusicCache();
+  let up = true, t = Date.parse('2026-11-02T10:00:00Z');
+  const fetchImpl = async url => {
+    if (!up) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    if (/rss\.marketingtools/.test(url)) return { ok: true, json: async () => ({ feed: { results: [{ id: '111' }] } }) };
+    return { ok: true, json: async () => ({ results: [{ trackId: 111, trackName: 'Song', artistName: 'Artist', previewUrl: 'https://audio-ssl.itunes.apple.com/p.m4a', artworkUrl100: 'https://is1-ssl.mzstatic.com/a/100x100bb.jpg' }] }) };
+  };
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), now: () => t, fetchImpl });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const token = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body?.token;
+  const first = await call('GET', '/api/music/top?country=it', null, token);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.tracks[0].title, 'Song');
+  _clearMusicCache(); up = false; t += 3 * 60 * 60 * 1000;
+  const later = await call('GET', '/api/music/top?country=it', null, token);
+  assert.equal(later.status, 200);
+  assert.equal(later.body.tracks[0].title, 'Song');
+  const other = await call('GET', '/api/music/top?country=fr', null, token);
+  assert.equal(other.status, 502);
+  _clearMusicCache();
+});

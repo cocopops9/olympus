@@ -21,7 +21,7 @@
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
-import { topSongs, searchSongs } from './music.js';
+import { countryOf, topSongs, searchSongs } from './music.js';
 import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
@@ -628,8 +628,22 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     // Songs for a post: what is popular now in a country, and search (api/music.js).
     'GET /api/music/top': async (req, q) => {
       await signedIn(req);
-      try { return { body: { tracks: await topSongs(q.get('country'), { fetchImpl }) } }; }
-      catch (e) { console.error('music top', e); return { status: 502, body: { error: 'the music catalogue is not answering', code: 'catalogue-down' } }; }
+      // The last chart that came through is kept, and served when Apple is slow to answer (it can
+      // take more than 20 s from here on a cold start).
+      const key = 'music:top:' + countryOf(q.get('country'));
+      try {
+        const tracks = await topSongs(q.get('country'), { fetchImpl });
+        if (tracks.length) {
+          const kept = await store.read(key).catch(() => null);
+          if (!kept || now() - (kept.at || 0) > 60 * 60 * 1000) await store.update([key], ({ set }) => set(key, { at: now(), tracks })).catch(() => {});
+        }
+        return { body: { tracks } };
+      } catch (e) {
+        console.error('music top', e);
+        const kept = await store.read(key).catch(() => null);
+        if (kept?.tracks?.length) return { body: { tracks: kept.tracks } };
+        return { status: 502, body: { error: 'the music catalogue is not answering', code: 'catalogue-down' } };
+      }
     },
     'GET /api/music/search': async (req, q) => {
       await signedIn(req);
