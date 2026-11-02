@@ -69,6 +69,11 @@ dependencies {
     // 8.7; 1.1.0 stable asks for compileSdk 36 and AGP 8.9.1.
     implementation "androidx.health.connect:connect-client:$healthConnectVersion"
     implementation project(':capacitor-android')
+    // The coaches' offline voices (LocalVoicePlugin): sherpa-onnx, the last 1.x release, which still
+    // reads Piper voices with espeak-ng (2.0 left espeak-ng out). The AAR is fetched by the APK
+    // workflow from the sherpa-onnx release into libs/; it is written in Kotlin, hence the stdlib.
+    implementation files('libs/sherpa-onnx.aar')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

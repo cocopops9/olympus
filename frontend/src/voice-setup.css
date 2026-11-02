@@ -1,0 +1,9 @@
+/* The coaches' offline voice being set up (components/VoiceSetup.jsx). */
+.vsetup{display:flex;flex-direction:column;align-items:stretch;text-align:center}
+.vsetup-i{width:56px;height:56px;border-radius:18px;margin:4px auto 10px;display:grid;place-items:center;background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc);font-size:26px}
+.vsetup h3{margin:0 0 6px}
+.vsetup p{margin:0 0 10px;line-height:1.45}
+.vsetup-bar{height:8px;border-radius:999px;background:var(--fill, rgba(127,127,127,.2));overflow:hidden;margin-top:6px}
+.vsetup-bar i{display:block;height:100%;background:var(--acc);border-radius:999px;transition:width .3s ease}
+.vsetup-n{margin-top:6px}
+.vsetup-foot{margin-top:12px}

@@ -17,7 +17,7 @@ import { coachProfileOf } from '../lib/coach-profile.js'
 import { tapWake, quickTips, WAKE_TAPS } from '../lib/chiron.js'
 import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
-import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice } from '../lib/voice.js'
+import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice, releaseMic } from '../lib/voice.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
@@ -250,12 +250,13 @@ function ChironVoice({ tips, unit, online }) {
     clearInterval(mouthTimer.current); setMouth(0)
   }
   const hear = () => new Promise(resolve => {
-    setPose('listening'); setHeard('')
+    // "Listening" once the microphone really records, so the first words are never said too early.
+    setPose('idle'); setHeard('')
     let last = '', done = false
     // A recogniser that never starts or never stops counts as silence after 20 seconds.
     const guard = setTimeout(() => { stopListening.current?.(); end(last.trim()) }, 35000)
     const end = v => { if (!done) { done = true; clearTimeout(guard); stopListening.current = null; resolve(v) } }
-    listen({ onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
+    listen({ onReady: () => setPose('listening'), onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
       .then(stop => { stopListening.current = stop; if (!live.current) stop() }, e => end(e?.code === 'permission' ? false : ''))
   })
 
@@ -291,7 +292,7 @@ function ChironVoice({ tips, unit, online }) {
     live.current = true
     warmVoice()
     run(true)
-    return () => { live.current = false; halt() }
+    return () => { live.current = false; halt(); releaseMic() }
   }, [])
 
   const toggleMic = () => {

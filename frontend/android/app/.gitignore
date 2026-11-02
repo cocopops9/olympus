@@ -1,2 +1,3 @@
 /build/*
 !/build/.npmkeep
+libs/sherpa-onnx.aar

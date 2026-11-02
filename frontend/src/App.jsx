@@ -11,6 +11,8 @@ import { useUpdatePrompt } from './components/UpdatePrompt.jsx'
 import { aboutYouSheet } from './components/AboutYou.jsx'
 import HerculesButton from './components/Hercules.jsx'
 import { useWelcome } from './components/Welcome.jsx'
+import { useVoiceSetup } from './components/VoiceSetup.jsx'
+import './voice-setup.css'
 import { setLang, useLang, baseLang } from './lib/i18n.js'
 import { effectiveLang } from './lib/default-lang.js'
 import { setPlayOnSilent, setVibrate, setAlarmBuzzer } from './lib/sound.js'
@@ -161,6 +163,8 @@ function Shell() {
   // A profile with nothing in it yet is welcomed first, and asked how much help it wants
   // (components/Welcome.jsx). It opens before About you, which then follows it.
   useWelcome({ ready: ready && !!(user || isGuest), blocked: needsMobileOnboarding })
+  // The coaches' offline voice: downloaded on the first start, offered for a language picked later.
+  useVoiceSetup({ ready: ready && !!(user || isGuest), blocked: needsMobileOnboarding, lang: langV })
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
   // isn't consulted for those.

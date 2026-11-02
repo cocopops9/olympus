@@ -6,6 +6,7 @@
 // own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
+import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey } from './local-voice.js'
 import { api } from './api.js'
 
 // BCP 47 tags for the app's languages: recognisers want a region.
@@ -58,17 +59,42 @@ export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothin
  * microphone against the room's own noise, measured in the first moments. The stop it returns
  * sends what was said so far; stop({ cancel: true }) throws it away.
  */
-async function recordAndWrite({ onText, onEnd, lang }) {
+// The microphone stays open for a few seconds after a question, so the next one (voice mode
+// listens again right after the answer) starts recording at once: opening it again took long
+// enough on Android to lose the first words. The phone's noise suppression is off: it mangles
+// speech more than the gym's noise troubles Whisper.
+let held = null   // { stream, timer }
+async function micStream() {
+  if (held && held.stream.getTracks().every(x => x.readyState === 'live')) { clearTimeout(held.timer); return held.stream }
+  held = null
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true, channelCount: 1 } })
+  held = { stream, timer: null }
+  return stream
+}
+function micLater(stream) {
+  if (!held || held.stream !== stream) { stream.getTracks().forEach(x => x.stop()); return }
+  clearTimeout(held.timer)
+  held.timer = setTimeout(releaseMic, 15000)
+}
+/** Closes the microphone now (voice mode over). */
+export function releaseMic() {
+  if (!held) return
+  clearTimeout(held.timer)
+  held.stream.getTracks().forEach(x => x.stop())
+  held = null
+}
+
+async function recordAndWrite({ onText, onEnd, onReady, lang }) {
   let stream
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+    stream = await micStream()
   } catch (e) {
     throw Object.assign(new Error(e?.name || 'unavailable'), { code: e?.name === 'NotAllowedError' || e?.name === 'SecurityError' ? 'permission' : 'unavailable' })
   }
   const type = RECORD_TYPES.find(m => window.MediaRecorder.isTypeSupported?.(m)) || ''
   let rec
-  try { rec = new window.MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : undefined) } catch (e) {
-    stream.getTracks().forEach(x => x.stop())
+  try { rec = new window.MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 48000 } : undefined) } catch (e) {
+    releaseMic()
     throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
   }
   const chunks = []
@@ -87,7 +113,7 @@ async function recordAndWrite({ onText, onEnd, lang }) {
   let spoke = !analyser, lastVoice = t0, firstVoice = t0, floor = null, cancelled = false, finished = false, sent = false
   const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
   const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
-  const release = () => { clearInterval(tick); stream.getTracks().forEach(x => x.stop()); try { ac?.close() } catch { /* closed */ } }
+  const release = () => { clearInterval(tick); micLater(stream); try { ac?.close() } catch { /* closed */ } }
   const send = async () => {
     if (sent) return
     sent = true
@@ -117,6 +143,7 @@ async function recordAndWrite({ onText, onEnd, lang }) {
     if (now - t0 > LISTEN.maxMs) stop()
   }, 50)
   rec.start(250)
+  try { onReady?.() } catch { /* the caller's own */ }
   return ({ cancel = false } = {}) => { if (cancel) cancelled = true; else spoke = spoke || chunks.length > 0; stop() }
 }
 
@@ -126,8 +153,8 @@ async function recordAndWrite({ onText, onEnd, lang }) {
  * stop(), or with `error` (a short reason, for a message) when the recogniser failed. Rejects with
  * { code: 'permission' | 'unavailable' } when it cannot start.
  */
-export async function listen({ onText, onEnd, lang = voiceTag() } = {}) {
-  if (useRecorder()) return recordAndWrite({ onText, onEnd, lang })
+export async function listen({ onText, onEnd, onReady, lang = voiceTag() } = {}) {
+  if (useRecorder()) return recordAndWrite({ onText, onEnd, onReady, lang })
   const R = WebRecognition()
   if (!R) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
   const rec = new R()
@@ -142,7 +169,7 @@ export async function listen({ onText, onEnd, lang = voiceTag() } = {}) {
   return new Promise((resolve, reject) => {
     rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') reject(Object.assign(new Error('permission'), { code: 'permission' })) }
     rec.onend = () => { onText?.(text, true); onEnd?.() }
-    rec.onstart = () => resolve(() => rec.stop())
+    rec.onstart = () => { try { onReady?.() } catch { /* the caller's own */ } resolve(() => rec.stop()) }
     try { rec.start() } catch (e) { reject(Object.assign(e, { code: 'unavailable' })) }
   })
 }
@@ -259,6 +286,13 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart } = {}
   const run = ++speakRun
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
+  // A man's offline voice on the phone (lib/local-voice.js): first for Chiron and Hercules, with no
+  // quota and no wait.
+  const key = voiceKey()
+  if (kind?.male && localVoicesOn() && hasLocalVoice(key)) {
+    try { await speakLocal(say, { key, speed: who === 'chiron' ? 0.92 : 1, onStart: begin }); return } catch { /* the next voice */ }
+    if (run !== speakRun) return
+  }
   if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 6000))])
   if (kind && serverVoice === true) {
     try { if (await speakOnServer(say, lang, who, run, begin)) return } catch { /* the phone's voice instead */ }
@@ -307,6 +341,7 @@ export function warmVoice() {
 export async function stopSpeaking() {
   speakRun++
   playing?.stop()
+  stopLocal()
   if (MOBILE) { try { const { p: TTS } = await nativeTTS(); await TTS.stop() } catch { /* nothing playing */ } return }
   if (canSpeak()) window.speechSynthesis.cancel()
   webUtterance = null

@@ -44,6 +44,17 @@ jobs:
 
       - run: npm ci
         working-directory: frontend
+
+      # The offline voices' engine (LocalVoicePlugin.java): sherpa-onnx's Android library, 1.13.8,
+      # the last release that reads Piper voices with espeak-ng.
+      - name: sherpa-onnx library
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p frontend/android/app/libs "$RUNNER_TEMP/so"
+          gh release download v1.13.8 -R k2-fsa/sherpa-onnx -p '*.aar' -D "$RUNNER_TEMP/so"
+          ls -la "$RUNNER_TEMP/so"
+          cp "$(ls "$RUNNER_TEMP"/so/*.aar | head -1)" frontend/android/app/libs/sherpa-onnx.aar
       # The server the app joins by itself (lib/app-info.js DEFAULT_SERVER): the repository variable
       # OLYMPUS_SERVER when it is set; otherwise this repository's server on Supabase (supabase/).
       # APP_BUILD: the app knows its own build ("1.4.1+57", vite.config.js), which is how it tells
