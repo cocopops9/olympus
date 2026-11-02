@@ -144,8 +144,11 @@ export function PasswordSignInSheet({ close, onPasskey }) {
       <Button type="submit" variant="primary" disabled={busy}>{reset ? t('Set password & sign in') : t('Sign in')}</Button>
     </form>
     <div style={{ height: 8 }} />
-    <Button type="button" variant="ghost" className="dim" onClick={() => { setErr(null); setMode(reset ? 'signin' : 'reset') }}>
-      {reset ? t('Sign in with password') : t('Have a reset code from your admin?')}</Button>
+    {MOBILE && !reset
+      ? <Button type="button" variant="ghost" className="dim" onClick={async () => { close(); const { openAccountSheet } = await import('../views/MobileOnboarding.jsx'); openAccountSheet('forgot') }}>
+        {t('Forgot password?')}</Button>
+      : <Button type="button" variant="ghost" className="dim" onClick={() => { setErr(null); setMode(reset ? 'signin' : 'reset') }}>
+        {reset ? t('Sign in with password') : t('Have a reset code from your admin?')}</Button>}
     {onPasskey && !reset && webauthnOK() && <>
       <div style={{ height: 8 }} />
       <Button type="button" icon="fingerprint" onClick={() => { close(); onPasskey() }}>{t('Sign in with passkey')}</Button>

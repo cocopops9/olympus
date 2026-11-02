@@ -12,7 +12,7 @@ import { MOBILE, shareExport } from '../lib/mobile.js'
 import { syncMedia } from '../lib/media-sync.js'
 import { DEMO } from '../lib/demo.js'
 import { askAddDeviceData, menuSheet } from '../sheets.jsx'
-import { ConnectSheet, CfAccessSheet } from '../views/MobileOnboarding.jsx'
+import { ConnectSheet, CfAccessSheet, openAccountSheet } from '../views/MobileOnboarding.jsx'
 import { passwordOn, openPasswordSignIn } from './PasswordAuth.jsx'
 import { Section, Row, Button } from './ui.jsx'
 
@@ -129,6 +129,8 @@ export function connectServer() {
 // first, with the passkey one tap away on it: which of the two this account has is not
 // something this browser can know.
 export function signInAgain() {
+  // The phone app's own account sheet: username or e-mail, password, and "Forgot password?" by e-mail.
+  if (MOBILE) { openAccountSheet('login'); return }
   if (pwOn()) { openPasswordSignIn(webauthnOK() ? passkeySignIn : undefined); return }
   return passkeySignIn()
 }
