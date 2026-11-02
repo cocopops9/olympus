@@ -228,17 +228,25 @@ function ChironVoice({ tips, unit, online }) {
   const say = async text => {
     const words = speakable(text)
     if (!words) return
-    setSaid(words); setPose('speaking')
-    // The mouth: open and shut at the pace of syllables, a little irregular, while the voice reads.
-    const t0 = Date.now()
-    mouthTimer.current = setInterval(() => {
-      const k = (Date.now() - t0) / 1000
-      setMouth(Math.max(0, Math.abs(Math.sin(k * 11.5)) * (0.55 + 0.45 * Math.abs(Math.sin(k * 2.3)))))
-    }, 80)
+    setSaid(words)
+    // He is shown thinking until the sound really starts, then the mouth opens and shuts at the pace
+    // of syllables, a little irregular, while the voice reads.
+    setPose('thinking')
+    const start = () => {
+      setPose('speaking')
+      const t0 = Date.now()
+      clearInterval(mouthTimer.current)
+      mouthTimer.current = setInterval(() => {
+        const k = (Date.now() - t0) / 1000
+        setMouth(Math.max(0, Math.abs(Math.sin(k * 11.5)) * (0.55 + 0.45 * Math.abs(Math.sin(k * 2.3)))))
+      }, 80)
+    }
     // A voice that never says it has finished (a WebView without voices) does not hold him: he
-    // goes on after about the time the words take to say.
-    const enough = new Promise(r => setTimeout(r, 3000 + words.length * 90))
-    try { if (canSpeak()) await Promise.race([speak(words, { who: 'chiron' }), enough]) } catch { /* read on screen instead */ }
+    // goes on after about the time the words take to say, counted from when it started.
+    let giveUp
+    const enough = new Promise(r => { giveUp = r; setTimeout(r, 40000) })
+    const began = () => { start(); setTimeout(giveUp, 3000 + words.length * 90) }
+    try { if (canSpeak()) await Promise.race([speak(words, { who: 'chiron', onStart: began }), enough]) } catch { /* read on screen instead */ }
     clearInterval(mouthTimer.current); setMouth(0)
   }
   const hear = () => new Promise(resolve => {

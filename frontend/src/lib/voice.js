@@ -211,8 +211,10 @@ export function pieces(text, max = 240) {
   return out
 }
 
-async function speakOnServer(say, lang, who, run) {
-  const ask = piece => api('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text: piece, lang, who }), timeout: 15000 })
+async function speakOnServer(say, lang, who, run, onStart) {
+  // One more try when a piece fails: a cold start or a busy moment is not a reason for the phone's voice.
+  const once = piece => api('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text: piece, lang, who }), timeout: 25000 })
+  const ask = piece => once(piece).catch(e => (e?.status === 501 || e?.status === 404 || e?.status === 401 ? Promise.reject(e) : once(piece)))
   const parts = pieces(say)
   let next = ask(parts[0])
   for (let i = 0; i < parts.length; i++) {
@@ -220,7 +222,7 @@ async function speakOnServer(say, lang, who, run) {
     try { r = await next } catch (e) {
       if (e?.status === 501 || e?.status === 404 || e?.status === 401) serverVoice = false
       // A voice that fails twice in a row (a quota used up, no connection) rests for ten minutes.
-      else if (i === 0 && ++voiceFails >= 2) { serverVoice = false; setTimeout(() => { serverVoice = null; voiceFails = 0 }, 10 * 60 * 1000) }
+      else if (i === 0 && ++voiceFails >= 3) { serverVoice = false; setTimeout(() => { serverVoice = null; voiceFails = 0 }, 2 * 60 * 1000) }
       if (i === 0) return false
       return true
     }
@@ -234,6 +236,7 @@ async function speakOnServer(say, lang, who, run) {
       const end = () => { if (playing?.audio === audio) playing = null; resolve() }
       playing = { audio, stop: () => { audio.pause(); end() } }
       audio.onended = audio.onerror = end
+      audio.onplaying = () => { if (onStart) { const f = onStart; onStart = null; f() } }
       audio.play().catch(end)
     })
     if (run !== speakRun) return true
@@ -244,15 +247,18 @@ async function speakOnServer(say, lang, who, run) {
 let nativeVoiceList = null
 let webUtterance = null
 /** Reads `text` aloud as `who` (VOICES); resolves when it is done (or stopped). */
-export async function speak(text, { lang = voiceTag(), rate, who } = {}) {
+export async function speak(text, { lang = voiceTag(), rate, who, onStart } = {}) {
+  // onStart: called once, when the sound really begins (the server's voice can take a few seconds).
+  let started = false
+  const begin = () => { if (!started) { started = true; onStart?.() } }
   const say = speakable(text)
   if (!say) return
   const run = ++speakRun
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
-  if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 1500))])
+  if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 6000))])
   if (kind && serverVoice === true) {
-    try { if (await speakOnServer(say, lang, who, run)) return } catch { /* the phone's voice instead */ }
+    try { if (await speakOnServer(say, lang, who, run, begin)) return } catch { /* the phone's voice instead */ }
     if (run !== speakRun) return
   }
   if (MOBILE) {
@@ -263,6 +269,7 @@ export async function speak(text, { lang = voiceTag(), rate, who } = {}) {
         if (!nativeVoiceList) { try { nativeVoiceList = (await TTS.getSupportedVoices()).voices || [] } catch { nativeVoiceList = [] } }
         voice = pickVoice(nativeVoiceList, lang, kind.male)
       }
+      begin()
       await TTS.speak({ text: say, lang, rate: pace, pitch: 1, ...(voice >= 0 ? { voice } : {}) })
     } catch { /* no voice installed */ }
     return
@@ -278,6 +285,7 @@ export async function speak(text, { lang = voiceTag(), rate, who } = {}) {
       const i = pickVoice(list, lang, kind.male)
       if (i >= 0) u.voice = list[i]
     }
+    u.onstart = begin
     u.onend = u.onerror = () => resolve()
     webUtterance = u
     window.speechSynthesis.speak(u)

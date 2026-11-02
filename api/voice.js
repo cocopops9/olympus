@@ -98,11 +98,6 @@ export const canSynthesize = env => !!(String(env?.GOOGLE_TTS_API_KEY || '').tri
 // words before the text. The audio comes back as raw 24 kHz 16-bit mono, wrapped here as WAV.
 // Fastest first (measured: about 2 s for a sentence, streamed), the others if it is retired.
 const GEMINI_MODELS = ['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts', 'gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
-const GEMINI_STYLE = {
-  chiron: 'Say this slowly, in a deep, calm, gravelly voice, like a wise old teacher who has seen everything',
-  hercules: 'Say this in a firm, warm, confident male voice, at a natural pace',
-  athena: 'Say this in a calm, precise, clear female voice, at a natural pace',
-};
 export function wavOf(pcm, rate = 24000) {
   const head = new Uint8Array(44), v = new DataView(head.buffer);
   const str = (o, t) => { for (let i = 0; i < t.length; i++) head[o + i] = t.charCodeAt(i); };
@@ -138,7 +133,8 @@ function pcmOf(part) {
 async function geminiSpeak(words, who, { key, model, fetchImpl }) {
   const models = [model, ...GEMINI_MODELS].filter((m, i, a) => m && a.indexOf(m) === i);
   const body = JSON.stringify({
-    contents: [{ parts: [{ text: `${GEMINI_STYLE[who] || GEMINI_STYLE.hercules}: ${words}` }] }],
+    // Only the words: a style instruction put before them is read aloud as part of the speech.
+    contents: [{ parts: [{ text: words }] }],
     generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: SPEAKER[who] || SPEAKER.hercules } } } },
   });
   for (const m of models) {

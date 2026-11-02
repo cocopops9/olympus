@@ -63,5 +63,5 @@ test('with a Gemini key the voice is Gemini\'s, streamed, joined into one WAV, a
   assert.match(calls[1].url, /gemini-3\.8-flash-tts:streamGenerateContent/);
   assert.equal(calls[1].key, 'AQ.x');
   assert.equal(calls[1].body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, 'Algenib');
-  assert.match(calls[1].body.contents[0].parts[0].text, /gravelly.*: Riposa due minuti\.$/);
+  assert.equal(calls[1].body.contents[0].parts[0].text, 'Riposa due minuti.');
 });
