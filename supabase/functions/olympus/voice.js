@@ -72,7 +72,7 @@ export function looping(text) {
 }
 
 /** The words in a recorded clip ({ data: base64, type, lang }), or '' when nothing was said. */
-export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', geminiKey = '', geminiModel = '', fetchImpl = globalThis.fetch } = {}) {
+export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', geminiKey = '', geminiModel = '', hearGraceMs = HEAR_GRACE_MS, fetchImpl = globalThis.fetch } = {}) {
   if (!key) throw new VoiceError(503, 'voice is not set up on this server', 'voice-off');
   const ext = extOf(type);
   if (!ext) throw new VoiceError(400, 'unknown recording format', 'clip-format');
@@ -108,15 +108,28 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     // Whisper's well-known inventions over silence or noise.
     if (/^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|grazie(?: a tutti)?\.?|sottotitoli .*|gracias\.?|merci\.?|you)$/i.test(text)) return '';
     if (looping(text)) { console.error('transcribe: a loop of words dropped', text.slice(0, 120)); return ''; }
-    const g = await heard;
-    if (g) return g;
+    // Gemini gets a short grace after Whisper, not the whole of its own time: a model that is slow or
+    // overloaded used to hold every question for 9 s (measured in the server's logs, 2026-11-03).
+    // Its answer is used when it is there in time; Whisper's, corrected, when it is not. A model that
+    // fails or is late rests (geminiHear), so the clips after it do not wait at all.
+    const g = await within(heard, hearGraceMs);
+    if (g != null) return g;
     return await mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
   } finally { clearTimeout(timer); }
 }
 
+// How long Gemini may take after Whisper has answered, before Whisper's words are used.
+const HEAR_GRACE_MS = 1500;
+// What a promise gives, or null when it has not given it within `ms`.
+const within = (promise, ms) => new Promise(resolve => {
+  const timer = setTimeout(() => resolve(null), ms);
+  promise.then(v => { clearTimeout(timer); resolve(v); }, () => { clearTimeout(timer); resolve(null); });
+});
+
 // Formats Gemini takes as audio: WAV (what the app sends), MP3, Ogg. Not WebM.
 const GEMINI_HEARS = ['wav', 'mpeg', 'ogg'];
-const HEAR_MODELS = ['gemini-3.8-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+// The 2.5 models answer 404 ("no longer available to new users"), so they are not asked.
+const HEAR_MODELS = ['gemini-3.8-flash-lite', 'gemini-3.8-flash'];
 const hearResting = new Map();   // model -> time it may be asked again (out of quota, or not there)
 export const _clearHearResting = () => hearResting.clear();
 
@@ -140,14 +153,14 @@ export async function geminiHear({ data, mime = 'audio/wav', lang, words }, { ke
   });
   for (const m of ready) {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 9000);
+    const timer = setTimeout(() => ctl.abort(), 5000);
     try {
       const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body, signal: ctl.signal,
       });
       if (!r.ok) {
         console.error('gemini hear', m, r.status, (await r.text().catch(() => '')).slice(0, 120));
-        if (r.status === 429) hearResting.set(m, now + REST_MS);
+        if (r.status === 429 || r.status >= 500) hearResting.set(m, now + REST_MS);
         else if (r.status === 404 || r.status === 400) hearResting.set(m, now + 6 * 3600 * 1000);
         continue;
       }
@@ -160,6 +173,8 @@ export async function geminiHear({ data, mime = 'audio/wav', lang, words }, { ke
       return out;
     } catch (e) {
       console.error('gemini hear', m, e?.name || e);
+      // No answer in time: left alone for a while, so the next clips do not wait on it too.
+      hearResting.set(m, now + REST_MS);
     } finally { clearTimeout(timer); }
   }
   return null;

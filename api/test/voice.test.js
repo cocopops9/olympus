@@ -164,7 +164,7 @@ test('when Gemini is out of quota or retired its model rests and the next is tri
     return { ok: false, status: url.includes('3.8-flash-lite') ? 429 : 404, text: async () => 'no' };
   };
   assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl }), 'what exercises am i weaker');
-  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 4);
+  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 2);
   urls.length = 0;
   await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl });
   assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 0);   // all resting
@@ -182,4 +182,44 @@ test('Gemini saying NOTHING is silence, and a Whisper failure leaves Gemini\'s w
     ? { ok: true, json: async () => ({ text: '' }) }
     : { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'NOTHING' }] } }] }) });
   assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'it' }, { key: 'k', geminiKey: 'g', fetchImpl: quiet }), '');
+});
+
+test('a slow Gemini does not hold the answer: after Whisper it has a short grace, then Whisper\'s corrected words are used and the slow model rests', async () => {
+  _clearHearResting();
+  let geminiCalls = 0;
+  const fetchImpl = async url => {
+    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'quanto riposo devo prendere' }) };
+    if (url.includes('/chat/completions')) return { ok: true, json: async () => ({ choices: [{ message: { content: 'Quanto riposo devo prendere?' } }] }) };
+    geminiCalls++;
+    await new Promise(r => setTimeout(r, 400));   // far slower than the grace
+    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'late words' }] } }] }) };
+  };
+  const t0 = Date.now();
+  const out = await transcribe({ data: clip, type: 'audio/wav', lang: 'it' }, { key: 'k', geminiKey: 'g', hearGraceMs: 60, fetchImpl });
+  assert.equal(out, 'Quanto riposo devo prendere?');
+  assert.ok(Date.now() - t0 < 300, 'did not wait for the slow model');
+  assert.ok(geminiCalls >= 1);
+  // A fast Gemini within the grace still wins.
+  _clearHearResting();
+  const fast = async url => {
+    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'quanto riposo devo prendere' }) };
+    if (url.includes('/chat/completions')) return { ok: true, json: async () => ({ choices: [{ message: { content: 'whisper fixed' } }] }) };
+    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Quanto riposo devo prendere?' }] } }] }) };
+  };
+  assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'it' }, { key: 'k', geminiKey: 'g', fetchImpl: fast }), 'Quanto riposo devo prendere?');
+});
+
+test('a Gemini model that timed out or is overloaded rests, so the next clips do not ask it', async () => {
+  _clearHearResting();
+  const urls = [];
+  const fetchImpl = async url => {
+    urls.push(url);
+    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'hello there coach' }) };
+    if (url.includes('/chat/completions')) return { ok: false, status: 500, json: async () => ({}) };
+    return { ok: false, status: 503, text: async () => 'high demand' };
+  };
+  await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', hearGraceMs: 200, fetchImpl });
+  urls.length = 0;
+  await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', hearGraceMs: 200, fetchImpl });
+  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 0);
 });
