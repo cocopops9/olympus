@@ -36,9 +36,16 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 .brand img{width:34px;height:34px;border-radius:9px;background:#fff}
 nav{display:flex;align-items:center;gap:22px;font-size:14px;color:var(--muted)}
 nav a:hover{color:var(--text)}
-.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
-.lang button{background:none;border:0;color:var(--muted);font:600 12px Inter,sans-serif;padding:6px 11px;cursor:pointer}
-.lang button.on{background:var(--gold);color:#120e02}
+.langm{position:relative}
+.langm-b{display:flex;align-items:center;gap:6px;background:#1c1a15;border:1px solid var(--line);color:var(--text);font:600 13px Inter,sans-serif;padding:7px 10px 7px 9px;border-radius:999px;cursor:pointer}
+.langm-b:hover{border-color:#4a4232}
+.langm-b svg{width:17px;height:17px;color:var(--gold)}
+.langm-b .car{width:14px;height:14px;color:var(--muted);transition:transform .2s}
+.langm-b[aria-expanded="true"] .car{transform:rotate(180deg)}
+.langm-l{position:absolute;right:0;top:calc(100% + 8px);min-width:170px;list-style:none;background:#1b1914;border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 20px 40px -10px rgba(0,0,0,.7);z-index:30}
+.langm-l li{padding:9px 12px;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer}
+.langm-l li:hover,.langm-l li:focus{background:#262219;color:var(--text);outline:none}
+.langm-l li.on{color:var(--gold);font-weight:600}
 @media (max-width:720px){nav .hide-m{display:none}}
 
 /* hero */
@@ -81,7 +88,7 @@ h2{font-family:Cinzel,serif;font-weight:700;font-size:clamp(30px,4.4vw,46px);lin
 .sub{color:var(--muted);max-width:620px;font-size:17px}
 .center{text-align:center}.center .sub{margin:0 auto}
 
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:44px}
 @media (max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.grid{grid-template-columns:1fr}}
 .card{background:linear-gradient(180deg,var(--card),#15130f);border:1px solid var(--line);border-radius:var(--r);padding:26px}
@@ -151,8 +158,16 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       <a class="hide-m" href="#features" data-i18n="nav1">Funzioni</a>
       <a class="hide-m" href="#coaches" data-i18n="nav2">Coach</a>
       <a class="hide-m" href="#install" data-i18n="nav3">Installa</a>
-      <div class="lang" role="group" aria-label="Language">
-        <button data-l="it">IT</button><button data-l="en">EN</button>
+      <div class="langm">
+        <button class="langm-b" id="lang-b" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/></svg>
+          <span id="lang-cur">IT</span>
+          <svg class="car" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul class="langm-l" id="lang-l" role="listbox" hidden>
+          <li role="option" data-l="it">Italiano</li><li role="option" data-l="en">English</li><li role="option" data-l="es">Español</li>
+          <li role="option" data-l="fr">Français</li><li role="option" data-l="de">Deutsch</li><li role="option" data-l="pt">Português</li>
+        </ul>
       </div>
     </nav>
   </div>
@@ -211,6 +226,16 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v6M7 10l5 1 5-1M9 21l3-7 3 7"/></svg></div>
       <h3 data-i18n="f4t">6.500 esercizi animati</h3>
       <p data-i18n="f4">Scegli il muscolo sulla figura e guarda come si esegue ogni esercizio.</p>
+    </div>
+    <div class="card reveal">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="14.8" r="5.2"/><circle cx="12" cy="14.8" r="1.9"/><path d="M9.1 9.9 6.4 3.6M14.9 9.9l2.7-6.3"/></svg></div>
+      <h3 data-i18n="f5t">Medaglie su misura per te</h3>
+      <p data-i18n="f5">Volume, forza, costanza e amici invitati: traguardi pensati sul tuo livello, con una festa ogni volta che ne conquisti uno.</p>
+    </div>
+    <div class="card reveal">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M9 16h6"/></svg></div>
+      <h3 data-i18n="f6t">Pronto per le tue storie</h3>
+      <p data-i18n="f6">A fine allenamento crea una card con volume, record ed esercizi da pubblicare nella tua storia Instagram.</p>
     </div>
   </div>
 </section>
@@ -313,6 +338,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 </div>
 
 <script>
+const SHARE = '<svg class="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5a1 1 0 00-1 1v8a1 1 0 001 1h14a1 1 0 001-1v-8a1 1 0 00-1-1h-1"/></svg>';
 const T = {
   en: {
     nav1:'Features', nav2:'Coaches', nav3:'Install', eyebrow:'Free on Android and iPhone',
@@ -324,6 +350,8 @@ const T = {
     f2t:'Clear progress', f2:'Volume, streaks, muscles trained and how your lifts move, week after week.',
     f3t:'Train with friends', f3:'Follow friends, share workouts, like and comment in the feed.',
     f4t:'6,500 animated exercises', f4:'Pick a muscle on the body figure and see how each exercise is done.',
+    f5t:'Medals made for you', f5:'Volume, strength, consistency and friends invited: goals set to your level, with a celebration every time you win one.',
+    f6t:'Ready for your stories', f6:'After a workout, make a card with your volume, records and exercises to post to your Instagram story.',
     k2:'Your coaches', h2b:'Advice from the gods', s2:'Three AI coaches who know your workouts, each with a character of their own.',
     cn:'Chiron', cr:'Achilles’ teacher, at your side in the gym',
     cp:'Woken up mid workout, he listens and answers out loud: how long to rest, what weight to put on, why that exercise. He speaks your language and knows your numbers.',
@@ -334,26 +362,145 @@ const T = {
     a3:'If the phone asks, <b>allow installs</b> from this source.', a4:'Open <b>Olympus</b>: updates come from inside the app.',
     dlapk:'Download olympus.apk',
     i1:'Open this page in <b>Safari</b>.', i2:'Tap <b>Open the app</b> below.', i3:'Tap <b>Share</b>, then <b>Add to Home Screen</b>.',
-    i3b:'Tap <svg class="share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5a1 1 0 00-1 1v8a1 1 0 001 1h14a1 1 0 001-1v-8a1 1 0 00-1-1h-1"/></svg> <b>Share</b>, then <b>Add to Home Screen</b>.',
+    i3b:'Tap ' + SHARE + ' <b>Share</b>, then <b>Add to Home Screen</b>.',
     i4:'Open <b>Olympus</b> from its icon: full screen, like an app.', openapp:'Open the app',
     iosnote:'On iPhone the offline voices are not available: Chiron speaks with the server’s or the phone’s voice.',
     foot:'Made with care for people who train.', st:'Install on iPhone', ss:'Olympus is added to the Home Screen from Safari, no App Store needed.',
     ns:'You are using another browser: open this page in Safari to add it to the Home Screen.'
+  },
+  es: {
+    nav1:'Funciones', nav2:'Entrenadores', nav3:'Instalar', eyebrow:'Gratis en Android y iPhone',
+    h1a:'Entrena como', h1b:'un dios.',
+    lead:'Registra cada serie, mira tu progreso y pregúntale a Quirón qué hacer después, en voz alta, entre series. Con tus amigos en el feed.',
+    dl:'Descargar para', inst:'Instalar en', note:'Sin suscripción. Tus datos son tuyos.',
+    k1:'Todo lo que necesitas', h2a:'Un diario de entrenamiento digno del Olimpo', s1:'Pensado para el gimnasio: rápido entre series, claro cuando miras atrás.',
+    f1t:'Cada serie, cada kg', f1:'Rutinas, series, repeticiones, descansos y récords personales en pocos toques.',
+    f2t:'Progreso claro', f2:'Volumen, rachas, músculos trabajados y cómo evolucionan tus cargas, semana tras semana.',
+    f3t:'Entrena con amigos', f3:'Sigue a tus amigos, comparte entrenamientos, da like y comenta en el feed.',
+    f4t:'6.500 ejercicios animados', f4:'Elige un músculo en la figura y mira cómo se hace cada ejercicio.',
+    f5t:'Medallas a tu medida', f5:'Volumen, fuerza, constancia y amigos invitados: metas pensadas para tu nivel, con una celebración cada vez que ganas una.',
+    f6t:'Listo para tus historias', f6:'Al terminar, crea una tarjeta con tu volumen, récords y ejercicios para publicarla en tu historia de Instagram.',
+    k2:'Tus entrenadores', h2b:'Consejos de los dioses', s2:'Tres entrenadores con inteligencia artificial que conocen tus entrenamientos, cada uno con su carácter.',
+    cn:'Quirón', cr:'El maestro de Aquiles, a tu lado en el gimnasio',
+    cp:'Despertado en mitad del entrenamiento, te escucha y te responde en voz alta: cuánto descansar, qué peso poner, por qué ese ejercicio. Habla tu idioma y conoce tus números.',
+    cq:'«Terminaste la última serie a una repetición del fallo: descansa tres minutos y mantén el mismo peso.»',
+    hn:'Hércules', hp:'Programas y nutrición: directo, cercano y motivador.', ap:'La estratega: lee tus datos y te explica qué cambiar y por qué.',
+    k3:'Instalar', h2c:'Listo en un minuto', s3:'La misma app y la misma cuenta en los dos teléfonos.', yours:'Tu teléfono',
+    a1:'<b>Descarga</b> olympus.apk con el botón de abajo.', a2:'<b>Ábrelo</b> desde las notificaciones o la carpeta Descargas.',
+    a3:'Si el teléfono lo pide, <b>permite la instalación</b> desde esta fuente.', a4:'Abre <b>Olympus</b>: las actualizaciones llegan desde la propia app.',
+    dlapk:'Descargar olympus.apk',
+    i1:'Abre esta página en <b>Safari</b>.', i2:'Toca <b>Abrir la app</b> abajo.', i3:'Toca <b>Compartir</b> y luego <b>Añadir a pantalla de inicio</b>.',
+    i3b:'Toca ' + SHARE + ' <b>Compartir</b> y luego <b>Añadir a pantalla de inicio</b>.',
+    i4:'Abre <b>Olympus</b> desde su icono: a pantalla completa, como una app.', openapp:'Abrir la app',
+    iosnote:'En iPhone las voces sin conexión no están disponibles: Quirón habla con la voz del servidor o del teléfono.',
+    foot:'Hecho con cariño para quien entrena.', st:'Instalar en iPhone', ss:'Olympus se añade a la pantalla de inicio desde Safari, sin App Store.',
+    ns:'Estás usando otro navegador: abre esta página en Safari para añadirla a la pantalla de inicio.'
+  },
+  fr: {
+    nav1:'Fonctions', nav2:'Coachs', nav3:'Installer', eyebrow:'Gratuit sur Android et iPhone',
+    h1a:'Entraîne-toi comme', h1b:'un dieu.',
+    lead:'Note chaque série, suis tes progrès et demande à Chiron quoi faire ensuite, à voix haute, entre deux séries. Avec tes amis dans le fil.',
+    dl:'Télécharger pour', inst:'Installer sur', note:'Sans abonnement. Tes données restent à toi.',
+    k1:'Tout ce qu’il te faut', h2a:'Un carnet d’entraînement digne de l’Olympe', s1:'Pensé pour la salle : rapide entre deux séries, clair quand tu regardes en arrière.',
+    f1t:'Chaque série, chaque kilo', f1:'Routines, séries, répétitions, repos et records personnels en quelques touches.',
+    f2t:'Des progrès clairs', f2:'Volume, séries de semaines, muscles travaillés et évolution de tes charges, semaine après semaine.',
+    f3t:'Entraîne-toi avec tes amis', f3:'Suis tes amis, partage tes séances, like et commente dans le fil.',
+    f4t:'6 500 exercices animés', f4:'Choisis un muscle sur la silhouette et regarde comment faire chaque exercice.',
+    f5t:'Des médailles faites pour toi', f5:'Volume, force, régularité et amis invités : des objectifs à ton niveau, et une fête à chaque médaille gagnée.',
+    f6t:'Prêt pour tes stories', f6:'À la fin de la séance, crée une carte avec ton volume, tes records et tes exercices à publier dans ta story Instagram.',
+    k2:'Tes coachs', h2b:'Les conseils des dieux', s2:'Trois coachs à intelligence artificielle qui connaissent tes séances, chacun avec son caractère.',
+    cn:'Chiron', cr:'Le maître d’Achille, à tes côtés à la salle',
+    cp:'Réveillé en pleine séance, il t’écoute et te répond à voix haute : combien de repos, quelle charge, pourquoi cet exercice. Il parle ta langue et connaît tes chiffres.',
+    cq:'« Tu as fini la dernière série à une répétition de l’échec : repose-toi trois minutes, puis garde la même charge. »',
+    hn:'Hercule', hp:'Programmes et nutrition : direct, chaleureux et motivant.', ap:'La stratège : lit tes données et t’explique quoi changer et pourquoi.',
+    k3:'Installer', h2c:'Prêt en une minute', s3:'La même app, le même compte, sur les deux téléphones.', yours:'Ton téléphone',
+    a1:'<b>Télécharge</b> olympus.apk avec le bouton ci-dessous.', a2:'<b>Ouvre-le</b> depuis les notifications ou le dossier Téléchargements.',
+    a3:'Si le téléphone le demande, <b>autorise l’installation</b> depuis cette source.', a4:'Ouvre <b>Olympus</b> : les mises à jour arrivent depuis l’app.',
+    dlapk:'Télécharger olympus.apk',
+    i1:'Ouvre cette page dans <b>Safari</b>.', i2:'Touche <b>Ouvrir l’app</b> ci-dessous.', i3:'Touche <b>Partager</b>, puis <b>Sur l’écran d’accueil</b>.',
+    i3b:'Touche ' + SHARE + ' <b>Partager</b>, puis <b>Sur l’écran d’accueil</b>.',
+    i4:'Ouvre <b>Olympus</b> depuis son icône : en plein écran, comme une app.', openapp:'Ouvrir l’app',
+    iosnote:'Sur iPhone, les voix hors ligne ne sont pas disponibles : Chiron parle avec la voix du serveur ou du téléphone.',
+    foot:'Fait avec soin pour celles et ceux qui s’entraînent.', st:'Installer sur iPhone', ss:'Olympus s’ajoute à l’écran d’accueil depuis Safari, sans App Store.',
+    ns:'Tu utilises un autre navigateur : ouvre cette page dans Safari pour l’ajouter à l’écran d’accueil.'
+  },
+  de: {
+    nav1:'Funktionen', nav2:'Coaches', nav3:'Installieren', eyebrow:'Kostenlos für Android und iPhone',
+    h1a:'Trainiere wie', h1b:'ein Gott.',
+    lead:'Logge jeden Satz, verfolge deinen Fortschritt und frag Chiron zwischen den Sätzen laut, was als Nächstes kommt. Mit deinen Freunden im Feed.',
+    dl:'Herunterladen für', inst:'Installieren auf', note:'Kein Abo. Deine Daten gehören dir.',
+    k1:'Alles, was du brauchst', h2a:'Ein Trainingstagebuch, würdig des Olymp', s1:'Fürs Studio gemacht: schnell zwischen den Sätzen, klar im Rückblick.',
+    f1t:'Jeder Satz, jedes Kilo', f1:'Pläne, Sätze, Wiederholungen, Pausen und persönliche Rekorde mit wenigen Tipps.',
+    f2t:'Klarer Fortschritt', f2:'Volumen, Serien, trainierte Muskeln und wie sich deine Gewichte entwickeln, Woche für Woche.',
+    f3t:'Trainiere mit Freunden', f3:'Folge Freunden, teile Trainings, like und kommentiere im Feed.',
+    f4t:'6.500 animierte Übungen', f4:'Wähle einen Muskel an der Figur und sieh, wie jede Übung geht.',
+    f5t:'Medaillen nach Maß', f5:'Volumen, Kraft, Beständigkeit und eingeladene Freunde: Ziele für dein Niveau, mit einer Feier für jede gewonnene Medaille.',
+    f6t:'Bereit für deine Storys', f6:'Erstelle nach dem Training eine Karte mit Volumen, Rekorden und Übungen für deine Instagram-Story.',
+    k2:'Deine Coaches', h2b:'Rat von den Göttern', s2:'Drei KI-Coaches, die deine Trainings kennen, jeder mit eigenem Charakter.',
+    cn:'Chiron', cr:'Der Lehrer des Achilles, an deiner Seite im Studio',
+    cp:'Mitten im Training geweckt, hört er zu und antwortet laut: wie lange Pause, welches Gewicht, warum diese Übung. Er spricht deine Sprache und kennt deine Zahlen.',
+    cq:'„Du hast den letzten Satz eine Wiederholung vor dem Versagen beendet: drei Minuten Pause, dann gleiches Gewicht.“',
+    hn:'Herkules', hp:'Pläne und Ernährung: direkt, herzlich und motivierend.', ap:'Die Strategin: liest deine Daten und erklärt, was du ändern solltest und warum.',
+    k3:'Installieren', h2c:'In einer Minute bereit', s3:'Dieselbe App, dasselbe Konto, auf beiden Handys.', yours:'Dein Handy',
+    a1:'<b>Lade</b> olympus.apk mit dem Knopf unten herunter.', a2:'<b>Öffne sie</b> aus den Benachrichtigungen oder dem Download-Ordner.',
+    a3:'Wenn das Handy fragt, <b>erlaube die Installation</b> aus dieser Quelle.', a4:'Öffne <b>Olympus</b>: Updates kommen direkt aus der App.',
+    dlapk:'olympus.apk herunterladen',
+    i1:'Öffne diese Seite in <b>Safari</b>.', i2:'Tippe unten auf <b>App öffnen</b>.', i3:'Tippe auf <b>Teilen</b>, dann auf <b>Zum Home-Bildschirm</b>.',
+    i3b:'Tippe auf ' + SHARE + ' <b>Teilen</b>, dann auf <b>Zum Home-Bildschirm</b>.',
+    i4:'Öffne <b>Olympus</b> über das Symbol: im Vollbild, wie eine App.', openapp:'App öffnen',
+    iosnote:'Auf dem iPhone gibt es keine Offline-Stimmen: Chiron spricht mit der Stimme des Servers oder des Handys.',
+    foot:'Mit Sorgfalt gemacht für alle, die trainieren.', st:'Auf dem iPhone installieren', ss:'Olympus kommt über Safari auf den Home-Bildschirm, ohne App Store.',
+    ns:'Du nutzt einen anderen Browser: Öffne diese Seite in Safari, um sie zum Home-Bildschirm hinzuzufügen.'
+  },
+  pt: {
+    nav1:'Funções', nav2:'Treinadores', nav3:'Instalar', eyebrow:'Grátis no Android e no iPhone',
+    h1a:'Treina como', h1b:'um deus.',
+    lead:'Regista cada série, vê o teu progresso e pergunta ao Quíron o que fazer a seguir, em voz alta, entre séries. Com os teus amigos no feed.',
+    dl:'Transferir para', inst:'Instalar no', note:'Sem subscrição. Os teus dados são teus.',
+    k1:'Tudo o que precisas', h2a:'Um diário de treino digno do Olimpo', s1:'Feito para o ginásio: rápido entre séries, claro quando olhas para trás.',
+    f1t:'Cada série, cada kg', f1:'Rotinas, séries, repetições, descanso e recordes pessoais em poucos toques.',
+    f2t:'Progresso claro', f2:'Volume, sequências, músculos treinados e a evolução das tuas cargas, semana após semana.',
+    f3t:'Treina com amigos', f3:'Segue amigos, partilha treinos, gosta e comenta no feed.',
+    f4t:'6500 exercícios animados', f4:'Escolhe um músculo na figura e vê como se faz cada exercício.',
+    f5t:'Medalhas à tua medida', f5:'Volume, força, constância e amigos convidados: metas pensadas para o teu nível, com uma festa sempre que ganhas uma.',
+    f6t:'Pronto para as tuas stories', f6:'No fim do treino, cria um cartão com o teu volume, recordes e exercícios para publicar na tua story do Instagram.',
+    k2:'Os teus treinadores', h2b:'Conselhos dos deuses', s2:'Três treinadores com inteligência artificial que conhecem os teus treinos, cada um com o seu carácter.',
+    cn:'Quíron', cr:'O mestre de Aquiles, ao teu lado no ginásio',
+    cp:'Acordado a meio do treino, ouve-te e responde em voz alta: quanto descansar, que peso pôr, porquê esse exercício. Fala a tua língua e conhece os teus números.',
+    cq:'«Acabaste a última série a uma repetição da falha: descansa três minutos e mantém o mesmo peso.»',
+    hn:'Hércules', hp:'Programas e nutrição: direto, caloroso e motivador.', ap:'A estratega: lê os teus dados e explica o que mudar e porquê.',
+    k3:'Instalar', h2c:'Pronto num minuto', s3:'A mesma app, a mesma conta, nos dois telemóveis.', yours:'O teu telemóvel',
+    a1:'<b>Transfere</b> o olympus.apk com o botão abaixo.', a2:'<b>Abre-o</b> nas notificações ou na pasta Transferências.',
+    a3:'Se o telemóvel pedir, <b>permite a instalação</b> desta fonte.', a4:'Abre o <b>Olympus</b>: as atualizações chegam pela própria app.',
+    dlapk:'Transferir olympus.apk',
+    i1:'Abre esta página no <b>Safari</b>.', i2:'Toca em <b>Abrir a app</b> abaixo.', i3:'Toca em <b>Partilhar</b> e depois em <b>Adicionar ao ecrã principal</b>.',
+    i3b:'Toca em ' + SHARE + ' <b>Partilhar</b> e depois em <b>Adicionar ao ecrã principal</b>.',
+    i4:'Abre o <b>Olympus</b> pelo ícone: em ecrã inteiro, como uma app.', openapp:'Abrir a app',
+    iosnote:'No iPhone as vozes offline não estão disponíveis: o Quíron fala com a voz do servidor ou do telemóvel.',
+    foot:'Feito com cuidado para quem treina.', st:'Instalar no iPhone', ss:'O Olympus é adicionado ao ecrã principal pelo Safari, sem App Store.',
+    ns:'Estás a usar outro navegador: abre esta página no Safari para a adicionar ao ecrã principal.'
   }
 };
 const IT = {};
 document.querySelectorAll('[data-i18n]').forEach(e => { if (!(e.dataset.i18n in IT)) IT[e.dataset.i18n] = e.innerHTML });
 T.it = IT;
+const LANG_KEYS = ['it', 'en', 'es', 'fr', 'de', 'pt'];
+const langB = document.getElementById('lang-b'), langL = document.getElementById('lang-l');
 function setLang(l) {
-  const d = T[l] || T.it;
-  document.querySelectorAll('[data-i18n]').forEach(e => { const v = d[e.dataset.i18n]; if (v != null) e.innerHTML = v });
+  const d = T[l] || T.en;
+  document.querySelectorAll('[data-i18n]').forEach(e => { const v = d[e.dataset.i18n] ?? T.en[e.dataset.i18n]; if (v != null) e.innerHTML = v });
   document.documentElement.lang = l;
-  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.l === l));
+  document.getElementById('lang-cur').textContent = l.toUpperCase();
+  langL.querySelectorAll('li').forEach(li => li.classList.toggle('on', li.dataset.l === l));
   try { localStorage.setItem('olympus_site_lang', l) } catch (e) {}
 }
+function openMenu(open) { langL.hidden = !open; langB.setAttribute('aria-expanded', String(open)); if (open) langL.querySelector('li.on, li')?.focus() }
+langL.querySelectorAll('li').forEach(li => { li.tabIndex = 0; li.onclick = () => { setLang(li.dataset.l); openMenu(false) }; li.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); li.click() } else if (e.key === 'Escape') { openMenu(false); langB.focus() } } });
+langB.onclick = e => { e.stopPropagation(); openMenu(langL.hidden) };
+document.addEventListener('click', e => { if (!langL.hidden && !langL.contains(e.target)) openMenu(false) });
 let saved = null; try { saved = localStorage.getItem('olympus_site_lang') } catch (e) {}
-setLang(saved || (/^it\b/i.test(navigator.language || '') ? 'it' : 'en'));
-document.querySelectorAll('.lang button').forEach(b => b.onclick = () => setLang(b.dataset.l));
+const browser = (navigator.languages || [navigator.language || 'en']).map(x => String(x).slice(0, 2).toLowerCase()).find(x => LANG_KEYS.includes(x));
+setLang(LANG_KEYS.includes(saved) ? saved : browser || 'en');
 
 // Which phone is this: its own install card and button are marked.
 const ua = navigator.userAgent;

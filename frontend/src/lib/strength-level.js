@@ -22,6 +22,7 @@
 import { EXDB } from './exercises.js'
 import { e1rmSeries } from './onerm.js'
 import { lastBW } from './history.js'
+import { isWarmupRow } from './workout-model.js'
 
 export const LEVELS = ['beginner', 'intermediate', 'advanced', 'elite']
 // Standard normal quantiles of the cut points.
@@ -40,7 +41,37 @@ export const LIFTS = [
   { key: 'row', name: 'barbell bent over row', male: [0.75, 1.5], female: [0.5, 1.1] },
 ].map(l => ({ ...l, id: EXDB.find(e => e.n === l.name)?.id || null })).filter(l => l.id)
 
-export const liftOf = exId => LIFTS.find(l => l.id === exId) || null
+// More exercises, measured three ways: `load` (estimated one-rep max against body weight, as the
+// five above), `reps` (the most reps in one set with no added weight: push-ups, pull-ups, dips,
+// burpees) and `speed` (the fastest steady pace in km/h over a set of at least `minMin`
+// minutes: running, rowing). The anchors are rounded from common strength and fitness norms in the
+// same way as the main lifts: estimates to show progress, not measurements. Rep counts and
+// speeds are not scaled for body weight; the age factor applies to them at `ageWeight` of its
+// effect on strength (endurance falls more slowly with age than maximal strength).
+export const MORE = [
+  { key: 'front-squat', name: 'barbell front squat', male: [1.0, 2.1], female: [0.75, 1.6] },
+  { key: 'incline', name: 'barbell incline bench press', male: [0.85, 1.7], female: [0.5, 1.05] },
+  { key: 'sumo', name: 'barbell sumo deadlift', male: [1.5, 3.0], female: [1.1, 2.3] },
+  { key: 'rdl', name: 'barbell romanian deadlift', male: [1.0, 2.2], female: [0.75, 1.7] },
+  { key: 'hip-thrust', name: 'barbell hip thrust', male: [1.25, 3.0], female: [1.0, 2.6] },
+  { key: 'leg-press', name: 'sled 45° leg press', male: [2.0, 4.5], female: [1.5, 3.6] },
+  { key: 'pulldown', name: 'cable lat pulldown full range of motion', male: [0.7, 1.35], female: [0.45, 0.9] },
+  { key: 'pulldown2', name: 'cable pulldown', male: [0.7, 1.35], female: [0.45, 0.9] },
+  { key: 'curl', name: 'barbell curl', male: [0.4, 0.85], female: [0.22, 0.5] },
+  { key: 'push-up', name: 'push-up', type: 'reps', male: [12, 50], female: [4, 30], ageWeight: 0.8 },
+  { key: 'pull-up', name: 'pull-up', type: 'reps', male: [3, 20], female: [1, 10], ageWeight: 0.8 },
+  { key: 'chin-up', name: 'chin-up', type: 'reps', male: [4, 22], female: [1, 12], ageWeight: 0.8 },
+  { key: 'dip', name: 'chest dip', type: 'reps', male: [6, 30], female: [2, 15], ageWeight: 0.8 },
+  { key: 'burpee', name: 'burpee', type: 'reps', male: [12, 45], female: [8, 35], ageWeight: 0.7 },
+  { key: 'run', name: 'run', type: 'speed', minMin: 10, male: [9, 15], female: [8, 13], ageWeight: 0.6 },
+  { key: 'treadmill', name: 'run on treadmill', type: 'speed', minMin: 10, male: [9, 15], female: [8, 13], ageWeight: 0.6 },
+  { key: 'rowing', name: 'rowing (with rowing machine)', type: 'speed', minMin: 5, male: [11, 15.5], female: [9.5, 13.5], ageWeight: 0.6 },
+].map(l => ({ ...l, id: EXDB.find(e => e.n === l.name)?.id || null })).filter(l => l.id)
+
+/** Every exercise with a level: the five main lifts first, then the others. */
+export const METRICS = [...LIFTS, ...MORE]
+
+export const liftOf = exId => METRICS.find(l => l.id === exId) || null
 
 // Age factor on the expected one-rep max: [age, factor], straight lines in between.
 const AGE = [[14, 0.78], [16, 0.86], [18, 0.93], [20, 0.97], [23, 1], [35, 1], [40, 0.97], [45, 0.93], [50, 0.88],
@@ -97,6 +128,74 @@ export function levelOf(lift, oneRm, bw, sex, age, unit = 'kg') {
   }
 }
 
+/**
+ * The level of a rep count or a speed (`metric.type` 'reps' or 'speed'): the value itself is
+ * log-normal, centred for sex and age. { level, index, z, percentile, next: { level, value } }.
+ */
+export function levelOfValue(metric, value, sex, age) {
+  if (!(value > 0) || !(age > 0)) return null
+  const [lo, hi] = metric[sex === 'female' ? 'female' : 'male']
+  const sigma = (Math.log(hi) - Math.log(lo)) / (CUTS.elite - CUTS.intermediate)
+  const aw = metric.ageWeight ?? 1
+  const mu = Math.log(lo) - CUTS.intermediate * sigma + Math.log(1 - (1 - ageFactor(age)) * aw)
+  const z = (Math.log(value) - mu) / sigma
+  const index = z >= CUTS.elite ? 3 : z >= CUTS.advanced ? 2 : z >= CUTS.intermediate ? 1 : 0
+  const nextLevel = LEVELS[index + 1] || null
+  const at = lvl => Math.exp(mu + CUTS[lvl] * sigma)
+  const from = index > 0 ? at(LEVELS[index]) : 0
+  const to = nextLevel ? at(nextLevel) : null
+  return {
+    level: LEVELS[index], index, z, percentile: phi(z),
+    next: nextLevel ? { level: nextLevel, value: to, weight: to } : null,
+    progress: to ? Math.max(0, Math.min(1, (value - from) / (to - from))) : 1,
+    cutPercent: nextLevel ? CUT_P[nextLevel] : null,
+  }
+}
+
+/** The value a level starts at, for `metric` and this person: a weight (load) or a value. */
+export function levelStart(metric, level, { sex, age, bw, unit = 'kg' }) {
+  if (!(age > 0)) return null
+  const sx = sex === 'female' ? 'female' : 'male'
+  if ((metric.type || 'load') !== 'load') {
+    const [lo, hi] = metric[sx]
+    const sigma = (Math.log(hi) - Math.log(lo)) / (CUTS.elite - CUTS.intermediate)
+    const mu = Math.log(lo) - CUTS.intermediate * sigma + Math.log(1 - (1 - ageFactor(age)) * (metric.ageWeight ?? 1))
+    return Math.exp(mu + CUTS[level] * sigma)
+  }
+  if (!(bw > 0)) return null
+  const bwKg = unit === 'lb' ? bw * LB : bw
+  const { mu, sigma } = distribution(metric, sx, age, bwKg)
+  return bw * Math.exp(mu + CUTS[level] * sigma)
+}
+
+
+/**
+ * The best of `metric` in the sets of the workouts after `since` (ms): the most reps in one set
+ * with no added weight, or the fastest speed in a set of at least metric.minMin minutes.
+ */
+export function bestValue(S, metric, since = 0) {
+  let best = 0
+  for (const w of S?.workouts || []) {
+    if (!(w?.start >= since || (w?.end || 0) >= since)) continue
+    for (const e of w.entries || []) {
+      if (e.id !== metric.id) continue
+      for (const st of e.sets || []) {
+        if (!st?.done || isWarmupRow(st)) continue
+        if (metric.type === 'reps') { if (!(Number(st.w) > 0) && Number(st.r) > best) best = Number(st.r) }
+        else if (metric.type === 'speed') { if (Number(st.min) >= (metric.minMin || 1) && Number(st.speed) > best) best = Number(st.speed) }
+      }
+    }
+  }
+  return best
+}
+
+/** How many workouts of the last 90 days have `exId` in them. */
+export function timesDone(S, exId, now = Date.now()) {
+  let n = 0
+  for (const w of S?.workouts || []) if ((w?.start || 0) >= now - 90 * 86400000 && (w.entries || []).some(e => e.id === exId)) n++
+  return n
+}
+
 /** Whole years between ISO date `birth` and `today`. */
 export function ageOn(birth, today = new Date()) {
   const b = new Date(String(birth || '') + 'T12:00:00')
@@ -132,12 +231,22 @@ export function strengthLevels(S, now = Date.now()) {
   const bw = lastBW(S).w
   const sex = S.body === 'female' ? 'female' : 'male'
   const out = []
-  for (const lift of LIFTS) {
-    const oneRm = recentBest(S, lift.id, now)
-    const lv = oneRm > 0 ? levelOf(lift, oneRm, bw, sex, age, S.unit || 'kg') : null
-    if (lv) out.push({ lift, oneRm, ...lv })
+  for (const lift of METRICS) {
+    const type = lift.type || 'load'
+    if (type === 'load') {
+      const oneRm = recentBest(S, lift.id, now)
+      const lv = oneRm > 0 ? levelOf(lift, oneRm, bw, sex, age, S.unit || 'kg') : null
+      if (lv) out.push({ lift, type, oneRm, value: oneRm, ...lv })
+    } else {
+      const value = bestValue(S, lift, now - YEAR_MS)
+      const lv = value > 0 ? levelOfValue(lift, value, sex, age) : null
+      if (lv) out.push({ lift, type, value, ...lv })
+    }
   }
-  return out
+  // The exercises this person does most come first; the main lifts before the others on a tie.
+  const order = new Map(METRICS.map((l, i) => [l.key, i]))
+  const times = new Map(out.map(x => [x.lift.key, timesDone(S, x.lift.id, now)]))
+  return out.sort((a, b) => (times.get(b.lift.key) - times.get(a.lift.key)) || (order.get(a.lift.key) - order.get(b.lift.key)))
 }
 
 /** The lifts whose level went up between documents `before` and `after`: [{ lift, from, to }]. */

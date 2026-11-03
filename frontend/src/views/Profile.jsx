@@ -20,6 +20,7 @@ import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet, calendarSheet } from '../sheets.jsx'
 import BodyMap from '../components/BodyMap.jsx'
 import StrengthLevels from '../components/StrengthLevels.jsx'
+import { MedalsCard, rememberSocial } from '../components/Medals.jsx'
 import { Avatar as CoachAvatar } from '../components/Hercules.jsx'
 import { weekSummary } from '../lib/week-summary.js'
 import { loadOfWorkouts } from '../lib/muscles.js'
@@ -74,7 +75,7 @@ function OverviewTab({ S }) {
       {before.count > 0 && <div className="ov-vs small muted">{t('Compared with last week')}</div>}
     </div>
 
-    <StrengthLevels />
+    <MedalsCard />
 
     {wk.workouts.length > 0 && <div className="ov-card">
       <h3>{t('Muscles this week')}</h3>
@@ -93,6 +94,9 @@ function OverviewTab({ S }) {
       </div>}
     <div style={{ height: 10 }} />
     <Button icon="plus" onClick={() => logPastWorkoutSheet()}>{t('Log a past workout')}</Button>
+    {/* Folded: opened when wanted, never the first thing on the page. */}
+    <div style={{ height: 16 }} />
+    <StrengthLevels />
   </>
 }
 
@@ -130,7 +134,7 @@ export default function Profile() {
   const load = () => {
     if (!ready) return
     setError(null)
-    fetchProfile('').then(r => { setMe(r.user); setPosts(r.posts || []) }, e => setError(socialErrorText(e, t)))
+    fetchProfile('').then(r => { setMe(r.user); setPosts(r.posts || []); rememberSocial({ posts: r.user?.posts, followers: r.user?.followers }) }, e => setError(socialErrorText(e, t)))
   }
   useEffect(load, [ready, user?.id])
   useEffect(() => {
@@ -166,6 +170,7 @@ export default function Profile() {
     <div className="hdr">
       <div><h1>{t('Profile')}</h1></div>
       <div className="hdr-actions">
+        <button className="iconbtn" onClick={() => nav('/medals')} aria-label={t('Medals')}><Icon name="medal" /></button>
         <ThemeToggle />
         <button className="iconbtn" onClick={() => calendarSheet()} aria-label={t('Calendar')}><Icon name="calendar" /></button>
         <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>

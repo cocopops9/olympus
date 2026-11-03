@@ -23,3 +23,11 @@
 .lvlup b{display:block;font-size:15px}
 @keyframes lvl-in{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.lvlup{animation:none}}
+
+/* Folded by default (StrengthLevels): a one-line header that opens the card. */
+.sl-head{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.sl-head-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.sl-head-t b{font-size:16px}
+.sl-head-t .small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sl-head .icon{color:var(--label-3);flex:none}
+.sl.open .sl-head{margin-bottom:6px}

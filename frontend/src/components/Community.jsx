@@ -8,6 +8,7 @@ import { api } from '../lib/api.js'
 import { t, tn } from '../lib/i18n.js'
 import { MOBILE } from '../lib/mobile.js'
 import { fetchReferral, shareInvite } from '../lib/referral.js'
+import { bumpMedal } from './Medals.jsx'
 import { startTelemetry, stopTelemetry, track } from '../lib/telemetry.js'
 import { Button, TextArea } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -23,7 +24,7 @@ function InviteSheet({ close }) {
   useEffect(load, [])
   const share = async () => {
     const how = await shareInvite(d.code, { mobile: MOBILE })
-    if (how === 'shared' || how === 'copied') track('invite.share')
+    if (how === 'shared' || how === 'copied') { track('invite.share'); bumpMedal('invites') }
     if (how === 'copied') toast(t('Invite copied: paste it in a message.'))
     if (how === 'failed') toast(t('Could not share the invite.'))
   }

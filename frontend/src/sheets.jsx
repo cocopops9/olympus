@@ -34,7 +34,7 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseGuide from './components/ExerciseGuide.jsx'
 import EquipChips from './components/EquipChips.jsx'
 import RecordMedals, { Medal } from './components/RecordMedals.jsx'
-import { levelLabel } from './components/StrengthLevels.jsx'
+import { levelLabel, levelValue } from './components/StrengthLevels.jsx'
 import { levelUps, liftOf, strengthLevels } from './lib/strength-level.js'
 import './strength.css'
 import { equipFamilies, liveEquip, matchesEquip, equipmentVariants } from './lib/equipment-groups.js'
@@ -57,6 +57,8 @@ import { normalizeRepRange } from './lib/rep-range.js'
 import { isBackoff, backoffWeights } from './lib/backoff.js'
 import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeight, pyramidFromFlat, flatFromPyramid, pyramidLabel, PYRAMID_MAX, MAX_PYRAMID_SETS, PYRAMID_PRESETS } from './lib/pyramid.js'
 import { MOBILE, shareExport, shareExportBlob, printHtml } from './lib/mobile.js'
+import { shareStory } from './lib/story-card.js'
+import { bumpMedal } from './components/Medals.jsx'
 import { speedUnitOf, toSpeed, fromSpeed } from './lib/speed.js'
 import { buildCompletedWorkout, sessionEnd } from './lib/finish-workout.js'
 import { trainedEnd } from './lib/workout-clock.js'
@@ -990,7 +992,7 @@ function LiftLevel({ ex }) {
   if (!lv) return null
   return <div className="small row" style={{ gap: 6, margin: '2px 0 8px', alignItems: 'center' }}>
     <span className={'sl-badge lvl-' + lv.level}>{levelLabel(lv.level)}</span>
-    <span className="muted">{t('stronger than {0}%', Math.round(Math.max(1, Math.min(99, lv.percentile * 100))))}{lv.next ? ' · ' + t('{0} from {1}', levelLabel(lv.next.level), fmtNum(Math.ceil(lv.next.weight)) + ' ' + st.unit) : ''}</span>
+    <span className="muted">{t('better than {0}%', Math.round(Math.max(1, Math.min(99, lv.percentile * 100))))}{lv.next ? ' · ' + t('{0} from {1}', levelLabel(lv.next.level), lv.type === 'load' ? fmtNum(Math.ceil(lv.next.weight)) + ' ' + st.unit : levelValue(lv.type, lv.next.value, st.unit)) : ''}</span>
   </div>
 }
 
@@ -3438,6 +3440,20 @@ function PostStatus({ w }) {
     {state === 'off' && <button className="chip nocap" onClick={() => act(repost)}>{t('Post it')}</button>}
   </div>
 }
+// Olympus: the workout as an image for an Instagram story (lib/story-card.js), through the share
+// sheet; each one shared counts towards the story medals.
+function StoryButton({ w }) {
+  const st = useStore(s => s.S)
+  const [busy, setBusy] = useState(false)
+  const go = async () => {
+    setBusy(true)
+    const how = await shareStory(w, { unit: st.unit || 'kg', mobile: MOBILE })
+    setBusy(false)
+    if (how === 'shared' || how === 'saved') { bumpMedal('stories'); if (how === 'saved') toast(t('Image saved: add it to your story.')) }
+    else if (how === 'failed') toast(t('Could not share the image.'))
+  }
+  return <Button className="story-btn" icon="camera" disabled={busy} onClick={go} style={{ marginBottom: 8 }}>{t('Share to your Instagram story')}</Button>
+}
 function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
   const st = useStore(s => s.S)
   const user = useStore(s => s.user)
@@ -3480,6 +3496,7 @@ function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
+    {(w.entries || []).length > 0 && <StoryButton w={w} />}
     <Button variant="primary" icon="check" onClick={() => closeThenNav(close, '/home')}>{t('Done!')}</Button>
     {/* Finished too soon: back into the same workout, clock and all (lib/session-edit.js). */}
     <Button variant="ghost" icon="play" style={{ marginTop: 6 }} onClick={() => {
