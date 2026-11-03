@@ -7,7 +7,7 @@
 //              { [workout id]: '-' }  not to be posted (its post was deleted, or the server
 //                                     refused it for good)
 //   S.postDel  [post id, ...]  posts to delete, waiting for a connection
-//   S.wpostEdit { [workout id]: { text, photos } }  the description and photos written for a
+//   S.wpostEdit { [workout id]: { text, photos, song?, video? } }  the description, photos, song and video written for a
 //              workout's post (after the workout, or later), waiting to be sent; the title is the
 //              workout's own name
 // The server makes a second post of the same workout return the first (api/social.js, `wid`),
@@ -78,16 +78,20 @@ export const postDetails = (S, w) => (w?.id && S?.wpostEdit?.[w.id]) || null
  * shows in the history too. Writing any of it means the workout is meant to be posted: one taken
  * back or never queued goes in the queue. In place on `s`.
  */
-export function setPostDetails(s, w, { title, text = '', photos = [], song } = {}) {
+export function setPostDetails(s, w, { title, text = '', photos = [], song, video } = {}) {
   if (!w?.id) return
   const rec = s.workouts.find(x => x.id === w.id)
   const name = String(title ?? '').trim().slice(0, 80)
   if (rec && name && name !== rec.name) { rec.name = name; stampWorkout(rec) }
   // The song: { id, title }, null when taken off; left out when the editor never touched it.
   const tune = song === undefined ? {} : { song: song && song.id ? keepSong(song) : null }
-  s.wpostEdit = { ...(s.wpostEdit || {}), [w.id]: { text: String(text || '').trim().slice(0, 1000), photos: [...new Set(photos)].slice(0, 4), ...tune } }
+  // The video: { id, secs }, null when taken off; left out when the editor never touched it. A post has
+  // photos or a video, so a video drops the photos.
+  const clip = video === undefined ? {} : { video: video && video.id ? { id: String(video.id), secs: Math.max(1, Math.round(Number(video.secs) || 1)) } : null }
+  const kept = clip.video ? [] : [...new Set(photos)].slice(0, 4)
+  s.wpostEdit = { ...(s.wpostEdit || {}), [w.id]: { text: String(text || '').trim().slice(0, 1000), photos: kept, ...tune, ...clip } }
   // The list shows the first photo as the workout's picture straight away (lib/workout-cover.js).
-  setCover(w.id, photos[0] || null)
+  setCover(w.id, kept[0] || null)
   const v = s.wposts?.[w.id]
   if (v === undefined || v === '-') s.wposts = { ...(s.wposts || {}), [w.id]: '' }
 }
@@ -151,7 +155,7 @@ export function flushPosts() {
       if (!w) { useStore.getState().update(s => { if (s.wposts) { const n = { ...s.wposts }; delete n[wid]; s.wposts = n } }); continue }
       const details = S.wpostEdit?.[wid] || null
       let post
-      try { post = await createPost({ text: details?.text || '', photos: details?.photos, song: details?.song || undefined, workout: summaryFor(w, S), wid }) } catch (e) {
+      try { post = await createPost({ text: details?.text || '', photos: details?.photos, song: details?.song || undefined, video: details?.video || undefined, workout: summaryFor(w, S), wid }) } catch (e) {
         if (!final(e)) return
         useStore.getState().update(s => { s.wposts = { ...(s.wposts || {}), [wid]: '-' } })
         dropDetails(wid)
@@ -166,7 +170,8 @@ export function flushPosts() {
       // A retry finds the post made the first time, before the description was written: the
       // edit pass below brings it up to date. Otherwise what was written went out with it.
       if (!gone && details && post && (post.text || '') === details.text && JSON.stringify(post.photos || []) === JSON.stringify(details.photos || [])
-        && (details.song === undefined || (post.song?.id || null) === (details.song?.id || null))) dropDetails(wid)
+        && (details.song === undefined || (post.song?.id || null) === (details.song?.id || null))
+        && (details.video === undefined || (post.video?.id || null) === (details.video?.id || null))) dropDetails(wid)
       if (!gone) announce(post)
     }
     // Descriptions, photos and titles written for posts already in the feed.
@@ -177,7 +182,7 @@ export function flushPosts() {
       const w = S.workouts.find(x => x.id === wid)
       if (!id || id === '-' || !w) { if (id !== '') dropDetails(wid); continue }
       let post
-      try { post = await editPost({ id, text: details.text, photos: details.photos, workout: summaryFor(w, S), ...(details.song !== undefined ? { song: details.song } : {}) }) } catch (e) {
+      try { post = await editPost({ id, text: details.text, photos: details.photos, workout: summaryFor(w, S), ...(details.song !== undefined ? { song: details.song } : {}), ...(details.video !== undefined ? { video: details.video } : {}) }) } catch (e) {
         if (e?.status === 404) { useStore.getState().update(s => { s.wposts = { ...(s.wposts || {}), [wid]: '-' } }); dropDetails(wid); continue }
         if (!final(e)) return
         dropDetails(wid)

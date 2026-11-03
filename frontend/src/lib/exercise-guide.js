@@ -14,10 +14,12 @@ import { HEVY_ID_MAP, HEVY_TITLE_MAP } from './hevy-id-map.js'
 import { HEVY_TITLE_FIX } from './hevy-title-fixes.js'
 import V13_IDS from './catalogue-v13-ids.json' with { type: 'json' }
 import { musclesOf } from './muscles.js'
-import { CATALOGUE } from './exercises.js'
+import { CATALOGUE, isSport } from './exercises.js'
 
 export const POPULAR = new Set([
   ...Object.values(HEVY_ID_MAP), ...Object.values(HEVY_TITLE_MAP), ...Object.values(HEVY_TITLE_FIX),
+  // The sports are few and all familiar, so none of them hides behind "Show more".
+  ...CATALOGUE.filter(isSport).map(e => e.id),
 ].filter(id => typeof id === 'string'))
 const CLASSIC = new Set(Array.isArray(V13_IDS) ? V13_IDS : Object.keys(V13_IDS || {}))
 
@@ -63,7 +65,8 @@ export const isCardioEx = e => !isStretch(e) && (e.bp === 'cardio' || e.cat === 
 /** The kinds of training offered beside the body, in the order the tiles show them. */
 export const GROUPS = [
   { id: 'full', label: 'Full body', sub: 'Whole-body moves', icon: 'figureStrength', tint: 'var(--acc)', test: e => e.bp === 'full body' && !isStretch(e) && !isCardioEx(e) },
-  { id: 'cardio', label: 'Cardio', sub: 'Running, cycling, rowing…', icon: 'figureRun', tint: 'var(--red)', test: isCardioEx },
+  { id: 'cardio', label: 'Cardio', sub: 'Running, cycling, rowing…', icon: 'figureRun', tint: 'var(--red)', test: e => isCardioEx(e) && !isSport(e) },
+  { id: 'sports', label: 'Sports', sub: 'Football, basketball, swimming…', icon: 'swim', tint: 'var(--green, #34c759)', test: isSport },
   { id: 'stretch', label: 'Stretching', sub: 'Mobility, yoga, pilates', icon: 'stretch', tint: 'var(--teal, #30b0c7)', test: isStretch },
   { id: 'other', label: 'Other', sub: 'Jumps, Olympic lifts, boxing', icon: 'bolt', tint: 'var(--orange)', test: e => OTHER_CATS.has(e.cat) && !isCardioEx(e) },
 ]
@@ -79,7 +82,8 @@ export function exercisesFor(list, target, mine = new Set()) {
   if (!target) return []
   if (target.kind === 'mine') return list.filter(e => mine.has(e.id))
   if (target.kind === 'group') return GROUP[target.id] ? list.filter(GROUP[target.id].test) : []
-  const training = list.filter(e => !isStretch(e) && !isCardioEx(e))
+  // A sport lists under the muscles it loads, like a lift; plain cardio does not.
+  const training = list.filter(e => !isStretch(e) && (!isCardioEx(e) || isSport(e)))
   const main = training.filter(e => musclesOf(e)[target.id] === 1)
   return main.length >= FEW ? main : training.filter(e => musclesOf(e)[target.id] > 0)
 }
@@ -118,7 +122,7 @@ export function countsFor(list, muscles) {
   for (const m of muscles) side[m] = 0
   for (const e of list) {
     const stretch = isStretch(e), cardio = isCardioEx(e)
-    if (!stretch && !cardio) {
+    if (!stretch && (!cardio || isSport(e))) {
       const ms = musclesOf(e)
       for (const m of muscles) { if (ms[m] === 1) out[m]++; if (ms[m] > 0) side[m]++ }
     }

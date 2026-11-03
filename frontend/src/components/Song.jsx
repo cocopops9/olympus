@@ -16,7 +16,7 @@ import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../song.css'
 
-const clock = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0')
+export const clock = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0')
 const toast = msg => useUI.getState().toast(msg)
 const songError = e => (e?.code === 'song-file-large' ? t('That file is too large. Pick a song under 40 MB.')
   : e?.code === 'song-unreadable' || e?.code === 'song-unsupported' ? t('This file could not be read as a song.')
@@ -77,20 +77,20 @@ export function SongBar({ song }) {
  * Two handles on one bar: the start and the end of the part of a song to share. `max` is the
  * length of what can be chosen from, in seconds; `value` is { start, end }.
  */
-function RangeTrim({ id, max, value, onChange, step = 1, disabled }) {
+export function RangeTrim({ id, max, value, onChange, step = 1, disabled, limits }) {
   const pct = x => (max > 0 ? Math.min(100, Math.max(0, x / max * 100)) : 0)
   const left = pct(value.start), width = pct(value.end) - left
   return <div className="trim">
     <div className="trim-track"><i style={{ left: left + '%', width: width + '%' }} /></div>
     <input id={id} type="range" className="trim-in" min={0} max={max} step={step} value={value.start} disabled={disabled || max === 0}
-      aria-label={t('Start')} onChange={e => onChange(clampRange(max, { start: Number(e.target.value), end: value.end }, 'start'))} />
+      aria-label={t('Start')} onChange={e => onChange(clampRange(max, { start: Number(e.target.value), end: value.end }, 'start', limits))} />
     <input type="range" className="trim-in" min={0} max={max} step={step} value={value.end} disabled={disabled || max === 0}
-      aria-label={t('End')} onChange={e => onChange(clampRange(max, { start: value.start, end: Number(e.target.value) }, 'end'))} />
+      aria-label={t('End')} onChange={e => onChange(clampRange(max, { start: value.start, end: Number(e.target.value) }, 'end', limits))} />
   </div>
 }
 
 /** What is chosen, in words: "Clip from 1:05 to 2:10" and how long it is. */
-function RangeLabel({ range, id }) {
+export function RangeLabel({ range, id }) {
   return <label className="song-l" htmlFor={id}>
     {t('Clip from {0} to {1}', clock(range.start), clock(range.end))}
     <span className="song-len">{t('Length {0}', clock(range.end - range.start))}</span>

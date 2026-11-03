@@ -9,6 +9,7 @@
 
 import { isWarmupRow } from './workout-model.js'
 import { EXIDX, smOf } from './exercises.js'
+import { isSportEx, setsEquivalent } from './sports.js'
 import { todayISO, weekKey, MONDAY } from './format.js'
 import { queueOf } from './queue.js'
 import { workoutAt } from './history.js'
@@ -276,7 +277,12 @@ export function loadOf(items) {
  */
 export const loadOfWorkouts = (workouts, pick) =>
   loadOf((workouts || []).flatMap(w =>
-    (w.entries || []).map(e => ({ id: e.id, ex: e.exercise || e, sets: (e.sets || []).filter(s => s.done && !isWarmupRow(s) && (!pick || pick(s))).length }))))
+    (w.entries || []).map(e => {
+      const done = (e.sets || []).filter(s => s.done && !isWarmupRow(s) && (!pick || pick(s)))
+      // A sport is played for time: its minutes stand in for sets (lib/sports.js).
+      const sport = isSportEx(EXIDX[e.id])
+      return { id: e.id, ex: e.exercise || e, sets: sport ? setsEquivalent(done.reduce((sum, s) => sum + (Number(s.min) || 0), 0)) : done.length }
+    })))
 
 /**
  * Workouts in one existing Muscle balance range, with time injected for deterministic tests.
@@ -294,7 +300,7 @@ export function muscleBalanceWindow(workouts, win, now = Date.now(), today = tod
 
 /** Load a routine *would* produce, from its planned set counts. */
 export const loadOfRoutine = (routine, exercises = {}) =>
-  loadOf((routine?.ex || []).map(c => ({ id: c.id, ex: exercises[c.id] || c, sets: c.sets || 1 })))
+  loadOf((routine?.ex || []).map(c => ({ id: c.id, ex: exercises[c.id] || c, sets: isSportEx(EXIDX[c.id]) ? setsEquivalent((c.sets || 1) * (c.min || EXIDX[c.id].min || 0)) : c.sets || 1 })))
 
 /**
  * Effective sets programmed by the live recurring week; overrides and history are not plans.
@@ -323,7 +329,10 @@ export function loadOfWeeklyPlan(S) {
 
 /** Load for a workout still in progress — the sets ticked so far. */
 export const loadOfActive = active =>
-  loadOf((active?.entries || []).map(e => ({ id: e.id, ex: e.exercise || e, sets: (e.sets || []).filter(s => s.done && !isWarmupRow(s)).length })))
+  loadOf((active?.entries || []).map(e => {
+    const done = (e.sets || []).filter(s => s.done && !isWarmupRow(s))
+    return { id: e.id, ex: e.exercise || e, sets: isSportEx(EXIDX[e.id]) ? setsEquivalent(done.reduce((sum, s) => sum + (Number(s.min) || 0), 0)) : done.length }
+  }))
 
 /**
  * Shade buckets 0–4 per muscle.

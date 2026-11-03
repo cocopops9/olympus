@@ -24,6 +24,8 @@
   background:linear-gradient(150deg,color-mix(in srgb,var(--tint) 24%,var(--surface)) 0%,var(--surface) 75%);
   color:var(--label);font:inherit;text-align:start;cursor:pointer;transition:transform var(--fast,.12s) var(--ease,ease)}
 .eg-tile:active{transform:scale(.97)}
+/* An odd number of tiles leaves the last one alone on its row: it takes the whole row. */
+.eg-tile:last-child:nth-child(odd){grid-column:1/-1}
 .eg-tile:disabled{opacity:.4}
 .eg-ico{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;margin-bottom:8px;
   background:color-mix(in srgb,var(--tint) 28%,transparent);color:var(--tint)}

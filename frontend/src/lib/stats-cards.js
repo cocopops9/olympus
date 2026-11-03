@@ -18,6 +18,22 @@ export const STATS_CARDS = [
   { id: 'recent', icon: 'history', tone: 'mint', name: () => t('Recent workouts'), desc: () => t('Your last six sessions') },
 ]
 export const STATS_IDS = STATS_CARDS.map(c => c.id)
+
+// The page is read in three chapters, one for each thing a person comes to Stats to find out, so
+// that it never stacks every card under the last. Each card belongs to exactly one chapter; the
+// choice and the order of the cards (S.statsCards) are the person's, the chapter only decides which
+// of them are on screen. `ask` is the question the chapter answers, in plain words.
+export const STATS_CHAPTERS = [
+  { id: 'overview', icon: 'chart', name: () => t('Overview'), ask: () => t('How am I doing?'), cards: ['highlights', 'summary', 'activity', 'recent'] },
+  { id: 'progress', icon: 'chartLine', name: () => t('Progress'), ask: () => t('Am I getting stronger?'), cards: ['progress', 'structural', 'effort', 'photos'] },
+  { id: 'muscles', icon: 'figureStrength', name: () => t('Muscles'), ask: () => t('What am I training?'), cards: ['muscles', 'weekly'] },
+]
+export const chapterOfCard = id => STATS_CHAPTERS.find(c => c.cards.includes(id))?.id || 'overview'
+
+/** The chapters that have at least one of the shown cards, each with its cards in the shown order. */
+export function chaptersOf(order) {
+  return STATS_CHAPTERS.map(c => ({ ...c, shown: order.filter(id => c.cards.includes(id)) })).filter(c => c.shown.length)
+}
 export const statsCard = id => STATS_CARDS.find(c => c.id === id) || null
 
 /** The cards shown when nothing was chosen. Effort joins when the profile logs effort at all. */

@@ -21,6 +21,7 @@ import { Button, TextArea, TextField, SelectRow, Section, Row, Switch } from './
 import Icon from './Icon.jsx'
 import { AccountSection } from './AccountEdit.jsx'
 import { SongBar, SongField } from './Song.jsx'
+import { VideoField, PostVideo } from './Video.jsx'
 import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
@@ -327,12 +328,13 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
         <div className="post-ago">{fmtAgo(post.ts)}</div>
       </button>
       {post.mine && post.wid && useStore.getState().S.workouts.some(w => w.id === post.wid) && <button className="iconbtn"
-        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos, song: post.song || null })}
+        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos, song: post.song || null, video: post.video || null })}
         aria-label={t('Edit post')}><Icon name="pencil" /></button>}
       {(post.mine || me?.admin) && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
     </div>
     {post.text && <p className="post-text">{post.text}</p>}
     <PostPhotos ids={post.photos} />
+    <PostVideo video={post.video} />
     {post.song && <SongBar song={post.song} />}
     <WorkoutSummary workout={post.workout} />
     <div className="post-a">
@@ -410,6 +412,8 @@ function Composer({ close, workout, onPosted }) {
   // { key, preview (data URL), id (once uploaded) | null, failed }
   const [photos, setPhotos] = useState([])
   const [song, setSong] = useState(null)
+  // { id, secs, url }: a post has photos or a video, never both.
+  const [video, setVideo] = useState(null)
   const [busy, setBusy] = useState(false)
   const ref = useRef(null)
   const fileRef = useRef(null)
@@ -424,7 +428,7 @@ function Composer({ close, workout, onPosted }) {
   ]
   const uploading = photos.some(p => !p.id && !p.failed)
   const ready = photos.filter(p => p.id).map(p => p.id)
-  const empty = !text.trim() && !summary && !ready.length
+  const empty = !text.trim() && !summary && !ready.length && !video
 
   // Each picked photo is scaled, re-encoded and uploaded at once, so Post only sends ids.
   const addPhotos = async files => {
@@ -445,7 +449,7 @@ function Composer({ close, workout, onPosted }) {
     if (busy || uploading || empty) return
     setBusy(true)
     try {
-      const post = await createPost({ text: text.trim(), workout: summary, photos: ready, song })
+      const post = await createPost({ text: text.trim(), workout: summary, photos: ready, song, video: video ? { id: video.id, secs: video.secs } : undefined })
       track('post.create')
       close()
       toast(t('Posted to your feed'))
@@ -466,11 +470,13 @@ function Composer({ close, workout, onPosted }) {
     <div style={{ height: 10 }} />
     <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
     <div className="cmp-pick">
-      <Button icon="camera" disabled={photos.length >= MAX_PHOTOS} onClick={() => camRef.current?.click()}>{t('Take a photo')}</Button>
-      <Button icon="image" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
+      <Button icon="camera" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => camRef.current?.click()}>{t('Take a photo')}</Button>
+      <Button icon="image" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => fileRef.current?.click()}>
         {photos.length ? t('Add another photo') : t('Add photos')}
       </Button>
     </div>
+    <div style={{ height: 8 }} />
+    <div className="cmp-video"><VideoField value={video} onChange={setVideo} disabled={photos.length > 0} /></div>
     <div style={{ height: 8 }} />
     <div className="cmp-song"><SongField value={song} onChange={setSong} /></div>
     <div style={{ height: 8 }} />
@@ -509,6 +515,9 @@ export function PostEditor({ w, initial = null, onSaved }) {
   // The post's song, as last saved here or as the server has it; undefined until touched.
   const [song, setSongState] = useState(() => (pending && pending.song !== undefined ? pending.song : initial?.song ?? null))
   const [songTouched, setSongTouched] = useState(false)
+  // The post's video, as last saved here or as the server has it: { id, secs } (a new one also has a url).
+  const [video, setVideoState] = useState(() => (pending && pending.video !== undefined ? pending.video : initial?.video ?? null))
+  const [videoTouched, setVideoTouched] = useState(false)
   const [saved, setSaved] = useState(false)
   const [dirty, setDirty] = useState(false)
   const fileRef = useRef(null)
@@ -520,7 +529,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
   // photo still uploading by then is waited for. Before this, back while writing the post of a
   // finished workout threw it away.
   const latest = useRef(null)
-  latest.current = { rec, title, text, photos, saved, dirty, song: songTouched ? song : undefined }
+  latest.current = { rec, title, text, photos, saved, dirty, song: songTouched ? song : undefined, video: videoTouched ? (video ? { id: video.id, secs: video.secs } : null) : undefined }
   const uploads = useRef(new Map())   // key -> promise of the photo's id
   useEffect(() => () => {
     const d = latest.current
@@ -531,7 +540,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
       .map(k => uploads.current.get(k).then(id => { known.set(k, id) }, () => {}))
     Promise.all(waiting).then(() => {
       const ids = keys.map(k => known.get(k)).filter(Boolean)
-      useStore.getState().update(s => setPostDetails(s, d.rec, { title: d.title, text: d.text, photos: ids, song: d.song }))
+      useStore.getState().update(s => setPostDetails(s, d.rec, { title: d.title, text: d.text, photos: ids, song: d.song, video: d.video }))
       flushPosts().catch(() => {})
       toast(offline() ? t('Saved. It will be sent when you are back online.') : t('Post saved'))
     })
@@ -557,7 +566,7 @@ export function PostEditor({ w, initial = null, onSaved }) {
   }
   const save = () => {
     if (uploading) return
-    useStore.getState().update(s => setPostDetails(s, rec, { title, text, photos: photos.map(p => p.id), song: songTouched ? song : undefined }))
+    useStore.getState().update(s => setPostDetails(s, rec, { title, text, photos: photos.map(p => p.id), song: songTouched ? song : undefined, video: videoTouched ? (video ? { id: video.id, secs: video.secs } : null) : undefined }))
     flushPosts().catch(() => {})
     setSaved(true); setDirty(false)
     latest.current = { ...latest.current, saved: true, dirty: false }
@@ -579,11 +588,13 @@ export function PostEditor({ w, initial = null, onSaved }) {
       </div>)}
     </div>}
     <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
+    <div className="pe-video"><VideoField value={video} disabled={photos.length > 0}
+      onChange={v => { setSaved(false); setDirty(true); setVideoTouched(true); setVideoState(v) }} /></div>
     <div className="pe-song"><SongField value={song} onChange={v => { setSaved(false); setDirty(true); setSongTouched(true); setSongState(v) }} /></div>
     <div className="pe-a">
-      <Button size="sm" icon="camera" className="pe-cam" disabled={photos.length >= MAX_PHOTOS} onClick={() => camRef.current?.click()}
+      <Button size="sm" icon="camera" className="pe-cam" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => camRef.current?.click()}
         aria-label={t('Take a photo')} title={t('Take a photo')} />
-      <Button size="sm" icon="image" disabled={photos.length >= MAX_PHOTOS} onClick={() => fileRef.current?.click()}>
+      <Button size="sm" icon="image" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => fileRef.current?.click()}>
         {photos.length ? t('Add another photo') : t('Add photos')}
       </Button>
       <Button size="sm" variant="primary" icon={saved ? 'check' : undefined} disabled={uploading || saved} onClick={save}>

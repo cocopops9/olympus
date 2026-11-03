@@ -2700,6 +2700,12 @@ const routes = {
     const body = await readBody(req);
     json(res, 200, SOCIAL.uploadSong(me, body.data));
   },
+  // A post's short video (the app trims and shrinks it), stored with the photos.
+  'POST /api/social/video': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, SOCIAL.uploadVideo(me, body.data));
+  },
   // The one social route that answers bytes: a photo of a post the caller may see.
   'GET /api/social/photo': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;

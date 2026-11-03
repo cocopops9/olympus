@@ -54,6 +54,15 @@ export const uploadPhoto = data => post('/api/social/photos', { data }).then(r =
 // The server sends 2 MB at most; a little over that is refused before it is read.
 export const photoBlob = id => apiBlob('/api/social/photo' + q({ id }), { expectSize: 2 * 1024 * 1024 })
 
+// A post's video, fetched on demand (a feed does not download every clip): the server sends 3 MB
+// at most. The blob is given its type from the file's first bytes, so a <video> knows what it is.
+export async function videoBlob(id) {
+  const b = await apiBlob('/api/social/photo' + q({ id }), { expectSize: 3 * 1024 * 1024 })
+  const head = new Uint8Array(await b.slice(0, 12).arrayBuffer())
+  const mp4 = String.fromCharCode(...head.slice(4, 8)) === 'ftyp'
+  return b.slice(0, b.size, mp4 ? 'video/mp4' : 'video/webm')
+}
+
 // Profile pictures repeat down a feed, so each is fetched once and its object URL kept for the
 // session. A new picture has a new id, so nothing here goes stale; a failed load is forgotten so
 // the next screen tries again.
@@ -70,8 +79,9 @@ export const fetchFeed = before => api('/api/social/feed' + q({ before }))
 export const fetchDiscover = before => api('/api/social/discover' + q({ before }))
 // `song`: { id, title } of a clip uploaded with lib/song.js; null on an edit takes it off, left
 // out it stays as it is.
-export const createPost = ({ text, workout, photos, wid, song }) => post('/api/social/posts', { text, workout, photos: photos && photos.length ? photos : undefined, wid, song: song || undefined }).then(r => r.post)
-export const editPost = ({ id, text, photos, workout, song }) => post('/api/social/posts/edit', { id, text, photos, workout, song }).then(r => r.post)
+export const createPost = ({ text, workout, photos, wid, song, video }) => post('/api/social/posts', { text, workout, photos: photos && photos.length ? photos : undefined, wid, song: song || undefined, video: video || undefined }).then(r => r.post)
+// `video`: { id, secs } to set it, null to take it off, left out to keep it.
+export const editPost = ({ id, text, photos, workout, song, video }) => post('/api/social/posts/edit', { id, text, photos, workout, song, video }).then(r => r.post)
 export const deletePost = id => post('/api/social/posts/delete', { id })
 export const setLike = (id, like, kind = 'heart') => post('/api/social/posts/like', { id, like, kind }).then(r => { if (like) track('post.like'); return r.post })
 export const addComment = (id, text) => post('/api/social/posts/comment', { id, text }).then(r => { track('post.comment'); return r.post })

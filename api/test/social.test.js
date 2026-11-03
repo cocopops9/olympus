@@ -9,7 +9,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { boundPort } from './helpers.mjs';
-import { createSocial, cleanWorkout, stripJpeg, stripPng, photoType, isMp3, LIMITS } from '../social.js';
+import { createSocial, cleanWorkout, stripJpeg, stripPng, photoType, isMp3, isMp4, isWebm, LIMITS } from '../social.js';
 
 const API = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -110,7 +110,7 @@ test('reactions: a heart by default, one other kind per person, counted per kind
 
 test('a post needs content, and its workout is bounded to the summary fields', t => {
   const { s } = store(t, [ANNA]);
-  assert.throws(() => s.createPost(ANNA, { text: '   ' }), /needs text, a workout or a photo/);
+  assert.throws(() => s.createPost(ANNA, { text: '   ' }), /needs text, a workout, a photo or a video/);
   const p = s.createPost(ANNA, {
     workout: {
       name: 'Push', d: '2026-10-20', durMs: 3600000, vol: 5230.5, unit: 'kg', sets: 18, prs: 2,
@@ -405,6 +405,57 @@ test('a song clip can be an MP3, up to a whole song: kept, served as audio/mpeg,
   s.deletePost(ANNA, p.id);
   assert.ok(!fs.existsSync(onDisk));
 });
+
+test('a post can carry one short video instead of photos: MP4 or WebM, served with its type, gone with the post', t => {
+  const { s, dir } = store(t, [ANNA, BEN, DANA]);
+  const mp4 = n => { const b = Buffer.alloc(n); b.write('ftypisom', 4, 'latin1'); return b; };
+  const webm = n => { const b = Buffer.alloc(n); Buffer.from([0x1a, 0x45, 0xdf, 0xa3]).copy(b); return b; };
+  assert.ok(isMp4(mp4(200)) && isWebm(webm(200)));
+  assert.ok(!isMp4(Buffer.alloc(200)) && !isWebm(Buffer.alloc(200)), 'zeros are not video');
+  assert.ok(!isMp4(jpeg()) && !isWebm(jpeg()), 'a photo is not a video');
+  const up = await_free(() => s.uploadVideo(ANNA, 'data:video/mp4;base64,' + mp4(1_500_000).toString('base64')));
+  const onDisk = path.join(dir, 'social-photos', up.id + '.mp4');
+  assert.ok(fs.existsSync(onDisk));
+  // not a photo, not a song, not an avatar
+  assert.throws(() => s.createPost(ANNA, { photos: [up.id] }), /unknown photo/);
+  assert.throws(() => s.createPost(ANNA, { text: 'x', song: { id: up.id } }), /unknown song/);
+  assert.throws(() => s.setProfile(ANNA, { avatar: up.id }), /unknown photo/);
+  // someone else's upload cannot be attached
+  assert.throws(() => s.createPost(BEN, { text: 'x', video: { id: up.id, secs: 10 } }), /unknown video/);
+  // a video or photos, never both
+  const ph = s.uploadPhoto(ANNA, jpeg().toString('base64'));
+  assert.throws(() => s.createPost(ANNA, { photos: [ph.id], video: { id: up.id, secs: 10 } }), /photos or a video/);
+  // a post of only a video is a post; the length is kept, inside what is allowed
+  const p = s.createPost(ANNA, { video: { id: up.id, secs: 12.4 } });
+  assert.deepEqual(p.video, { id: up.id, secs: 12 });
+  assert.equal(s.photo(BEN, up.id).type, 'video/mp4');
+  assert.throws(() => s.createPost(ANNA, { video: { id: up.id, secs: 5 } }), /unknown video/, 'already on a post');
+  assert.equal(s.post(DANA, p.id).video.id, up.id);
+  // private: only accepted followers see the bytes
+  s.setProfile(ANNA, { private: true });
+  assert.throws(() => s.photo(DANA, up.id), /not found/);
+  // limits and kinds
+  assert.throws(() => s.uploadVideo(ANNA, mp4(LIMITS.videoBytes + 1).toString('base64')), /too large/);
+  assert.throws(() => s.uploadVideo(ANNA, Buffer.alloc(5000).toString('base64')), /MP4 or WebM/);
+  const w = s.uploadVideo(ANNA, webm(10_000).toString('base64'));
+  assert.ok(fs.existsSync(path.join(dir, 'social-photos', w.id + '.webm')));
+  assert.equal(s.photo(ANNA, w.id).type, 'video/webm');
+  // editing: swap it for another, then take it off; the replaced file is deleted
+  const e = s.editPost(ANNA, { id: p.id, video: { id: w.id, secs: 7 } });
+  assert.deepEqual(e.video, { id: w.id, secs: 7 });
+  assert.ok(!fs.existsSync(onDisk), 'the replaced video is gone');
+  assert.throws(() => s.editPost(ANNA, { id: p.id, text: '', video: null }), /needs text/);
+  const kept = s.editPost(ANNA, { id: p.id, text: 'hello' });
+  assert.equal(kept.video.id, w.id, 'what is not sent stays');
+  assert.equal(s.editPost(ANNA, { id: p.id, video: null }).video, undefined);
+  assert.ok(!fs.existsSync(path.join(dir, 'social-photos', w.id + '.webm')));
+  // deleting a post deletes its video
+  const x = s.uploadVideo(ANNA, mp4(5000).toString('base64'));
+  const q = s.createPost(ANNA, { text: 'again', video: { id: x.id, secs: 5 } });
+  s.deletePost(ANNA, q.id);
+  assert.ok(!fs.existsSync(path.join(dir, 'social-photos', x.id + '.mp4')));
+});
+const await_free = fn => fn();
 
 test('a catalogue song keeps the part of its preview that was chosen, in whole seconds inside the 30', t => {
   const { s } = store(t, [ANNA, BEN]);

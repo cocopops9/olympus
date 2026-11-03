@@ -204,6 +204,8 @@ export const exerciseNameFor = ex => {
   // A language that chose "English names only" sees the canonical catalogue title, not the
   // translation — and never the parenthetical either. Custom exercises keep their exact name.
   if (enOnly) return ex?.n || ''
+  // A sport is ours, not the dataset's: its name is an ordinary t() string, one line per language.
+  if (ex?.sport) return t(ex.n)
   const translated = exerciseNames && ex && exerciseNames[ex.id]
   if (!translated) return ex?.n || ''
   // Some names (Burpee, Pilates, brand/model terms) are the established term in the target
@@ -240,6 +242,7 @@ export const exerciseNameClass = ex => (!enOnly && exerciseNames && ex && exerci
 
 // Search both the localized and canonical English title without changing persisted data.
 export const exerciseNameSearchText = ex => {
+  if (ex?.sport) return `${t(ex.n)} ${ex.n}`
   const translated = exerciseNames && ex && exerciseNames[ex.id]
   return translated ? `${translated} ${ex.n}` : (ex?.n || '')
 }

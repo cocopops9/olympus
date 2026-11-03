@@ -49,6 +49,48 @@ describe('Stats: chosen cards', () => {
   })
 })
 
+// Three chapters, one for each question a person comes to Stats with, so the page never stacks
+// every card: only the chapter chosen is on screen, the others wait, mounted, behind their tab.
+describe('Stats: chapters', () => {
+  const all = ['highlights', 'summary', 'activity', 'progress', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent']
+  const tabs = () => [...host.querySelectorAll('[role=tab]')]
+  const shown = () => [...host.querySelectorAll('[data-stats-chapter]')].filter(p => !p.hidden).map(p => p.dataset.statsChapter)
+  const click = el => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+
+  it('three tabs, opening on the overview, each with its question', () => {
+    mount({ statsCards: all })
+    expect(tabs().map(b => b.textContent)).toEqual(['Overview', 'Progress', 'Muscles'])
+    expect(shown()).toEqual(['overview'])
+    expect(host.querySelector('.stats-chap-ask').textContent).toBe('How am I doing?')
+  })
+  it('a tab shows its chapter and says what it answers; the others are hidden, not gone', () => {
+    mount({ statsCards: all })
+    click(tabs()[2])
+    expect(shown()).toEqual(['muscles'])
+    expect(host.querySelector('.stats-chap-ask').textContent).toBe('What am I training?')
+    expect(tabs()[2].getAttribute('aria-selected')).toBe('true')
+    expect(host.querySelector('#stats-panel-progress').hidden).toBe(true)
+    expect(host.querySelector('#stats-panel-progress h2')).not.toBe(null)
+  })
+  it('each card sits in its chapter, in the order chosen', () => {
+    mount({ statsCards: ['recent', 'progress', 'activity', 'muscles'] })
+    const names = id => [...host.querySelectorAll('#stats-panel-' + id + ' .card h2, #stats-panel-' + id + ' h4.sec')].map(h => h.textContent.trim().split(' ·')[0])
+    expect(names('overview')).toEqual(['Recent workouts', 'Activity'])
+    expect(names('progress')).toEqual(['Exercise progress'])
+    expect(names('muscles')).toContain('Muscle balance')
+  })
+  it('a chapter with no card chosen has no tab; a single chapter needs no tabs', () => {
+    mount({ statsCards: ['progress', 'effort'] })
+    expect(tabs()).toEqual([])
+    expect(shown()).toEqual(['progress'])
+  })
+  it('with the overview switched off, the page opens on the first chapter that has cards', () => {
+    mount({ statsCards: ['progress', 'muscles'] })
+    expect(tabs().map(b => b.textContent)).toEqual(['Progress', 'Muscles'])
+    expect(shown()).toEqual(['progress'])
+  })
+})
+
 // Simple (the default) or Detailed (S.statsDetail): Simple keeps one curve and says in a sentence
 // what it did; Detailed has every view. Each card explains itself behind its ⓘ.
 describe('Stats: simple and detailed', () => {

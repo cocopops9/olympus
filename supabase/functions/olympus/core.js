@@ -288,7 +288,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         io: {
           read: () => (raw ? JSON.stringify(raw) : null),
           save: t => { saved = t; },
-          writePhoto: (id, type, buf) => { writes.push([`${id}.${type}`, buf, type === 'png' ? 'image/png' : type === 'wav' ? 'audio/wav' : type === 'mp3' ? 'audio/mpeg' : 'image/jpeg']); },
+          writePhoto: (id, type, buf) => { writes.push([`${id}.${type}`, buf, type === 'png' ? 'image/png' : type === 'wav' ? 'audio/wav' : type === 'mp3' ? 'audio/mpeg' : type === 'mp4' ? 'video/mp4' : type === 'webm' ? 'video/webm' : 'image/jpeg']); },
           deletePhoto: (id, type) => { deletes.push(`${id}.${type}`); },
         },
       });
@@ -653,6 +653,10 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/social/song': async req => {
       const { user: me } = await signedIn(req); const b = await readJson(req);
       return { body: await withSocial(s => { const r = s.uploadSong(me, b.data); s.sweepOrphans(); return r; }) };
+    },
+    'POST /api/social/video': async req => {
+      const { user: me } = await signedIn(req); const b = await readJson(req);
+      return { body: await withSocial(s => { const r = s.uploadVideo(me, b.data); s.sweepOrphans(); return r; }) };
     },
     'GET /api/social/photo': async (req, q) => {
       const { user: me } = await signedIn(req);

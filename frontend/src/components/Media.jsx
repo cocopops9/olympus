@@ -138,6 +138,7 @@ function BuiltinThumb({ ex }) {
   const body = useStore(s => figureOf(s.S))
   const src = ex.img ? imgSrc(ex, body) : null
   const [broken, setBroken] = useState(null)
-  if (!src || broken === src) return <div className="thumb thumb-x"><Icon name="dumbbell" /></div>
+  // A sport has no picture; its tile carries its own icon (lib/sports.js).
+  if (!src || broken === src) return <div className="thumb thumb-x"><Icon name={ex.sport && ex.icon ? ex.icon : 'dumbbell'} /></div>
   return <img className="thumb" loading="lazy" decoding="async" draggable={false} src={src} alt="" onError={() => setBroken(src)} />
 }

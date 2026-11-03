@@ -56,6 +56,8 @@ export const LIMITS = Object.freeze({
   // song, encoded as a mono MP3 (a WAV is still accepted), with a title. The app picks the bit rate
   // so that even six minutes stay under this size.
   songBytes: 2600 * 1024,
+  videoBytes: 3 * 1024 * 1024,      // a short clip the phone has already shrunk: about 15 s at 1 Mbit/s is 2 MB
+  videoSeconds: 30,
   songTitle: 80,
 });
 
@@ -111,6 +113,15 @@ export const isMp3 = buf => buf.length > 64 && (buf.toString('latin1', 0, 3) ===
 
 /** The kinds of song clip stored, with the type each is served as. */
 const SONG_TYPES = { wav: 'audio/wav', mp3: 'audio/mpeg' };
+
+/** Whether `buf` is an MP4 / MOV file: an 'ftyp' box right after the first four bytes. */
+export const isMp4 = buf => buf.length > 64 && buf.toString('latin1', 4, 8) === 'ftyp';
+
+/** Whether `buf` is a WebM file: the EBML header every Matroska-family file starts with. */
+export const isWebm = buf => buf.length > 64 && buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3;
+
+/** The kinds of short video stored, with the type each is served as. */
+const VIDEO_TYPES = { mp4: 'video/mp4', webm: 'video/webm' };
 
 /** 'jpg' or 'png' from the first bytes, or null: nothing else is stored. */
 export function photoType(buf) {
@@ -283,6 +294,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       id: p.id, ts: p.ts, text: p.text || '', workout: p.workout || null, photos: p.photos || [], author,
       ...(p.uid === viewer.id && p.wid ? { wid: p.wid } : {}),
       ...(p.song ? { song: p.song.src ? { ...p.song } : { id: p.song.id, title: p.song.title || '' } } : {}),
+      ...(p.video ? { video: { id: p.video.id, secs: p.video.secs || 0 } } : {}),
       likes: likes.length, liked, reaction: liked ? kindOf(viewer.id) : null, reactions, comments, mine: p.uid === viewer.id,
     };
   }
@@ -363,7 +375,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     if (ids.length > LIMITS.photosPerPost) throw new SocialError(400, `at most ${LIMITS.photosPerPost} photos per post`, 'too-many-photos');
     for (const id of ids) {
       const meta = doc.photos[id];
-      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar || SONG_TYPES[meta.type]) throw new SocialError(400, 'unknown photo', 'bad-photos');
+      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar || SONG_TYPES[meta.type] || VIDEO_TYPES[meta.type]) throw new SocialError(400, 'unknown photo', 'bad-photos');
     }
     return ids;
   }
@@ -392,6 +404,17 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     const meta = id ? doc.photos[id] : null;
     if (!meta || !SONG_TYPES[meta.type] || meta.uid !== viewer.id || (meta.postId && meta.postId !== p?.id)) throw new SocialError(400, 'unknown song', 'bad-song');
     return { id, title: str(value.title, LIMITS.songTitle) };
+  }
+
+  // A short video for post `p` from `body.video`: { id, secs } of a clip `viewer` uploaded and has
+  // not posted (or this post's own), null to take it off, undefined to leave it as it is.
+  function videoFor(viewer, value, p = null) {
+    if (value === undefined) return p?.video;
+    if (value === null || value === false) return null;
+    const id = typeof value?.id === 'string' && ID_RE.test(value.id) ? value.id : null;
+    const meta = id ? doc.photos[id] : null;
+    if (!meta || !VIDEO_TYPES[meta.type] || meta.uid !== viewer.id || (meta.postId && meta.postId !== p?.id)) throw new SocialError(400, 'unknown video', 'bad-video');
+    return { id, secs: int(value.secs, 1, LIMITS.videoSeconds) };
   }
 
   return {
@@ -445,7 +468,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         if (god && !GOD_AVATARS.includes(id.slice(4))) throw new SocialError(400, 'unknown portrait', 'bad-photos');
         if (id !== null && !god) {
           const meta = typeof id === 'string' && ID_RE.test(id) ? doc.photos[id] : null;
-          if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar) throw new SocialError(400, 'unknown photo', 'bad-photos');
+          if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar || SONG_TYPES[meta.type] || VIDEO_TYPES[meta.type]) throw new SocialError(400, 'unknown photo', 'bad-photos');
           meta.avatar = true;
         }
         if (cur.avatar && !String(cur.avatar).startsWith('god:')) dropPhotos([cur.avatar]);
@@ -589,21 +612,24 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const workout = cleanWorkout(body?.workout);
       const photos = attachable(viewer, body?.photos);
       const song = songFor(viewer, body?.song) || null;
-      if (!text && !workout && !photos.length) throw new SocialError(400, 'a post needs text, a workout or a photo', 'empty');
+      const video = videoFor(viewer, body?.video) || null;
+      if (video && photos.length) throw new SocialError(400, 'a post has photos or a video, not both', 'bad-video');
+      if (!text && !workout && !photos.length && !video) throw new SocialError(400, 'a post needs text, a workout, a photo or a video', 'empty');
       budget(viewer.id, 'post', LIMITS.postsPerHour);
       // Strictly increasing timestamps: the feed pages by timestamp, and two posts in the same
       // millisecond would otherwise let one fall between two pages.
       const last = doc.posts.length ? doc.posts[doc.posts.length - 1].ts : 0;
       const p = {
         id: rid(9), uid: viewer.id, ts: Math.max(now(), last + 1), text,
-        ...(wid ? { wid } : {}), ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), ...(song ? { song } : {}), likes: [], comments: [],
+        ...(wid ? { wid } : {}), ...(workout ? { workout } : {}), ...(photos.length ? { photos } : {}), ...(song ? { song } : {}), ...(video ? { video } : {}), likes: [], comments: [],
       };
       for (const id of photos) doc.photos[id].postId = p.id;
       if (song && !song.src) doc.photos[song.id].postId = p.id;
+      if (video) doc.photos[video.id].postId = p.id;
       doc.posts.push(p);
       if (doc.posts.length > LIMITS.maxPosts) {
         const gone = doc.posts.splice(0, doc.posts.length - LIMITS.maxPosts);
-        dropPhotos(gone.flatMap(x => [...(x.photos || []), ...(x.song && !x.song.src ? [x.song.id] : [])]));
+        dropPhotos(gone.flatMap(x => [...(x.photos || []), ...(x.song && !x.song.src ? [x.song.id] : []), ...(x.video ? [x.video.id] : [])]));
       }
       save();
       return view(p, viewer);
@@ -625,12 +651,16 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         fresh = attachable(viewer, list.filter(id => !photos.includes(id)));
         photos = list;
       }
-      if (!text && !workout && !photos.length) throw new SocialError(400, 'a post needs text, a workout or a photo', 'empty');
+      const video = videoFor(viewer, body?.video, p) || null;
+      if (video && photos.length) throw new SocialError(400, 'a post has photos or a video, not both', 'bad-video');
+      if (!text && !workout && !photos.length && !video) throw new SocialError(400, 'a post needs text, a workout, a photo or a video', 'empty');
       const song = songFor(viewer, body?.song, p) || null;
       const gone = (p.photos || []).filter(id => !photos.includes(id));
       if (p.song && !p.song.src && p.song.id !== song?.id) gone.push(p.song.id);
+      if (p.video && p.video.id !== video?.id) gone.push(p.video.id);
       for (const id of fresh) doc.photos[id].postId = p.id;
       if (song && !song.src) doc.photos[song.id].postId = p.id;
+      if (video) { doc.photos[video.id].postId = p.id; p.video = video; } else delete p.video;
       if (song) p.song = song; else delete p.song;
       p.text = text;
       if (workout) p.workout = workout; else delete p.workout;
@@ -644,7 +674,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       const p = findPost(asAdmin ? null : viewer, id);
       if (p.uid !== viewer.id && !asAdmin) throw new SocialError(403, 'only the author can delete a post', 'forbidden');
       doc.posts = doc.posts.filter(x => x !== p);
-      dropPhotos([...(p.photos || []), ...(p.song && !p.song.src ? [p.song.id] : [])]);
+      dropPhotos([...(p.photos || []), ...(p.song && !p.song.src ? [p.song.id] : []), ...(p.video ? [p.video.id] : [])]);
       for (const uid of Object.keys(doc.notes)) doc.notes[uid] = doc.notes[uid].filter(n => n.postId !== p.id);
       save();
       return { ok: true };
@@ -749,6 +779,29 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return { id };
     },
 
+    // A short video before it is posted: an MP4 or WebM the app trimmed and shrank, checked and
+    // stored with the photos (same storage, same clean-up of what is never posted).
+    uploadVideo(viewer, data) {
+      const b64 = typeof data === 'string' ? data.replace(/^data:video\/[a-z0-9.+-]+(?:;[a-z0-9=.,+-]+)*;base64,/i, '') : '';
+      if (!b64 || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) throw new SocialError(400, 'send the video as base64', 'bad-video');
+      const buf = Buffer.from(b64, 'base64');
+      if (buf.length > LIMITS.videoBytes) throw new SocialError(413, 'video too large', 'video-too-large');
+      const kind = isMp4(buf) ? 'mp4' : isWebm(buf) ? 'webm' : null;
+      if (!kind) throw new SocialError(415, 'only MP4 or WebM videos are accepted', 'video-type');
+      const mine = Object.values(doc.photos).filter(m => m.uid === viewer.id).length;
+      if (mine >= LIMITS.photosPerUser) throw new SocialError(409, 'photo storage for this profile is full', 'photos-full');
+      budget(viewer.id, 'photo', LIMITS.photosPerHour);
+      const id = rid(12);
+      if (io) io.writePhoto(id, kind, buf);
+      else {
+        fs.mkdirSync(photoDir, { recursive: true, mode: 0o700 });
+        write(photoPath(id, kind), buf);
+      }
+      doc.photos[id] = { uid: viewer.id, ts: now(), type: kind, size: buf.length, postId: null };
+      save();
+      return { id };
+    },
+
     // Where a photo's bytes are, if `viewer` may see it: its owner, anyone who can see its post,
     // or, for a profile picture, anyone the profile has not blocked (it shows in search too).
     photo(viewer, id) {
@@ -760,7 +813,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         const p = meta.postId ? doc.posts.find(x => x.id === meta.postId) : null;
         if (!p || !canSee(viewer.id, p.uid)) throw new SocialError(404, 'photo not found', 'no-photo');
       }
-      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : SONG_TYPES[meta.type] || 'image/jpeg', size: meta.size };
+      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : SONG_TYPES[meta.type] || VIDEO_TYPES[meta.type] || 'image/jpeg', size: meta.size };
     },
 
     sweepOrphans,

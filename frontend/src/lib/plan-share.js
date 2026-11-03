@@ -8,7 +8,7 @@
 //  2. A clean, printable page (Save as PDF) where a single exercise never splits across
 //     a page break — each exercise, and each routine that fits, stays in one place.
 
-import { EXIDX, canonicalExId, isBodyweightEq } from './exercises.js'
+import { EXIDX, canonicalExId, isBodyweightEq, isSport } from './exercises.js'
 import { cleanUrl } from './media-refs.js'
 import { modeOf, exLine, MAX_PLANNED_WARMUPS } from './history.js'
 import { deriveSessionName } from './session-merge.js'
@@ -333,7 +333,8 @@ function scheme(e, unit, speedUnit) {
   const sets = e.sets || 1
   const mode = modeOf(e)
   if (mode === 'cardio') {
-    const body = `${e.min || 20} min @ ${fmtSpeed(e.speed || 8, speedUnit)}`
+    // A sport has no speed: "2 × 60 min".
+    const body = isSport(EXIDX[e.id]) ? `${e.min || EXIDX[e.id].min || 60} min` : `${e.min || 20} min @ ${fmtSpeed(e.speed || 8, speedUnit)}`
     return sets > 1 ? `${sets} × ${body}` : body
   }
   const line = exLine({ ...e, reps: e.reps ?? 10 }, unit, speedUnit)

@@ -12,20 +12,21 @@ vi.mock('../store/useStore.js', () => {
 })
 vi.mock('./social.js', async orig => ({
   ...(await orig()),
-  createPost: vi.fn(async ({ wid, workout, text, photos }) => {
+  createPost: vi.fn(async ({ wid, workout, text, photos, video }) => {
     if (mocks.fail) throw mocks.fail
     const had = mocks.posts.find(p => p.wid === wid)
     if (had) return had
-    const p = { id: 'p' + (mocks.posts.length + 1), wid, workout, text, photos }
+    const p = { id: 'p' + (mocks.posts.length + 1), wid, workout, text, photos, ...(video ? { video } : {}) }
     mocks.posts.push(p)
     return p
   }),
   deletePost: vi.fn(async id => { if (mocks.fail) throw mocks.fail; mocks.deleted.push(id); return { ok: true } }),
-  editPost: vi.fn(async ({ id, text, photos, workout }) => {
+  editPost: vi.fn(async ({ id, text, photos, workout, video }) => {
     if (mocks.fail) throw mocks.fail
     const p = mocks.posts.find(x => x.id === id)
     if (!p) throw Object.assign(new Error('gone'), { status: 404 })
     Object.assign(p, { text, photos, workout })
+    if (video === null) delete p.video; else if (video) p.video = video
     return p
   }),
 }))
@@ -149,6 +150,37 @@ describe('auto-posting', () => {
     expect(mocks.posts[0]).toMatchObject({ text: 'Felt strong' })
     expect(mocks.posts[0].workout.name).toBe('Chest day')
     expect(postDetails(st.S, w)).toBe(null)
+  })
+
+  it('a video written for the post goes out with it, and takes the photos\' place', async () => {
+    const st = setup()
+    const w = st.S.workouts[0]
+    queuePost(st.S, w)
+    mocks.fail = Object.assign(new Error('offline'), { status: 0 })
+    await flushPosts()
+    setPostDetails(st.S, w, { text: 'Squats', photos: ['ph1'], video: { id: 'v1', secs: 12.4 } })
+    expect(st.S.wpostEdit.w1).toMatchObject({ photos: [], video: { id: 'v1', secs: 12 } })
+    mocks.fail = null
+    await flushPosts()
+    expect(mocks.posts[0]).toMatchObject({ text: 'Squats', photos: [], video: { id: 'v1', secs: 12 } })
+    expect(postDetails(st.S, w)).toBe(null)
+  })
+
+  it('a video taken off an existing post, and one never touched, are told apart', async () => {
+    const st = setup()
+    const w = st.S.workouts[0]
+    queuePost(st.S, w)
+    await flushPosts()
+    setPostDetails(st.S, w, { text: 'a', video: { id: 'v2', secs: 5 } })
+    await flushPosts()
+    expect(mocks.posts[0].video).toEqual({ id: 'v2', secs: 5 })
+    setPostDetails(st.S, w, { text: 'b' })   // the editor did not touch the video: it stays
+    expect('video' in st.S.wpostEdit.w1).toBe(false)
+    await flushPosts()
+    expect(mocks.posts[0].video).toEqual({ id: 'v2', secs: 5 })
+    setPostDetails(st.S, w, { text: 'c', video: null })
+    await flushPosts()
+    expect(mocks.posts[0].video).toBeUndefined()
   })
 
   it('writing a post for a workout that was taken back posts it again', async () => {

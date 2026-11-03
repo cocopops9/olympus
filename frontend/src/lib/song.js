@@ -63,18 +63,19 @@ export const wholeRange = duration => ({ start: 0, end: sec(longest(duration)) }
 /**
  * A range kept in bounds: inside the song, at least MIN_CLIP_SEC and at most MAX_SONG_SEC long.
  * `moved` is the end that was dragged ('start' or 'end'); the other one gives way when needed.
+ * `minLen` and `maxLen` (seconds) default to a song's; a short video passes its own.
  */
-export function clampRange(duration, { start, end }, moved = 'end') {
+export function clampRange(duration, { start, end }, moved = 'end', { minLen = MIN_CLIP_SEC, maxLen = MAX_SONG_SEC } = {}) {
   const d = Math.max(0, Number(duration) || 0)
-  const min = Math.min(MIN_CLIP_SEC, d)
+  const min = Math.min(minLen, d)
   let s = Math.min(Math.max(0, Number(start) || 0), d)
   let e = Math.min(Math.max(0, Number(end) || 0), d)
   if (moved === 'start') {
     s = Math.min(s, Math.max(0, e - min))
-    if (e - s > MAX_SONG_SEC) e = s + MAX_SONG_SEC
+    if (e - s > maxLen) e = s + maxLen
   } else {
     e = Math.max(e, Math.min(d, s + min))
-    if (e - s > MAX_SONG_SEC) s = e - MAX_SONG_SEC
+    if (e - s > maxLen) s = e - maxLen
   }
   return { start: sec(s), end: sec(e) }
 }

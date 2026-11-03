@@ -1,12 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { EXIDX, matchExercise, betterWeight, isAssisted } from '../lib/exercises.js'
+import { EXIDX, matchExercise, betterWeight, isAssisted, isSport } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf, entriesForExercise, metricEntriesForExercise, metricModeForEntry, bestWeightForEntry, completedRepsOf, workoutDay, workoutAt } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
 import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
 import { t, tn, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
-import { STATS_CARDS, statsCardsOf, statsDetailOf } from '../lib/stats-cards.js'
+import { STATS_CARDS, statsCardsOf, statsDetailOf, chaptersOf } from '../lib/stats-cards.js'
 import { statsInsights, PROGRESS_DAYS, GAP_DAYS } from '../lib/stats-insights.js'
 import { Tip, InfoButton, helpSheet } from '../components/Guide.jsx'
 import { StatsPickerButton, statsPickerSheet } from '../components/StatsPicker.jsx'
@@ -547,6 +547,9 @@ export default function Stats({ embedded = false } = {}) {
     const frame = window.requestAnimationFrame(() => document.getElementById('weekly-volume')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }))
     return () => window.cancelAnimationFrame(frame)
   }, [])
+  // The chapter on screen (lib/stats-cards.js STATS_CHAPTERS). The cards of the others stay mounted
+  // but hidden, so a chart left on one exercise or a body map left on Fatigue is as it was on return.
+  const [chapter, setChapter] = useState(() => (/[?&]focus=weekly-volume\b/.test(window.location.hash || '') ? 'muscles' : 'overview'))
   const [exId, setExId] = useState(null)
   const [exMetric, setExMetric] = useState('top')
   // Exercise progress over a date range (issue #511), All by default. Only the chart follows it:
@@ -618,8 +621,9 @@ export default function Stats({ embedded = false } = {}) {
       const rows = data.rows
       const mx = mode === 'reps'
         ? data.best
-        : Math.max(0, ...rows.map(s => mode === 'cardio' ? toSpeed(s.speed || 0, speedUnit) : mode === 'time' ? (s.sec || 0) : (s.w || 0)))
-      if (mx > 0) return { mx, unit: mode === 'cardio' ? speedLabel(speedUnit) : mode === 'time' ? 's' : S.unit }
+        : Math.max(0, ...rows.map(s => mode === 'cardio' ? (isSport(EXIDX[id]) ? (s.min || 0) : toSpeed(s.speed || 0, speedUnit)) : mode === 'time' ? (s.sec || 0) : (s.w || 0)))
+      // A sport has no speed: its progress is the time played.
+      if (mx > 0) return { mx, unit: mode === 'cardio' ? (isSport(EXIDX[id]) ? t('min') : speedLabel(speedUnit)) : mode === 'time' ? 's' : S.unit }
       // Unloaded reps work still has a current figure — its rep count. Without this the whole
       // picker label went blank and the exercise sorted to the bottom as if it had no history.
       if (mode === 'reps') {
@@ -665,8 +669,9 @@ export default function Stats({ embedded = false } = {}) {
   // its own, which is also the honest reading: that is when load became the thing improving.
   const repsOnly = curEx && curMode === 'reps' && !pw.some(w =>
     entriesForExercise(w, curEx).some(en => bestWeightForEntry(en) > 0))
-  const metric = s => curCardio ? toSpeed(s.speed || 0, speedUnit) : curTimed ? (s.sec || 0) : (s.w || 0)
-  const exUnit = curCardio ? speedLabel(speedUnit) : curTimed ? 's' : repsOnly ? t('reps') : S.unit
+  const curSport = curCardio && isSport(EXIDX[curEx])
+  const metric = s => curSport ? (s.min || 0) : curCardio ? toSpeed(s.speed || 0, speedUnit) : curTimed ? (s.sec || 0) : (s.w || 0)
+  const exUnit = curSport ? t('min') : curCardio ? speedLabel(speedUnit) : curTimed ? 's' : repsOnly ? t('reps') : S.unit
   let exPts = [], exList = [], exBest = 0
   if (curEx) {
     pw.forEach(w => {
@@ -788,7 +793,9 @@ export default function Stats({ embedded = false } = {}) {
   // A highlight about a lift opens its curve: that exercise picked, the chart scrolled to.
   const openProgress = id => {
     setExId(id); setExMetric('top'); setExRange(0)
-    window.requestAnimationFrame?.(() => document.getElementById('stats-progress')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }))
+    setChapter('progress')
+    // Two frames: the first lets the chapter show, the second finds the card in its place.
+    window.requestAnimationFrame?.(() => window.requestAnimationFrame(() => document.getElementById('stats-progress')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })))
   }
   const cards = {
     highlights: () => <Highlights S={S} onOpen={openProgress} />,
@@ -899,6 +906,9 @@ export default function Stats({ embedded = false } = {}) {
   const chosen = statsCardsOf(S)
   const order = focusWeekly && !chosen.includes('weekly') ? [...chosen, 'weekly'] : chosen
   const left = STATS_CARDS.filter(c => !order.includes(c.id))
+  const chapters = chaptersOf(order)
+  // The chapter asked for, or the first one that has cards when the person switched theirs all off.
+  const on = chapters.some(c => c.id === chapter) ? chapter : chapters[0]?.id
 
   return <>
     {!embedded && <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
@@ -914,7 +924,20 @@ export default function Stats({ embedded = false } = {}) {
         options={[{ value: 'simple', label: t('Simple') }, { value: 'detailed', label: t('Detailed') }]} />
     </div>}
 
-    {order.map(id => <Fragment key={id}>{cards[id]()}</Fragment>)}
+    {chapters.length > 1 && <nav className="stats-chap" aria-label={t('Statistics')}>
+      <div className="stats-chap-tabs" role="tablist">
+        {chapters.map(c => <button key={c.id} role="tab" id={'stats-tab-' + c.id} aria-selected={c.id === on} aria-controls={'stats-panel-' + c.id}
+          className={'stats-chap-tab' + (c.id === on ? ' on' : '')} onClick={() => setChapter(c.id)}>
+          <Icon name={c.icon} /><span>{c.name()}</span>
+        </button>)}
+      </div>
+      <div className="stats-chap-ask" aria-live="polite">{chapters.find(c => c.id === on)?.ask()}</div>
+    </nav>}
+
+    {chapters.map(c => <section key={c.id} id={'stats-panel-' + c.id} role={chapters.length > 1 ? 'tabpanel' : undefined}
+      aria-labelledby={chapters.length > 1 ? 'stats-tab-' + c.id : undefined} hidden={c.id !== on} data-stats-chapter={c.id}>
+      {c.shown.map(id => <Fragment key={id}>{cards[id]()}</Fragment>)}
+    </section>)}
 
     {left.length > 0 && <button className="stats-more" onClick={statsPickerSheet}>
       <span className="sp-glyphs" aria-hidden="true">{left.slice(0, 4).map(c => <span key={c.id} className={'sp-glyph tone-' + c.tone}><Icon name={c.icon} /></span>)}</span>

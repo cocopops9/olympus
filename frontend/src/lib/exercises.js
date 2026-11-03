@@ -2,6 +2,7 @@ import { EXDB, EXALIAS } from './exercises-data.js'
 import MUSCLE_MAP from './exercise-muscle-map.json' with { type: 'json' }
 import V13_IDS from './catalogue-v13-ids.json' with { type: 'json' }
 import { t, getVersion, exerciseNameSearchText } from './i18n-core.js'
+import { SPORTS, isSportEx } from './sports.js'
 
 export { EXDB }
 
@@ -18,7 +19,9 @@ const catalogueExercise = ex => {
   return out
 }
 
-export const CATALOGUE = EXDB.map(catalogueExercise)
+// The sports (lib/sports.js) are built in too: they sit after the dataset's exercises.
+export const CATALOGUE = [...EXDB.map(catalogueExercise), ...SPORTS]
+export const isSport = isSportEx
 
 // The generated dataset already supplies secondary muscles for most exercises. Keep the
 // handful of conservative catalogue additions that are useful to the muscle map here so a
@@ -64,7 +67,7 @@ export function equipmentOf(list) {
 
 // Kinds of exercise (catalogue "category") present in a list, in a fixed order that reads from
 // lifting to everything around it. Custom exercises carry none and only show under "Any type".
-export const CATEGORIES = ['strength', 'calisthenics', 'olympic', 'plyometrics', 'isometric', 'cardio', 'stretching', 'mobility', 'yoga', 'pilates', 'combat', 'rehab']
+export const CATEGORIES = ['strength', 'calisthenics', 'olympic', 'plyometrics', 'isometric', 'cardio', 'sport', 'stretching', 'mobility', 'yoga', 'pilates', 'combat', 'rehab']
 export function categoriesOf(list) {
   const have = new Set(list.map(e => e.cat).filter(Boolean))
   return CATEGORIES.filter(c => have.has(c))

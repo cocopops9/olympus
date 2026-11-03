@@ -47,7 +47,8 @@ describe('exercise guide', () => {
 
   it('the tiles split the non-muscle training apart', () => {
     const counts = countsFor(CATALOGUE, MUSCLES)
-    for (const g of GROUPS) expect(counts[g.id], g.id).toBeGreaterThan(20)
+    // The sports are a short list on purpose (lib/sports.js), every other tile is a long one.
+    for (const g of GROUPS) expect(counts[g.id], g.id).toBeGreaterThan(g.id === 'sports' ? 10 : 20)
     const cardio = exercisesFor(CATALOGUE, { kind: 'group', id: 'cardio' })
     expect(cardio.some(e => e.n === 'run')).toBe(true)
     expect(exercisesFor(CATALOGUE, { kind: 'group', id: 'stretch' }).every(isStretch)).toBe(true)
