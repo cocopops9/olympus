@@ -319,6 +319,10 @@ function ChironVoice({ tips, unit, online }) {
   </div>
 }
 
+// How long his waking is drawn (chiron-figure.css), and when the voice panel takes over from it.
+const WAKE_MS = 1800
+const WAKE_VOICE_MS = 1500
+
 /**
  * Chiron in the workout page, drawn whole (components/ChironFigure.jsx): he lies there asleep,
  * breathing, the z's drifting up. Each tap makes him stir; the third wakes him: he gets up with a
@@ -360,15 +364,18 @@ export function WorkoutChiron() {
   const tips = quickTips(S, { exOf: id => EXIDX[id] || null, modeOf: ex => modeOf(ex), isWarmup: isWarmupRow, styles: p.styles, phase: p.phase })
   const online = socialReady(user)
   const press = () => {
-    if (awake) return
+    // While he is getting up the taps wait: a fourth would start the count again over the animation.
+    if (awake || waking) return
     const next = tapWake(tapRef.current, Date.now())
     clearTimeout(timer.current)
     if (next.awake) {
       setTap(null)
       try { navigator.vibrate?.([12, 40, 12]) } catch { /* no haptics */ }
       setWaking(true)
-      timer.current = setTimeout(() => setWaking(false), 1300)
-      if (canHear) useChiron.setState({ awake: true })
+      timer.current = setTimeout(() => setWaking(false), WAKE_MS)
+      // By voice he starts once the flash has passed and he is on his feet, so the waking is seen;
+      // the sheet covers him, and opens at once.
+      if (canHear) timer.current = setTimeout(() => { setWaking(false); useChiron.setState({ awake: true }) }, WAKE_VOICE_MS)
       else chironSheet()
       return
     }

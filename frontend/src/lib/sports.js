@@ -95,7 +95,11 @@ const SPORT_LIST = [
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
 const secondariesOf = w => Object.keys(w).filter(k => w[k] > 0 && w[k] < 0.6)
 
-/** The sports as catalogue entries: cardio mode (minutes), no picture, a category of their own. */
+/**
+ * The sports as catalogue entries: cardio mode (minutes), a category of their own, and an original
+ * drawing each (`img` and `gif` only mark that there is one; the files are found by id in
+ * sport-media.js, drawn by scripts/sports-media).
+ */
 export const SPORTS = SPORT_LIST.map(s => ({
   id: s.id,
   n: s.n,
@@ -105,6 +109,8 @@ export const SPORTS = SPORT_LIST.map(s => ({
   sm: [],
   cat: 'sport',
   sport: true,
+  img: s.id + '.webp',
+  gif: s.id + '.mp4',
   icon: s.icon,
   min: s.min,
   trains: s.trains,

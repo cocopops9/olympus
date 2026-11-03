@@ -5,6 +5,8 @@ import { modeOf, defaultConfig, setLabel, exLine } from './history.js'
 import { MUSCLES, musclesOf, loadOfWorkouts, loadOfRoutine } from './muscles.js'
 import { GROUPS, exercisesFor, countsFor } from './exercise-guide.js'
 import { exerciseNameFor } from './i18n-core.js'
+import { imgSrc, gifSrc } from './exercises.js'
+import { sportStill, sportClip, sportAnimation } from './sport-media.js'
 
 describe('sports', () => {
   it('are in the catalogue with an id of their own and a name', () => {
@@ -76,5 +78,14 @@ describe('sports', () => {
 
   it('show their name in English', () => {
     expect(exerciseNameFor(EXIDX['sport-basketball'])).toBe('basketball')
+  })
+  it('each has its own drawing: a still, a loop and an animated loop', () => {
+    for (const s of SPORTS) {
+      expect(sportStill(s.id), s.id).toMatch(/\.webp/)
+      expect(sportClip(s.id), s.id).toMatch(/\.mp4/)
+      expect(sportAnimation(s.id), s.id).toMatch(/anim\.webp/)
+      expect(imgSrc(EXIDX[s.id])).toBe(sportStill(s.id))
+      expect(gifSrc(EXIDX[s.id])).toBe(sportClip(s.id))
+    }
   })
 })

@@ -53,7 +53,14 @@ export const setVoiceHint = fn => { hintOf = typeof fn === 'function' ? fn : nul
 // When to stop on its own: a pause after speaking, nothing said at all, or a long talk.
 // A question is rarely said in one breath: the stop waits for a long pause (longer still before the
 // first words are well under way), and a long talk is allowed.
-export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350 }
+// Waiting for that long pause costs more than the recogniser does, so the clip goes to the server
+// early: after `specMs` of silence a first transcription starts while the wait goes on, and if
+// nothing more is said the answer is already there when the pause ends. When that early text is a
+// finished sentence (it ends in . ? or !) and the silence has lasted `sentenceMs`, the wait ends
+// there instead of at the long pause. `specMax` caps the early requests of one question.
+export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 1100, sentenceMs: 2000, specMax: 3 }
+/** Whether a transcript reads as a finished sentence: at least three words, closed by . ? or ! */
+export const endsSentence = text => /\S+\s+\S+\s+\S+/.test(String(text || '').trim()) && /[.?!…]["')\]]*$/.test(String(text || '').trim())
 
 /**
  * One question, recorded and written out. Speech is told from silence by the loudness of the
@@ -125,19 +132,44 @@ async function recordAndWrite({ onText, onEnd, onReady, lang }) {
   const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
   const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
   const release = () => { clearInterval(tick); micLater(stream); try { proc?.disconnect() } catch { /* gone */ } try { ac?.close() } catch { /* closed */ } }
+  // The clip of what was said up to the last voice, or null when there is too little to send.
+  const clipNow = () => {
+    const rate = ac?.sampleRate || 48000
+    const wav = proc && pcm.length ? clipOf(pcm, rate, lastVoice > t0 ? { fromMs: firstVoice - t0, toMs: lastVoice - t0 } : {}) : null
+    const blob = wav || new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' })
+    return blob.size < 1200 ? null : blob
+  }
+  const transcribe = async blob => {
+    const data = await blobToBase64(blob)
+    const r = await api('/api/voice/transcribe', { method: 'POST', body: JSON.stringify({ data, type: blob.type, lang, hint: (() => { try { return hintOf?.() || '' } catch { return '' } })() }), timeout: 25000 })
+    return r?.text || ''
+  }
+  // The early transcription: { at: the lastVoice it covers, text: null until it is back, promise }.
+  let spec = null, specs = 0
+  const startSpec = () => {
+    const blob = clipNow()
+    if (!blob) return
+    specs++
+    const mine = { at: lastVoice, text: null, promise: null }
+    mine.promise = transcribe(blob).then(text => { mine.text = text; return text })
+    mine.promise.catch(() => { if (spec === mine) spec = null })
+    spec = mine
+  }
+  const specBusy = () => !!spec && spec.text == null
   const send = async () => {
     if (sent) return
     sent = true
     release()
     if (cancelled || !spoke) return done('')
-    const rate = ac?.sampleRate || 48000
-    const wav = proc && pcm.length ? clipOf(pcm, rate, lastVoice > t0 ? { fromMs: firstVoice - t0, toMs: lastVoice - t0 } : {}) : null
-    const blob = wav || new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' })
-    if (blob.size < 1200) return done('')
+    // Nothing more was said since the early request went out: its text is the answer.
+    const early = spec && spec.at === lastVoice ? spec : null
+    const blob = early ? null : clipNow()
+    if (!early && !blob) return done('')
     try {
-      const data = await blobToBase64(blob)
-      const r = await api('/api/voice/transcribe', { method: 'POST', body: JSON.stringify({ data, type: blob.type, lang, hint: (() => { try { return hintOf?.() || '' } catch { return '' } })() }), timeout: 25000 })
-      done(cancelled ? '' : r?.text || '')
+      // A failed early request is simply made again, as a normal one.
+      const again = () => { const b = clipNow(); return b ? transcribe(b) : '' }
+      const text = early ? await early.promise.catch(again) : await transcribe(blob)
+      done(cancelled ? '' : text)
     } catch (e) { done('', cancelled ? null : e?.message || 'transcription failed') }
   }
   const stop = () => { if (rec.state !== 'inactive') { try { rec.stop() } catch { send() } } else send() }
@@ -151,6 +183,9 @@ async function recordAndWrite({ onText, onEnd, onReady, lang }) {
       if (v > threshold) { if (!spoke) { spoke = true; firstVoice = now } lastVoice = now }
       const pause = spoke && lastVoice - firstVoice < LISTEN.earlyMs ? LISTEN.earlyPauseMs : LISTEN.pauseMs
       if (spoke && now - lastVoice > pause) return stop()
+      const quiet = now - lastVoice
+      if (spoke && !finished && !sent && quiet > LISTEN.specMs && specs < LISTEN.specMax && (!spec || spec.at !== lastVoice) && !specBusy()) startSpec()
+      if (spoke && spec && spec.at === lastVoice && spec.text != null && quiet > LISTEN.sentenceMs && endsSentence(spec.text)) return stop()
       if (!spoke && now - t0 > LISTEN.nothingMs) return stop()
     } else if (now - t0 > 7000) return stop()
     if (now - t0 > LISTEN.maxMs) stop()
