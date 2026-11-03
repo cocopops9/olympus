@@ -79,7 +79,11 @@ export function searchSongs(q, cc, { fetchImpl = globalThis.fetch, now = Date.no
 export function cleanAppleSong(v, str) {
   const t = trackOf({ trackId: v?.id, trackName: v?.title, artistName: v?.artist, artworkUrl100: v?.art, previewUrl: v?.preview });
   if (!t) return null;
-  return { src: 'apple', id: t.id, title: str(v.title, 80), artist: str(v.artist, 60), ...(t.art ? { art: v.art } : {}), preview: t.preview };
+  // The part of the 30-second preview the person chose to share: whole seconds, at least 2 of them.
+  const at = x => Math.min(30, Math.max(0, Math.round(Number(x) || 0)));
+  const from = at(v.from), to = at(v.to);
+  const part = to - from >= 2 && (from > 0 || to < 30) ? { from, to } : null;
+  return { src: 'apple', id: t.id, title: str(v.title, 80), artist: str(v.artist, 60), ...(t.art ? { art: v.art } : {}), preview: t.preview, ...(part || {}) };
 }
 
 export const _clearMusicCache = () => cache.clear();

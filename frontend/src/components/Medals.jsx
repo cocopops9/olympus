@@ -4,7 +4,9 @@
 //
 // The counters behind the social medals live in S.medals: { got: { id: time celebrated },
 // invites, stories, invited, posts, followers }; the last three are the server's numbers, kept so
-// the medals read the same offline.
+// the medals read the same offline. The medals of "Your goals" read what the person told their
+// coaches (their goals in S.coachProfile and the notes in lib/coach-memory.js). An administrator
+// can switch the screen to the catalogue of every medal of the app; nobody else is offered it.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
@@ -12,12 +14,14 @@ import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtDate, fmtNum } from '../lib/format.js'
 import { medalsOf, allMedals, newlyEarned, nextMedal, TIERS } from '../lib/medals.js'
+import { loadNotes } from '../lib/coach-memory.js'
 import { socialReady } from '../lib/social.js'
 import { fetchReferral } from '../lib/referral.js'
 import { shareStory } from '../lib/story-card.js'
 import { triumph } from '../lib/sound.js'
 import { MOBILE } from '../lib/mobile.js'
 import { inviteSheet } from './Community.jsx'
+import { coachGoalsSheet } from './CoachGoals.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../medals.css'
@@ -39,6 +43,9 @@ export function rememberSocial(nums) {
 }
 
 const social = S => ({ invited: S.medals?.invited, posts: S.medals?.posts })
+
+/** The medals of `S` for profile `uid`: the notes the coaches keep are read for goals. */
+const medalsFor = (S, uid, opts = {}) => medalsOf(S, social(S), Date.now(), { notes: loadNotes(uid).map(n => n.text), ...opts })
 
 /** The medal: a disc of the tier's metal on a ribbon, the medal's sign in the middle. */
 export function MedalBadge({ m, size = 64, glow = false }) {
@@ -77,6 +84,7 @@ function MedalDetail({ m, close }) {
     {social && m.id.startsWith('invite') && socialReady(user) && <Button variant="primary" icon="person" onClick={() => { close(); inviteSheet() }}>{t('Invite friends')}</Button>}
     {social && m.id.startsWith('stories') && last && <Button variant="primary" icon="camera" onClick={story}>{t('Share to your story')}</Button>}
     {social && m.id.startsWith('posts') && <Button variant="primary" icon="share" onClick={() => { close(); nav('/profile?tab=posts') }}>{t('Share a workout')}</Button>}
+    {m.group === 'goals' && <Button variant="tinted" icon="target" onClick={() => { close(); coachGoalsSheet() }}>{t('Edit goals')}</Button>}
     <div style={{ height: 8 }} />
     <Button onClick={close}>{t('Close')}</Button>
   </div>
@@ -133,7 +141,7 @@ export function useMedalWatcher(ready) {
     if (!ready || S.active) return
     clearTimeout(timer.current)
     timer.current = setTimeout(() => {
-      const groups = medalsOf(S, social(S))
+      const groups = medalsFor(S, user?.id)
       const got = S.medals?.got
       const fresh = newlyEarned(groups, got || {})
       if (!fresh.length) return
@@ -145,7 +153,7 @@ export function useMedalWatcher(ready) {
       if (got) showCelebration?.(fresh.filter(m => recent(m.at)).slice(0, 4))
     }, 1500)
     return () => clearTimeout(timer.current)
-  }, [ready, S.workouts, S.medals, S.active, S.bodyweight, S.birth, S.body])
+  }, [ready, S.workouts, S.medals, S.active, S.bodyweight, S.birth, S.body, S.coachProfile, S.unit, user?.id])
   // The friends who joined: the server's count, asked once per start.
   useEffect(() => {
     if (!ready || !socialReady(user)) return
@@ -159,7 +167,8 @@ export function useMedalWatcher(ready) {
 export function MedalsCard() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
-  const groups = useMemo(() => medalsOf(S, social(S)), [S])
+  const uid = useStore(s => s.user?.id)
+  const groups = useMemo(() => medalsFor(S, uid), [S, uid])
   const all = allMedals(groups)
   const earned = all.filter(m => m.earned)
   const next = nextMedal(groups)
@@ -184,12 +193,17 @@ export default function MedalsView() {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const toast = useUI(s => s.toast)
+  // The catalogue of every medal of the app is for administrators; for anybody else the control is not on the screen.
+  const admin = user?.admin === true
+  const [showAll, setShowAll] = useState(false)
+  const catalogue = admin && showAll
   useEffect(() => { if (socialReady(user)) fetchReferral().then(d => rememberSocial({ invited: d?.invited }), () => {}) }, [user?.id])
-  const groups = useMemo(() => medalsOf(S, social(S)), [S])
+  const groups = useMemo(() => medalsFor(S, user?.id, { all: catalogue }), [S, user?.id, catalogue])
   const all = allMedals(groups)
   const earned = all.filter(m => m.earned).length
   const pct = all.length ? earned / all.length : 0
   const last = (S.workouts || [])[S.workouts.length - 1]
+  const noGoals = !catalogue && !groups.some(g => g.key === 'goals')
   const story = async () => {
     const how = await shareStory(last, { unit: S.unit, mobile: MOBILE })
     if (how === 'shared' || how === 'saved') { bumpMedal('stories'); toast(t('Shared!')) }
@@ -199,16 +213,31 @@ export default function MedalsView() {
     <div className="hdr">
       <button className="iconbtn" onClick={() => nav(-1)} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
       <div><h1>{t('Medals')}</h1></div>
-      <div style={{ width: 40 }} />
+      {admin
+        ? <button className={'iconbtn mdl-admin-b' + (showAll ? ' on' : '')} onClick={() => setShowAll(v => !v)} aria-pressed={showAll}
+          aria-label={t('All medals in the app')} title={t('All medals in the app')}><Icon name="crown" /></button>
+        : <div style={{ width: 40 }} />}
     </div>
+    {catalogue && <p className="mdl-admin small">{t('Administrator view: every medal of the app, whether or not it fits you. Only administrators see this.')}</p>}
     <div className="mdl-hero">
       <div className="mdl-ring" style={{ '--p': pct }}>
         <div><b>{fmtNum(earned)}</b><span>/ {fmtNum(all.length)}</span></div>
       </div>
       <p className="small muted">{t('Your medals start where you are and grow with you: new ones appear as you get closer.')}</p>
     </div>
+    {noGoals && <section className="mdl-sec mdl-sec-goals">
+      <h3>{t('Your goals')}</h3>
+      <div className="mdl-cta">
+        <p className="small">{t('Say how you train, your phase or a target with a number, such as a weight or the workouts a week, and medals for it appear here.')}</p>
+        <div className="mdl-cta-b"><Button size="sm" variant="primary" icon="target" onClick={coachGoalsSheet}>{t('Set your goals')}</Button></div>
+      </div>
+    </section>}
     {groups.map(g => g.medals.length > 0 && <section key={g.key} className={'mdl-sec mdl-sec-' + g.key}>
-      <h3>{g.title}</h3>
+      <h3>{g.title}{catalogue && <span className="mdl-n"> {fmtNum(g.medals.length)}</span>}</h3>
+      {g.key === 'goals' && <div className="mdl-cta">
+        <p className="small">{t('Medals that follow what you told your coaches: how you train, your phase and your goals.')}</p>
+        <div className="mdl-cta-b"><Button size="sm" variant="tinted" icon="target" onClick={coachGoalsSheet}>{t('Edit goals')}</Button></div>
+      </div>}
       {g.key === 'social' && <div className="mdl-cta">
         <p className="small">{t('The best medals are won together: invite your friends and share your workouts.')}</p>
         <div className="mdl-cta-b">

@@ -9,7 +9,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { boundPort } from './helpers.mjs';
-import { createSocial, cleanWorkout, stripJpeg, stripPng, photoType, LIMITS } from '../social.js';
+import { createSocial, cleanWorkout, stripJpeg, stripPng, photoType, isMp3, LIMITS } from '../social.js';
 
 const API = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -383,6 +383,42 @@ test('a popular song from Apple: which track, its words, cover and preview; fore
   assert.equal(s.post(BEN, p.id).song.preview, preview);
   assert.throws(() => s.createPost(ANNA, { text: 'x', song: { src: 'apple', id: '1', title: 'x', preview: 'https://evil.example/a.m4a' } }), /unknown song/);
   assert.equal(s.createPost(ANNA, { text: 'y', song: { src: 'apple', id: '2', title: 'y', art: 'https://evil.example/a.jpg', preview } }).song.art, undefined);
+});
+
+test('a song clip can be an MP3, up to a whole song: kept, served as audio/mpeg, its file gone with the post', t => {
+  const { s, dir } = store(t, [ANNA, BEN]);
+  // A Layer III frame header (MPEG 1, 128 kbit/s, 44.1 kHz) then zeros, and the same behind an ID3 tag.
+  const mp3 = n => { const b = Buffer.alloc(n); b[0] = 0xff; b[1] = 0xfb; b[2] = 0x90; return b; };
+  const tagged = Buffer.concat([Buffer.from('ID3\x04\x00\x00\x00\x00\x00\x00'), Buffer.alloc(100)]);
+  assert.ok(isMp3(mp3(200)) && isMp3(tagged));
+  assert.ok(!isMp3(Buffer.alloc(200)), 'zeros are not audio');
+  assert.ok(!isMp3(Buffer.from([0xff, 0xf9, ...Array(100).fill(0)])), 'an AAC frame is not Layer III');
+  const { id } = s.uploadSong(ANNA, 'data:audio/mpeg;base64,' + mp3(2_000_000).toString('base64'));
+  const onDisk = path.join(dir, 'social-photos', id + '.mp3');
+  assert.ok(fs.existsSync(onDisk), 'a whole song of six minutes at 48 kbit/s is about 2.2 MB');
+  assert.throws(() => s.createPost(ANNA, { photos: [id] }), /unknown photo/, 'a song is not a photo');
+  const p = s.createPost(ANNA, { text: 'Leg day', song: { id, title: 'Full song' } });
+  assert.deepEqual(p.song, { id, title: 'Full song' });
+  assert.equal(s.photo(BEN, id).type, 'audio/mpeg');
+  assert.throws(() => s.uploadSong(ANNA, mp3(LIMITS.songBytes + 1).toString('base64')), /too large/);
+  assert.throws(() => s.uploadSong(ANNA, Buffer.alloc(5000).toString('base64')), /WAV or MP3/);
+  s.deletePost(ANNA, p.id);
+  assert.ok(!fs.existsSync(onDisk));
+});
+
+test('a catalogue song keeps the part of its preview that was chosen, in whole seconds inside the 30', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  const preview = 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview/a/mzaf_1.plus.aac.p.m4a';
+  const song = extra => ({ src: 'apple', id: '1780000001', title: 'Hit', artist: 'Star', preview, ...extra });
+  assert.deepEqual(s.createPost(ANNA, { text: 'a', song: song({ from: 5.4, to: 21.6 }) }).song.from, 5);
+  const p = s.createPost(ANNA, { text: 'b', song: song({ from: 5, to: 22 }) });
+  assert.deepEqual([p.song.from, p.song.to], [5, 22]);
+  assert.deepEqual([s.post(BEN, p.id).song.from, s.post(BEN, p.id).song.to], [5, 22]);
+  const whole = s.createPost(ANNA, { text: 'c', song: song({ from: 0, to: 30 }) }).song;
+  assert.ok(!('from' in whole) && !('to' in whole), 'all of the preview needs no range');
+  assert.ok(!('from' in s.createPost(ANNA, { text: 'd', song: song({ from: 10, to: 11 }) }).song), 'under 2 seconds is not kept');
+  assert.equal(s.createPost(ANNA, { text: 'e', song: song({ from: 0, to: 900 }) }).song.to, undefined, 'past the preview is cut to 30, which is all of it');
+  assert.equal(s.createPost(ANNA, { text: 'f', song: song({ from: -4, to: 12 }) }).song.to, 12);
 });
 
 test('photos attach to one post of their owner, follow its visibility, and go with it', t => {

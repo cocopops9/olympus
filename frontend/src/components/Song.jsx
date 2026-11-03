@@ -1,13 +1,15 @@
 // Olympus: the song of a post. "Add a song" opens the music catalogue (lib/music.js: the songs
 // most played now in the person's country, and a search), each with its 30-second preview; a tap
-// on the cover listens, a tap on the song picks it. A song from the phone is the other way in
-// (lib/song.js): its clip is cut on the phone and uploaded. On a post, the song is a bar with its cover, title and artist and a
-// play button; one song plays at a time, its 30 seconds only.
+// on the cover listens, a tap on the song picks it, and a sheet then lets the person choose which
+// part of the preview to share. A song from the phone is the other way in (lib/song.js): the
+// person chooses any part of it, up to the whole song, and the clip is cut, encoded and uploaded
+// on the phone. On a post, the song is a bar with its cover, title and artist and a play button;
+// one song plays at a time, only the part that was chosen.
 import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { photoBlob } from '../lib/social.js'
-import { decodeSong, clipStartMax, defaultStart, clipBlob, uploadSong, titleFromFile, CLIP_SEC } from '../lib/song.js'
+import { decodeSong, defaultRange, wholeRange, clampRange, previewRange, uploadSong, titleFromFile, MAX_SONG_SEC, MIN_CLIP_SEC } from '../lib/song.js'
 import { topSongs, searchSongs, songOf, onlineSource, musicCountry } from '../lib/music.js'
 import { SearchField } from './ui.jsx'
 import { Button } from './ui.jsx'
@@ -45,11 +47,13 @@ export function SongBar({ song }) {
         const online = onlineSource(song) || (legacy ? `https://api.audius.co/v1/tracks/${encodeURIComponent(song.id)}/stream?app_name=Olympus` : null)
         if (!online) url.current = URL.createObjectURL(await photoBlob(song.id))
         const a = new Audio(online || url.current)
-        const from = legacy ? Math.max(0, Number(song.start) || 0) : 0
+        // The part of a catalogue song that was chosen: from `from` to `to` seconds.
+        const from = legacy ? Math.max(0, Number(song.start) || 0) : Math.max(0, Number(song.from) || 0)
+        const to = legacy ? from + 30 : Number(song.to) > from ? Number(song.to) : Infinity
         a.onplay = () => setState('playing')
         a.onpause = a.onended = () => { setState('idle'); if (playing === a) playing = null }
-        if (legacy) {
-          a.ontimeupdate = () => { if (a.currentTime >= from + 30) { a.pause(); a.currentTime = from } }
+        if (from > 0 || to < Infinity) {
+          a.ontimeupdate = () => { if (a.currentTime >= to) { a.pause(); a.currentTime = from } }
           a.preload = 'auto'; a.currentTime = from
           a.addEventListener('loadedmetadata', () => { if (a.currentTime < from) a.currentTime = from }, { once: true })
         }
@@ -69,45 +73,127 @@ export function SongBar({ song }) {
   </button>
 }
 
-function SongSheet({ file, decoded, close, onPicked }) {
-  const max = clipStartMax(decoded.duration)
+/**
+ * Two handles on one bar: the start and the end of the part of a song to share. `max` is the
+ * length of what can be chosen from, in seconds; `value` is { start, end }.
+ */
+function RangeTrim({ id, max, value, onChange, step = 1, disabled }) {
+  const pct = x => (max > 0 ? Math.min(100, Math.max(0, x / max * 100)) : 0)
+  const left = pct(value.start), width = pct(value.end) - left
+  return <div className="trim">
+    <div className="trim-track"><i style={{ left: left + '%', width: width + '%' }} /></div>
+    <input id={id} type="range" className="trim-in" min={0} max={max} step={step} value={value.start} disabled={disabled || max === 0}
+      aria-label={t('Start')} onChange={e => onChange(clampRange(max, { start: Number(e.target.value), end: value.end }, 'start'))} />
+    <input type="range" className="trim-in" min={0} max={max} step={step} value={value.end} disabled={disabled || max === 0}
+      aria-label={t('End')} onChange={e => onChange(clampRange(max, { start: value.start, end: Number(e.target.value) }, 'end'))} />
+  </div>
+}
+
+/** What is chosen, in words: "Clip from 1:05 to 2:10" and how long it is. */
+function RangeLabel({ range, id }) {
+  return <label className="song-l" htmlFor={id}>
+    {t('Clip from {0} to {1}', clock(range.start), clock(range.end))}
+    <span className="song-len">{t('Length {0}', clock(range.end - range.start))}</span>
+  </label>
+}
+
+export function SongSheet({ file, decoded, close, onPicked }) {
   const [title, setTitle] = useState(() => titleFromFile(file.name))
-  const [start, setStart] = useState(() => defaultStart(decoded.duration))
-  const [busy, setBusy] = useState(false)
+  const [range, setRange] = useState(() => defaultRange(decoded.duration))
+  const [progress, setProgress] = useState(null)   // null, or 0..1 while the clip is prepared
   const [listening, setListening] = useState(false)
   const preview = useRef(null)
-  const stop = () => { if (preview.current) { preview.current.a.pause(); URL.revokeObjectURL(preview.current.url); preview.current = null } setListening(false) }
+  const stop = () => { if (preview.current) { preview.current.stop(); preview.current = null } setListening(false) }
   useEffect(() => stop, [])
+  const change = r => { stop(); setRange(r) }
   const listen = () => {
     if (listening) { stop(); return }
-    const url = URL.createObjectURL(clipBlob(decoded.buffer, start))
-    const a = new Audio(url)
-    a.onended = stop
-    preview.current = { a, url }
+    const p = previewRange(decoded.buffer, range.start, range.end)
+    preview.current = p
     setListening(true)
-    a.play().catch(stop)
+    p.done.then(() => { if (preview.current === p) { preview.current = null; setListening(false) } })
   }
   const use = async () => {
-    stop(); setBusy(true)
+    stop(); setProgress(0)
     try {
-      const id = await uploadSong(decoded.buffer, start)
+      const id = await uploadSong(decoded.buffer, range.start, range.end, { onProgress: setProgress })
       onPicked({ id, title: title.trim().slice(0, 80) || titleFromFile(file.name) || t('Song') })
       close()
-    } catch (e) { toast(songError(e)); setBusy(false) }
+    } catch (e) { toast(songError(e)); setProgress(null) }
   }
-  const end = Math.min(decoded.duration, start + CLIP_SEC)
+  const busy = progress !== null
+  const max = Math.floor(decoded.duration)
   return <div className="song-sheet">
     <h3>{t('Your workout song')}</h3>
-    <p className="small muted">{t('{0} seconds of it play with your post.', CLIP_SEC)}</p>
+    <p className="small muted">{t('Choose the part of the song to share, up to the whole song.')}</p>
     <label className="song-l" htmlFor="song-title">{t('Title')}</label>
     <input id="song-title" className="input" maxLength={80} value={title} onChange={e => setTitle(e.target.value)} placeholder={t('Song and artist')} />
-    <label className="song-l" htmlFor="song-start">{t('Clip from {0} to {1}', clock(start), clock(end))}</label>
-    <input id="song-start" type="range" className="song-range" min={0} max={max} step={1} value={start} disabled={max === 0}
-      onChange={e => { stop(); setStart(Number(e.target.value)) }} />
+    <RangeLabel range={range} id="song-start" />
+    <RangeTrim id="song-start" max={max} value={range} onChange={change} disabled={busy} />
     <div className="song-ends small muted"><span>0:00</span><span>{clock(decoded.duration)}</span></div>
+    <div className="song-quick">
+      <Button size="sm" disabled={busy} onClick={() => change(wholeRange(decoded.duration))}>{t('Whole song')}</Button>
+      <Button size="sm" disabled={busy} onClick={() => change(clampRange(max, { start: range.start, end: Math.min(max, range.start + 30) }, 'end'))}>{t('{0} seconds', 30)}</Button>
+    </div>
+    {decoded.duration > MAX_SONG_SEC && <p className="small muted">{t('Up to {0} of a song can be shared.', clock(MAX_SONG_SEC))}</p>}
+    <div className="song-a">
+      <Button icon={listening ? 'pause' : 'play'} disabled={busy} onClick={listen}>{listening ? t('Stop') : t('Listen')}</Button>
+      <Button variant="primary" icon="check" disabled={busy} onClick={use}>{busy ? t('Preparing the clip… {0}%', Math.round(progress * 100)) : t('Use this song')}</Button>
+    </div>
+  </div>
+}
+
+/**
+ * A song of the catalogue, before it is picked: the preview is 30 seconds, and the person chooses
+ * which part of it goes with the post (all of it to start with).
+ */
+export function TrimSheet({ track, close, onPicked }) {
+  const [max, setMax] = useState(30)
+  const [range, setRange] = useState({ start: 0, end: 30 })
+  const [listening, setListening] = useState(false)
+  const a = useRef(null)
+  useEffect(() => {
+    // The preview is "about" 30 seconds: its real length sets the end of the bar.
+    const probe = new Audio(track.preview)
+    probe.preload = 'metadata'
+    probe.onloadedmetadata = () => {
+      const d = Math.min(30, Math.floor(probe.duration || 30))
+      if (d >= MIN_CLIP_SEC) { setMax(d); setRange(r => clampRange(d, { start: r.start, end: Math.min(r.end, d) }, 'end')) }
+    }
+    return () => { probe.onloadedmetadata = null; a.current?.pause() }
+  }, [track.preview])
+  const stop = () => { a.current?.pause(); a.current = null; setListening(false) }
+  const change = r => { stop(); setRange(r) }
+  const listen = () => {
+    if (listening) { stop(); return }
+    const au = new Audio(track.preview)
+    a.current = au
+    au.currentTime = range.start
+    au.addEventListener('loadedmetadata', () => { if (au.currentTime < range.start) au.currentTime = range.start }, { once: true })
+    au.ontimeupdate = () => { if (au.currentTime >= range.end) stop() }
+    au.onended = stop
+    setListening(true)
+    au.play().catch(() => { stop(); toast(t('This song cannot be played right now.')) })
+  }
+  const use = () => {
+    stop()
+    const whole = range.start === 0 && range.end >= max
+    onPicked({ ...songOf(track), ...(whole ? {} : { from: Math.round(range.start), to: Math.round(range.end) }) })
+    close()
+  }
+  return <div className="song-sheet">
+    <h3>{t('Choose the part to share')}</h3>
+    <div className="song-pick">
+      {track.art && <img className="song-art lg" src={track.art} alt="" />}
+      <span className="song-tt"><b>{track.title}</b><small>{track.artist}</small></span>
+    </div>
+    <p className="small muted">{t('A preview lasts 30 seconds: choose the part to share.')}</p>
+    <RangeLabel range={range} id="trim-start" />
+    <RangeTrim id="trim-start" max={max} value={range} onChange={change} />
+    <div className="song-ends small muted"><span>0:00</span><span>{clock(max)}</span></div>
     <div className="song-a">
       <Button icon={listening ? 'pause' : 'play'} onClick={listen}>{listening ? t('Stop') : t('Listen')}</Button>
-      <Button variant="primary" icon="check" disabled={busy} onClick={use}>{busy ? t('Uploading…') : t('Use this song')}</Button>
+      <Button variant="primary" icon="check" onClick={use}>{t('Use this song')}</Button>
     </div>
   </div>
 }
@@ -143,7 +229,11 @@ function MusicSheet({ close, onPicked, fromPhone }) {
     setPreview(tr.id)
     au.play().catch(() => { setPreview(null); toast(t('This song cannot be played right now.')) })
   }
-  const pick = tr => { a.current?.pause(); setPreview(null); onPicked(songOf(tr)); close() }
+  // A tap on a song asks which part of its preview to share, then hands it over.
+  const pick = tr => {
+    a.current?.pause(); setPreview(null); close()
+    useUI.getState().openSheet(done => <TrimSheet track={tr} close={done} onPicked={onPicked} />)
+  }
   let regionName = country.toUpperCase()
   try { regionName = new Intl.DisplayNames([navigator.language || 'en'], { type: 'region' }).of(country.toUpperCase()) || regionName } catch { /* old WebView */ }
   return <div className="mus">

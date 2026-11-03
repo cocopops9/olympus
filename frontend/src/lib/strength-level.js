@@ -189,6 +189,30 @@ export function bestValue(S, metric, since = 0) {
   return best
 }
 
+/**
+ * The running best of `metric` (reps or speed) after each workout that has it, in date order:
+ * [{ d, y, first }], `first` the value of the first of those workouts. For the date a value was
+ * first reached (lib/medals.js).
+ */
+export function valuePoints(S, metric) {
+  const ws = [...(S?.workouts || [])].filter(w => w && w.d).sort((a, b) => (a.start || 0) - (b.start || 0))
+  const pts = []
+  let best = 0, first = 0
+  for (const w of ws) {
+    let top = 0
+    for (const e of w.entries || []) {
+      if (e.id !== metric.id) continue
+      for (const st of e.sets || []) {
+        if (!st?.done || isWarmupRow(st)) continue
+        if (metric.type === 'reps') { if (!(Number(st.w) > 0) && Number(st.r) > top) top = Number(st.r) }
+        else if (metric.type === 'speed') { if (Number(st.min) >= (metric.minMin || 1) && Number(st.speed) > top) top = Number(st.speed) }
+      }
+    }
+    if (top > 0) { if (!first) first = top; best = Math.max(best, top); pts.push({ d: w.d, y: best, first }) }
+  }
+  return pts
+}
+
 /** How many workouts of the last 90 days have `exId` in them. */
 export function timesDone(S, exId, now = Date.now()) {
   let n = 0

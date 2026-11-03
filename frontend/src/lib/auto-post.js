@@ -36,7 +36,7 @@ export const summaryFor = (w, S) => workoutPostSummary(w, { unit: S.unit, nameOf
 // (lib/music.js: { src, id, title, artist, art, preview }).
 const keepSong = x => ({
   id: String(x.id), title: String(x.title || '').slice(0, 80),
-  ...(x.src ? { src: String(x.src), artist: String(x.artist || '').slice(0, 60), ...(x.art ? { art: String(x.art).slice(0, 300) } : {}), start: Math.max(0, Math.round(Number(x.start) || 0)), ...(x.preview ? { preview: String(x.preview).slice(0, 400) } : {}) } : {}),
+  ...(x.src ? { src: String(x.src), artist: String(x.artist || '').slice(0, 60), ...(x.art ? { art: String(x.art).slice(0, 300) } : {}), start: Math.max(0, Math.round(Number(x.start) || 0)), ...(Number(x.to) > Number(x.from || 0) ? { from: Math.max(0, Math.round(Number(x.from) || 0)), to: Math.round(Number(x.to)) } : {}), ...(x.preview ? { preview: String(x.preview).slice(0, 400) } : {}) } : {}),
 })
 
 /** Marks logged workout `w` to be posted. In place on the document `s`. */

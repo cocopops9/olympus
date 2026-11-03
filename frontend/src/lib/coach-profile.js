@@ -32,13 +32,20 @@ export const GOALS_MAX = 500
 
 const isMap = v => !!v && typeof v === 'object' && !Array.isArray(v)
 
-/** The stored profile read back: { styles: [...ids], phase, goals }, junk left out. */
+/** The stored profile read back: { styles: [...ids], phase, goals, since }, junk left out. `since` is when the phase was chosen (ms), 0 when not known. */
 export function coachProfileOf(S) {
   const p = isMap(S?.coachProfile) ? S.coachProfile : {}
   const styles = (Array.isArray(p.styles) ? p.styles : []).filter(id => TRAINING_STYLES.some(s => s.id === id))
   const phase = PHASES.some(x => x.id === p.phase) ? p.phase : null
   const goals = typeof p.goals === 'string' ? p.goals.trim().slice(0, GOALS_MAX) : ''
-  return { styles: [...new Set(styles)], phase, goals }
+  const since = phase && Number(p.since) > 0 ? Number(p.since) : 0
+  return { styles: [...new Set(styles)], phase, goals, since }
+}
+
+/** `next` ({ styles, phase, goals }) as the profile to store: the phase keeps its start while it stays the same, a new one starts now. */
+export function withSince(prev, next, now = Date.now()) {
+  const phase = next.phase || null
+  return { ...next, phase, ...(phase ? { since: phase === prev?.phase && prev?.since > 0 ? prev.since : now } : {}) }
 }
 
 export const hasCoachProfile = S => { const p = coachProfileOf(S); return !!(p.styles.length || p.phase || p.goals) }

@@ -15,7 +15,7 @@ import { exerciseNameFor, t } from './i18n.js'
 import { uid, exerciseNameText } from './format.js'
 import { defaultConfig } from './history.js'
 import { STATS_IDS, statsCard } from './stats-cards.js'
-import { TRAINING_STYLES, PHASES, GOALS_MAX, coachProfileOf } from './coach-profile.js'
+import { TRAINING_STYLES, PHASES, GOALS_MAX, coachProfileOf, withSince } from './coach-profile.js'
 import { markSuggested } from './suggested.js'
 import { isWarmupRow } from './workout-model.js'
 import { DEFAULT_GLYPH } from './glyphs.js'
@@ -154,7 +154,7 @@ export function applyAction(s, a) {
     case 'set_stats_cards': s.statsCards = [...a.cards]; return {}
     case 'set_goals': {
       const p = coachProfileOf(s)
-      s.coachProfile = { styles: a.styles || p.styles, phase: a.phase || p.phase, goals: a.goals || p.goals }
+      s.coachProfile = withSince(p, { styles: a.styles || p.styles, phase: a.phase || p.phase, goals: a.goals || p.goals })
       return {}
     }
     default: throw new Error('unknown action')

@@ -288,7 +288,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         io: {
           read: () => (raw ? JSON.stringify(raw) : null),
           save: t => { saved = t; },
-          writePhoto: (id, type, buf) => { writes.push([`${id}.${type}`, buf, type === 'png' ? 'image/png' : type === 'wav' ? 'audio/wav' : 'image/jpeg']); },
+          writePhoto: (id, type, buf) => { writes.push([`${id}.${type}`, buf, type === 'png' ? 'image/png' : type === 'wav' ? 'audio/wav' : type === 'mp3' ? 'audio/mpeg' : 'image/jpeg']); },
           deletePhoto: (id, type) => { deletes.push(`${id}.${type}`); },
         },
       });

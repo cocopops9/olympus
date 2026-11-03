@@ -7,7 +7,7 @@ const sent = vi.hoisted(() => ({ calls: [] }))
 vi.mock('./api.js', async orig => ({ ...(await orig()), api: vi.fn(async (path, init) => { sent.calls.push([path, JSON.parse(init?.body || '{}')]); return { reply: 'ok', left: 1, perDay: 2 } }) }))
 import { askHercules, chatBucket, BOTH, lastCoach, setLastCoach } from './hercules.js'
 import { setCover, coverOf, learnCovers, _resetCovers } from './workout-cover.js'
-import { clipSamples, wavBytes, titleFromFile, clipStartMax, defaultStart } from './song.js'
+import { clipSamples, wavBytes, titleFromFile, defaultRange } from './song.js'
 
 beforeEach(() => { sent.calls = []; localStorage.clear(); _resetCovers() })
 
@@ -73,9 +73,8 @@ describe('the song clip', () => {
   })
   it('a short song gives what it has', () => {
     expect(clipSamples(buffer(10), 0).length).toBe(10 * 22050)
-    expect(clipStartMax(10)).toBe(0)
-    expect(clipStartMax(200)).toBe(170)
-    expect(defaultStart(200)).toBe(67)
+    expect(defaultRange(10)).toEqual({ start: 0, end: 10 })
+    expect(defaultRange(200)).toEqual({ start: 67, end: 97 })
   })
   it('writes a WAV the server accepts: RIFF, WAVE, 16-bit mono', () => {
     const bytes = wavBytes(new Float32Array([0, 1, -1, 0.5]), 22050)

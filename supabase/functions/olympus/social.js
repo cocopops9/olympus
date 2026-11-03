@@ -52,8 +52,10 @@ export const LIMITS = Object.freeze({
   photosPerUser: 500,
   photoOrphanMs: 24 * 3600 * 1000,   // uploaded but never posted: gone after a day
   notesPerUser: 200,
-  // A post's song: a clip the app cuts from a song on the phone (30 seconds, mono WAV), with a title.
-  songBytes: 1800 * 1024,
+  // A post's song: a clip the app cuts from a song on the phone, from a few seconds to the whole
+  // song, encoded as a mono MP3 (a WAV is still accepted), with a title. The app picks the bit rate
+  // so that even six minutes stay under this size.
+  songBytes: 2600 * 1024,
   songTitle: 80,
 });
 
@@ -100,8 +102,15 @@ export function cleanWorkout(w) {
 
 /* ---------------- photos ---------------- */
 
-/** Whether `buf` is a WAV file (RIFF....WAVE), the only kind of song clip stored. */
+/** Whether `buf` is a WAV file (RIFF....WAVE). */
 export const isWav = buf => buf.length > 44 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WAVE';
+
+/** Whether `buf` is an MP3 file: an ID3 tag, or the sync bits of a Layer III frame (MPEG 1, 2 or 2.5). */
+export const isMp3 = buf => buf.length > 64 && (buf.toString('latin1', 0, 3) === 'ID3'
+  || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0 && ((buf[1] >> 1) & 3) === 1 && ((buf[1] >> 3) & 3) !== 1));
+
+/** The kinds of song clip stored, with the type each is served as. */
+const SONG_TYPES = { wav: 'audio/wav', mp3: 'audio/mpeg' };
 
 /** 'jpg' or 'png' from the first bytes, or null: nothing else is stored. */
 export function photoType(buf) {
@@ -354,7 +363,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     if (ids.length > LIMITS.photosPerPost) throw new SocialError(400, `at most ${LIMITS.photosPerPost} photos per post`, 'too-many-photos');
     for (const id of ids) {
       const meta = doc.photos[id];
-      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar || meta.type === 'wav') throw new SocialError(400, 'unknown photo', 'bad-photos');
+      if (!meta || meta.uid !== viewer.id || meta.postId || meta.avatar || SONG_TYPES[meta.type]) throw new SocialError(400, 'unknown photo', 'bad-photos');
     }
     return ids;
   }
@@ -381,7 +390,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     }
     const id = typeof value?.id === 'string' && ID_RE.test(value.id) ? value.id : null;
     const meta = id ? doc.photos[id] : null;
-    if (!meta || meta.type !== 'wav' || meta.uid !== viewer.id || (meta.postId && meta.postId !== p?.id)) throw new SocialError(400, 'unknown song', 'bad-song');
+    if (!meta || !SONG_TYPES[meta.type] || meta.uid !== viewer.id || (meta.postId && meta.postId !== p?.id)) throw new SocialError(400, 'unknown song', 'bad-song');
     return { id, title: str(value.title, LIMITS.songTitle) };
   }
 
@@ -717,24 +726,25 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       return { id };
     },
 
-    // A song clip before it is posted: a WAV the app cut and encoded, checked and stored with the
-    // photos (same storage, same clean-up of what is never posted).
+    // A song clip before it is posted: a WAV or MP3 the app cut and encoded, checked and stored with
+    // the photos (same storage, same clean-up of what is never posted).
     uploadSong(viewer, data) {
       const b64 = typeof data === 'string' ? data.replace(/^data:audio\/[a-z0-9.+-]+;base64,/, '') : '';
       if (!b64 || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) throw new SocialError(400, 'send the song as base64', 'bad-song');
       const buf = Buffer.from(b64, 'base64');
       if (buf.length > LIMITS.songBytes) throw new SocialError(413, 'song too large', 'song-too-large');
-      if (!isWav(buf)) throw new SocialError(415, 'only WAV clips are accepted', 'song-type');
+      const kind = isWav(buf) ? 'wav' : isMp3(buf) ? 'mp3' : null;
+      if (!kind) throw new SocialError(415, 'only WAV or MP3 clips are accepted', 'song-type');
       const mine = Object.values(doc.photos).filter(m => m.uid === viewer.id).length;
       if (mine >= LIMITS.photosPerUser) throw new SocialError(409, 'photo storage for this profile is full', 'photos-full');
       budget(viewer.id, 'photo', LIMITS.photosPerHour);
       const id = rid(12);
-      if (io) io.writePhoto(id, 'wav', buf);
+      if (io) io.writePhoto(id, kind, buf);
       else {
         fs.mkdirSync(photoDir, { recursive: true, mode: 0o700 });
-        write(photoPath(id, 'wav'), buf);
+        write(photoPath(id, kind), buf);
       }
-      doc.photos[id] = { uid: viewer.id, ts: now(), type: 'wav', size: buf.length, postId: null };
+      doc.photos[id] = { uid: viewer.id, ts: now(), type: kind, size: buf.length, postId: null };
       save();
       return { id };
     },
@@ -750,7 +760,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         const p = meta.postId ? doc.posts.find(x => x.id === meta.postId) : null;
         if (!p || !canSee(viewer.id, p.uid)) throw new SocialError(404, 'photo not found', 'no-photo');
       }
-      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : meta.type === 'wav' ? 'audio/wav' : 'image/jpeg', size: meta.size };
+      return { file: photoPath(id, meta.type), name: `${id}.${meta.type}`, type: meta.type === 'png' ? 'image/png' : SONG_TYPES[meta.type] || 'image/jpeg', size: meta.size };
     },
 
     sweepOrphans,

@@ -10,7 +10,7 @@ const base = { unit: 'kg', body: 'male', workouts: [], routines: [], exWeights: 
 describe('coach profile', () => {
   it('reads back only known styles and phases, and trims the goals', () => {
     const p = coachProfileOf({ coachProfile: { styles: ['bodybuilding', 'nope', 'bodybuilding'], phase: 'x', goals: '  overload  ' } })
-    expect(p).toEqual({ styles: ['bodybuilding'], phase: null, goals: 'overload' })
+    expect(p).toEqual({ styles: ['bodybuilding'], phase: null, goals: 'overload', since: 0 })
     expect(hasCoachProfile({})).toBe(false)
   })
   it('goes to the coach first, in plain words', () => {

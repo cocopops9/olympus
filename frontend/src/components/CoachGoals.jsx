@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { TRAINING_STYLES, PHASES, GOALS_MAX, coachProfileOf } from '../lib/coach-profile.js'
+import { TRAINING_STYLES, PHASES, GOALS_MAX, coachProfileOf, withSince } from '../lib/coach-profile.js'
 import { loadNotes, addNote, editNote, deleteNote } from '../lib/coach-memory.js'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -16,7 +16,7 @@ function Goals({ close }) {
   const [p, setP] = useState(() => coachProfileOf(S))
   const toggleStyle = id => setP(v => ({ ...v, styles: v.styles.includes(id) ? v.styles.filter(x => x !== id) : [...v.styles, id] }))
   const save = () => {
-    useStore.getState().update(s => { s.coachProfile = { styles: p.styles, phase: p.phase, goals: p.goals.trim().slice(0, GOALS_MAX) } })
+    useStore.getState().update(s => { s.coachProfile = withSince(coachProfileOf(s), { styles: p.styles, phase: p.phase, goals: p.goals.trim().slice(0, GOALS_MAX) }) })
     close()
     useUI.getState().toast(t('Your coaches know what you train for.'))
   }

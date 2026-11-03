@@ -16,6 +16,23 @@
 .song-sheet h3{margin-bottom:2px}
 .song-l{display:block;font-size:13px;font-weight:600;color:var(--label-2);margin:14px 2px 6px}
 .song-range{width:100%;accent-color:var(--acc)}
+.song-len{float:inline-end;font-weight:500;color:var(--label-3);font-variant-numeric:tabular-nums}
+.song-quick{display:flex;gap:8px;margin-top:10px}
+.song-pick{display:flex;align-items:center;gap:12px;margin:6px 0 4px}
+.song-pick .song-tt b{font-size:16px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.song-art.lg{width:64px;height:64px;border-radius:12px}
+/* Two handles on one bar: the start and the end of the part to share (RangeTrim). */
+.trim{position:relative;height:40px;margin:6px 0 0;touch-action:none}
+.trim-track{position:absolute;left:11px;right:11px;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:var(--surface-3)}
+.trim-track i{position:absolute;top:0;bottom:0;border-radius:3px;background:var(--acc)}
+.trim-in{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;background:none;-webkit-appearance:none;appearance:none;pointer-events:none}
+.trim-in::-webkit-slider-runnable-track{background:none;height:40px}
+.trim-in::-moz-range-track{background:none;height:40px}
+.trim-in::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;width:22px;height:22px;margin-top:9px;border-radius:50%;
+  background:var(--bg-el,#fff);border:3px solid var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab}
+.trim-in::-moz-range-thumb{pointer-events:auto;width:16px;height:16px;border-radius:50%;background:var(--bg-el,#fff);border:3px solid var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab}
+.trim-in:disabled::-webkit-slider-thumb{opacity:.5;cursor:default}
+.trim-in:focus-visible::-webkit-slider-thumb{outline:2px solid var(--acc);outline-offset:2px}
 .song-ends{display:flex;justify-content:space-between;margin-top:2px}
 .song-a{display:flex;gap:8px;margin-top:16px}
 .song-a .btn{flex:1}
