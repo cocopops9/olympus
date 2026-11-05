@@ -3285,4 +3285,10 @@ export default {
   "rock climbing": "sziklamászás",
   "hiking": "túrázás",
   "skiing": "síelés",
+  "Downloading update": "Frissítés letöltése",
+  "Installing…": "Telepítés…",
+  "Download failed": "A letöltés nem sikerült",
+  "Uploading the video…": "Videó feltöltése…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "A katalógus dalai csak a 30 másodperces előnézetükkel oszthatók meg. Egy dal bármely részéhez, akár az egészhez, válaszd ki a telefonodról.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "Toplisták az Apple Musicból, előnézetek az Apple Musicból és a Deezerről.",
 }

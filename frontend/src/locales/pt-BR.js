@@ -4,6 +4,12 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Downloading update": "Baixando a atualização",
+  "Installing…": "Instalando…",
+  "Download failed": "O download falhou",
+  "Uploading the video…": "Enviando o vídeo…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "As músicas do catálogo só podem ser compartilhadas como a prévia de 30 segundos. Para qualquer parte de uma música, até a música inteira, escolha no seu celular.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "Paradas do Apple Music, prévias do Apple Music e do Deezer.",
   "Create a profile to follow friends and share your workouts. Your training is then kept on this phone and on the Olympus server.": "Crie um perfil para seguir amigos e compartilhar seus treinos. Seu treino fica então salvo neste celular e no servidor Olympus.",
   '{0} set brings an {1} with it. Switch on Effort per set in Settings to see it.': '{0} série traz um {1} junto. Ative “Esforço por série” nas Configurações para ver.',
   'Add to this set': 'Adicionar a esta série',

@@ -3337,4 +3337,10 @@ export default {
   "rock climbing": "تسلق الصخور",
   "hiking": "المشي في الطبيعة",
   "skiing": "التزلج",
+  "Downloading update": "جارٍ تنزيل التحديث",
+  "Installing…": "جارٍ التثبيت…",
+  "Download failed": "فشل التنزيل",
+  "Uploading the video…": "جارٍ رفع الفيديو…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "لا يمكن مشاركة أغاني الكتالوج إلا كمقطع معاينة مدته 30 ثانية. لأي جزء من أغنية، حتى الأغنية كاملة، اخترها من هاتفك.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "القوائم من Apple Music، والمقاطع من Apple Music وDeezer.",
 }

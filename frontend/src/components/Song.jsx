@@ -10,7 +10,7 @@ import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { photoBlob } from '../lib/social.js'
 import { decodeSong, defaultRange, wholeRange, clampRange, previewRange, uploadSong, titleFromFile, MAX_SONG_SEC, MIN_CLIP_SEC } from '../lib/song.js'
-import { topSongs, searchSongs, songOf, onlineSource, musicCountry } from '../lib/music.js'
+import { topSongs, searchSongs, songOf, songSource, musicCountry } from '../lib/music.js'
 import { SearchField } from './ui.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -21,6 +21,9 @@ const toast = msg => useUI.getState().toast(msg)
 const songError = e => (e?.code === 'song-file-large' ? t('That file is too large. Pick a song under 40 MB.')
   : e?.code === 'song-unreadable' || e?.code === 'song-unsupported' ? t('This file could not be read as a song.')
     : e?.status === 413 ? t('That clip is too large.') : e?.status == null ? t('The server could not be reached.') : (e?.message || t('Something went wrong.')))
+
+// A song of the catalogues, told apart: Apple and Deezer ids are both numbers.
+const keyOf = tr => (tr.src || 'apple') + ':' + tr.id
 
 // The one song playing anywhere in the app: starting another stops it.
 let playing = null
@@ -44,7 +47,7 @@ export function SongBar({ song }) {
         // A song of the catalogue plays its preview from Apple; posts made before with the
         // earlier catalogue (Audius) still play their 30 seconds from there.
         const legacy = song.src === 'audius'
-        const online = onlineSource(song) || (legacy ? `https://api.audius.co/v1/tracks/${encodeURIComponent(song.id)}/stream?app_name=Olympus` : null)
+        const online = (await songSource(song)) || (legacy ? `https://api.audius.co/v1/tracks/${encodeURIComponent(song.id)}/stream?app_name=Olympus` : null)
         if (!online) url.current = URL.createObjectURL(await photoBlob(song.id))
         const a = new Audio(online || url.current)
         // The part of a catalogue song that was chosen: from `from` to `to` seconds.
@@ -221,12 +224,12 @@ function MusicSheet({ close, onPicked, fromPhone }) {
     return () => { live = false; clearTimeout(timer) }
   }, [q, country, tries])
   const play = tr => {
-    if (preview === tr.id) { a.current?.pause(); setPreview(null); return }
+    if (preview === keyOf(tr)) { a.current?.pause(); setPreview(null); return }
     a.current?.pause()
     const au = new Audio(tr.preview)
     au.onended = () => setPreview(null)
     a.current = au
-    setPreview(tr.id)
+    setPreview(keyOf(tr))
     au.play().catch(() => { setPreview(null); toast(t('This song cannot be played right now.')) })
   }
   // A tap on a song asks which part of its preview to share, then hands it over.
@@ -245,10 +248,10 @@ function MusicSheet({ close, onPicked, fromPhone }) {
         : failed ? <div className="empty small">{t('The music catalogue could not be reached. Try again, or pick a song from your phone.')}
           <div><button className="btn ghost sm" onClick={() => setTries(n => n + 1)}>{t('Try again')}</button></div></div>
           : !list.length ? <div className="empty small">{t('No songs found.')}</div>
-            : list.map((tr, i) => <div key={tr.id} className="mus-row">
+            : list.map((tr, i) => <div key={keyOf(tr)} className="mus-row">
               {!q.trim() && <span className="mus-rank">{i + 1}</span>}
-              <button className={'mus-art' + (preview === tr.id ? ' on' : '')} onClick={() => play(tr)} aria-label={(preview === tr.id ? t('Stop') : t('Listen')) + ': ' + tr.title}>
-                {tr.art && <img src={tr.art} alt="" loading="lazy" />}<span className="mus-pp"><Icon name={preview === tr.id ? 'pause' : 'play'} /></span>
+              <button className={'mus-art' + (preview === keyOf(tr) ? ' on' : '')} onClick={() => play(tr)} aria-label={(preview === keyOf(tr) ? t('Stop') : t('Listen')) + ': ' + tr.title}>
+                {tr.art && <img src={tr.art} alt="" loading="lazy" />}<span className="mus-pp"><Icon name={preview === keyOf(tr) ? 'pause' : 'play'} /></span>
               </button>
               <button className="mus-m" onClick={() => pick(tr)}>
                 <b>{tr.title}{tr.explicit && <span className="mus-e" title={t('Explicit')}>E</span>}</b><small>{tr.artist}</small>
@@ -257,7 +260,8 @@ function MusicSheet({ close, onPicked, fromPhone }) {
             </div>)}
     </div>
     <button className="btn ghost mus-phone" onClick={() => { a.current?.pause(); close(); fromPhone() }}><Icon name="music" />{t('A song from your phone')}</button>
-    <p className="small muted mus-credit">{t('Charts and 30-second previews from Apple Music.')}</p>
+    <p className="small muted mus-credit">{t('Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.')}</p>
+    <p className="small muted mus-credit">{t('Charts from Apple Music, previews from Apple Music and Deezer.')}</p>
   </div>
 }
 

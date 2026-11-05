@@ -48,7 +48,8 @@ function VideoSheet({ file, opened, close, onPicked }) {
   const use = async () => {
     stopView(); setProgress(0)
     try {
-      const { blob, secs } = await prepareVideo(file, opened, range, { onProgress: p => alive.current && setProgress(p * 0.92) })
+      const { blob, secs } = await prepareVideo(file, opened, range, { onProgress: p => alive.current && setProgress(Math.min(0.99, p)) })
+      if (alive.current) setProgress(1)
       const id = await uploadVideo(blob)
       if (!alive.current) return
       onPicked({ id, secs, url: URL.createObjectURL(blob) })
@@ -71,7 +72,7 @@ function VideoSheet({ file, opened, close, onPicked }) {
     {len > 0 && busy && <p className="small muted">{t('Keep this screen open while the video is prepared.')}</p>}
     <div className="song-a">
       <Button icon={watching ? 'pause' : 'play'} disabled={busy} onClick={watch}>{watching ? t('Stop') : t('Watch')}</Button>
-      <Button variant="primary" icon="check" disabled={busy || len < MIN_VIDEO_SEC} onClick={use}>{busy ? t('Preparing the video… {0}%', Math.round(progress * 100)) : t('Use this video')}</Button>
+      <Button variant="primary" icon="check" disabled={busy || len < MIN_VIDEO_SEC} onClick={use}>{!busy ? t('Use this video') : progress >= 1 ? t('Uploading the video…') : t('Preparing the video… {0}%', Math.round(progress * 100))}</Button>
     </div>
   </div>
 }

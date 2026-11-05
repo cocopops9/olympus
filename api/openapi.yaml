@@ -3311,6 +3311,55 @@ paths:
                   tracks: { type: array, items: { type: object } }
         '401': { description: Not signed in. }
         '502': { description: The catalogue is not answering. }
+  /api/music/track:
+    get:
+      tags: [social]
+      operationId: musicTrack
+      summary: A fresh preview address for a Deezer song
+      description: Deezer's preview addresses expire, so a post keeps only the track id and the app asks for a fresh address when it plays the song.
+      parameters:
+        - { name: src, in: query, required: false, schema: { type: string, enum: [deezer] } }
+        - { name: id, in: query, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview: { type: string }
+        '401': { description: Not signed in. }
+        '404': { description: The song has no preview. }
+        '502': { description: The catalogue is not answering. }
+  /api/social/video:
+    post:
+      tags: [social]
+      operationId: socialUploadVideo
+      summary: Upload a post's short video
+      description: An MP4 or WebM the app trimmed (30 seconds at most) and shrank (3 MB at most), as base64, stored with the photos. Attach the returned id to a post as `video` (`{ id, secs }`) within a day, or it is removed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data: { type: string, description: Base64 or a data URL. }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+        '400': { description: Not a video. }
+        '401': { description: Not signed in. }
+        '413': { description: The video is too large. }
+        '415': { description: Not MP4 or WebM. }
   /api/social/song:
     post:
       tags: [social]

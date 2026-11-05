@@ -32,7 +32,7 @@ import {
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
-import { topSongs, searchSongs } from './music.js';
+import { topSongs, searchSongs, deezerPreview } from './music.js';
 import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
@@ -2693,6 +2693,15 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     try { json(res, 200, { tracks: await searchSongs(qs(req).get('q'), qs(req).get('country')) }); }
     catch { json(res, 502, { error: 'the music catalogue is not answering', code: 'catalogue-down' }); }
+  },
+  // A fresh address for the preview of a Deezer song (it expires, so a post does not keep it).
+  'GET /api/music/track': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    try {
+      const preview = await deezerPreview(qs(req).get('id'));
+      if (!preview) return json(res, 404, { error: 'no preview for this song', code: 'no-preview' });
+      json(res, 200, { preview });
+    } catch { json(res, 502, { error: 'the music catalogue is not answering', code: 'catalogue-down' }); }
   },
   // A post's song clip (the app cuts and encodes it), stored with the photos.
   'POST /api/social/song': async (req, res) => {

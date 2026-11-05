@@ -3,47 +3,55 @@
 // and his arms crossed, or standing awake on his four hooves. One figure, posed by `state`:
 //
 //   asleep     eyes shut, head low, breathing slowly; z's drift up
-//   waking     he stirs, a flash of light covers the change, and the awake portrait springs up out of
-//              it with dust at his hooves, a shock ring on the ground and sparks flying out (1.8 s)
+//   waking     he really wakes up, drawn frame by frame (2.8 s): he stirs and the z's burst, lifts
+//              his head and opens his eyes, sits up in a big stretch and a yawn, pushes up on his
+//              front legs, stands, turns, and settles into the awake portrait, dust at his hooves
 //   idle       awake, breathing, the light around him
 //   listening  leaning in, rings of sound coming to him
 //   thinking   still, three dots rising
 //   speaking   he moves with his words (`mouth`, 0 to 1, set many times a second), waves going out
 //
-// The two portraits cross-fade, except in `waking`, where the change is cut under the flash so the
-// two never show through each other; every move is CSS (chiron-figure.css).
+// The two portraits cross-fade; `waking` goes through four drawings in between (chiron-wake-1 to 4,
+// made in Canva from the two portraits, so the style and the figure are the same), each a short
+// cross-fade into the next while the body moves with them. Every move is CSS (chiron-figure.css).
 import awakeImg from '../assets/chiron-full-awake.webp'
 import asleepImg from '../assets/chiron-full-asleep.webp'
+import wake1 from '../assets/chiron-wake-1.webp'
+import wake2 from '../assets/chiron-wake-2.webp'
+import wake3 from '../assets/chiron-wake-3.webp'
+import wake4 from '../assets/chiron-wake-4.webp'
+
+const WAKE_FRAMES = [wake1, wake2, wake3, wake4]
 
 export const CHIRON_AWAKE = awakeImg
 export const CHIRON_ASLEEP = asleepImg
 
-// Dust at the hooves: [start x %, drift x %, drift y %, delay s].
-const DUST = [[34, -16, -4, 0.62], [42, -9, -7, 0.68], [50, -3, -9, 0.64], [58, 6, -8, 0.7], [66, 13, -5, 0.66], [74, 20, -3, 0.72]]
-// Sparks from the chest: [x, y, drift x, drift y, size, delay s], in the 100 by 100 drawing.
-const SPARKS = [[48, 40, -34, -26, 1.2, 0.56], [52, 38, -14, -38, 1.5, 0.58], [56, 40, 12, -36, 1.1, 0.6], [60, 42, 34, -24, 1.4, 0.57],
-  [46, 50, -40, -6, 1, 0.62], [62, 50, 40, -4, 1.1, 0.64], [50, 36, -24, -34, .9, 0.66], [58, 36, 24, -32, 1, 0.68]]
+// Dust at the hooves: [start x %, drift x %, drift y %, delay s]. Two puffs: when he pushes up on
+// his front legs, and when the hind legs come up under him.
+const DUST = [[30, -14, -5, 1.38], [38, -8, -8, 1.42], [46, -2, -9, 1.4],
+  [52, 2, -8, 1.86], [60, 8, -9, 1.9], [68, 14, -6, 1.88], [76, 20, -3, 1.92]]
+// The glint of his eyes opening: [x, y, size, delay s], in the 100 by 100 drawing.
+const GLINTS = [[22, 40, 1.3, 0.55], [27, 39, 1, 0.6]]
 
 export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, className = '' }) {
   const open = Math.max(0, Math.min(1, Number(mouth) || 0))
   const awake = state !== 'asleep'
   return <span className={'chf chf-' + state + ' ' + className} style={{ width: size, height: size, '--talk': open }} role="img" aria-label="Chiron">
     <span className="chf-halo" />
-    {state === 'waking' && <span className="chf-rays" />}
     <span className="chf-ground" />
     {state === 'waking' && <span className="chf-burst" aria-hidden="true">
-      <i className="shock s1" /><i className="shock s2" />
+      <i className="shock s1" />
       {DUST.map(([x, dx, dy, d], k) => <i key={'d' + k} className="dust" style={{ '--x': x + '%', '--dx': dx + '%', '--dy': dy + '%', '--d': d + 's' }} />)}
     </span>}
     <span className="chf-body">
       <img className={'chf-img chf-sleep' + (awake ? '' : ' on')} src={asleepImg} alt="" draggable={false} />
+      {state === 'waking' && WAKE_FRAMES.map((src, k) => <img key={k} className={'chf-img chf-wf chf-wf' + (k + 1)} src={src} alt="" draggable={false} />)}
       <img className={'chf-img chf-wake' + (awake ? ' on' : '')} src={awakeImg} alt="" draggable={false} />
     </span>
-    {state === 'waking' && <span className="chf-flash" aria-hidden="true" />}
     <svg className="chf-fx" viewBox="0 0 100 100" aria-hidden="true">
-      {state === 'waking' && <g className="chf-sparks" fill="#fff3b0" stroke="#d99a00" strokeWidth=".5">
-        {SPARKS.map(([x, y, dx, dy, s, d], k) => <path key={k} className="sp" d="M0-3L.8-.8 3 0 .8.8 0 3-.8.8-3 0-.8-.8Z"
-          style={{ '--x': x + 'px', '--y': y + 'px', '--dx': dx + 'px', '--dy': dy + 'px', '--s': s, '--d': d + 's' }} />)}
+      {state === 'waking' && <g className="chf-sparks" fill="#fff8d0" stroke="#d99a00" strokeWidth=".4">
+        {GLINTS.map(([x, y, s, d], k) => <path key={k} className="sp" d="M0-3L.6-.6 3 0 .6.6 0 3-.6.6-3 0-.6-.6Z"
+          style={{ '--x': x + 'px', '--y': y + 'px', '--s': s, '--d': d + 's' }} />)}
       </g>}
       <g className="chf-z" fill="#f5c84a" stroke="#1a1200" strokeWidth=".6" fontFamily="Georgia,serif" fontWeight="700">
         <text className="z1" x="30" y="38" fontSize="9">z</text><text className="z2" x="37" y="29" fontSize="12">z</text><text className="z3" x="45" y="19" fontSize="15">Z</text>

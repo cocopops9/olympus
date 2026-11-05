@@ -1,7 +1,12 @@
 package app.olympus.gym;
 
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.os.Environment;
+import com.getcapacitor.JSObject;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -35,7 +40,10 @@ public class InstallPlugin extends Plugin {
             return;
         }
 
-        File file = new File(getContext().getCacheDir(), fileName);
+        // A download made by startDownload sits in the app's own external files, the others in cache.
+        File file = "downloads".equals(call.getString("place"))
+                ? new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+                : new File(getContext().getCacheDir(), fileName);
         if (!file.exists()) {
             call.reject("APK file not found: " + fileName);
             return;
@@ -67,6 +75,81 @@ public class InstallPlugin extends Plugin {
 
         getContext().startActivity(intent);
         call.resolve();
+    }
+
+    /*
+     * The update's download goes through Android's DownloadManager, not through the app: the system
+     * keeps it going while the app is in the background, the screen is locked or the app is closed,
+     * and shows its own notification. The app only asks how far it got, or cancels it.
+     */
+    @PluginMethod
+    public void startDownload(PluginCall call) {
+        String url = call.getString("url");
+        String fileName = call.getString("fileName");
+        if (url == null || fileName == null || fileName.isEmpty() || fileName.contains("/")) {
+            call.reject("url and fileName are required");
+            return;
+        }
+        File dir = getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) {
+            call.reject("no storage for the download");
+            return;
+        }
+        File old = new File(dir, fileName);
+        if (old.exists()) old.delete();
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+                .setTitle(call.getString("title", "Olympus"))
+                .setDescription(call.getString("description", ""))
+                .setMimeType("application/vnd.android.package-archive")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+                .setDestinationInExternalFilesDir(getContext(), Environment.DIRECTORY_DOWNLOADS, fileName);
+        long id = manager().enqueue(request);
+        JSObject out = new JSObject();
+        out.put("id", String.valueOf(id));
+        call.resolve(out);
+    }
+
+    @PluginMethod
+    public void downloadStatus(PluginCall call) {
+        long id = idOf(call);
+        JSObject out = new JSObject();
+        try (Cursor c = manager().query(new DownloadManager.Query().setFilterById(id))) {
+            if (c == null || !c.moveToFirst()) {
+                out.put("status", "missing");
+                call.resolve(out);
+                return;
+            }
+            int status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+            out.put("bytes", c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)));
+            out.put("total", c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)));
+            out.put("reason", c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)));
+            switch (status) {
+                case DownloadManager.STATUS_SUCCESSFUL: out.put("status", "done"); break;
+                case DownloadManager.STATUS_FAILED: out.put("status", "failed"); break;
+                case DownloadManager.STATUS_PAUSED: out.put("status", "paused"); break;
+                case DownloadManager.STATUS_PENDING: out.put("status", "pending"); break;
+                default: out.put("status", "running");
+            }
+            call.resolve(out);
+        } catch (Exception e) {
+            call.reject("could not read the download: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void cancelDownload(PluginCall call) {
+        manager().remove(idOf(call));
+        call.resolve();
+    }
+
+    private DownloadManager manager() {
+        return (DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+    }
+
+    private static long idOf(PluginCall call) {
+        try { return Long.parseLong(call.getString("id", "-1")); } catch (NumberFormatException e) { return -1; }
     }
 
     private static String sha256(File file) throws Exception {

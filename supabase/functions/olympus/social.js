@@ -22,7 +22,7 @@
  *     reach the one that blocked it. The blocker can still open the blocked profile, to unblock.
  */
 import fs from 'node:fs';
-import { cleanAppleSong } from './music.js';
+import { cleanAppleSong, cleanDeezerSong } from './music.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
@@ -391,6 +391,13 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
     // its 30-second preview, played by the phone from Apple.
     if (value?.src === 'apple') {
       const song = cleanAppleSong(value, (v, n) => str(v, Math.min(n, LIMITS.songTitle)));
+      if (!song) throw new SocialError(400, 'unknown song', 'bad-song');
+      return song;
+    }
+    // A song of Deezer's catalogue: which track, its words and cover; the address of its preview
+    // expires, so the phone asks the server for a fresh one when it plays (api/music.js).
+    if (value?.src === 'deezer') {
+      const song = cleanDeezerSong(value, (v, n) => str(v, Math.min(n, LIMITS.songTitle)));
       if (!song) throw new SocialError(400, 'unknown song', 'bad-song');
       return song;
     }

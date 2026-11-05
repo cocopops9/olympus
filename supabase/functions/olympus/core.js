@@ -21,7 +21,7 @@
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
-import { countryOf, topSongs, searchSongs } from './music.js';
+import { countryOf, topSongs, searchSongs, deezerPreview } from './music.js';
 import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
@@ -649,6 +649,15 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       await signedIn(req);
       try { return { body: { tracks: await searchSongs(q.get('q'), q.get('country'), { fetchImpl }) } }; }
       catch (e) { console.error('music search', e); return { status: 502, body: { error: 'the music catalogue is not answering', code: 'catalogue-down' } }; }
+    },
+    // A fresh address for the preview of a Deezer song (it expires, so a post does not keep it).
+    'GET /api/music/track': async (req, q) => {
+      await signedIn(req);
+      try {
+        const preview = await deezerPreview(q.get('id'), { fetchImpl });
+        if (!preview) return { status: 404, body: { error: 'no preview for this song', code: 'no-preview' } };
+        return { body: { preview } };
+      } catch (e) { console.error('music track', e); return { status: 502, body: { error: 'the music catalogue is not answering', code: 'catalogue-down' } }; }
     },
     'POST /api/social/song': async req => {
       const { user: me } = await signedIn(req); const b = await readJson(req);

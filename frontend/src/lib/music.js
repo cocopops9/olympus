@@ -1,8 +1,9 @@
 // Olympus: songs for a post, the way Instagram offers them: what is popular now where the person
 // lives, and any song by search, each with its official 30-second preview. The catalogue is
-// Apple's (charts and previews), asked through the Olympus server (api/music.js), which keeps the
-// answers an hour. A post keeps which track it is, its title, artist, cover and preview address;
-// the phone plays the preview straight from Apple.
+// Apple's charts, and a search of Apple's and Deezer's catalogues together, asked through the
+// Olympus server (api/music.js), which keeps the answers an hour. A post keeps which track it is,
+// its title, artist and cover; an Apple song also its preview address, which lasts, while a
+// Deezer song's preview address expires and is asked for again when it plays (songSource).
 import { api } from './api.js'
 import { getLang } from './i18n.js'
 
@@ -29,7 +30,20 @@ export const topSongs = (country = musicCountry()) => asked('/api/music/top', { 
 export const searchSongs = (query, country = musicCountry()) => asked('/api/music/search', { q: String(query || '').slice(0, 80), country })
 
 /** What a post keeps of a catalogue song. */
-export const songOf = tr => ({ src: 'apple', id: String(tr.id), title: tr.title, artist: tr.artist, ...(tr.art ? { art: tr.art } : {}), preview: tr.preview })
+export const songOf = tr => tr.src === 'deezer'
+  ? { src: 'deezer', id: String(tr.id), title: tr.title, artist: tr.artist, ...(tr.art ? { art: tr.art } : {}) }
+  : { src: 'apple', id: String(tr.id), title: tr.title, artist: tr.artist, ...(tr.art ? { art: tr.art } : {}), preview: tr.preview }
 
-/** The address a post's song plays from, for songs of the catalogue (null for a song from the phone). */
+/** The address a post's song plays from, when the post itself has it (an Apple song). */
 export const onlineSource = song => (song?.src === 'apple' && typeof song.preview === 'string' ? song.preview : null)
+
+/** The address a catalogue song plays from now: a Deezer one is asked for fresh. Null otherwise. */
+export async function songSource(song) {
+  const own = onlineSource(song)
+  if (own) return own
+  if (song?.src === 'deezer') {
+    const r = await api('/api/music/track?' + new URLSearchParams({ src: 'deezer', id: String(song.id) }))
+    return typeof r?.preview === 'string' ? r.preview : null
+  }
+  return null
+}

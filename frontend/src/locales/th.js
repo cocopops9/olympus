@@ -3293,4 +3293,10 @@ export default {
   "rock climbing": "ปีนผา",
   "hiking": "เดินป่า",
   "skiing": "สกี",
+  "Downloading update": "กำลังดาวน์โหลดอัปเดต",
+  "Installing…": "กำลังติดตั้ง…",
+  "Download failed": "ดาวน์โหลดไม่สำเร็จ",
+  "Uploading the video…": "กำลังอัปโหลดวิดีโอ…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "เพลงจากแคตตาล็อกแชร์ได้เฉพาะตัวอย่าง 30 วินาทีเท่านั้น หากต้องการส่วนใดก็ได้ของเพลงไปจนถึงทั้งเพลง ให้เลือกจากโทรศัพท์ของคุณ",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "ชาร์ตจาก Apple Music ตัวอย่างเพลงจาก Apple Music และ Deezer",
 }

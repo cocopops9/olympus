@@ -9,7 +9,7 @@ import { elapsedOf, fmtClock, isPaused, pauseClock, resumeClock, setElapsed } fr
 import { Button, Stepper } from './ui.jsx'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
-import Stopwatch from './Stopwatch.jsx'
+import Kronos from './Kronos.jsx'
 import Atlas from './Atlas.jsx'
 import { workoutVolume } from '../lib/history.js'
 import { fmtNum } from '../lib/format.js'
@@ -81,7 +81,7 @@ export function WorkoutStats({ active, unit }) {
   const vol = workoutVolume(active)
   return <div className="wstats">
     <div className={'wstat time' + (paused ? ' paused' : '')} role="group" aria-label={t('Workout time')}>
-      <Stopwatch paused={paused} size={30} />
+      <Kronos paused={paused} size={38} />
       <button type="button" className="wstat-b" style={{ border: 0, background: 'none', padding: 0, color: 'inherit', font: 'inherit', textAlign: 'start', cursor: 'pointer' }}
         onClick={workoutClockSheet} aria-label={t('Workout time') + ' ' + fmtClock(elapsedOf(active))}>
         <span className="wstat-v"><Elapsed active={active} /></span>

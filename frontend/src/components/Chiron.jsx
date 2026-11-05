@@ -320,8 +320,8 @@ function ChironVoice({ tips, unit, online }) {
 }
 
 // How long his waking is drawn (chiron-figure.css), and when the voice panel takes over from it.
-const WAKE_MS = 1800
-const WAKE_VOICE_MS = 1500
+const WAKE_MS = 2900
+const WAKE_VOICE_MS = 2600
 
 /**
  * Chiron in the workout page, drawn whole (components/ChironFigure.jsx): he lies there asleep,
@@ -373,7 +373,7 @@ export function WorkoutChiron() {
       try { navigator.vibrate?.([12, 40, 12]) } catch { /* no haptics */ }
       setWaking(true)
       timer.current = setTimeout(() => setWaking(false), WAKE_MS)
-      // By voice he starts once the flash has passed and he is on his feet, so the waking is seen;
+      // By voice he starts once he is on his feet, so the whole waking is seen;
       // the sheet covers him, and opens at once.
       if (canHear) timer.current = setTimeout(() => { setWaking(false); useChiron.setState({ awake: true }) }, WAKE_VOICE_MS)
       else chironSheet()

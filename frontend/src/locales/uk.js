@@ -3279,4 +3279,10 @@ export default {
   "rock climbing": "скелелазіння",
   "hiking": "піші походи",
   "skiing": "лижі",
+  "Downloading update": "Завантаження оновлення",
+  "Installing…": "Встановлення…",
+  "Download failed": "Не вдалося завантажити",
+  "Uploading the video…": "Надсилання відео…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "Пісні з каталогу можна поширити лише 30-секундним фрагментом. Щоб вибрати будь-яку частину пісні, аж до всієї пісні, виберіть її на телефоні.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "Чарти Apple Music, фрагменти Apple Music і Deezer.",
 }

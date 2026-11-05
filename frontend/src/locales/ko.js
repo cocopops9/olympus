@@ -3282,4 +3282,10 @@ export default {
   "rock climbing": "암벽 등반",
   "hiking": "하이킹",
   "skiing": "스키",
+  "Downloading update": "업데이트 다운로드 중",
+  "Installing…": "설치 중…",
+  "Download failed": "다운로드 실패",
+  "Uploading the video…": "동영상 업로드 중…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "카탈로그의 노래는 30초 미리 듣기로만 공유할 수 있어요. 노래의 원하는 부분이나 전체를 공유하려면 휴대폰에서 고르세요.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "차트는 Apple Music, 미리 듣기는 Apple Music과 Deezer 제공.",
 }

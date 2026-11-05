@@ -3302,4 +3302,10 @@ export default {
   "rock climbing": "Klettern",
   "hiking": "Wandern",
   "skiing": "Skifahren",
+  "Downloading update": "Update wird geladen",
+  "Installing…": "Wird installiert…",
+  "Download failed": "Download fehlgeschlagen",
+  "Uploading the video…": "Video wird hochgeladen…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "Songs aus dem Katalog lassen sich nur als 30-Sekunden-Vorschau teilen. Für einen beliebigen Teil eines Songs, bis zum ganzen Song, wähle ihn von deinem Telefon.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "Charts von Apple Music, Vorschauen von Apple Music und Deezer.",
 }

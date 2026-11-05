@@ -3275,4 +3275,10 @@ export default {
   "rock climbing": "攀岩",
   "hiking": "健行",
   "skiing": "滑雪",
+  "Downloading update": "正在下載更新",
+  "Installing…": "正在安裝…",
+  "Download failed": "下載失敗",
+  "Uploading the video…": "正在上傳影片…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "目錄中的歌曲只能以 30 秒試聽片段分享。如需分享歌曲的任何部分，甚至整首歌，請從手機中選擇。",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "排行榜來自 Apple Music，試聽來自 Apple Music 和 Deezer。",
 }

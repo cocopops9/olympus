@@ -73,17 +73,46 @@ export function openVideo(file) {
   el.setAttribute('playsinline', '')
   el.src = url
   return new Promise((resolve, reject) => {
-    const dispose = () => { try { el.pause(); el.removeAttribute('src'); el.load() } catch { /* gone */ } URL.revokeObjectURL(url) }
+    const opened = { el, url, duration: 0, width: 0, height: 0, audio: null, dispose: null }
+    const dispose = () => {
+      try { el.pause(); el.removeAttribute('src'); el.load() } catch { /* gone */ }
+      try { opened.audio?.ctx.close() } catch { /* closed */ }
+      opened.audio = null
+      URL.revokeObjectURL(url)
+    }
+    opened.dispose = dispose
     const timer = setTimeout(() => { dispose(); reject(fail('video-unreadable', 'the video did not load')) }, 20000)
     el.onloadedmetadata = () => {
       clearTimeout(timer)
       const duration = Number(el.duration)
       // A recording whose length is not in the header reads as Infinity until it is played to the end.
       if (!Number.isFinite(duration) || duration <= 0 || !el.videoWidth) { dispose(); reject(fail('video-unreadable', 'this file could not be read as a video')); return }
-      resolve({ el, url, duration, width: el.videoWidth, height: el.videoHeight, dispose })
+      Object.assign(opened, { duration, width: el.videoWidth, height: el.videoHeight })
+      resolve(opened)
     }
     el.onerror = () => { clearTimeout(timer); dispose(); reject(fail('video-unreadable', 'this file could not be read as a video')) }
   })
+}
+
+const STALL_MS = 1500
+
+// The sound of the opened video, routed to a stream for the recorder and not to the speakers. Made
+// once per video and kept: a video element can be tied to an audio graph only once, and the second
+// recording of a clip (made when the first came out too big) used to try again, fail, and play
+// through a closed graph, where the video froze: the "stuck at 83%".
+function soundOf(opened) {
+  if (opened.audio !== null && opened.audio !== undefined) return opened.audio || null
+  opened.audio = false
+  try {
+    const A = window.AudioContext || window.webkitAudioContext
+    if (!A) return null
+    const ctx = new A()
+    const source = ctx.createMediaElementSource(opened.el)
+    const dest = ctx.createMediaStreamDestination()
+    source.connect(dest)
+    opened.audio = { ctx, dest }
+  } catch { /* a video without sound is still a video */ }
+  return opened.audio || null
 }
 
 const seekTo = (el, t) => new Promise(resolve => {
@@ -108,18 +137,9 @@ export async function recordClip(opened, start, end, { onProgress, shrink = 1 } 
   const g = canvas.getContext('2d')
   const stream = canvas.captureStream(FPS)
   // The sound goes to the recorder only: the speakers stay quiet while the clip is being made.
-  let actx = null
-  try {
-    const A = window.AudioContext || window.webkitAudioContext
-    if (A) {
-      actx = new A()
-      if (actx.state === 'suspended') await actx.resume().catch(() => {})
-      const source = actx.createMediaElementSource(el)
-      const dest = actx.createMediaStreamDestination()
-      source.connect(dest)
-      dest.stream.getAudioTracks().forEach(t => stream.addTrack(t))
-    }
-  } catch { /* a video without sound is still a video */ }
+  const audio = soundOf(opened)
+  audio?.dest.stream.getAudioTracks().forEach(t => stream.addTrack(t.clone()))
+  if (audio && audio.ctx.state === 'suspended') await audio.ctx.resume().catch(() => {})
   const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Math.round(videoBitrateFor(seconds) * shrink), audioBitsPerSecond: AUDIO_BPS })
   const chunks = []
   recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data) }
@@ -133,11 +153,17 @@ export async function recordClip(opened, start, end, { onProgress, shrink = 1 } 
     await el.play()
     await new Promise((resolve, reject) => {
       const limit = setTimeout(() => { clearInterval(tick); reject(fail('video-failed', 'the clip took too long')) }, seconds * 1000 * 2 + 15000)
+      // A big video from the phone's camera can stall while it is decoded (or the WebView pauses
+      // it): the watch below nudges it on, instead of the old wait that ended the clip at the
+      // first pause, or never.
+      let last = el.currentTime, since = Date.now()
       const tick = setInterval(() => {
         draw()
         const at = el.currentTime
         onProgress?.(Math.max(0, Math.min(1, (at - start) / seconds)))
-        if (at >= end - 0.03 || el.ended || el.paused) { clearInterval(tick); clearTimeout(limit); resolve() }
+        if (at >= end - 0.03 || el.ended) { clearInterval(tick); clearTimeout(limit); resolve(); return }
+        if (at > last + 0.001) { last = at; since = Date.now(); return }
+        if (Date.now() - since > STALL_MS) { since = Date.now(); el.play().catch(() => {}) }
       }, 1000 / FPS)
     })
     el.pause()
@@ -147,7 +173,6 @@ export async function recordClip(opened, start, end, { onProgress, shrink = 1 } 
     try { el.pause() } catch { /* gone */ }
     try { if (recorder.state !== 'inactive') recorder.stop() } catch { /* stopped */ }
     stream.getTracks().forEach(t => { try { t.stop() } catch { /* ended */ } })
-    try { await actx?.close() } catch { /* closed */ }
   }
   if (!chunks.length) throw fail('video-failed', 'nothing was recorded')
   onProgress?.(1)
@@ -163,7 +188,8 @@ export async function prepareVideo(file, opened, range, { onProgress } = {}) {
   const secs = Math.max(MIN_VIDEO_SEC, Math.min(MAX_VIDEO_SEC, Math.round(range.end - range.start)))
   if (goesAsIs(file, opened.duration, range)) { onProgress?.(1); return { blob: file, secs } }
   let blob = await recordClip(opened, range.start, range.end, { onProgress: p => onProgress?.(p * 0.9) })
-  if (blob.size > MAX_VIDEO_BYTES) blob = await recordClip(opened, range.start, range.end, { onProgress: p => onProgress?.(0.9 + p * 0.1), shrink: 0.55 })
+  // Too big: once more at a lower bit rate. The bar starts over from where it stood, so it moves.
+  if (blob.size > MAX_VIDEO_BYTES) blob = await recordClip(opened, range.start, range.end, { onProgress: p => onProgress?.(0.9 + p * 0.09), shrink: Math.min(0.55, MAX_VIDEO_BYTES * SAFE / blob.size) })
   if (blob.size > MAX_VIDEO_BYTES) throw fail('video-too-big', 'the clip is too big to share')
   return { blob, secs }
 }

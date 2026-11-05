@@ -3282,4 +3282,10 @@ export default {
   "rock climbing": "kaya tırmanışı",
   "hiking": "doğa yürüyüşü",
   "skiing": "kayak",
+  "Downloading update": "Güncelleme indiriliyor",
+  "Installing…": "Yükleniyor…",
+  "Download failed": "İndirme başarısız oldu",
+  "Uploading the video…": "Video yükleniyor…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "Katalogdaki şarkılar yalnızca 30 saniyelik önizlemeleriyle paylaşılabilir. Bir şarkının istediğin bölümü, hatta tamamı için onu telefonundan seç.",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "Listeler Apple Music'ten, önizlemeler Apple Music ve Deezer'dan.",
 }

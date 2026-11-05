@@ -3282,4 +3282,10 @@ export default {
   "rock climbing": "रॉक क्लाइम्बिंग",
   "hiking": "हाइकिंग",
   "skiing": "स्कीइंग",
+  "Downloading update": "अपडेट डाउनलोड हो रहा है",
+  "Installing…": "इंस्टॉल हो रहा है…",
+  "Download failed": "डाउनलोड विफल रहा",
+  "Uploading the video…": "वीडियो अपलोड हो रहा है…",
+  "Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.": "कैटलॉग के गाने सिर्फ़ उनके 30 सेकंड के प्रीव्यू के रूप में शेयर किए जा सकते हैं। गाने का कोई भी हिस्सा, पूरे गाने तक, शेयर करने के लिए उसे अपने फ़ोन से चुनें।",
+  "Charts from Apple Music, previews from Apple Music and Deezer.": "चार्ट Apple Music से, प्रीव्यू Apple Music और Deezer से।",
 }

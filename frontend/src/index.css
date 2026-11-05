@@ -2189,3 +2189,20 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .sp-avatar.sp-face{background:none}
 .sp-avatar.sp-face .avatar{--av:56px}
 .lrow-i.wrow-photo img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* The app update downloading in the background (UpdateBar.jsx): above the tab bar, below sheets. */
+.updbar{
+  position:fixed;inset-inline:var(--pad);bottom:calc(var(--sab) + 92px);z-index:48;
+  max-width:520px;margin:0 auto;display:flex;align-items:center;gap:10px;
+  padding:8px 8px 8px 12px;border-radius:var(--r);background:var(--surface-2);
+  box-shadow:0 6px 24px rgba(0,0,0,.28);font-size:13px;color:var(--label);
+}
+.updbar>.icn{flex:none;color:var(--acc);font-size:18px}
+.updbar.bad>.icn{color:var(--red)}
+.updbar-m{flex:1;min-width:0}
+.updbar-t{flex:1;min-width:0;display:block;overflow-wrap:break-word}
+.updbar .upd-bar{margin:6px 0 2px;height:4px}
+.updbar .upd-bar i.indet{animation:updbar-indet 1.4s ease-in-out infinite alternate}
+@keyframes updbar-indet{from{margin-inline-start:0}to{margin-inline-start:70%}}
+.updbar-x{flex:none;padding:6px 12px;border-radius:99px;background:var(--surface-3);color:var(--label);font-weight:600;font-size:13px}
+@media (prefers-reduced-motion:reduce){.updbar .upd-bar i.indet{animation:none}}

@@ -8,6 +8,7 @@ import { accentValue, applyAccent } from './lib/accent.js'
 import { needsDefaults, applyOlympusDefaults } from './lib/olympus-defaults.js'
 import { reloginOnNewVersion } from './lib/relogin.js'
 import { useUpdatePrompt } from './components/UpdatePrompt.jsx'
+import UpdateBar from './components/UpdateBar.jsx'
 import { aboutYouSheet } from './components/AboutYou.jsx'
 import HerculesButton from './components/Hercules.jsx'
 import { useWelcome } from './components/Welcome.jsx'
@@ -326,6 +327,7 @@ function Shell() {
           would ride along with the page for the length of it. Decides for itself when to show —
           including on the sign-in screen, when the server has just ended the session. */}
       <SyncBanner />
+      <UpdateBar />
       {!noTabs && <TabBar onStart={startFlow} />}
       {authed && !needsMobileOnboarding && <HerculesButton />}
       <RestTimer />
