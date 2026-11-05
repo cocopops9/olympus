@@ -3,49 +3,98 @@
 // and his arms crossed, or standing awake on his four hooves. One figure, posed by `state`:
 //
 //   asleep     eyes shut, head low, breathing slowly; z's drift up
-//   waking     he really wakes up, drawn frame by frame (2.8 s): he stirs and the z's burst, lifts
-//              his head and opens his eyes, sits up in a big stretch and a yawn, pushes up on his
-//              front legs, stands, turns, and settles into the awake portrait, dust at his hooves
+//   waking     he really wakes up, as a moving picture (2.7 s, 24 frames a second): he stirs, lifts
+//              his head and opens his eyes, sits up in a big stretch and a yawn, braces on his arms,
+//              pushes up on his front legs, brings his hind legs under him and stands, dust at his
+//              hooves, and the movement ends exactly on the awake portrait
 //   idle       awake, breathing, the light around him
 //   listening  leaning in, rings of sound coming to him
 //   thinking   still, three dots rising
 //   speaking   he moves with his words (`mouth`, 0 to 1, set many times a second), waves going out
 //
-// The two portraits cross-fade; `waking` goes through four drawings in between (chiron-wake-1 to 4,
-// made in Canva from the two portraits, so the style and the figure are the same), each a short
-// cross-fade into the next while the body moves with them. Every move is CSS (chiron-figure.css).
+// The wake-up is `assets/chiron-wake.webp`, a sprite sheet of 64 frames (8 by 8). It was made in
+// Canva as 22 drawings of the movement, close enough to each other that the computer can fill in
+// the frames between them by following the motion of every part (scripts/chiron-wake). The drawings
+// face right like the awake portrait; the sleeping portrait is shown mirrored to match. The frames
+// are played by time (`useWakeClip`), not by CSS steps, so a slow frame never slows the movement.
+// Everything else is CSS (chiron-figure.css).
+import { useEffect, useRef } from 'react'
 import awakeImg from '../assets/chiron-full-awake.webp'
 import asleepImg from '../assets/chiron-full-asleep.webp'
-import wake1 from '../assets/chiron-wake-1.webp'
-import wake2 from '../assets/chiron-wake-2.webp'
-import wake3 from '../assets/chiron-wake-3.webp'
-import wake4 from '../assets/chiron-wake-4.webp'
-
-const WAKE_FRAMES = [wake1, wake2, wake3, wake4]
+import wakeSheet from '../assets/chiron-wake.webp'
 
 export const CHIRON_AWAKE = awakeImg
 export const CHIRON_ASLEEP = asleepImg
 
+export const WAKE_FRAMES = 64
+export const WAKE_FPS = 24
+const SHEET_COLS = 8
+const SHEET_ROWS = 8
+
+/** Where frame `i` of the sheet is, as a CSS background-position. */
+export const wakeFramePosition = i => {
+  const k = Math.max(0, Math.min(WAKE_FRAMES - 1, i | 0))
+  return (k % SHEET_COLS) / (SHEET_COLS - 1) * 100 + '% ' + Math.floor(k / SHEET_COLS) / (SHEET_ROWS - 1) * 100 + '%'
+}
+
+const reducedMotion = () => {
+  try { return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false }
+}
+
+/** Plays the wake-up frames on `ref` while `on`, by the clock, and holds the last one. */
+function useWakeClip(ref, on) {
+  useEffect(() => {
+    const el = ref.current
+    if (!on || !el) return undefined
+    const last = WAKE_FRAMES - 1
+    if (reducedMotion()) { el.style.backgroundPosition = wakeFramePosition(last); return undefined }
+    const start = performance.now()
+    let raf = 0, tick = 0, shown = -1
+    const draw = () => {
+      const i = Math.min(last, Math.floor((performance.now() - start) * WAKE_FPS / 1000))
+      if (i !== shown) { shown = i; el.style.backgroundPosition = wakeFramePosition(i) }
+      return i >= last
+    }
+    draw()
+    if (typeof requestAnimationFrame === 'function') {
+      const loop = () => { if (!draw()) raf = requestAnimationFrame(loop) }
+      raf = requestAnimationFrame(loop)
+    } else {
+      tick = setInterval(() => { if (draw()) clearInterval(tick) }, 1000 / WAKE_FPS)
+    }
+    return () => { if (raf) cancelAnimationFrame(raf); if (tick) clearInterval(tick) }
+  }, [ref, on])
+}
+
 // Dust at the hooves: [start x %, drift x %, drift y %, delay s]. Two puffs: when he pushes up on
-// his front legs, and when the hind legs come up under him.
-const DUST = [[30, -14, -5, 1.38], [38, -8, -8, 1.42], [46, -2, -9, 1.4],
-  [52, 2, -8, 1.86], [60, 8, -9, 1.9], [68, 14, -6, 1.88], [76, 20, -3, 1.92]]
+// his front legs (about 1.6 s), and when the hind legs come up under him (about 2 s).
+const DUST = [[44, -14, -5, 1.55], [52, -8, -8, 1.58], [60, -2, -9, 1.56],
+  [30, 2, -8, 1.98], [38, 8, -9, 2.02], [46, 14, -6, 2], [54, 20, -3, 2.04]]
 // The glint of his eyes opening: [x, y, size, delay s], in the 100 by 100 drawing.
-const GLINTS = [[22, 40, 1.3, 0.55], [27, 39, 1, 0.6]]
+const GLINTS = [[73, 38, 1.3, 0.3], [68, 37, 1, 0.34]]
 
 export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, className = '' }) {
   const open = Math.max(0, Math.min(1, Number(mouth) || 0))
   const awake = state !== 'asleep'
+  const waking = state === 'waking'
+  const clip = useRef(null)
+  useWakeClip(clip, waking)
+  // Ready before he wakes, so the first frames are not waiting for the picture.
+  useEffect(() => {
+    if (state !== 'asleep' || typeof Image === 'undefined') return
+    const img = new Image()
+    img.src = wakeSheet
+  }, [state])
   return <span className={'chf chf-' + state + ' ' + className} style={{ width: size, height: size, '--talk': open }} role="img" aria-label="Chiron">
     <span className="chf-halo" />
     <span className="chf-ground" />
-    {state === 'waking' && <span className="chf-burst" aria-hidden="true">
+    {waking && <span className="chf-burst" aria-hidden="true">
       <i className="shock s1" />
       {DUST.map(([x, dx, dy, d], k) => <i key={'d' + k} className="dust" style={{ '--x': x + '%', '--dx': dx + '%', '--dy': dy + '%', '--d': d + 's' }} />)}
     </span>}
     <span className="chf-body">
       <img className={'chf-img chf-sleep' + (awake ? '' : ' on')} src={asleepImg} alt="" draggable={false} />
-      {state === 'waking' && WAKE_FRAMES.map((src, k) => <img key={k} className={'chf-img chf-wf chf-wf' + (k + 1)} src={src} alt="" draggable={false} />)}
+      {waking && <span ref={clip} className="chf-clip" style={{ backgroundImage: 'url(' + wakeSheet + ')', backgroundPosition: wakeFramePosition(0) }} />}
       <img className={'chf-img chf-wake' + (awake ? ' on' : '')} src={awakeImg} alt="" draggable={false} />
     </span>
     <svg className="chf-fx" viewBox="0 0 100 100" aria-hidden="true">
@@ -54,7 +103,7 @@ export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, 
           style={{ '--x': x + 'px', '--y': y + 'px', '--s': s, '--d': d + 's' }} />)}
       </g>}
       <g className="chf-z" fill="#f5c84a" stroke="#1a1200" strokeWidth=".6" fontFamily="Georgia,serif" fontWeight="700">
-        <text className="z1" x="30" y="38" fontSize="9">z</text><text className="z2" x="37" y="29" fontSize="12">z</text><text className="z3" x="45" y="19" fontSize="15">Z</text>
+        <text className="z1" x="68" y="38" fontSize="9">z</text><text className="z2" x="61" y="29" fontSize="12">z</text><text className="z3" x="52" y="19" fontSize="15">Z</text>
       </g>
       <g className="chf-rings" transform="translate(-10 -16)" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
         <path className="r1" d="M84 34c3 4 3 10 0 14" /><path className="r2" d="M90 28c6 7 6 19 0 26" /><path className="r3" d="M96 22c8 10 8 28 0 38" />

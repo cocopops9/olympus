@@ -81,7 +81,7 @@ export function WorkoutStats({ active, unit }) {
   const vol = workoutVolume(active)
   return <div className="wstats">
     <div className={'wstat time' + (paused ? ' paused' : '')} role="group" aria-label={t('Workout time')}>
-      <Kronos paused={paused} size={38} />
+      <Kronos paused={paused} size={46} />
       <button type="button" className="wstat-b" style={{ border: 0, background: 'none', padding: 0, color: 'inherit', font: 'inherit', textAlign: 'start', cursor: 'pointer' }}
         onClick={workoutClockSheet} aria-label={t('Workout time') + ' ' + fmtClock(elapsedOf(active))}>
         <span className="wstat-v"><Elapsed active={active} /></span>
@@ -93,7 +93,7 @@ export function WorkoutStats({ active, unit }) {
       </button>
     </div>
     <div className="wstat vol" role="group" aria-label={t('Total volume')}>
-      <Atlas size={38} />
+      <Atlas size={46} />
       <span className="wstat-b">
         <span className="wstat-v">{fmtNum(Math.round(vol))}<small style={{ fontSize: 14, fontWeight: 600, marginInlineStart: 3 }}>{unit}</small></span>
         <span className="wstat-l">{t('Total volume')}</span>

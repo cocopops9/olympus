@@ -1,0 +1,90 @@
+[
+ {
+  "name": "asleep",
+  "mirror": true
+ },
+ {
+  "name": "w1",
+  "mirror": true
+ },
+ {
+  "name": "g1a",
+  "mirror": true
+ },
+ {
+  "name": "g1b",
+  "mirror": true
+ },
+ {
+  "name": "a1",
+  "mirror": true
+ },
+ {
+  "name": "g2a",
+  "mirror": true
+ },
+ {
+  "name": "g2b",
+  "mirror": true
+ },
+ {
+  "name": "w2",
+  "mirror": true
+ },
+ {
+  "name": "g3a",
+  "mirror": true
+ },
+ {
+  "name": "g3b",
+  "mirror": true
+ },
+ {
+  "name": "a2a",
+  "mirror": true
+ },
+ {
+  "name": "g4a",
+  "mirror": true
+ },
+ {
+  "name": "g4b",
+  "mirror": true
+ },
+ {
+  "name": "a2b",
+  "mirror": true
+ },
+ {
+  "name": "g5a",
+  "mirror": true
+ },
+ {
+  "name": "g5b",
+  "mirror": true
+ },
+ {
+  "name": "w3",
+  "mirror": true
+ },
+ {
+  "name": "g6b",
+  "mirror": true
+ },
+ {
+  "name": "g6a",
+  "mirror": true
+ },
+ {
+  "name": "b1",
+  "mirror": true
+ },
+ {
+  "name": "w4",
+  "mirror": false
+ },
+ {
+  "name": "awake",
+  "mirror": false
+ }
+]
