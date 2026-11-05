@@ -3,7 +3,7 @@
 // and his arms crossed, or standing awake on his four hooves. One figure, posed by `state`:
 //
 //   asleep     eyes shut, head low, breathing slowly; z's drift up
-//   waking     he really wakes up, as a moving picture (6 s, 18 frames a second): he stirs, lifts
+//   waking     he really wakes up, as a moving picture (6 s, 24 frames a second): he stirs, lifts
 //              his head and opens his eyes, sits up in a big stretch and a yawn, braces on his arms,
 //              pushes up on his front legs, brings his hind legs under him and stands, dust at his
 //              hooves, and the movement ends exactly on the awake portrait
@@ -12,14 +12,17 @@
 //   thinking   still, three dots rising
 //   speaking   he moves with his words (`mouth`, 0 to 1, set many times a second), waves going out
 //
-// The wake-up is `assets/chiron-wake.webp`, a sprite sheet of 108 frames (12 by 9). It was made in
+// The wake-up is `assets/chiron-wake.webp`, a sprite sheet of 144 frames (12 by 12). It was made in
 // Canva as 22 drawings of the movement, close enough to each other that the computer can fill in
 // the frames between them by following the motion of every part, on a slow timeline whose speed
 // changes smoothly instead of stopping at each drawing (scripts/chiron-wake). The drawings
 // face right like the awake portrait; the sleeping portrait is shown mirrored to match. The frames
-// are played by time (`useWakeClip`), not by CSS steps, so a slow frame never slows the movement.
+// are played by time (`useWakeClip`), not by CSS steps, so a slow frame never slows the movement,
+// and drawn on a canvas at every screen refresh with the two frames around the moment blended, so
+// the movement is continuous (24 frames on a 60 Hz screen would otherwise be held unevenly). The
+// awake portrait takes over only once the last frame has really been drawn.
 // Everything else is CSS (chiron-figure.css).
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import awakeImg from '../assets/chiron-full-awake.webp'
 import asleepImg from '../assets/chiron-full-asleep.webp'
 import wakeSheet from '../assets/chiron-wake.webp'
@@ -27,10 +30,12 @@ import wakeSheet from '../assets/chiron-wake.webp'
 export const CHIRON_AWAKE = awakeImg
 export const CHIRON_ASLEEP = asleepImg
 
-export const WAKE_FRAMES = 108
-export const WAKE_FPS = 18
+export const WAKE_FRAMES = 144
+export const WAKE_FPS = 24
+export const WAKE_SECONDS = WAKE_FRAMES / WAKE_FPS
 const SHEET_COLS = 12
-const SHEET_ROWS = 9
+const SHEET_ROWS = 12
+const CELL = 256
 
 /** Where frame `i` of the sheet is, as a CSS background-position. */
 export const wakeFramePosition = i => {
@@ -42,50 +47,112 @@ const reducedMotion = () => {
   try { return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false }
 }
 
-/** Plays the wake-up frames on `ref` while `on`, by the clock, and holds the last one. */
-function useWakeClip(ref, on) {
+// The sheet as a decoded picture, loaded once (and again if it failed): resolves to { img }, or to
+// null when there is no picture to draw from.
+let sheetLoad = null
+function loadSheet() {
+  if (typeof Image === 'undefined') return Promise.resolve(null)
+  if (!sheetLoad) {
+    sheetLoad = new Promise(resolve => {
+      const img = new Image()
+      img.onload = () => resolve({ img })
+      img.onerror = () => { sheetLoad = null; resolve(null) }
+      img.src = wakeSheet
+    })
+  }
+  return sheetLoad
+}
+
+/**
+ * Plays the wake-up on the canvas `ref` while `on`, by the clock, from the moment the sheet is
+ * ready, and tells `hooks.onStart` when the first frame is on screen and `hooks.onDone` when the
+ * last one is. Without a 2D canvas it falls back to the sheet as the element's background.
+ */
+function useWakeClip(ref, on, hooks) {
+  const cb = useRef(hooks)
+  cb.current = hooks
   useEffect(() => {
     const el = ref.current
     if (!on || !el) return undefined
     const last = WAKE_FRAMES - 1
-    if (reducedMotion()) { el.style.backgroundPosition = wakeFramePosition(last); return undefined }
-    const start = performance.now()
-    let raf = 0, tick = 0, shown = -1
-    const draw = () => {
-      const i = Math.min(last, Math.floor((performance.now() - start) * WAKE_FPS / 1000))
-      if (i !== shown) { shown = i; el.style.backgroundPosition = wakeFramePosition(i) }
-      return i >= last
+    let stopped = false, raf = 0, tick = 0, started = false, finished = false
+    const finish = () => { if (!finished) { finished = true; cb.current.onDone?.() } }
+    const begin = () => { if (!started) { started = true; cb.current.onStart?.() } }
+    if (reducedMotion()) {
+      el.style.backgroundPosition = wakeFramePosition(last)
+      const t = setTimeout(() => { begin(); finish() }, 0)
+      return () => clearTimeout(t)
     }
-    draw()
-    if (typeof requestAnimationFrame === 'function') {
-      const loop = () => { if (!draw()) raf = requestAnimationFrame(loop) }
-      raf = requestAnimationFrame(loop)
-    } else {
-      tick = setInterval(() => { if (draw()) clearInterval(tick) }, 1000 / WAKE_FPS)
+    let ctx = null
+    try { ctx = el.getContext?.('2d') || null } catch { ctx = null }
+    // The clock starts when the first frame can be drawn, so a slow sheet never skips the start.
+    let t0 = 0
+    const run = draw => {
+      t0 = performance.now()
+      const step = () => {
+        if (stopped) return
+        const pos = Math.min(last, (performance.now() - t0) * WAKE_FPS / 1000)
+        draw(pos)
+        begin()
+        if (pos >= last) { finish(); return }
+        if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(step)
+      }
+      step()
+      if (typeof requestAnimationFrame !== 'function') tick = setInterval(() => { if (stopped || finished) clearInterval(tick); else step() }, 1000 / WAKE_FPS)
     }
-    return () => { if (raf) cancelAnimationFrame(raf); if (tick) clearInterval(tick) }
+    if (ctx) {
+      loadSheet().then(got => {
+        if (stopped) return
+        if (!got) { fallback(); return }
+        const img = got.img
+        const px = Math.max(1, Math.min(CELL, Math.round(el.clientWidth * (window.devicePixelRatio || 1)) || CELL))
+        el.width = px; el.height = px
+        const cell = (i, alpha) => {
+          const k = Math.max(0, Math.min(last, i))
+          ctx.globalAlpha = alpha
+          ctx.drawImage(img, (k % SHEET_COLS) * CELL, Math.floor(k / SHEET_COLS) * CELL, CELL, CELL, 0, 0, px, px)
+        }
+        run(pos => {
+          const i = Math.floor(pos), w = pos - i
+          ctx.clearRect(0, 0, px, px)
+          // 'lighter' adds the two premultiplied frames: exactly (1 - w) of this one and w of the next.
+          ctx.globalCompositeOperation = 'lighter'
+          cell(i, i >= last ? 1 : 1 - w)
+          if (i < last && w > 0.002) cell(i + 1, w)
+          ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1
+        })
+      })
+    } else fallback()
+    function fallback() {
+      el.style.backgroundImage = 'url(' + wakeSheet + ')'
+      el.style.backgroundPosition = wakeFramePosition(0)
+      let shown = -1
+      run(pos => { const i = Math.floor(pos); if (i !== shown) { shown = i; el.style.backgroundPosition = wakeFramePosition(i) } })
+    }
+    return () => { stopped = true; if (raf) cancelAnimationFrame(raf); if (tick) clearInterval(tick) }
   }, [ref, on])
 }
 
 // Dust at the hooves: [start x %, drift x %, drift y %, delay s]. Two puffs: when he pushes up on
-// his front legs (about 3.7 s), and when the hind legs come up under him (about 4.5 s).
-const DUST = [[44, -14, -5, 3.7], [52, -8, -8, 3.73], [60, -2, -9, 3.71],
-  [30, 2, -8, 4.48], [38, 8, -9, 4.52], [46, 14, -6, 4.5], [54, 20, -3, 4.54]]
+// his front legs (about 4.1 s), and when the hind legs come up under him (about 4.85 s).
+const DUST = [[44, -14, -5, 4.1], [52, -8, -8, 4.13], [60, -2, -9, 4.11],
+  [30, 2, -8, 4.85], [38, 8, -9, 4.89], [46, 14, -6, 4.87], [54, 20, -3, 4.91]]
 // The glint of his eyes opening: [x, y, size, delay s], in the 100 by 100 drawing.
-const GLINTS = [[73, 38, 1.3, 0.7], [68, 37, 1, 0.74]]
+const GLINTS = [[73, 38, 1.3, 0.8], [68, 37, 1, 0.84]]
 
 export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, className = '' }) {
   const open = Math.max(0, Math.min(1, Number(mouth) || 0))
   const awake = state !== 'asleep'
   const waking = state === 'waking'
   const clip = useRef(null)
-  useWakeClip(clip, waking)
+  // `playing`: the first frame is on screen (the sleeping portrait steps aside); `done`: the last
+  // one is (the awake portrait, the same pose, takes over in the same instant).
+  const [playing, setPlaying] = useState(false)
+  const [done, setDone] = useState(false)
+  useWakeClip(clip, waking && !done, { onStart: () => setPlaying(true), onDone: () => setDone(true) })
+  useEffect(() => { if (!waking) { setPlaying(false); setDone(false) } }, [waking])
   // Ready before he wakes, so the first frames are not waiting for the picture.
-  useEffect(() => {
-    if (state !== 'asleep' || typeof Image === 'undefined') return
-    const img = new Image()
-    img.src = wakeSheet
-  }, [state])
+  useEffect(() => { if (state === 'asleep') loadSheet() }, [state])
   return <span className={'chf chf-' + state + ' ' + className} style={{ width: size, height: size, '--talk': open }} role="img" aria-label="Chiron">
     <span className="chf-halo" />
     <span className="chf-ground" />
@@ -94,9 +161,9 @@ export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, 
       {DUST.map(([x, dx, dy, d], k) => <i key={'d' + k} className="dust" style={{ '--x': x + '%', '--dx': dx + '%', '--dy': dy + '%', '--d': d + 's' }} />)}
     </span>}
     <span className="chf-body">
-      <img className={'chf-img chf-sleep' + (awake ? '' : ' on')} src={asleepImg} alt="" draggable={false} />
-      {waking && <span ref={clip} className="chf-clip" style={{ backgroundImage: 'url(' + wakeSheet + ')', backgroundPosition: wakeFramePosition(0) }} />}
-      <img className={'chf-img chf-wake' + (awake ? ' on' : '')} src={awakeImg} alt="" draggable={false} />
+      <img className={'chf-img chf-sleep' + (!awake || (waking && !playing) ? ' on' : '')} src={asleepImg} alt="" draggable={false} />
+      {waking && !done && <canvas ref={clip} className="chf-clip" width={CELL} height={CELL} />}
+      <img className={'chf-img chf-wake' + (awake && (!waking || done) ? ' on' : '')} src={awakeImg} alt="" draggable={false} />
     </span>
     <svg className="chf-fx" viewBox="0 0 100 100" aria-hidden="true">
       {state === 'waking' && <g className="chf-sparks" fill="#fff8d0" stroke="#d99a00" strokeWidth=".4">

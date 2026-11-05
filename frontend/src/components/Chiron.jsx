@@ -23,7 +23,7 @@ import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
-import ChironFigure from './ChironFigure.jsx'
+import ChironFigure, { WAKE_SECONDS } from './ChironFigure.jsx'
 import { create } from 'zustand'
 import '../chiron.css'
 import '../chiron-figure.css'
@@ -209,7 +209,7 @@ function ChironVoice({ tips, unit, online }) {
   const c = useCoachChat({ coach: WORKOUT_COACH })
   const chat = useRef(c)
   chat.current = c
-  const [pose, setPose] = useState('waking')
+  const [pose, setPose] = useState('idle')
   const [mouth, setMouth] = useState(0)
   const [heard, setHeard] = useState('')
   const [said, setSaid] = useState('')
@@ -265,7 +265,7 @@ function ChironVoice({ tips, unit, online }) {
     const going = () => live.current && loop.current === me
     setPaused(false)
     if (greet) {
-      await new Promise(r => setTimeout(r, 350))   // the waking animation starts first
+      await new Promise(r => setTimeout(r, 350))   // a moment on his feet before he speaks
       if (!going()) return
       await say(greeting(tips, unit))
       if (!online && going()) await say(t('To answer questions I need your Olympus account and a connection. The advice above works anywhere.'))
@@ -319,9 +319,10 @@ function ChironVoice({ tips, unit, online }) {
   </div>
 }
 
-// How long his waking is drawn (chiron-figure.css), and when the voice panel takes over from it.
-export const WAKE_MS = 6300
-export const WAKE_VOICE_MS = 5800
+// How long his waking is drawn (ChironFigure.jsx, WAKE_SECONDS, from the moment its picture is
+// ready) and a margin after it, and when the voice panel takes over, once he stands awake.
+export const WAKE_MS = Math.round(WAKE_SECONDS * 1000) + 700
+export const WAKE_VOICE_MS = Math.round(WAKE_SECONDS * 1000) + 300
 
 /**
  * Chiron in the workout page, drawn whole (components/ChironFigure.jsx): he lies there asleep,

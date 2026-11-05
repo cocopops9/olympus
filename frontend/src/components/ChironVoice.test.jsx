@@ -86,6 +86,23 @@ describe('Chiron by voice', () => {
     expect(host.querySelector('.whdr-chiron')).not.toBeNull()
   })
 
+  it('the voice panel never shows him asleep or waking again: he stands from the first moment', { timeout: 30000 }, async () => {
+    mocks.heard = ['', '']
+    const host = mount(<WorkoutChiron />)
+    const seen = new Set()
+    const look = () => { const f = host.querySelector('.chv .chf'); if (f) seen.add(f.className) }
+    const watch = new MutationObserver(look)
+    watch.observe(host, { subtree: true, childList: true, attributes: true })
+    await wake(host)
+    await wait(600)
+    watch.disconnect()
+    expect(seen.size).toBeGreaterThan(0)
+    for (const c of seen) { expect(c).not.toContain('chf-waking'); expect(c).not.toContain('chf-asleep') }
+    // and no wake-up layer to restart from the first frame
+    expect(host.querySelector('.chv .chf-clip')).toBeNull()
+    expect(host.querySelector('.chv .chf-sleep.on')).toBeNull()
+  })
+
   it('after two silences the microphone waits for a tap', { timeout: 30000 }, async () => {
     mocks.heard = ['', '']
     const host = mount(<WorkoutChiron />)

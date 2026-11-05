@@ -13,7 +13,24 @@ def load(p, mirror, size=640):
     if mirror: im = ImageOps.mirror(im)
     im = im.resize((size, size), Image.LANCZOS)
     a = np.asarray(im, dtype=np.float32) / 255.0
+    a = clear_pockets(a)
     return np.concatenate([a[..., :3] * a[..., 3:], a[..., 3:]], axis=2)
+
+def clear_pockets(a):
+    # Background the cut-out could not reach: pure white pockets enclosed by the figure (between an
+    # arm and the body, between the legs). They are removed, with a soft edge. The beard and the
+    # highlights are small or high up and stay.
+    white = ((a[..., :3].min(axis=2) > 0.965) & (a[..., 3] > 0.5)).astype(np.uint8)
+    white = cv2.morphologyEx(white, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    num, lab, st, _ = cv2.connectedComponentsWithStats(white)
+    pocket = np.zeros_like(white)
+    for k in range(1, num):
+        if st[k, 4] > 1000 and st[k, 1] > 330: pocket[lab == k] = 1
+    if not pocket.any(): return a
+    pocket = cv2.dilate(pocket, np.ones((5, 5), np.uint8))
+    keep = 1 - cv2.GaussianBlur(pocket.astype(np.float32), (0, 0), 1.2)
+    a = a.copy(); a[..., 3] *= keep
+    return a
 
 def over_bg(pm, bg=0.5):
     return pm[..., :3] + (1 - pm[..., 3:]) * bg
