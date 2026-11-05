@@ -320,8 +320,8 @@ function ChironVoice({ tips, unit, online }) {
 }
 
 // How long his waking is drawn (chiron-figure.css), and when the voice panel takes over from it.
-const WAKE_MS = 2900
-const WAKE_VOICE_MS = 2600
+export const WAKE_MS = 6300
+export const WAKE_VOICE_MS = 5800
 
 /**
  * Chiron in the workout page, drawn whole (components/ChironFigure.jsx): he lies there asleep,

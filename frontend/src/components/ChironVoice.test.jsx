@@ -31,7 +31,7 @@ vi.mock('../lib/voice.js', async orig => ({
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { EXDB } from '../lib/exercises-data.js'
-import { WorkoutChiron, useChiron } from './Chiron.jsx'
+import { WorkoutChiron, useChiron, WAKE_VOICE_MS } from './Chiron.jsx'
 
 const squat = EXDB.find(e => e.n === 'barbell full squat')
 const roots = []
@@ -62,12 +62,12 @@ const wake = async host => {
   await wait(5)   // the microphone is asked about first
   const btn = host.querySelector('.whdr-chiron')
   act(() => { btn.click(); btn.click(); btn.click() })
-  // He gets up first (the waking is drawn for 2.6 s), then the voice panel takes over.
-  await wait(2700)
+  // He gets up first (the waking is drawn for about 6 s), then the voice panel takes over.
+  await wait(WAKE_VOICE_MS + 100)
 }
 
 describe('Chiron by voice', () => {
-  it('wakes in the page, says the rest and the next set, answers what he hears aloud, and sleeps on "basta"', async () => {
+  it('wakes in the page, says the rest and the next set, answers what he hears aloud, and sleeps on "basta"', { timeout: 30000 }, async () => {
     mocks.heard = ['How much on the next set?', 'basta']
     const host = mount(<WorkoutChiron />)
     await wake(host)
@@ -86,7 +86,7 @@ describe('Chiron by voice', () => {
     expect(host.querySelector('.whdr-chiron')).not.toBeNull()
   })
 
-  it('after two silences the microphone waits for a tap', async () => {
+  it('after two silences the microphone waits for a tap', { timeout: 30000 }, async () => {
     mocks.heard = ['', '']
     const host = mount(<WorkoutChiron />)
     await wake(host)
@@ -101,7 +101,7 @@ describe('Chiron by voice', () => {
     expect(mocks.sent.at(-1)).toEqual(['chiron', 'What should I do next?'])
   })
 
-  it('the keyboard opens his sheet to read or type, and the moon puts him to sleep', async () => {
+  it('the keyboard opens his sheet to read or type, and the moon puts him to sleep', { timeout: 30000 }, async () => {
     mocks.heard = ['', '']
     const host = mount(<WorkoutChiron />)
     await wake(host)

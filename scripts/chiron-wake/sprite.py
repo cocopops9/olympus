@@ -1,11 +1,11 @@
 # Packs the interpolated frames (frames.npy, premultiplied RGBA at 640 px) into the sprite sheet
-# the app plays: 64 frames of 320 px, 8 by 8, as lossy WebP with alpha.
+# the app plays: 108 frames of 288 px, 12 by 9, as lossy WebP with alpha.
 import sys
 import numpy as np
 import cv2
 from PIL import Image
 
-SIZE, COLS, ROWS = 320, 8, 8
+SIZE, COLS, ROWS = 288, 12, 9
 
 def main(frames_path, out_path):
     frames = np.load(frames_path).astype(np.float32)

@@ -3,7 +3,7 @@
 // and his arms crossed, or standing awake on his four hooves. One figure, posed by `state`:
 //
 //   asleep     eyes shut, head low, breathing slowly; z's drift up
-//   waking     he really wakes up, as a moving picture (2.7 s, 24 frames a second): he stirs, lifts
+//   waking     he really wakes up, as a moving picture (6 s, 18 frames a second): he stirs, lifts
 //              his head and opens his eyes, sits up in a big stretch and a yawn, braces on his arms,
 //              pushes up on his front legs, brings his hind legs under him and stands, dust at his
 //              hooves, and the movement ends exactly on the awake portrait
@@ -12,9 +12,10 @@
 //   thinking   still, three dots rising
 //   speaking   he moves with his words (`mouth`, 0 to 1, set many times a second), waves going out
 //
-// The wake-up is `assets/chiron-wake.webp`, a sprite sheet of 64 frames (8 by 8). It was made in
+// The wake-up is `assets/chiron-wake.webp`, a sprite sheet of 108 frames (12 by 9). It was made in
 // Canva as 22 drawings of the movement, close enough to each other that the computer can fill in
-// the frames between them by following the motion of every part (scripts/chiron-wake). The drawings
+// the frames between them by following the motion of every part, on a slow timeline whose speed
+// changes smoothly instead of stopping at each drawing (scripts/chiron-wake). The drawings
 // face right like the awake portrait; the sleeping portrait is shown mirrored to match. The frames
 // are played by time (`useWakeClip`), not by CSS steps, so a slow frame never slows the movement.
 // Everything else is CSS (chiron-figure.css).
@@ -26,10 +27,10 @@ import wakeSheet from '../assets/chiron-wake.webp'
 export const CHIRON_AWAKE = awakeImg
 export const CHIRON_ASLEEP = asleepImg
 
-export const WAKE_FRAMES = 64
-export const WAKE_FPS = 24
-const SHEET_COLS = 8
-const SHEET_ROWS = 8
+export const WAKE_FRAMES = 108
+export const WAKE_FPS = 18
+const SHEET_COLS = 12
+const SHEET_ROWS = 9
 
 /** Where frame `i` of the sheet is, as a CSS background-position. */
 export const wakeFramePosition = i => {
@@ -67,11 +68,11 @@ function useWakeClip(ref, on) {
 }
 
 // Dust at the hooves: [start x %, drift x %, drift y %, delay s]. Two puffs: when he pushes up on
-// his front legs (about 1.6 s), and when the hind legs come up under him (about 2 s).
-const DUST = [[44, -14, -5, 1.55], [52, -8, -8, 1.58], [60, -2, -9, 1.56],
-  [30, 2, -8, 1.98], [38, 8, -9, 2.02], [46, 14, -6, 2], [54, 20, -3, 2.04]]
+// his front legs (about 3.7 s), and when the hind legs come up under him (about 4.5 s).
+const DUST = [[44, -14, -5, 3.7], [52, -8, -8, 3.73], [60, -2, -9, 3.71],
+  [30, 2, -8, 4.48], [38, 8, -9, 4.52], [46, 14, -6, 4.5], [54, 20, -3, 4.54]]
 // The glint of his eyes opening: [x, y, size, delay s], in the 100 by 100 drawing.
-const GLINTS = [[73, 38, 1.3, 0.3], [68, 37, 1, 0.34]]
+const GLINTS = [[73, 38, 1.3, 0.7], [68, 37, 1, 0.74]]
 
 export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, className = '' }) {
   const open = Math.max(0, Math.min(1, Number(mouth) || 0))

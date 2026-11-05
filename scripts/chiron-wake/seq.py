@@ -32,8 +32,8 @@ def warp(img, fl, s):
     gx, gy = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32))
     return cv2.remap(img, gx + fl[..., 0] * s, gy + fl[..., 1] * s, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
 
-def between(a, b, fab, fba, t):
+def between(a, b, fab, fba, t, lo=0.3, hi=0.7):
     ia = warp(a, fab, -t)
     ib = warp(b, fba, -(1 - t))
-    w = np.clip((t - 0.3) / 0.4, 0, 1); w = w * w * (3 - 2 * w)
+    w = np.clip((t - lo) / (hi - lo), 0, 1); w = w * w * (3 - 2 * w)
     return ia * (1 - w) + ib * w

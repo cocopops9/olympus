@@ -7,7 +7,7 @@ import { createRoot } from 'react-dom/client'
 import ChironFigure, { WAKE_FPS, WAKE_FRAMES, wakeFramePosition } from './ChironFigure.jsx'
 
 // The frame number a background-position stands for (the inverse of wakeFramePosition).
-const frameOf = pos => { const [x, y] = pos.split(' ').map(v => Math.round(parseFloat(v) / 100 * 7)); return y * 8 + x }
+const frameOf = pos => { let i = 0; const [x, y] = pos.split(' ').map(v => Math.round(parseFloat(v) / 100 * (i++ ? 8 : 11))); return y * 12 + x }
 const roots = []
 function mount(state) {
   const el = document.createElement('div')
@@ -20,9 +20,9 @@ function mount(state) {
 afterEach(() => { for (const { root, el } of roots.splice(0)) { act(() => root.unmount()); el.remove() }; vi.useRealTimers() })
 
 describe('ChironFigure wake-up', () => {
-  it('finds each frame in the 8 by 8 sheet', () => {
+  it('finds each frame in the 12 by 9 sheet', () => {
     expect(wakeFramePosition(0)).toBe('0% 0%')
-    expect(wakeFramePosition(7)).toBe('100% 0%')
+    expect(wakeFramePosition(11)).toBe('100% 0%')
     expect(wakeFramePosition(WAKE_FRAMES - 1)).toBe('100% 100%')
     expect(wakeFramePosition(-5)).toBe('0% 0%')
     expect(wakeFramePosition(999)).toBe('100% 100%')
@@ -41,9 +41,9 @@ describe('ChironFigure wake-up', () => {
     const clip = el.querySelector('.chf-clip')
     expect(frameOf(clip.style.backgroundPosition)).toBe(0)
     act(() => { vi.advanceTimersByTime(500) })
-    // half a second in, at 24 a second: frame 12, give or take a screen refresh
+    // half a second in, at 18 a second: frame 9, give or take a screen refresh
     expect(Math.abs(frameOf(clip.style.backgroundPosition) - 0.5 * WAKE_FPS)).toBeLessThanOrEqual(2)
-    act(() => { vi.advanceTimersByTime(5000) })
+    act(() => { vi.advanceTimersByTime(8000) })
     expect(frameOf(clip.style.backgroundPosition)).toBe(WAKE_FRAMES - 1)
   })
 })
