@@ -21,6 +21,20 @@ beforeEach(() => {
 afterEach(async () => { await cancelUpdate(); vi.useRealTimers() })
 
 describe('background update', () => {
+  it('works with a plugin that answers every property, `then` included, like Capacitor\'s proxy', async () => {
+    // registerPlugin() gives such a Proxy; handing it back from a promise would hang on "then".
+    const real = fake
+    setInstallPlugin(new Proxy({}, {
+      get: (_, prop) => (prop === 'then' ? () => new Promise(() => {}) : real[prop] || (() => new Promise(() => {}))),
+    }))
+    await startUpdate({ apkUrl: 'https://x/app.apk', hash: HASH })
+    expect(real.startDownload).toHaveBeenCalled()
+    expect(useUpdateJob.getState().phase).toBe('downloading')
+    status = { status: 'done', bytes: 1000, total: 1000 }
+    await vi.advanceTimersByTimeAsync(800)
+    expect(real.installApk).toHaveBeenCalled()
+  })
+
   it('does not wait for ever on a download manager that does not answer', async () => {
     fake.startDownload = vi.fn(() => new Promise(() => {}))
     const started = startUpdate({ apkUrl: 'https://x/app.apk', hash: HASH })

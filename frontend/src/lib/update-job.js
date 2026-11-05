@@ -20,16 +20,21 @@ const POLL_MS = 700
  */
 export const useUpdateJob = create(() => ({ phase: 'idle', pct: null, error: null, build: null }))
 
-let plugin = null
+// The plugin travels inside a plain object ({ p }), never as the value of a promise: Capacitor's
+// registerPlugin() gives a Proxy that answers every property name, `then` included, so an `await`
+// that hands the proxy back takes it for a promise, asks the native side for a method called
+// "then" and never settles (the same trap as in lib/coach-secrets.js). That is what left the update
+// sheet on "Checking..." for ever.
+let holder = null
 async function Install() {
-  if (!plugin) {
+  if (!holder) {
     const { registerPlugin } = await import('@capacitor/core')
-    plugin = registerPlugin('Install')
+    holder = { p: registerPlugin('Install') }
   }
-  return plugin
+  return holder
 }
 /** For the tests: a stand-in for the native plugin. */
-export function setInstallPlugin(p) { plugin = p }
+export function setInstallPlugin(p) { holder = { p } }
 
 const saved = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null') } catch { return null } }
 const save = job => { try { job ? localStorage.setItem(KEY, JSON.stringify(job)) : localStorage.removeItem(KEY) } catch { /* private mode */ } }
@@ -53,7 +58,7 @@ async function finish() {
       })
     }
     if (job !== current) return
-    await (await Install()).installApk({ fileName: FILE, place: 'downloads', sha256: current.hash })
+    await (await Install()).p.installApk({ fileName: FILE, place: 'downloads', sha256: current.hash })
     job = null
     save(null)
     useUpdateJob.setState({ phase: 'idle', pct: null, error: null, build: null })
@@ -67,7 +72,7 @@ async function finish() {
 async function poll() {
   if (!job) return stopPolling()
   let s
-  try { s = await (await Install()).downloadStatus({ id: job.id }) } catch { return }
+  try { s = await (await Install()).p.downloadStatus({ id: job.id }) } catch { return }
   if (!job) return
   if (s.status === 'done') return finish()
   if (s.status === 'failed' || s.status === 'missing') {
@@ -93,7 +98,7 @@ export async function startUpdate({ apkUrl, hash, build = null }) {
   if (job) return
   // Android's download manager answers at once; if it does not (some phones have it disabled or
   // stuck), the caller is told instead of waiting for ever.
-  const { id } = await withTimeout((async () => (await Install()).startDownload({ url: apkUrl, fileName: FILE, title: 'Olympus', description: t('Downloading update') }))(), 12000, t('Download failed'))
+  const { id } = await withTimeout((async () => (await Install()).p.startDownload({ url: apkUrl, fileName: FILE, title: 'Olympus', description: t('Downloading update') }))(), 12000, t('Download failed'))
   job = { id, hash: hash.toLowerCase(), build }
   save(job)
   useUpdateJob.setState({ phase: 'downloading', pct: null, error: null, build })
@@ -107,7 +112,7 @@ export async function cancelUpdate() {
   save(null)
   stopPolling()
   useUpdateJob.setState({ phase: 'idle', pct: null, error: null, build: null })
-  if (current) { try { await (await Install()).cancelDownload({ id: current.id }) } catch { /* already gone */ } }
+  if (current) { try { await (await Install()).p.cancelDownload({ id: current.id }) } catch { /* already gone */ } }
 }
 
 /** Hides a failure message. */
