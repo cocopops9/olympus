@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { checkForUpdate, sha256, resetUpdateCheck, fetchChecksum } from './update.js'
+import { checkForUpdate, sha256, resetUpdateCheck, fetchChecksum, hashOf, withTimeout, checksumOf } from './update.js'
 
 // Olympus ships with the updater off (lib/app-info.js); these tests run it pointed at a repository,
 // the way a fork that publishes releases sets it. update.off.test.js covers the default.
@@ -230,5 +230,31 @@ describe('semver comparison (via checkForUpdate behavior)', () => {
     // minus one on the minor when possible.
     mockRelease('v' + [MAJ, Math.max(0, MIN - 1), 0].join('.'))
     expect((await checkForUpdate()).hasUpdate).toBe(false)
+  })
+})
+
+describe('the checksum the release states', () => {
+  const H = 'ab12'.repeat(16)
+  it('reads it from the asset digest GitHub publishes, or from the release notes', () => {
+    expect(hashOf({ digest: 'sha256:' + H.toUpperCase() }, '')).toBe(H)
+    expect(hashOf({}, 'Olympus, Build 9. SHA-256 ' + H)).toBe(H)
+    expect(hashOf({ digest: 'md5:abc' }, 'nothing here')).toBe(null)
+    expect(hashOf(undefined, undefined)).toBe(null)
+  })
+
+  it('is used without downloading anything', async () => {
+    const fetchSpy = vi.fn(); globalThis.fetch = fetchSpy
+    expect(await checksumOf({ hash: H, hashUrl: 'https://x/a.apk.sha256' })).toBe(H)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('a call that never answers is cut off instead of spinning for ever', async () => {
+    vi.useFakeTimers()
+    const stuck = withTimeout(new Promise(() => {}), 5000, 'no answer')
+    const seen = expect(stuck).rejects.toThrow('no answer')
+    await vi.advanceTimersByTimeAsync(5000)
+    await seen
+    await expect(withTimeout(Promise.resolve(7), 5000, 'x')).resolves.toBe(7)
+    vi.useRealTimers()
   })
 })

@@ -36,7 +36,7 @@ import { getMediaStatus, subscribeMediaStatus, pendingRefCount } from '../lib/me
 import { limitsFrom, fmtMB, MB } from '../lib/media-limits.js'
 import { setRestAccent } from '../lib/rest-alert.js'
 import { CUSTOM, accentKey, adjustedIn, applyAccent, cleanHex, inkOn, isGrey } from '../lib/accent.js'
-import { checkForUpdate, downloadAndInstall, fetchChecksum, RELEASES_PAGE, UPDATES_ON } from '../lib/update.js'
+import { checkForUpdate, downloadAndInstall, checksumOf, RELEASES_PAGE, UPDATES_ON } from '../lib/update.js'
 import { startUpdate } from '../lib/update-job.js'
 import { SOURCE_URL, UPSTREAM_URL, DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
@@ -238,7 +238,7 @@ export default function Settings({ page = null, find = null, via = null }) {
           // its own bar and Cancel button, so the app stays usable.
           try {
             let expectedHash = null
-            try { expectedHash = await fetchChecksum(updateInfo.hashUrl) } catch (e) { /* reported below */ }
+            try { expectedHash = await checksumOf(updateInfo) } catch (e) { /* reported below */ }
             if (!MOBILE) return downloadAndInstall(updateInfo.apkUrl, expectedHash)
             await startUpdate({ apkUrl: updateInfo.apkUrl, hash: expectedHash, build: updateInfo.build ?? null })
           } catch (e) {

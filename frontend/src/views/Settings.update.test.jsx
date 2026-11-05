@@ -56,6 +56,8 @@ vi.mock('../lib/update.js', () => ({
   checkForUpdate: (...a) => mocks.checkForUpdate(...a),
   downloadAndInstall: vi.fn(),
   fetchChecksum: vi.fn(),
+  checksumOf: vi.fn(),
+  withTimeout: p => p,
   UPDATES_ON: true,
   RELEASES_PAGE: 'https://github.com/example/olympus/releases/latest',
 }))

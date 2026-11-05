@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { MOBILE, isAndroid } from '../lib/mobile.js'
-import { checkForUpdate, fetchChecksum, UPDATES_ON } from '../lib/update.js'
+import { checkForUpdate, checksumOf, UPDATES_ON } from '../lib/update.js'
 import { startUpdate, resumeUpdate, updateRunning } from '../lib/update-job.js'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -21,7 +21,7 @@ function UpdateSheet({ info, close }) {
     setBusy(true); setError(null)
     try {
       let hash = null
-      try { hash = await fetchChecksum(info.hashUrl) } catch { /* reported below */ }
+      try { hash = await checksumOf(info) } catch { /* reported below */ }
       await startUpdate({ apkUrl: info.apkUrl, hash, build: info.build ?? null })
       close()
     } catch (e) {
@@ -34,6 +34,8 @@ function UpdateSheet({ info, close }) {
     <h3>{t('Update available')}</h3>
     <p className="small muted">{t('A new version of Olympus is ready. It installs over this one, and your training stays.')}</p>
     {error && <p className="small" style={{ color: 'var(--red)' }}>{error}</p>}
+    {error && <Button variant="tinted" icon="download" onClick={() => window.open(info.apkUrl, '_blank', 'noopener')}>{t('Download the APK from the releases page')}</Button>}
+    {error && <div style={{ height: 8 }} />}
     <Button variant="primary" icon="download" disabled={busy} onClick={install}>{busy ? t('Checking…') : t('Update now')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" disabled={busy} onClick={close}>{t('Later')}</Button>

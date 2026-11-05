@@ -84,6 +84,7 @@ async function fetchLatest() {
       build: remoteBuild,
       apkUrl: apk0?.browser_download_url || null,
       hashUrl: hash0?.browser_download_url || null,
+      hash: hashOf(apk0, latest.body),
     }
   }
   const latestVersion = String(latest.tag_name || '').replace(/^v/, '')
@@ -92,7 +93,33 @@ async function fetchLatest() {
   const assets = latest.assets || []
   const apk = assets.find(a => /\.apk$/i.test(a.name))
   const hash = assets.find(a => /\.apk\.sha256$/i.test(a.name))
-  return { hasUpdate, latestVersion, apkUrl: apk?.browser_download_url || null, hashUrl: hash?.browser_download_url || null }
+  return { hasUpdate, latestVersion, apkUrl: apk?.browser_download_url || null, hashUrl: hash?.browser_download_url || null, hash: hashOf(apk, latest.body) }
+}
+
+/**
+ * The APK's SHA-256 as the release itself states it: GitHub puts it on every asset ("digest":
+ * "sha256:..."), and the release notes can carry it too ("SHA-256 <64 hex>"). Known from the one
+ * request that found the update, so the app does not have to download a file to learn it. Null
+ * when the release says nothing.
+ */
+export function hashOf(asset, notes) {
+  const fromAsset = /^sha256:([0-9a-f]{64})$/i.exec(String(asset?.digest || ''))
+  if (fromAsset) return fromAsset[1].toLowerCase()
+  const fromNotes = /\bsha-?256\W+([0-9a-f]{64})\b/i.exec(String(notes || ''))
+  return fromNotes ? fromNotes[1].toLowerCase() : null
+}
+
+/** Rejects with `message` if `promise` has not settled in `ms`. A native call that never answers must not leave a button spinning for ever. */
+export function withTimeout(promise, ms, message) {
+  let timer
+  const limit = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms) })
+  return Promise.race([promise, limit]).finally(() => clearTimeout(timer))
+}
+
+/** The checksum to verify the APK against: the one the release already stated, else the .sha256 file. */
+export async function checksumOf(info) {
+  if (info?.hash) return info.hash
+  return withTimeout(fetchChecksum(info?.hashUrl), 15000, 'the checksum did not download')
 }
 
 /**

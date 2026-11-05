@@ -109,10 +109,12 @@ jobs:
           # The checksum the in-app updater verifies the download against, and the build number
           # it compares with its own (lib/update.js buildOf).
           (cd "$RUNNER_TEMP" && sha256sum olympus.apk | cut -d' ' -f1 > olympus.apk.sha256)
-          notes="Olympus for Android, Build ${GITHUB_RUN_NUMBER}, built from ${GITHUB_SHA::7}. Download olympus.apk on the phone and open it to install."
-          if gh release view android > /dev/null 2>&1; then
-            gh release edit android --title "Olympus for Android" --notes "$notes" --latest
-          else
-            gh release create android --title "Olympus for Android" --notes "$notes" --latest
+          sha=$(cat "$RUNNER_TEMP/olympus.apk.sha256")
+          notes="Olympus for Android, Build ${GITHUB_RUN_NUMBER}, built from ${GITHUB_SHA::7}. SHA-256 ${sha}. Download olympus.apk on the phone and open it to install."
+          # The file goes up first and the notes (which carry the build number phones compare with)
+          # change last, so a phone never sees a new build number while its APK is still going up.
+          if ! gh release view android > /dev/null 2>&1; then
+            gh release create android --title "Olympus for Android" --notes "Olympus for Android, uploading." --latest
           fi
           gh release upload android "$RUNNER_TEMP/olympus.apk" "$RUNNER_TEMP/olympus.apk.sha256" --clobber
+          gh release edit android --title "Olympus for Android" --notes "$notes" --latest

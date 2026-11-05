@@ -8,6 +8,7 @@
 // where the download is.
 import { create } from 'zustand'
 import { t } from './i18n.js'
+import { withTimeout } from './update.js'
 
 const FILE = 'olympus-update.apk'
 const KEY = 'olympus.updateJob'
@@ -90,7 +91,9 @@ function follow() {
 export async function startUpdate({ apkUrl, hash, build = null }) {
   if (!/^[0-9a-f]{64}$/i.test(hash || '')) throw new Error(t('Checksum not available, so not installing'))
   if (job) return
-  const { id } = await (await Install()).startDownload({ url: apkUrl, fileName: FILE, title: 'Olympus', description: t('Downloading update') })
+  // Android's download manager answers at once; if it does not (some phones have it disabled or
+  // stuck), the caller is told instead of waiting for ever.
+  const { id } = await withTimeout((async () => (await Install()).startDownload({ url: apkUrl, fileName: FILE, title: 'Olympus', description: t('Downloading update') }))(), 12000, t('Download failed'))
   job = { id, hash: hash.toLowerCase(), build }
   save(job)
   useUpdateJob.setState({ phase: 'downloading', pct: null, error: null, build })

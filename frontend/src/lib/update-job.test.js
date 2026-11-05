@@ -21,6 +21,16 @@ beforeEach(() => {
 afterEach(async () => { await cancelUpdate(); vi.useRealTimers() })
 
 describe('background update', () => {
+  it('does not wait for ever on a download manager that does not answer', async () => {
+    fake.startDownload = vi.fn(() => new Promise(() => {}))
+    const started = startUpdate({ apkUrl: 'https://x/app.apk', hash: HASH })
+    const seen = expect(started).rejects.toThrow()
+    await vi.advanceTimersByTimeAsync(12000)
+    await seen
+    expect(useUpdateJob.getState().phase).toBe('idle')
+    expect(updateRunning()).toBe(false)
+  })
+
   it('follows the download and installs the checked file at the end', async () => {
     await startUpdate({ apkUrl: 'https://x/app.apk', hash: HASH })
     expect(fake.startDownload).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://x/app.apk' }))
