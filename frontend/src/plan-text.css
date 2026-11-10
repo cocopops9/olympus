@@ -27,7 +27,15 @@
 .pt-item.missing .pt-item-n{color:var(--red)}
 .pt-warn{flex:none;width:18px;height:18px;color:var(--orange)}
 .pt-item.missing .pt-warn{color:var(--red)}
-.pt-ss{display:inline-flex;margin-inline-start:6px;vertical-align:-2px;color:var(--acc)}
-.pt-ss .icn{width:14px;height:14px}
+.pt-ss{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-inline-end:6px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc);font-size:12px;font-weight:700;vertical-align:1px}
+.pt-item-note{color:var(--label-3,var(--label-2));font-style:italic}
+.pt-date{display:flex;align-items:center;gap:6px;margin:0 2px 6px;color:var(--acc);font-size:13px;font-weight:650;text-transform:capitalize}
+.pt-date .icn{width:15px;height:15px}
+.pt-snote{margin:0 2px 6px;line-height:1.35}
+.pt-restday{display:flex;align-items:center;gap:8px;margin:10px 0 4px;padding:10px 12px;border-radius:14px;border:1px dashed var(--sep);color:var(--label-2);font-size:14px}
+.pt-restday span::first-letter{text-transform:uppercase}
+.pt-restday .icn{width:16px;height:16px;flex:none}
+.pt-same{display:block;margin-top:2px}
 .pt-drop{flex:none;width:30px;height:30px}
 .pt-sched{display:flex;align-items:center;gap:10px;margin:12px 2px 0;font-size:15px}
+.pt-sched > .grow{flex:1;min-width:0}

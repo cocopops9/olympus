@@ -54,9 +54,9 @@ test('the model\'s answer is checked and bounded', () => {
   assert.equal(q.routines[1].exercises[0].reps, 10);
   assert.equal(q.routines[1].exercises[0].sets, 3);
   // too many routines or exercises are cut
-  const many = parsePlanText(JSON.stringify({ routines: Array.from({ length: 12 }, (_, i) => ({ name: 'R' + i, exercises: Array.from({ length: 30 }, () => ({ name: 'curl', sets: 3, reps: 10 })) })) }));
-  assert.equal(many.routines.length, PLAN_TEXT.routines);
-  assert.equal(many.routines[0].exercises.length, PLAN_TEXT.exercises);
+  const many = parsePlanText(JSON.stringify({ routines: Array.from({ length: 30 }, (_, i) => ({ name: 'R' + i, exercises: Array.from({ length: 30 }, () => ({ name: 'curl', sets: 3, reps: 10 })) })) }));
+  assert.equal(many.sessions.length, PLAN_TEXT.sessions);
+  assert.equal(many.routines[0].exercises.length, PLAN_TEXT.items);
   // not a plan
   assert.equal(parsePlanText('{"error": "not a workout"}'), null);
   assert.equal(parsePlanText('Sure! Here is your plan.'), null);
@@ -99,7 +99,7 @@ test('one message of the coach, given back when nothing usable came out', async 
 
 test('both servers\' routes: Hercules and Athena each read with their own model and count', async () => {
   const seen = [];
-  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env: { HERCULES_API_KEY: 'k' }, fetchImpl: fakeFetch([{ status: 200, reply: PUSH }, { status: 200, reply: PUSH }], seen) });
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env: { HERCULES_API_KEY: 'k' }, fetchImpl: fakeFetch([{ status: 200, reply: PUSH }, { status: 200, reply: PUSH }, { status: 200, reply: PUSH }, { status: 200, reply: PUSH }], seen) });
   const call = async (p, body, token) => {
     const res = await app.handle(new Request('https://x.supabase.co/functions/v1/olympus' + p, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body) }));
     return { status: res.status, body: await res.json() };
@@ -112,6 +112,65 @@ test('both servers\' routes: Hercules and Athena each read with their own model 
   const a = await call('/api/athena/plan', { text: 'bench 3x5' }, token);
   assert.equal(a.status, 200);
   assert.equal(seen[0].model, herculesConfig({}, 'hercules').model);
-  assert.equal(seen[1].model, herculesConfig({}, 'athena').model);
+  assert.equal(seen[2].model, herculesConfig({}, 'athena').model);   // each asked twice: the line was not named
   assert.equal(h.body.left, a.body.left);   // each coach's own count
+});
+
+/* ---- a dated plan, and the lines a model leaves out ---- */
+import { exerciseLines, missedLines } from '../hercules.js';
+
+const WEEK_TEXT = [
+  'Tuesday Nov 10: A, Push + lats',
+  '* A1 Lever incline chest press: 3 × 6 to 10 at 1 to 2 RIR, rest 90 s, 100 kg. Do 1 to 2 ramp sets first.',
+  '* A2 Lever front pulldown: 3 × 8 to 12 at 1 to 2 RIR, rest 90 s, 79 kg.',
+  'Thursday Nov 12: football (1 h)',
+  'Saturday Nov 14: rest',
+].join('\n');
+
+const WEEK = sessions => JSON.stringify({ kind: 'plan', name: 'Nov 10 to 14', comment: '', sessions });
+const A_FULL = { name: 'A Push + lats', date: '2026-11-10', days: [], items: [
+  { line: 2, name: 'lever incline chest press', sets: 3, reps: 10, repsMin: 6, weight: 100, restSec: 90, warmupSets: 2, group: 'A', note: '1 to 2 RIR' },
+  { line: 3, name: 'lever front pulldown', sets: 3, reps: 12, repsMin: 8, weight: 79, restSec: 90, group: 'a', note: '1 to 2 RIR' },
+] };
+const FOOTBALL = { name: 'Football', date: '2026-11-12', items: [{ line: 4, name: 'football', activity: true, minutes: 60 }] };
+const REST = { name: 'Rest', date: '2026-11-14', rest: true, items: [] };
+
+test('a dated plan: sessions with their dates, rest, ramp sets, groups, activities and rest days', () => {
+  const p = parsePlanText(WEEK([A_FULL, FOOTBALL, REST, { name: 'bad date', date: '2026-02-30', items: [] }]));
+  assert.equal(p.sessions.length, 3);
+  const [a, f, r] = p.sessions;
+  assert.equal(a.date, '2026-11-10');
+  assert.deepEqual(a.days, [2]);   // the weekday of its date
+  assert.deepEqual(a.items.map(e => [e.line, e.restSec, e.warmupSets, e.group]), [[2, 90, 2, 'A'], [3, 90, 0, 'A']]);
+  assert.equal(f.items[0].activity, true);
+  assert.equal(f.items[0].minutes, 60);
+  assert.equal(f.items[0].sets, 1);
+  assert.equal(r.rest, true);
+  // the first version's shape, for an app that predates sessions
+  assert.equal(p.routines.length, 2);
+  assert.equal(p.routines[0].exercises[1].superset, 'A');
+  // only rest days is no plan
+  assert.equal(parsePlanText(WEEK([REST])), null);
+});
+
+test('every exercise line has to be read: the model is asked again for the ones it left out', async () => {
+  assert.deepEqual(exerciseLines(WEEK_TEXT), [2, 3]);
+  const lazy = WEEK([{ ...A_FULL, items: A_FULL.items.slice(0, 1) }, FOOTBALL, REST]);
+  assert.deepEqual(missedLines(WEEK_TEXT, parsePlanText(lazy)), [3]);
+  let doc = null;
+  const quota = async fn => { doc = fn(doc); };
+  const user = { id: 'u1' };
+  const config = { ...herculesConfig({ HERCULES_API_KEY: 'k' }), coach: 'hercules' };
+  const seen = [];
+  const r = await handlePlanText({ user, body: { text: WEEK_TEXT, today: '2026-11-10' }, config, quota, fetchImpl: fakeFetch([{ status: 200, reply: lazy }, { status: 200, reply: WEEK([A_FULL, FOOTBALL, REST]) }], seen) });
+  assert.equal(seen.length, 2);
+  assert.match(seen[0].messages[1].content, /^The text:\nL1: Tuesday Nov 10/);
+  assert.match(seen[0].messages[0].content, /today is 2026-11-10, a Tuesday/);
+  assert.match(seen[1].messages.at(-1).content, /L3: \* A2 Lever front pulldown/);
+  assert.equal(r.plan.sessions[0].items.length, 2);
+  assert.deepEqual(r.missed, []);
+  // still lazy the second time: the first answer stays, and the line goes back to the app
+  const r2 = await handlePlanText({ user, body: { text: WEEK_TEXT }, config, quota, fetchImpl: fakeFetch([{ status: 200, reply: lazy }, { status: 200, reply: lazy }]) });
+  assert.deepEqual(r2.missed.map(m => m.line), [3]);
+  assert.match(r2.missed[0].text, /Lever front pulldown/);
 });

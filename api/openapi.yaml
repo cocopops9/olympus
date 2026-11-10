@@ -1209,6 +1209,14 @@ paths:
         names, which the app matches to its catalogue before anything is saved. Costs one of
         Hercules's messages for the day, given back when the model wrote nothing usable.
         `/api/athena/plan` is the same with Athena.
+
+        Since version 45 the plan also comes as `sessions`, in the text's order: each with its
+        `date` (YYYY-MM-DD, resolved against `today`) or weekdays, `rest` for a named rest day,
+        a day `note`, and `items` carrying the text `line` they came from, `restSec`,
+        `warmupSets`, a superset `group` letter and `activity` for a sport or class. Every line
+        that reads like sets times reps must be covered: the model is asked once more for the
+        ones it left out, and those still missing come back in `missed` ([{ line, text }]).
+        `routines` stays, in its first shape, for apps that predate sessions.
       requestBody:
         required: true
         content:
@@ -1217,9 +1225,10 @@ paths:
               type: object
               required: [text]
               properties:
-                text: { type: string, maxLength: 6000 }
+                text: { type: string, maxLength: 8000 }
                 lang: { type: string }
                 unit: { type: string, enum: [kg, lb] }
+                today: { type: string, description: The person's own date, YYYY-MM-DD. }
                 custom: { type: array, maxItems: 60, items: { type: string }, description: Names of the person's own exercises. }
             example: { text: "Push: bench 4x6-8 80kg, incline DB press 3x10, lateral raises 3x15", lang: en, unit: kg }
       responses:
@@ -1283,9 +1292,10 @@ paths:
               type: object
               required: [text]
               properties:
-                text: { type: string, maxLength: 6000 }
+                text: { type: string, maxLength: 8000 }
                 lang: { type: string }
                 unit: { type: string, enum: [kg, lb] }
+                today: { type: string, description: The person's own date, YYYY-MM-DD. }
                 custom: { type: array, items: { type: string } }
       responses:
         '200': { description: 'The routines, as for `/api/hercules/plan`.' }

@@ -16,7 +16,7 @@ vi.mock('../lib/api.js', async importOriginal => ({
     mocks.calls.push({ path, body: opts?.body ? JSON.parse(opts.body) : null })
     if (path === '/api/hercules' || path === '/api/athena') return { on: true, perDay: 20, left: 7 }
     if (mocks.fail) throw Object.assign(new Error('x'), { status: 422, data: { code: mocks.fail } })
-    return { plan: mocks.plan, left: 6, perDay: 20 }
+    return { plan: mocks.plan, missed: mocks.missed || [], left: 6, perDay: 20 }
   }),
 }))
 
@@ -45,7 +45,7 @@ const type = (el, value) => {
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  mocks.calls = []; mocks.fail = null
+  mocks.calls = []; mocks.fail = null; mocks.missed = []
   localStorage.clear()
   useUI.setState({ sheets: [], toastMsg: '' })
   const S = structuredClone(DEF)
@@ -79,7 +79,7 @@ describe('a plan written as text', () => {
     expect(host.querySelector('.pt-item.missing')).not.toBeNull()
 
     // Monday already has "Legs": saving asks first, then replaces only Monday
-    act(() => button(host, 'Save the routines').click())
+    act(() => button(host, 'Save the plan').click())
     const confirm = [...document.querySelectorAll('button')].find(b => b.textContent === 'Replace')
     expect(confirm).toBeTruthy()
     act(() => confirm.click())
@@ -121,6 +121,50 @@ describe('a plan written as text', () => {
     await flush()
     expect(host.querySelector('.pt-err').textContent).toContain('could not find a workout')
     expect(host.querySelector('textarea').value).toBe('hello')
+  })
+
+  it('a dated plan is saved as one week on its dates, and Undo takes it all back', async () => {
+    const item = (line, name, more = {}) => ({ line, name, sets: 3, reps: 10, repsMin: 0, weight: 0, seconds: 0, minutes: 0, restSec: 0, warmupSets: 0, group: '', note: '', ...more })
+    mocks.plan = { kind: 'plan', name: 'Nov 10 to 15', comment: '', sessions: [
+      { name: 'A Push + lats', date: '2026-11-10', days: [2], items: [item(2, 'lever incline chest press', { restSec: 90, warmupSets: 2, group: 'A' }), item(3, 'lever front pulldown', { restSec: 90, group: 'A' })] },
+      { name: 'Football', date: '2026-11-12', days: [4], items: [item(5, 'football', { activity: true, sets: 1, reps: 0, minutes: 60 })] },
+      { name: 'Rest', date: '2026-11-14', days: [6], rest: true, items: [] },
+    ] }
+    mocks.missed = [{ line: 4, text: '* B Shoulder press machine: 2 × 6 to 10, rest 2 min, 84 kg.' }]
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-10T09:00:00'))
+    try {
+      const host = render()
+      act(() => planTextSheet())
+      await flush()
+      type(host.querySelector('textarea'), 'Tuesday Nov 10: A, Push + lats...')
+      await act(async () => { button(host, 'Turn it into routines').click() })
+      await flush()
+      expect(mocks.calls.find(c => c.path === '/api/hercules/plan').body.today).toBe('2026-11-10')
+      expect(host.querySelectorAll('.pt-routine')).toHaveLength(2)
+      expect(host.querySelectorAll('.pt-restday')).toHaveLength(1)
+      expect(host.querySelectorAll('.pt-date')).toHaveLength(2)
+      expect(host.textContent).toContain('Lines left out: 1')
+      expect(host.textContent).toContain('Left out by Hercules')
+      expect(host.textContent).toContain('1:30 rest')
+      expect(host.textContent).toContain('2 warm-up sets')
+      expect(host.textContent).toContain('Put it on its dates')
+      expect(host.querySelectorAll('.pt-ss')).toHaveLength(2)
+      act(() => button(host, 'Save the plan').click())
+      let S = useStore.getState().S
+      expect(S.routines.map(r => r.name)).toEqual(['Legs', 'A Push + lats', 'Football'])
+      expect(S.queue).toMatchObject({ label: 'Nov 10 to 15', startsOn: '2026-11-10', ids: [S.routines[1].id, S.routines[2].id] })
+      expect(S.dayPlan['2026-11-10']).toBe(S.routines[1].id)
+      expect(S.dayPlan['2026-11-14']).toBe('rest')
+      expect(S.week).toEqual({ 1: ['mine'] })
+      const toast = useUI.getState()
+      expect(toast.toastMsg).toContain('Plan saved: Nov 10 to 15')
+      act(() => toast.toastAction.run())
+      S = useStore.getState().S
+      expect(S.routines.map(r => r.name)).toEqual(['Legs'])
+      expect(S.queue ?? null).toBeNull()
+      expect(S.dayPlan['2026-11-10']).toBeUndefined()
+    } finally { vi.useRealTimers() }
   })
 
   it('needs a server account', () => {

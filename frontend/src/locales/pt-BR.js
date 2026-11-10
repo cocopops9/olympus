@@ -1740,6 +1740,18 @@ export const PT_BR_OVERRIDES = {
   "Push day|Bench press 4x6-8 80 kg|Incline dumbbell press 3x10|Lateral raises 3x15, superset with triceps pushdown 3x12||Pull day (Thursday)|Pull-ups 4x8|...": "Dia de empurrar|Supino 4x6-8 80 kg|Supino inclinado com halteres 3x10|Elevação lateral 3x15, em bi-set com tríceps na polia 3x12||Dia de puxar (quinta)|Barra fixa 4x8|...",
   "{0} routine added": "{0} rotina adicionada",
   "{0} routines added": "{0} rotinas adicionadas",
+  "Save the plan": "Salvar o plano",
+  "Put it on its dates": "Colocar nas datas dele",
+  "Update the routines with the same name": "Atualizar as rotinas com o mesmo nome",
+  "Left out by {0}. Tap to choose the exercise.": "Omitida por {0}. Toque para escolher o exercício.",
+  "Lines left out: {0}": "Linhas omitidas: {0}",
+  "A new exercise of yours": "Um novo exercício seu",
+  "Start this plan?": "Começar este plano?",
+  "It takes the place of the week running now: {0}.": "Substitui a semana atual: {0}.",
+  "Start the plan": "Começar o plano",
+  "Plan saved: {0}": "Plano salvo: {0}",
+  "{0} warm-up set": "{0} série de aquecimento",
+  "{0} warm-up sets": "{0} séries de aquecimento",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,
