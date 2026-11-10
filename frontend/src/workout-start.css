@@ -52,3 +52,7 @@
 .rt-scroll{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -4px;padding:0 4px 4px}
 .rt-scroll .rt-card{flex:0 0 86%;scroll-snap-align:start;margin-bottom:0;background:var(--surface-2)}
 .rt-plan-h .btn{flex:none;white-space:nowrap;width:auto}
+/* "Write it" (components/PlanText.jsx): across the row, under the two tiles. */
+.ws-tile.wide{grid-column:1 / -1;flex-direction:row;justify-content:flex-start;gap:12px;min-height:64px;padding:12px 16px;text-align:start}
+.ws-tile.wide .grow{display:flex;flex-direction:column;gap:2px}
+.ws-tile.wide small{font-size:13px;font-weight:400;color:var(--label-2)}

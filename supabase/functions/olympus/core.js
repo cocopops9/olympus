@@ -24,7 +24,7 @@ import { createSocial, SocialError } from './social.js';
 import { countryOf, topSongs, searchSongs, deezerPreview } from './music.js';
 import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
-import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
+import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv } from './insights.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, googleClients, verifyGoogle } from './accounts.js';
@@ -313,6 +313,13 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     const quota = fn => store.update([id], ({ get, set }) => { set(id, fn(get(id))); });
     return { status: 200, body: await handleHercules({ user, body, config: coaches[id], quota, now: now(), fetchImpl }) };
   };
+  // A workout or plan written as text, turned into routines (handlePlanText): one of the coach's messages.
+  const coachPlan = id => async req => {
+    const { user } = await signedIn(req);
+    const body = await readJson(req);
+    const quota = fn => store.update([id], ({ get, set }) => { set(id, fn(get(id))); });
+    return { status: 200, body: await handlePlanText({ user, body, config: coaches[id], quota, now: now(), fetchImpl }) };
+  };
 
   // What the owner's dashboard reads: the accounts, every profile's telemetry, the feedback.
   async function ownerData(req) {
@@ -577,6 +584,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/hercules': coachAsk('hercules'),
     'GET /api/athena': coachStatus('athena'),
     'POST /api/athena': coachAsk('athena'),
+    'POST /api/hercules/plan': coachPlan('hercules'),
+    'POST /api/athena/plan': coachPlan('athena'),
     'GET /api/chiron': coachStatus('chiron'),
     'POST /api/chiron': coachAsk('chiron'),
     // The coaches' memory, distilled from the person's chats on Chiron's model (hercules.js).

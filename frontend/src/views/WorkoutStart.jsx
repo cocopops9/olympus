@@ -2,7 +2,8 @@
 // routines as cards you can read at a glance: what each trains (a small body, the main muscles),
 // what is in it, and a Start button. Today's planned routines come first, marked Today. Two tiles
 // above the cards make a new routine or open Explore routines, the ready-made plans to copy
-// from one routine at a time or as a whole week.
+// from one routine at a time or as a whole week; a third, with a server account, has Hercules or
+// Athena turn a workout or plan written as text into routines (components/PlanText.jsx).
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
@@ -18,6 +19,7 @@ import BodyMap from '../components/BodyMap.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { Tip } from '../components/Guide.jsx'
+import { planTextSheet, planTextReady } from '../components/PlanText.jsx'
 import '../workout-start.css'
 
 const TINTS = ['var(--acc)', 'var(--blue)', 'var(--orange)', 'var(--pink)', 'var(--indigo)', 'var(--teal)', 'var(--red)']
@@ -98,6 +100,7 @@ export const exploreSheet = () => useUI.getState().openSheet(close => <Explore c
 export default function WorkoutStart() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
+  const user = useStore(s => s.user)
   const update = useStore(s => s.update)
   const todayIds = new Set(effectiveRoutineIds(S, todayISO()))
   const routines = [...S.routines.filter(r => todayIds.has(r.id)), ...S.routines.filter(r => !todayIds.has(r.id))]
@@ -129,6 +132,9 @@ export default function WorkoutStart() {
     <div className="ws-tiles">
       <button className="ws-tile" onClick={newRoutine}><Icon name="clipboard" /><span>{t('New routine')}</span></button>
       <button className="ws-tile" onClick={exploreSheet}><Icon name="magnifier" /><span>{t('Explore routines')}</span></button>
+      {planTextReady(user) && <button className="ws-tile wide" onClick={planTextSheet}><Icon name="sparkles" />
+        <span className="grow"><span>{t('Write a workout or a plan')}</span><small>{t('Hercules or Athena turns your text into routines')}</small></span>
+        <Icon name="chevronRight" /></button>}
     </div>
 
     {routines.length

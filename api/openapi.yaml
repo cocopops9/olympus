@@ -1197,6 +1197,102 @@ paths:
         '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/hercules/plan:
+    post:
+      tags: [coach]
+      operationId: herculesPlanText
+      summary: Turn a workout or plan written as text into routines (Hercules)
+      description: |
+        The person writes or pastes a workout or a whole plan, in any language, and the coach
+        returns it as routines: `kind` (`workout`, one session, or `plan`), a `name`, and for each
+        routine its weekdays (0 Sunday to 6 Saturday) and exercises with English catalogue-style
+        names, which the app matches to its catalogue before anything is saved. Costs one of
+        Hercules's messages for the day, given back when the model wrote nothing usable.
+        `/api/athena/plan` is the same with Athena.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 6000 }
+                lang: { type: string }
+                unit: { type: string, enum: [kg, lb] }
+                custom: { type: array, maxItems: 60, items: { type: string }, description: Names of the person's own exercises. }
+            example: { text: "Push: bench 4x6-8 80kg, incline DB press 3x10, lateral raises 3x15", lang: en, unit: kg }
+      responses:
+        '200':
+          description: The routines.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan:
+                    type: object
+                    properties:
+                      kind: { type: string, enum: [workout, plan] }
+                      name: { type: string }
+                      comment: { type: string }
+                      routines:
+                        type: array
+                        maxItems: 7
+                        items:
+                          type: object
+                          properties:
+                            name: { type: string }
+                            days: { type: array, items: { type: integer, minimum: 0, maximum: 6 } }
+                            exercises:
+                              type: array
+                              maxItems: 20
+                              items:
+                                type: object
+                                properties:
+                                  name: { type: string }
+                                  sets: { type: integer }
+                                  reps: { type: integer }
+                                  repsMin: { type: integer }
+                                  weight: { type: number }
+                                  seconds: { type: integer }
+                                  minutes: { type: integer }
+                                  superset: { type: string }
+                                  note: { type: string }
+                  left: { type: integer }
+                  perDay: { type: integer }
+                  model: { type: string }
+        '400': { description: 'No text (`plan-text-empty`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { description: 'No workout found in the text (`plan-text-unclear`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'No messages left today (`hercules-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '503': { description: 'Not set up (`hercules-off`), or the provider is busy (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /api/athena/plan:
+    post:
+      tags: [coach]
+      operationId: athenaPlanText
+      summary: Turn a workout or plan written as text into routines (Athena)
+      description: The same as `/api/hercules/plan`, read by Athena, on her model and her allowance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 6000 }
+                lang: { type: string }
+                unit: { type: string, enum: [kg, lb] }
+                custom: { type: array, items: { type: string } }
+      responses:
+        '200': { description: 'The routines, as for `/api/hercules/plan`.' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { description: 'No workout found in the text (`plan-text-unclear`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'No messages left today (`hercules-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/coach/memory:
     post:
       tags: [coach]

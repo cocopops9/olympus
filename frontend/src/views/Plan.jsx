@@ -9,6 +9,7 @@ import {
   dayAssignSheet, starterPlanSheet, confirmSheet, menuSheet,
   planHasRoutines, exportPlanFile, printWholePlan, importPlanFile,
 } from '../sheets.jsx'
+import { planTextSheet, planTextReady } from '../components/PlanText.jsx'
 import Icon from '../components/Icon.jsx'
 import { Tip } from '../components/Guide.jsx'
 import { Button, Row, Section, Segmented } from '../components/ui.jsx'
@@ -155,6 +156,7 @@ export default function Plan() {
         { icon: 'note', label: t('Print / Save as PDF'), disabled: !has, onClick: printWholePlan },
         { icon: 'download', label: t('Import a plan file'), onClick: () => fileRef.current?.click() },
         { icon: 'clipboard', label: t('Load starter plan'), onClick: starterPlanSheet },
+        ...(planTextReady(user) ? [{ icon: 'sparkles', label: t('Write a workout or a plan'), sub: t('Hercules or Athena turns your text into routines'), onClick: planTextSheet }] : []),
       ],
     })
   }

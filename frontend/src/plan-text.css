@@ -1,0 +1,33 @@
+/* "Write it": a workout or a plan written as text, read by a coach (components/PlanText.jsx). */
+.pt h3{margin-bottom:6px}
+.pt-coaches{display:flex;gap:8px;margin:12px 0 10px}
+.pt-coach{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border:1px solid var(--sep);border-radius:999px;background:var(--surface-2);color:var(--label);font:inherit;font-weight:600;cursor:pointer}
+.pt-coach.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.pt-text{width:100%;min-height:190px;font-size:15px}
+.pt-err{color:var(--red);font-size:14px;margin:8px 0 0}
+.pt-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pt-actions .btn.primary{flex:1 1 auto}
+.pt-left{margin-top:8px}
+.pt-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.pt-head h3{margin:0}
+.pt-comment{margin:8px 0;padding:10px 12px;border-radius:14px;background:var(--surface-2);font-size:14px;line-height:1.4}
+.pt-note{display:flex;align-items:flex-start;gap:6px;margin:8px 0;color:var(--orange);font-size:14px;line-height:1.35}
+.pt-note .icn{flex:none;width:17px;height:17px;margin-top:1px}
+.pt-routine{margin:14px 0 4px;padding:10px;border-radius:16px;background:var(--surface-2)}
+.pt-rname{font-weight:650;font-size:16px;margin-bottom:8px;background:var(--surface)}
+.pt-days{display:flex;gap:4px;margin:0 0 8px}
+.pt-day{flex:1;min-width:0;padding:6px 0;border:1px solid var(--sep);border-radius:9px;background:none;color:var(--label-2);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.pt-day.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.pt-item{display:flex;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--sep)}
+.pt-item:first-of-type{border-top:0}
+.pt-item-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0;border:0;background:none;color:var(--label);font:inherit;text-align:start;cursor:pointer}
+.pt-item-n{font-weight:600;font-size:15px}
+.pt-item-s{font-size:13px;color:var(--label-2);line-height:1.3}
+.pt-said{color:var(--orange)}
+.pt-item.missing .pt-item-n{color:var(--red)}
+.pt-warn{flex:none;width:18px;height:18px;color:var(--orange)}
+.pt-item.missing .pt-warn{color:var(--red)}
+.pt-ss{display:inline-flex;margin-inline-start:6px;vertical-align:-2px;color:var(--acc)}
+.pt-ss .icn{width:14px;height:14px}
+.pt-drop{flex:none;width:30px;height:30px}
+.pt-sched{display:flex;align-items:center;gap:10px;margin:12px 2px 0;font-size:15px}

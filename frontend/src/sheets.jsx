@@ -1323,20 +1323,21 @@ const SAME = '≈'
 // written for the search list keep it as the first screen; a test of the body sets
 // globalThis.__olympusGuide.
 const guideFirst = () => import.meta.env?.MODE !== 'test' || globalThis.__olympusGuide === true
-function ExercisePicker({ onPick, title, close, like }) {
-  const [mode, setMode] = useState(() => (!like && guideFirst() ? 'guide' : 'search'))
+function ExercisePicker({ onPick, title, close, like, query }) {
+  const [mode, setMode] = useState(() => (!like && !query && guideFirst() ? 'guide' : 'search'))
   // The search list opened from the body: the system back returns to the body.
   useEffect(() => (mode === 'search' && !like && guideFirst() ? backTrap(() => { setMode('guide'); return true }) : undefined), [mode])
   if (mode === 'guide') return <ExerciseGuide onPick={onPick} title={title}
     onSearch={() => setMode('search')} onCreate={() => customExSheet(null, ex => onPick(ex))} />
-  return <ExerciseSearch onPick={onPick} title={title} close={close} like={like} onBody={guideFirst() && !like ? () => setMode('guide') : null} />
+  return <ExerciseSearch onPick={onPick} title={title} close={close} like={like} query={query} onBody={guideFirst() && !like && !query ? () => setMode('guide') : null} />
 }
-function ExerciseSearch({ onPick, title, close, like, onBody }) {
+// `query`: the search it opens with (a name written as text, components/PlanText.jsx).
+function ExerciseSearch({ onPick, title, close, like, query, onBody }) {
   const st = useStore(s => s.S)
   // Opened from the body's "Search by name": the keyboard comes up at once.
   useEffect(() => { if (onBody) searchRef.current?.focus() }, [])
   const usage = usageMap(st)
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(query || '')
   // What a swap is away from: the picker opens on what trains the same muscle, if anything you
   // can use does, and "All" is one tap back to everything.
   const likeEx = like ? (EXIDX[like] || allExercises(st).find(e => e.id === like) || null) : null
@@ -1463,7 +1464,7 @@ function ExerciseSearch({ onPick, title, close, like, onBody }) {
 // `title` names what the pick is for when it is not an add — the routine editor's Replace (#110).
 // `like` is the exercise a swap or a replace is away from: the picker then opens on the ones that
 // train the same muscle, same equipment first (#473).
-export const exercisePicker = (onPick, { title, like } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} close={close} />)
+export const exercisePicker = (onPick, { title, like, query } = {}) => ui().openSheet(close => <ExercisePicker onPick={onPick} title={title} like={like} query={query} close={close} />)
 
 /** Start a safe swap for one exact active-workout occurrence. */
 // `to`: swap straight to that exercise with its default sets, no picker (the same movement with
@@ -2885,13 +2886,16 @@ export function beginWorkout(routineIds, bw) {
   if (routineIds && routineIds.length) track('routine.start')
   const st = S()
   const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  openSession(st, entries, rids, routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'), bw)
+}
+function openSession(st, entries, routineIds, name, bw) {
   update(s => {
     s.active = {
       id: uid(), d: todayISO(), start: Date.now(),
       // A session tracks its routines as a list; per-entry `rid` carries which one each
       // exercise came from. No top-level `excludeFromProgression` — per-entry `noProg` does it.
-      routineIds: rids,
-      name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
+      routineIds,
+      name,
       bw: bw || null, cur: 0, entries,
       // Snapshot the layout at start so the header ⋮ can change it for this session only —
       // changing the saved default (Settings → Workout view) mid-session leaves it alone.
@@ -2900,6 +2904,19 @@ export function beginWorkout(routineIds, bw) {
   })
   useUI.getState().stopRest()
   navToWorkout()
+}
+// A workout from a routine that is not saved (one written as text, lib/plan-text.js): built the
+// way a saved routine's session is, then run as a freestyle session, so finishing it changes no
+// routine. The weigh-in asks first, as for any workout.
+export function startUnsavedRoutine(routine) {
+  const go = bw => {
+    track('workout.start')
+    const st = S()
+    const { entries } = buildCombinedEntries({ ...st, routines: [...st.routines, routine] }, [routine.id])
+    openSession(st, entries.map(({ rid, ...e }) => e), [], routine.name || t('Freestyle'), bw)
+  }
+  if (S().weighIn === false) go(null)
+  else bwSheet({ required: true, onDone: go })
 }
 
 // "Repeat today" (#58): a saved workout's exercises as a new freestyle session dated today, each

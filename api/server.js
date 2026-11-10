@@ -34,7 +34,7 @@ import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from 
 import { createSocial, SocialError } from './social.js';
 import { topSongs, searchSongs, deezerPreview } from './music.js';
 import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
-import { herculesConfig, handleHercules, handleMemory, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
+import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
 import { atomicWrite as durableWrite } from './durable.js';
@@ -206,6 +206,19 @@ const coachAsk = id => async (req, res) => {
   if (!s) return json(res, 401, { error: 'not signed in' });
   const body = await readBody(req);
   try { json(res, 200, await handleHercules({ user: s.user, body, config: st.config, quota: st.quota })); }
+  catch (e) {
+    if (!(e instanceof HerculesError)) throw e;
+    json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
+  }
+};
+// A workout or plan written as text, turned into routines by Hercules or Athena (handlePlanText):
+// one of that coach's messages for the day.
+const coachPlan = id => async (req, res) => {
+  const st = COACH_STATE[id];
+  const s = sessionOf(req);
+  if (!s) return json(res, 401, { error: 'not signed in' });
+  const body = await readBody(req);
+  try { json(res, 200, await handlePlanText({ user: s.user, body, config: st.config, quota: st.quota })); }
   catch (e) {
     if (!(e instanceof HerculesError)) throw e;
     json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
@@ -2740,6 +2753,8 @@ const routes = {
   'POST /api/hercules': coachAsk('hercules'),
   'GET /api/athena': coachStatus('athena'),
   'POST /api/athena': coachAsk('athena'),
+  'POST /api/hercules/plan': coachPlan('hercules'),
+  'POST /api/athena/plan': coachPlan('athena'),
   // Chiron, the coach woken up during a workout (frontend components/Chiron.jsx).
   'GET /api/chiron': coachStatus('chiron'),
   'POST /api/chiron': coachAsk('chiron'),
