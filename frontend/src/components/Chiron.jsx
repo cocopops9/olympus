@@ -163,7 +163,7 @@ const sleepNow = () => useChiron.setState({ awake: false })
  * Voice mode, asked for by its button: Chiron wakes in the page and talks with you hands free
  * (ChironVoice). A phone without speech recognition is told why it cannot, and what to turn on.
  */
-export async function startVoiceMode({ closeSheet } = {}) {
+export async function startVoiceMode({ closeSheet, wake } = {}) {
   let ok = false
   try { ok = await canListen() } catch { ok = false }
   if (!ok) {
@@ -171,7 +171,9 @@ export async function startVoiceMode({ closeSheet } = {}) {
     return false
   }
   closeSheet?.()
-  useChiron.setState({ awake: true })
+  // Asleep on the page, he is first seen getting up (`wake`), as when tapped three times.
+  if (wake) wake()
+  else useChiron.setState({ awake: true })
   return true
 }
 
@@ -364,6 +366,13 @@ export function WorkoutChiron() {
   const p = coachProfileOf(S)
   const tips = quickTips(S, { exOf: id => EXIDX[id] || null, modeOf: ex => modeOf(ex), isWarmup: isWarmupRow, styles: p.styles, phase: p.phase })
   const online = socialReady(user)
+  // Gets up on the page, then talks: from three taps (on a phone that can listen) or the microphone.
+  const wakeToVoice = () => {
+    clearTimeout(timer.current)
+    setTap(null)
+    setWaking(true)
+    timer.current = setTimeout(() => { setWaking(false); useChiron.setState({ awake: true }) }, WAKE_VOICE_MS)
+  }
   const press = () => {
     // While he is getting up the taps wait: a fourth would start the count again over the animation.
     if (awake || waking) return
@@ -376,7 +385,7 @@ export function WorkoutChiron() {
       timer.current = setTimeout(() => setWaking(false), WAKE_MS)
       // By voice he starts once he is on his feet, so the whole waking is seen;
       // the sheet covers him, and opens at once.
-      if (canHear) timer.current = setTimeout(() => { setWaking(false); useChiron.setState({ awake: true }) }, WAKE_VOICE_MS)
+      if (canHear) wakeToVoice()
       else chironSheet()
       return
     }
@@ -399,7 +408,7 @@ export function WorkoutChiron() {
       </span>
       {tap && !awake && <span className="chiron-taps" aria-hidden="true">{Array.from({ length: WAKE_TAPS }, (_, i) => <i key={i} className={i < WAKE_TAPS - left ? 'on' : ''} />)}</span>}
     </button>
-    {!awake && <button className="chs-voice-go" onClick={() => startVoiceMode()} aria-label={t('Voice mode')} title={t('Voice mode')}>
+    {!awake && <button className="chs-voice-go" onClick={() => { if (!waking) startVoiceMode({ wake: wakeToVoice }) }} aria-label={t('Voice mode')} title={t('Voice mode')}>
       <Icon name="mic" /><span>{t('Voice mode')}</span>
     </button>}
   </div>

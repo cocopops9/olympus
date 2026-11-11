@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client'
 import ChironFigure, { WAKE_FPS, WAKE_FRAMES, WAKE_SECONDS, wakeFramePosition } from './ChironFigure.jsx'
 
 // The frame number a background-position stands for (the inverse of wakeFramePosition).
-const frameOf = pos => { const [x, y] = pos.split(' ').map((v, i) => Math.round(parseFloat(v) / 100 * (i ? 5 : 7))); return y * 8 + x }
+const frameOf = pos => { const [x, y] = pos.split(' ').map((v, i) => Math.round(parseFloat(v) / 100 * (i ? 7 : 8))); return y * 9 + x }
 const roots = []
 function mount(state) {
   const el = document.createElement('div')
@@ -21,12 +21,12 @@ function mount(state) {
 afterEach(() => { for (const { root, el } of roots.splice(0)) { act(() => root.unmount()); el.remove() }; vi.useRealTimers() })
 
 describe('ChironFigure wake-up', () => {
-  it('finds each frame in the 8 by 6 sheet', () => {
+  it('finds each frame in the 9 by 8 sheet (65 frames, the last row partly empty)', () => {
     expect(wakeFramePosition(0)).toBe('0% 0%')
-    expect(wakeFramePosition(7)).toBe('100% 0%')
-    expect(wakeFramePosition(WAKE_FRAMES - 1)).toBe('100% 100%')
+    expect(wakeFramePosition(8)).toBe('100% 0%')
+    expect(wakeFramePosition(WAKE_FRAMES - 1)).toBe('12.5% 100%')
     expect(wakeFramePosition(-5)).toBe('0% 0%')
-    expect(wakeFramePosition(999)).toBe('100% 100%')
+    expect(wakeFramePosition(999)).toBe('12.5% 100%')
     for (let i = 0; i < WAKE_FRAMES; i++) expect(frameOf(wakeFramePosition(i))).toBe(i)
   })
 
@@ -59,7 +59,7 @@ describe('ChironFigure wake-up', () => {
     expect(on('sleep')).toBe(false)
     expect(on('wake')).toBe(false)
     expect(el.querySelector('.chf-clip')).not.toBeNull()
-    act(() => { vi.advanceTimersByTime(1500) })
+    act(() => { vi.advanceTimersByTime(2000) })
     // On the last frame the awake portrait takes over and the clip goes.
     expect(el.querySelector('.chf-clip')).toBeNull()
     expect(on('wake')).toBe(true)
@@ -68,6 +68,6 @@ describe('ChironFigure wake-up', () => {
 
   it('is as long as the frames at their rate', () => {
     expect(WAKE_SECONDS).toBe(WAKE_FRAMES / WAKE_FPS)
-    expect(WAKE_SECONDS).toBeCloseTo(1.33, 2)
+    expect(WAKE_SECONDS).toBeCloseTo(2.03, 2)
   })
 })
