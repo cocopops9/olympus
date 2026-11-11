@@ -62,7 +62,7 @@ const wake = async host => {
   await wait(5)   // the microphone is asked about first
   const btn = host.querySelector('.whdr-chiron')
   act(() => { btn.click(); btn.click(); btn.click() })
-  // He gets up first (the waking is drawn for about 6 s), then the voice panel takes over.
+  // He gets up first (the waking is drawn for about 1.3 s), then the voice panel takes over.
   await wait(WAKE_VOICE_MS + 100)
 }
 
