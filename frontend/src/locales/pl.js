@@ -3332,4 +3332,8 @@ export default {
   "Plan saved: {0}": "Plan zapisany: {0}",
   "{0} warm-up set": "{0} seria rozgrzewkowa",
   "{0} warm-up sets": {"one": "{0} seria rozgrzewkowa", "few": "{0} serie rozgrzewkowe", "many": "{0} serii rozgrzewkowych"},
+  "{0} intervals · {1} min": "{0} interwałów · {1} min",
+  "Segment {0} (min)": "Odcinek {0} (min)",
+  "One steady pace": "Stałe tempo",
+  "0 rest goes straight on to the next segment.": "Przy 0 przerwy od razu zaczyna się następny odcinek.",
 }

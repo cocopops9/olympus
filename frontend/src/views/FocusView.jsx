@@ -15,6 +15,7 @@ import {
 } from '../lib/workout-model.js'
 import { weightIncrement, stepWeight } from '../lib/progression.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
+import { isIntervals } from '../lib/intervals.js'
 import { effortPickerSheet, exerciseDetailSheet, exerciseHistorySheet, exerciseNoteSheet, menuSheet, barWeightSheet } from '../sheets.jsx'
 import { baseWeightFor, inventoryFor, loadKindFor, rowLoad } from '../lib/plates.js'
 import { ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
@@ -289,8 +290,12 @@ export default function FocusView({
       <div data-testid="focus-set" className={(set.done ? 'complete ' : '') + (locked ? 'locked' : '')}>
         {isSideSet(set) ? <div className="focus-sides">{sideFields('L')}{sideFields('R')}</div> : <>
           {mode === 'cardio' ? <>
-            <Stepper label={t('Duration (min)')} ariaLabel="duration" value={set.min || 0} step={1} decimal={false} disabled={readOnly}
+            {/* An interval run's segment can be half a minute, and is started like a hold: the
+                countdown beeps when the speed is to change (lib/intervals.js). */}
+            <Stepper label={t('Duration (min)')} ariaLabel="duration" value={set.min || 0} step={isIntervals(entry.target) ? 0.5 : 1} decimal={isIntervals(entry.target)} disabled={readOnly}
               onChange={value => onField(setIdx, 'min', value)} />
+            {isIntervals(entry.target) && <Button icon="play" aria-label={t('Start set')} disabled={readOnly || busy}
+              onClick={() => onStartTimed(setIdx, onProgress)}>{t('Start')}</Button>}
             {/* Stored in km/h, shown and typed in the profile's speed unit, as on every other
                 cardio input (lib/speed.js). */}
             {!isSport(ex) && <Stepper label={speedUnit === 'mph' ? t('Speed (mph)') : t('Speed (km/h)')} ariaLabel="speed" value={toSpeed(set.speed || 0, speedUnit)} step={0.5} disabled={readOnly}

@@ -3332,4 +3332,8 @@ export default {
   "Plan saved: {0}": "플랜 저장됨: {0}",
   "{0} warm-up set": "워밍업 {0}세트",
   "{0} warm-up sets": "워밍업 {0}세트",
+  "{0} intervals · {1} min": "인터벌 {0}개 · {1}분",
+  "Segment {0} (min)": "구간 {0} (분)",
+  "One steady pace": "일정한 속도",
+  "0 rest goes straight on to the next segment.": "휴식이 0이면 다음 구간이 바로 이어집니다.",
 }

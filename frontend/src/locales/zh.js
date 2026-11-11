@@ -3332,4 +3332,8 @@ export default {
   "Plan saved: {0}": "计划已保存：{0}",
   "{0} warm-up set": "{0} 组热身",
   "{0} warm-up sets": "{0} 组热身",
+  "{0} intervals · {1} min": "{0} 个间歇 · {1} 分钟",
+  "Segment {0} (min)": "第 {0} 段（分钟）",
+  "One steady pace": "匀速",
+  "0 rest goes straight on to the next segment.": "休息为 0 时直接进入下一段。",
 }

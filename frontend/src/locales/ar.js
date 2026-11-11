@@ -3387,4 +3387,8 @@ export default {
   "Plan saved: {0}": "تم حفظ الخطة: {0}",
   "{0} warm-up set": "{0} مجموعة إحماء",
   "{0} warm-up sets": "{0} مجموعات إحماء",
+  "{0} intervals · {1} min": "{0} فترات · {1} د",
+  "Segment {0} (min)": "المقطع {0} (د)",
+  "One steady pace": "وتيرة ثابتة",
+  "0 rest goes straight on to the next segment.": "مع راحة 0 يبدأ المقطع التالي مباشرة.",
 }

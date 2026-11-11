@@ -13,6 +13,7 @@ import { cleanUrl } from './media-refs.js'
 import { modeOf, exLine, MAX_PLANNED_WARMUPS } from './history.js'
 import { deriveSessionName } from './session-merge.js'
 import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeight } from './pyramid.js'
+import { isIntervals, normalizeIntervals } from './intervals.js'
 import { isBackoff } from './backoff.js'
 import { dbLoadOf } from './dumbbells.js'
 import { MAX_TRIPLE_SETS } from './progression.js'
@@ -73,6 +74,8 @@ function cleanEx(e) {
   if (mode === 'cardio') {
     if (e.min != null) o.min = e.min
     if (e.speed != null) o.speed = e.speed
+    // Interval segments are the prescription itself; without them the run arrives as one pace.
+    if (isIntervals(e)) o.intervals = normalizeIntervals(e.intervals)
   } else if (mode === 'time') {
     // Written out even though 'reps' is the fallback for a non-cardio id: a plan file that
     // dropped the mode would turn a 45-second plank into a 45-rep one at the other end.
@@ -249,9 +252,10 @@ export function parsePlan(raw, destinationUnit = 'kg') {
       const pyramid = normalizePyramid(e.pyramid)
       const pyramidRest = pyramid.length ? normalizePyramidRest(e.pyramidRest, pyramid.length) : []
       const pyramidWeight = pyramid.length ? normalizePyramidWeight(e.pyramidWeight, pyramid.length) : []
-      const { warmupSets, intensifier, restSec, warmupRestSec, pyramid: _pyramid, pyramidRest: _pyramidRest, pyramidWeight: _pyramidWeight, ...passthrough } = e
+      const intervals = normalizeIntervals(e.intervals)
+      const { warmupSets, intensifier, restSec, warmupRestSec, pyramid: _pyramid, pyramidRest: _pyramidRest, pyramidWeight: _pyramidWeight, intervals: _intervals, ...passthrough } = e
       if (!known.has(passthrough.id)) passthrough.id = canonicalExId(passthrough.id)
-      return convertedExercise({ ...passthrough, ...(pyramid.length ? { pyramid } : {}), ...(pyramidRest.length ? { pyramidRest } : {}), ...(pyramidWeight.length ? { pyramidWeight } : {}), ...(warm ? { warmupSets: warm } : {}), ...(intens ? { intensifier: intens } : {}), ...(rest ? { restSec: rest } : {}), ...(warmRest ? { warmupRestSec: warmRest } : {}) }, sourceUnit || destination, destination)
+      return convertedExercise({ ...passthrough, ...(intervals.length ? { intervals } : {}), ...(pyramid.length ? { pyramid } : {}), ...(pyramidRest.length ? { pyramidRest } : {}), ...(pyramidWeight.length ? { pyramidWeight } : {}), ...(warm ? { warmupSets: warm } : {}), ...(intens ? { intensifier: intens } : {}), ...(rest ? { restSec: rest } : {}), ...(warmRest ? { warmupRestSec: warmRest } : {}) }, sourceUnit || destination, destination)
     })
   }))
   return {

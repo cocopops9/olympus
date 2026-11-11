@@ -3332,4 +3332,8 @@ export default {
   "Plan saved: {0}": "Plan enregistré : {0}",
   "{0} warm-up set": "{0} série d’échauffement",
   "{0} warm-up sets": "{0} séries d’échauffement",
+  "{0} intervals · {1} min": "{0} intervalles · {1} min",
+  "Segment {0} (min)": "Segment {0} (min)",
+  "One steady pace": "Allure constante",
+  "0 rest goes straight on to the next segment.": "Avec 0 de repos, on enchaîne directement le segment suivant.",
 }

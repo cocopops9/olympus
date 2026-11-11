@@ -3332,4 +3332,8 @@ export default {
   "Plan saved: {0}": "प्लान सेव हुआ: {0}",
   "{0} warm-up set": "{0} वार्म-अप सेट",
   "{0} warm-up sets": "{0} वार्म-अप सेट",
+  "{0} intervals · {1} min": "{0} इंटरवल · {1} मिनट",
+  "Segment {0} (min)": "खंड {0} (मिनट)",
+  "One steady pace": "एक जैसी गति",
+  "0 rest goes straight on to the next segment.": "0 आराम पर अगला खंड तुरंत शुरू होता है।",
 }

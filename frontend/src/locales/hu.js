@@ -3335,4 +3335,8 @@ export default {
   "Plan saved: {0}": "Terv mentve: {0}",
   "{0} warm-up set": "{0} bemelegítő sorozat",
   "{0} warm-up sets": "{0} bemelegítő sorozat",
+  "{0} intervals · {1} min": "{0} intervallum · {1} perc",
+  "Segment {0} (min)": "{0}. szakasz (perc)",
+  "One steady pace": "Egyenletes tempó",
+  "0 rest goes straight on to the next segment.": "0 pihenővel azonnal jön a következő szakasz.",
 }

@@ -3343,4 +3343,8 @@ export default {
   "Plan saved: {0}": "บันทึกแผนแล้ว: {0}",
   "{0} warm-up set": "วอร์มอัป {0} เซ็ต",
   "{0} warm-up sets": "วอร์มอัป {0} เซ็ต",
+  "{0} intervals · {1} min": "{0} ช่วง · {1} นาที",
+  "Segment {0} (min)": "ช่วงที่ {0} (นาที)",
+  "One steady pace": "ความเร็วคงที่",
+  "0 rest goes straight on to the next segment.": "พัก 0 คือเริ่มช่วงถัดไปทันที",
 }

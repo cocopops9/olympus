@@ -14,7 +14,7 @@ import { usesBar } from '../lib/bar.js'
 import { loadKindFor, baseWeightFor, inventoryFor, rowLoad, sameLoad, plateDelta, dropGrid } from '../lib/plates.js'
 import { effectiveRoutines, effectiveRoutineIds, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, isPerSide, repStep, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, barFloor, makeWarmupAt, canBeWarmup, makeWorkAt, removeRowAt, removeLastSet, setSpanAt, copyRowAt, copySpanAt, insertRowAt, pairAdjacent, unpairSuperset, cleanupSg, applyIntensifierPlan, pinnedNoteFor, exNoteFor, setsRepsOf } from '../lib/history.js'
 import { fmtNum, fmtPlate, exerciseNameText, fmtDate, fmtDaysAgo, todayISO, exCount, DAYN } from '../lib/format.js'
-import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
+import { speedUnitOf, toSpeed, fromSpeed, fmtSpeed } from '../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from '../lib/incline.js'
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
 import { newRecords, recordsOf } from '../lib/records.js'
@@ -23,6 +23,7 @@ import { pinState } from '../lib/queue.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { api, beacon } from '../lib/api.js'
 import { pyramidRestFor, maxRecordAt, isPyramid, pyramidLabel } from '../lib/pyramid.js'
+import { isIntervals, intervalRestFor } from '../lib/intervals.js'
 import { insertionIndexAfterCurrentUnit, nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from '../lib/supersetFlow.js'
 import Media from '../components/Media.jsx'
 import WorkoutScrollAnchor from '../components/WorkoutScrollAnchor.jsx'
@@ -165,6 +166,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const mode = modeOf({ ...(entry.target || {}), id: entry.id })
   const cardio = mode === 'cardio'
   const timed = mode === 'time'
+  // Interval cardio (lib/intervals.js): each segment is started like a hold and counted down.
+  const runs = cardio && isIntervals(entry.target)
   // The history the rows were built from: before the session's day when it is logged into the
   // past (sessionHistory), so "last time", the best set and the Best chip are not from later on.
   const H = sessionHistory(S)
@@ -260,7 +263,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // The reps column is the total in every mode, unilateral included — the stepper walks in
   // twos there so the number you land on is one you can actually split evenly.
   const repCol = { f: 'r', step: repStep(cfg), dec: false, hd: t('Reps') }
-  const col1 = cardio ? { f: 'min', step: 1, dec: false, hd: t('Duration (min)') }
+  // A segment of an interval run can be half a minute: its minutes take halves.
+  const col1 = cardio ? { f: 'min', step: runs ? 0.5 : 1, dec: runs, hd: t('Duration (min)') }
     : timed ? { f: 'sec', step: 5, dec: false, hd: t('Seconds') }
       : loadCol
   // Speed is stored in km/h and shown in the profile's unit (lib/speed.js): `view` turns the
@@ -576,7 +580,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const failMark = s => isFailureSet(s) ? <span className="failmark" aria-hidden="true">{t('F')}</span> : null
   const failSay = (s, label) => isFailureSet(s) ? label + ', ' + t('Taken to failure') : label
   const plainRow = (s, i) => (
-    <div ref={el => onSetRowRef?.(i, el)} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '') + (timed ? ' timed' : '')}>
+    <div ref={el => onSetRowRef?.(i, el)} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '') + (timed || runs ? ' timed' : '')}>
       <button type="button" className="n" aria-label={failSay(s, sideTagOf(s) ? t('Set {0} ({1})', setNumOf(s, i), sideTagOf(s)) : t('Set {0}', setNumOf(s, i)))} aria-describedby={optsId} title={t('More')} onClick={() => openSetMenu(s, i)}>{setNumOf(s, i)}{failMark(s)}</button>
       {/* Both words sit in the pill's one grid cell (::before/::after, hidden), so Left and
           Right are as wide as the longer of the two in every language and the inputs
@@ -587,7 +591,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       {col3 && (col3.eff ? effortCell(s, i, col3) : cell(s, i, col3, 'r inc'))}
       {/* A timed set is started, not typed: the timer counts the hold down and checks the
           set off itself. The checkbox stays for anyone who timed it on their own watch. */}
-      {timed && !editing && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
+      {(timed || runs) && !editing && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
         onClick={() => onStartTimed(i)}><Icon name="play" /></button>}
       <Check checked={s.done} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))} onChange={() => onToggle(i)} />
     </div>
@@ -1576,9 +1580,13 @@ function ActiveWorkout() {
     // 30 second plank, and every hold after it is 3 seconds. planSec keeps the plan aside until
     // the row is held to the end, ticked, or given a duration you typed yourself, and it never
     // reaches S.workouts (lib/finish-workout.js).
-    const plan = (!e.sets[i].done && e.sets[i].planSec) || e.sets[i].sec || 45
+    // A segment of an interval run counts its minutes down, and its label says the speed to set.
+    const run = modeAt(idx) === 'cardio'
+    const plan = run ? Math.max(1, Math.round((e.sets[i].min || 0) * 60))
+      : (!e.sets[i].done && e.sets[i].planSec) || e.sets[i].sec || 45
     const owner = { idx, i }
-    useUI.getState().startWork(plan, exerciseNameText(exOr(e.id)), holdDone(owner, plan, onFocusProgress), { idx, i, id: e.id })
+    const label = exerciseNameText(exOr(e.id)) + (run && e.sets[i].speed > 0 ? ' · ' + fmtSpeed(e.sets[i].speed, speedUnitOf(S)) : '')
+    useUI.getState().startWork(plan, label, holdDone(owner, plan, onFocusProgress), { idx, i, id: e.id })
     // After startWork: a hold it displaced has already written its seconds to its own row.
     holdAt = { owner, idx, i }
   }
@@ -1600,11 +1608,22 @@ function ActiveWorkout() {
       // that displaces the hold, so the hand-back lands on a row that is already ticked. It
       // still wants the seconds (that is what was held, not the target), but a finished row has
       // no use for a plan set aside.
+      // A segment of an interval run keeps its planned minutes: they are what the next try asks.
+      if (modeAt(idx) === 'cardio') return
       mutEntry(idx, en => { if (en.sets[i].planSec == null && !en.sets[i].done) en.sets[i].planSec = plan; en.sets[i].sec = elapsed })
       return
     }
-    mutEntry(idx, en => { en.sets[i].sec = elapsed; delete en.sets[i].planSec })
+    if (modeAt(idx) === 'cardio') {
+      // A segment run to its end logs its planned minutes; one stopped early, what was run.
+      mutEntry(idx, en => { if (elapsed < plan - 1) en.sets[i].min = Math.round(elapsed / 60 * 100) / 100 })
+    } else mutEntry(idx, en => { en.sets[i].sec = elapsed; delete en.sets[i].planSec })
     if (!useStore.getState().S.active.entries[idx].sets[i].done) toggle(idx, i, undefined, { quiet: chimed, onFocusProgress })
+    // An interval run goes on by itself: a segment with no rest after it starts the next one.
+    const en = useStore.getState().S.active?.entries?.[idx]
+    if (en && isIntervals(en.target) && intervalRestFor(en.target, en.sets, i) === 0) {
+      const next = en.sets.findIndex((r, k) => k > i && !r.done)
+      if (next > i) startTimed(idx, next, onFocusProgress)
+    }
   }
   // A hold that came back from a reload has no handler yet: this screen gives it its own.
   const holdDoneRef = useRef(holdDone)
@@ -1709,7 +1728,9 @@ function ActiveWorkout() {
       const restSec = restSecFor(fresh.entries, freshUnit || [idx], S.restSec, setRest)
       // A warm-up ramp set may rest shorter than a work set (the exercise's warmupRestSec); the
       // last ramp set, into the first work set, still gets the working rest.
-      const restAfter = warmupRestSecFor(fresh.entries[idx], i, restSec)
+      // An interval run's segment rests exactly what the plan gives it, none included.
+      const ivRest = intervalRestFor(fresh.entries[idx].target, fresh.entries[idx].sets, i)
+      const restAfter = ivRest != null ? ivRest : warmupRestSecFor(fresh.entries[idx], i, restSec)
 
       // A re-check of finished work must not navigate or reopen a sheet, but it may still owe
       // you a rest — see restOnRecheck, and the other half of issue #3. A rest that already ran
@@ -1872,7 +1893,7 @@ function ActiveWorkout() {
     // ticks its set. A key never logs a set for an exercise that was not in front of you.
     if (!next.current) { focusUnit(next.idx); showCurrent(); return true }
     // A timed set is started rather than ticked, as its play button does; the timer ticks it.
-    if (!next.side && modeAt(next.idx) === 'time') startTimed(next.idx, next.i)
+    if (!next.side && (modeAt(next.idx) === 'time' || isIntervals(fresh.entries[next.idx]?.target))) startTimed(next.idx, next.i)
     else toggle(next.idx, next.i, next.side)
     return true
   }

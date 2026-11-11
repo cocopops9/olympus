@@ -174,3 +174,21 @@ test('every exercise line has to be read: the model is asked again for the ones 
   assert.deepEqual(r2.missed.map(m => m.line), [3]);
   assert.match(r2.missed[0].text, /Lever front pulldown/);
 });
+
+test('an interval run comes back as its segments, and a set to failure as a flag', () => {
+  const plan = parsePlanText(JSON.stringify({ kind: 'workout', name: 'HIIT', sessions: [{ name: 'HIIT', items: [
+    { line: 3, name: 'run on treadmill', activity: true, minutes: 21, sets: 1, intervals: [
+      { minutes: 1, speed: 12, restSec: 0 }, { minutes: 0.5, speed: 17.5, restSec: 0 }, { minutes: 1, speed: 12, restSec: 420 }, { minutes: 0, speed: 9 }, { minutes: 0.3, speed: 99, restSec: 5000 },
+    ] },
+    { line: 4, name: 'lever lateral raise', sets: 1, reps: 20, repsMin: 12, toFailure: true },
+  ] }] }));
+  const [run, raise] = plan.sessions[0].items;
+  assert.deepEqual(run.intervals, [
+    { minutes: 1, speed: 12, restSec: 0 }, { minutes: 0.5, speed: 17.5, restSec: 0 }, { minutes: 1, speed: 12, restSec: 420 }, { minutes: 0.25, speed: 40, restSec: 1800 },
+  ]);
+  assert.equal(run.sets, 4);
+  assert.equal(run.minutes, 0);
+  assert.equal(run.activity, false);
+  assert.equal(raise.toFailure, true);
+  assert.deepEqual(raise.intervals, []);
+});

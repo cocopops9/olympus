@@ -1217,6 +1217,10 @@ paths:
         that reads like sets times reps must be covered: the model is asked once more for the
         ones it left out, and those still missing come back in `missed` ([{ line, text }]).
         `routines` stays, in its first shape, for apps that predate sessions.
+
+        Since version 47 an item also carries `toFailure` (its last set taken to failure) and,
+        for interval cardio, `intervals`: every segment in order, [{ minutes, speed (km/h),
+        restSec (the pause after it, 0 to go straight on) }], `sets` then being their count.
       requestBody:
         required: true
         content:

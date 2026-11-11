@@ -57,6 +57,7 @@ import { policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MA
 import { normalizeRepRange } from './lib/rep-range.js'
 import { isBackoff, backoffWeights } from './lib/backoff.js'
 import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeight, pyramidFromFlat, flatFromPyramid, pyramidLabel, PYRAMID_MAX, MAX_PYRAMID_SETS, PYRAMID_PRESETS } from './lib/pyramid.js'
+import { isIntervals, normalizeIntervals, intervalMinutes, MAX_INTERVALS } from './lib/intervals.js'
 import { MOBILE, shareExport, shareExportBlob, printHtml } from './lib/mobile.js'
 import { shareStory } from './lib/story-card.js'
 import { bumpMedal } from './components/Medals.jsx'
@@ -1727,6 +1728,9 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
   // Both default from the dataset and are then whatever the config says — see isBw.
   const bw = !cardio && isBw({ ...c, id: ex.id })
   const perSide = isPerSide(c)
+  // Interval cardio: a list of segments in place of Intervals × Minutes at one speed.
+  const runs = cardio && isIntervals(c)
+  const setInterval_ = (i, patch) => setC(x => ({ ...x, intervals: x.intervals.map((iv, j) => (j === i ? { ...iv, ...patch } : iv)) }))
   // Pyramid sets: one rep target per set, in place of the flat Sets × Reps (CONTEXT.md).
   const pyramid = mode === 'reps' && isPyramid({ ...c, mode })
   const setPyramidAt = (i, v) => setC(x => ({ ...x, pyramid: x.pyramid.map((p, j) => (j === i ? v : p)) }))
@@ -1786,7 +1790,10 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     const withMeant = dbLoad ? { dbLoad } : {}
     // "Last set to failure": written only when on, so a plan that never asked keeps its shape.
     const withFailure = c.lastToFailure === true ? { lastToFailure: true } : {}
-    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: isSport(ex) ? 0 : Math.max(0, c.speed ?? 8), ...withNote, ...withRest })
+    if (cardio && runs) {
+      const intervals = normalizeIntervals(c.intervals)
+      onSave({ sets: intervals.length, min: Math.max(1, Math.round(intervalMinutes(intervals))), speed: intervals[0]?.speed ?? 0, intervals, ...withNote, ...withRest })
+    } else if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: isSport(ex) ? 0 : Math.max(0, c.speed ?? 8), ...withNote, ...withRest })
     else if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...(perSide ? { side: true } : {}), ...prog, ...withNote, ...withWarmups, ...withRest, ...withMeant, ...withFailure })
     else {
       // A unilateral target is stored even: the split has to divide, and a typed 15 would
@@ -1844,7 +1851,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         options={[{ value: 'reps', label: t('Reps') }, { value: 'time', label: t('Time') }]} />
     </div>}
     <div className="row cfgrow" style={{ marginBottom: mode === 'time' ? 8 : 18 }}>
-      {cardio ? <>
+      {cardio && runs ? null : cardio ? <>
         <Stepper label={t('Intervals')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
         <Stepper label={t('Minutes')} value={c.min} step={1} decimal={false} onChange={v => setC(x => ({ ...x, min: v }))} />
         {/* Typed and stepped in the profile's unit, kept in km/h (lib/speed.js). */}
@@ -1867,6 +1874,28 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         {!bw && !pyramid && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </>}
     </div>
+    {/* Interval cardio (lib/intervals.js): a row per segment, its minutes, speed and the rest
+        after it; 0 rest goes straight on to the next segment. */}
+    {runs && <div style={{ marginTop: -10, marginBottom: 18 }}>
+      {c.intervals.map((iv, i) => <div key={i} style={{ marginBottom: 10 }}>
+        <div className="row cfgrow" style={{ marginBottom: 4 }}>
+          <Stepper label={t('Segment {0} (min)', i + 1)} value={iv.min} step={0.5} min={0.5} onChange={v => setInterval_(i, { min: v })} />
+          {!isSport(ex) && <Stepper label={speedUnit === 'mph' ? t('Speed (mph)') : t('Speed (km/h)')} value={toSpeed(iv.speed, speedUnit)} step={0.5}
+            onChange={v => setInterval_(i, { speed: fromSpeed(v, speedUnit) })} />}
+        </div>
+        <div className="row cfgrow" style={{ marginBottom: 4 }}>
+          <Stepper label={t('Rest (s)')} value={iv.rest} step={15} decimal={false} onChange={v => setInterval_(i, { rest: v })} />
+          {c.intervals.length > 1 && <Button size="sm" icon="trash" aria-label={t('Remove set')} title={t('Remove set')}
+            onClick={() => setC(x => ({ ...x, intervals: x.intervals.filter((_, j) => j !== i) }))} />}
+        </div>
+      </div>)}
+      <div className="row" style={{ gap: 8 }}>
+        <Button size="sm" icon="plus" disabled={c.intervals.length >= MAX_INTERVALS}
+          onClick={() => setC(x => ({ ...x, intervals: [...x.intervals, { ...x.intervals[x.intervals.length - 1] }] }))}>{t('Add set')}</Button>
+        <Button size="sm" variant="plain" onClick={() => setC(x => { const { intervals: _drop, ...rest } = x; return { ...rest, sets: 1, min: Math.max(1, Math.round(intervalMinutes(x.intervals))) || 20, speed: x.intervals[0]?.speed ?? 8 } })}>{t('One steady pace')}</Button>
+      </div>
+      <div className="small dim" style={{ marginTop: 8 }}>{t('0 rest goes straight on to the next segment.')}</div>
+    </div>}
     {/* Pyramid sets: a row per set, each with its own reps or Max, rest and weight. A set left
         at 0 weight starts from that same set last time (buildSets). */}
     {pyramid && <div style={{ marginTop: -10, marginBottom: 18 }}>

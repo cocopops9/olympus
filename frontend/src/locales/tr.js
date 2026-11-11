@@ -3332,4 +3332,8 @@ export default {
   "Plan saved: {0}": "Plan kaydedildi: {0}",
   "{0} warm-up set": "{0} ısınma seti",
   "{0} warm-up sets": "{0} ısınma seti",
+  "{0} intervals · {1} min": "{0} aralık · {1} dk",
+  "Segment {0} (min)": "Bölüm {0} (dk)",
+  "One steady pace": "Sabit tempo",
+  "0 rest goes straight on to the next segment.": "0 dinlenmede sonraki bölüme hemen geçilir.",
 }

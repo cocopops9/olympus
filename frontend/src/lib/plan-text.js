@@ -22,6 +22,7 @@ import { defaultConfig, NOTE_MAX, MAX_PLANNED_WARMUPS } from './history.js'
 import { uid, todayISO } from './format.js'
 import { DEFAULT_GLYPH } from './glyphs.js'
 import { queueOf } from './queue.js'
+import { normalizeIntervals, intervalMinutes } from './intervals.js'
 
 export const PLAN_TEXT_MAX = 8000
 const ASK_MS = 150000   // the model, a second look for the lines it left out, and the fallback
@@ -70,6 +71,9 @@ export function configOf(e, ex) {
   const own = e.restSec > 0 ? { restSec: Math.round(e.restSec) } : {}
   if (isCardio(ex)) {
     const base = id ? defaultConfig(id, 'cardio') : { sets: 1, min: 20, speed: 0 }
+    // An interval run: its segments, their speeds and the rests between them (lib/intervals.js).
+    const intervals = normalizeIntervals((e.intervals || []).map(iv => ({ min: iv.minutes ?? iv.min, speed: iv.speed, rest: iv.restSec ?? iv.rest })))
+    if (intervals.length) return { ...base, sets: intervals.length, min: Math.max(1, Math.round(intervalMinutes(intervals))), speed: intervals[0].speed, intervals, ...own }
     return { ...base, sets: e.minutes ? 1 : Math.max(1, e.sets || 1), min: e.minutes || (e.seconds ? Math.max(1, Math.round(e.seconds / 60)) : base.min), ...own }
   }
   const warm = Math.min(MAX_PLANNED_WARMUPS, Math.max(0, Math.round(e.warmupSets) || 0))
@@ -78,6 +82,8 @@ export function configOf(e, ex) {
     return { ...defaultConfig(id, 'time'), sets: e.sets || 1, sec: e.seconds || e.minutes * 60, weight: e.weight || 0, ...own }
   }
   const base = defaultConfig(id, 'reps')
+  // "The last set taken to failure" is the app's own flag for it (history.js applyFailurePlan).
+  if (e.toFailure === true) own.lastToFailure = true
   return { ...base, sets: e.sets || 3, reps: e.reps || base.reps, ...(e.repsMin > 0 && e.repsMin < e.reps ? { repsMin: e.repsMin } : {}), weight: e.weight || 0, ...own }
 }
 

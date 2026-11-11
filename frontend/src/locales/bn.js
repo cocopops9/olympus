@@ -3411,4 +3411,8 @@ export default {
   "Plan saved: {0}": "প্ল্যান সেভ হয়েছে: {0}",
   "{0} warm-up set": "{0}টি ওয়ার্ম-আপ সেট",
   "{0} warm-up sets": "{0}টি ওয়ার্ম-আপ সেট",
+  "{0} intervals · {1} min": "{0}টি ইন্টারভাল · {1} মিনিট",
+  "Segment {0} (min)": "অংশ {0} (মিনিট)",
+  "One steady pace": "একই গতি",
+  "0 rest goes straight on to the next segment.": "0 বিশ্রামে পরের অংশ সঙ্গে সঙ্গে শুরু হয়।",
 }
