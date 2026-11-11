@@ -94,7 +94,10 @@ jobs:
           tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$tools/apksigner" verify --print-certs "$RUNNER_TEMP/olympus.apk" | head -3
 
+      # A spare copy only: the release below is what the app downloads, so a GitHub
+      # outage on artifact storage (it failed finalizing once) must not stop the publish.
       - uses: actions/upload-artifact@v5
+        continue-on-error: true
         with:
           name: olympus-apk
           path: ${{ runner.temp }}/olympus.apk
