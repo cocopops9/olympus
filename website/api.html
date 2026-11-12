@@ -246,7 +246,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>99 endpoints</span>
+    <span>113 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -2270,6 +2270,32 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-socialSuggested">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/suggested</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">People to follow</span>
+  </summary>
+  <div class="ep-body">
+<p>Profiles the caller does not follow (nor has asked to follow), none in a block with them. The founder first, then the profiles most followed by people the caller follows (<code>mutual</code> says how many), then the most followed.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: object[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-socialProfile">
   <summary>
     <span class="m get">GET</span>
@@ -3115,6 +3141,212 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-musicTop">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/music/top</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The songs most played now in a country</span>
+  </summary>
+  <div class="ep-body">
+<p>Apple Music's most played chart for the country, each song with its 30-second preview. Kept an hour.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">country</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Two-letter country code; us when missing.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ tracks: object[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The catalogue is not answering.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-musicSearch">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/music/search</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Songs matching a search</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">q<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">country</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ tracks: object[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The catalogue is not answering.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-musicTrack">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/music/track</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">A fresh preview address for a Deezer song</span>
+  </summary>
+  <div class="ep-body">
+<p>Deezer's preview addresses expire, so a post keeps only the track id and the app asks for a fresh address when it plays the song.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">src</span>
+    <span class="p-type">&quot;deezer&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ preview: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">The song has no preview.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The catalogue is not answering.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialUploadVideo">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/video</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Upload a post's short video</span>
+  </summary>
+  <div class="ep-body">
+<p>An MP4 or WebM the app trimmed (30 seconds at most) and shrank (3 MB at most), as base64, stored with the photos. Attach the returned id to a post as <code>video</code> (<code>{ id, secs }</code>) within a day, or it is removed.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">data<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Base64 or a data URL.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ id: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Not a video.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">413</span>
+    <span class="p-desc">The video is too large.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">415</span>
+    <span class="p-desc">Not MP4 or WebM.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialUploadSong">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/song</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Upload a post's song clip</span>
+  </summary>
+  <div class="ep-body">
+<p>A WAV clip the app cut from a song (base64, about 1.8 MB at most), stored with the photos. Attach the returned id to a post as <code>song</code> (<code>{ id, title }</code>) within a day, or it is removed.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">data<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Base64 or a data URL.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ id: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">413</span>
+    <span class="p-desc">Too large (<code>song-too-large</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">415</span>
+    <span class="p-desc">Not a WAV (<code>song-type</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-socialPhoto">
   <summary>
     <span class="m get">GET</span>
@@ -3361,6 +3593,453 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s5">503</span>
     <span class="p-desc">Not set up (<code>hercules-off</code>), or the provider is out of quota for the day (<code>hercules-busy</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-herculesPlanText">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/hercules/plan</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Turn a workout or plan written as text into routines (Hercules)</span>
+  </summary>
+  <div class="ep-body">
+<p>The person writes or pastes a workout or a whole plan, in any language, and the coach returns it as routines: <code>kind</code> (<code>workout</code>, one session, or <code>plan</code>), a <code>name</code>, and for each routine its weekdays (0 Sunday to 6 Saturday) and exercises with English catalogue-style names, which the app matches to its catalogue before anything is saved. Costs one of Hercules's messages for the day, given back when the model wrote nothing usable. <code>/api/athena/plan</code> is the same with Athena.</p>
+<p>Since version 45 the plan also comes as <code>sessions</code>, in the text's order: each with its <code>date</code> (YYYY-MM-DD, resolved against <code>today</code>) or weekdays, <code>rest</code> for a named rest day, a day <code>note</code>, and <code>items</code> carrying the text <code>line</code> they came from, <code>restSec</code>, <code>warmupSets</code>, a superset <code>group</code> letter and <code>activity</code> for a sport or class. Every line that reads like sets times reps must be covered: the model is asked once more for the ones it left out, and those still missing come back in <code>missed</code> ([{ line, text }]). <code>routines</code> stays, in its first shape, for apps that predate sessions.</p>
+<p>Since version 47 an item also carries <code>toFailure</code> (its last set taken to failure) and, for interval cardio, <code>intervals</code>: every segment in order, [{ minutes, speed (km/h), restSec (the pause after it, 0 to go straight on) }], <code>sets</code> then being their count.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 8000 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">unit</span>
+    <span class="p-type">&quot;kg&quot; | &quot;lb&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">today</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The person's own date</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">custom</span>
+    <span class="p-type">string[]</span>
+    <span class="p-desc">Names of the person's own exercises.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;text&quot;: &quot;Push: bench 4x6-8 80kg, incline DB press 3x10, lateral raises 3x15&quot;,
+  &quot;lang&quot;: &quot;en&quot;,
+  &quot;unit&quot;: &quot;kg&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The routines.<span class="r-sig">{ plan: object, left: integer, perDay: integer, model: string }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">No text (<code>plan-text-empty</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">422</span>
+    <span class="p-desc">No workout found in the text (<code>plan-text-unclear</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">No messages left today (<code>hercules-limit</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The model did not answer (<code>hercules-failed</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">Not set up (<code>hercules-off</code>), or the provider is busy (<code>hercules-busy</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-athenaPlanText">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/athena/plan</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Turn a workout or plan written as text into routines (Athena)</span>
+  </summary>
+  <div class="ep-body">
+<p>The same as <code>/api/hercules/plan</code>, read by Athena, on her model and her allowance.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 8000 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">unit</span>
+    <span class="p-type">&quot;kg&quot; | &quot;lb&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">today</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The person's own date</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">custom</span>
+    <span class="p-type">string[]</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The routines, as for <code>/api/hercules/plan</code>.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">422</span>
+    <span class="p-desc">No workout found in the text (<code>plan-text-unclear</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">No messages left today (<code>hercules-limit</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-coachMemory">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/coach/memory</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Distil the coaches' memory from recent chats</span>
+  </summary>
+  <div class="ep-body">
+<p>Updates the two memories every coach reads, both kept on the device: <code>notes</code>, what the person said about themselves (they can read and edit them in the app), and <code>insights</code>, what the app reads between the lines of their chats and data (used by the coaches, not shown). Runs on Chiron's model, 4 times a day per profile; with no <code>messages</code> the lists come back as sent and nothing is counted. An answer the model got wrong is not counted.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">messages</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].coach</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].content</span>
+    <span class="p-type">string <span class="p-hint">(&le; 400 chars)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">notes</span>
+    <span class="p-type">(string <span class="p-hint">(&le; 220 chars)</span>)[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">insights</span>
+    <span class="p-type">(string <span class="p-hint">(&le; 220 chars)</span>)[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">data</span>
+    <span class="p-type">string <span class="p-hint">(&le; 6000 chars)</span></span>
+    <span class="p-desc">A short summary of their training data.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ notes: string[], insights: string[], left: integer | null }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">The memory was updated enough for today.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">No provider key on this server.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-chironStatus">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/chiron</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whether Chiron is on, and today's messages left</span>
+  </summary>
+  <div class="ep-body">
+<p>Chiron is the free coach woken up during a workout, between sets: the same exchange as Hercules (<code>/api/hercules</code>), with replies kept under 60 words, the last 10 turns read, up to 36000 characters of memory and training data, anything off the training declined in a sentence, and his own allowance (15 a day unless <code>CHIRON_PER_DAY</code> says otherwise). He uses Hercules's provider key unless <code>CHIRON_API_KEY</code> is set; <code>CHIRON_MODEL</code> and <code>CHIRON_FALLBACK_MODEL</code> pick his models.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The state.<span class="r-sig">{ on: boolean, perDay: integer, left: integer }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-chironAsk">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/chiron</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Ask Chiron</span>
+  </summary>
+  <div class="ep-body">
+<p>One message, with the conversation so far (the last 10 turns are used, 2000 characters each) and the app's written summary of the profile's training (up to 9000 characters). A message the model did not answer is not counted.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">messages<em class="p-req" title="required">required</em></span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].role</span>
+    <span class="p-type">&quot;user&quot; | &quot;assistant&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].content</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The app's language; the answer is in it.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">context</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The training summary.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;How many sets for chest per week?&quot;
+    }
+  ],
+  &quot;lang&quot;: &quot;en&quot;,
+  &quot;context&quot;: &quot;Workouts (last 6 weeks): ...&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The answer.<span class="r-sig">{ reply: string, left: integer, perDay: integer }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">No message (<code>empty</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">No messages left today (<code>hercules-limit</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The model did not answer (<code>hercules-failed</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">Not set up (<code>hercules-off</code>), or the provider is out of quota for the day (<code>hercules-busy</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-voiceStatus">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/voice</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whether the server can transcribe recordings and read text aloud</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ listen, speak }</code>.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-voiceTranscribe">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/voice/transcribe</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The words in a short recording (Whisper)</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">data<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Base64 audio</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">type<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ text }</code>, empty when nothing was said.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">An empty clip or an unknown format.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">413</span>
+    <span class="p-desc">Too long.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The transcription service did not answer.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">No provider key on this server.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-voiceSpeak">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/voice/speak</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Text read aloud by a coach's voice (Google Chirp 3 HD)</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">who</span>
+    <span class="p-type">&quot;chiron&quot; | &quot;hercules&quot; | &quot;athena&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ audio, type }</code>, base64 MP3.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">501</span>
+    <span class="p-desc">No server voice; the phone reads with its own.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The voice service did not answer.</span>
   </div>
     </div>
   </div>
