@@ -8,6 +8,7 @@ import { EXDB, exOr } from '../../frontend/src/lib/exercises.js'
 import { _seedStateForTests } from '../src/state.js'
 import { TOOLS } from '../src/tools.js'
 import { bestSetOf } from '../../frontend/src/lib/onerm.js'
+import { MUSCLES } from '../../frontend/src/lib/muscles.js'
 
 // Re-stated here so the assertions stand alone without reaching into lib internals to learn
 // the demo state's exact values.
@@ -804,7 +805,9 @@ describe('muscle_balance', () => {
     expect(r.workouts_in_period).toBeGreaterThan(0)
     expect(Array.isArray(r.worked)).toBe(true)
     expect(Array.isArray(r.neglected)).toBe(true)
-    expect(r.muscle_order_head_to_toe[0]).toBe('trapezius')
+    // The order is the app's own list of muscles, read top-down like a body: the neck first.
+    expect(r.muscle_order_head_to_toe).toEqual(MUSCLES)
+    expect(r.muscle_order_head_to_toe[0]).toBe('neck')
     expect(r.muscle_order_head_to_toe.at(-1)).toBe('tibialis')
     r.worked.forEach(w => {
       expect(w.level).toBeGreaterThanOrEqual(1)
@@ -916,13 +919,13 @@ describe('muscle_balance', () => {
     }
   })
 
-  test('zero-workout state still returns all 18 muscles as neglected (not empty)', () => {
+  test('zero-workout state still returns every muscle as neglected (not empty)', () => {
     S.workouts = []
     const r = call('muscle_balance', { period: 'all' })
     expect(r.workouts_in_period).toBe(0)
     expect(r.worked).toEqual([])
     expect(r.neglected.length).toBe(r.muscle_order_head_to_toe.length)
-    expect(r.neglected.length).toBe(18)
+    expect(r.neglected.length).toBe(MUSCLES.length)
   })
 })
 
