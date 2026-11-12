@@ -39,7 +39,7 @@ import { effortColor } from '../lib/effort.js'
 import { WorkoutStats } from '../components/WorkoutClock.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
-import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
+import { defaultIncrement, weightIncrement, stepWeight, tapIncrement, DEFAULT_TAP_STEP } from '../lib/progression.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
 import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../lib/session-start.js'
 import { routineChangesFromEntry, updateRoutineFromEntry } from '../lib/routines.js'
@@ -250,7 +250,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // A unilateral exercise logs each side on its own (issue #60): work rows render as an L and an
   // R sub-row, each with its own weight/reps/effort and done tick. Warm-ups stay single.
   const perSide = mode === 'reps' && isPerSide(cfg)
-  const loadStep = mode === 'reps' ? weightIncrement(cfg, S.unit) : 2.5
+  const loadStep = mode === 'reps' ? tapIncrement(cfg) : DEFAULT_TAP_STEP
   // With the dumbbells you own listed (issue #376), + and − walk from bell to bell — 9, 11, 13 —
   // instead of along the increment's grid; an off-list weight goes to the nearest bell that way.
   const owned = mode === 'reps' ? ownedWeightsFor(S, cfg) : null
@@ -1424,6 +1424,13 @@ function ActiveWorkout() {
   // values as Settings), then what to add, what to change about this workout, and Discard last.
   // Layout here stays this session's own (s.active.workoutView); the settings sheet's Layout is
   // the saved one.
+  // kg <-> lb from the workout menu: the weights are converted (the running workout, the history,
+  // the routines), which is what Settings offers first. Settings still has "keep the numbers".
+  const otherUnit = S.unit === 'lb' ? 'kg' : 'lb'
+  const switchUnit = () => {
+    useStore.getState().setUnit(otherUnit)
+    useUI.getState().toast(t('Now in {0}', otherUnit))
+  }
   const openViewMenu = () => menuSheet({
     sections: [
       { items: [
@@ -1439,6 +1446,7 @@ function ActiveWorkout() {
         A.backfill && A.entries.length > 0 && { icon: 'checkCircle', label: t('Mark all sets done'), onClick: markAllDone },
         { icon: 'pencil', label: t('Rename workout'), onClick: renameWorkoutSheet },
         { icon: 'layout', label: t('Layout'), sub: LAYOUT_LABEL[workoutView] || LAYOUT_LABEL.cards, onClick: openLayoutMenu },
+        { icon: 'scale', label: t('Switch to {0}', otherUnit), sub: t('Converts every stored weight'), onClick: switchUnit },
         { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
         noProgSwitchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A), onClick: toggleSessionNoProg },
       ] },

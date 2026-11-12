@@ -3336,4 +3336,7 @@ export default {
   "Segment {0} (min)": "Odcinek {0} (min)",
   "One steady pace": "Stałe tempo",
   "0 rest goes straight on to the next segment.": "Przy 0 przerwy od razu zaczyna się następny odcinek.",
+  "Switch to {0}": "Przełącz na {0}",
+  "Converts every stored weight": "Przelicza wszystkie zapisane ciężary",
+  "Now in {0}": "Teraz w {0}",
 }

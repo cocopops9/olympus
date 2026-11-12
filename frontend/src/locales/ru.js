@@ -3340,4 +3340,7 @@ export default {
   "Segment {0} (min)": "Отрезок {0} (мин)",
   "One steady pace": "Ровный темп",
   "0 rest goes straight on to the next segment.": "При 0 отдыха сразу начинается следующий отрезок.",
+  "Switch to {0}": "Перейти на {0}",
+  "Converts every stored weight": "Пересчитывает все сохранённые веса",
+  "Now in {0}": "Теперь в {0}",
 }

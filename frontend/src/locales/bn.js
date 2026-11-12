@@ -3415,4 +3415,7 @@ export default {
   "Segment {0} (min)": "অংশ {0} (মিনিট)",
   "One steady pace": "একই গতি",
   "0 rest goes straight on to the next segment.": "0 বিশ্রামে পরের অংশ সঙ্গে সঙ্গে শুরু হয়।",
+  "Switch to {0}": "{0}-এ বদলান",
+  "Converts every stored weight": "সংরক্ষিত সব ওজন রূপান্তর করে",
+  "Now in {0}": "এখন {0}-এ",
 }

@@ -3336,4 +3336,7 @@ export default {
   "Segment {0} (min)": "Bölüm {0} (dk)",
   "One steady pace": "Sabit tempo",
   "0 rest goes straight on to the next segment.": "0 dinlenmede sonraki bölüme hemen geçilir.",
+  "Switch to {0}": "{0} birimine geç",
+  "Converts every stored weight": "Kayıtlı tüm ağırlıkları dönüştürür",
+  "Now in {0}": "Artık {0}",
 }

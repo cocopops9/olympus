@@ -3339,4 +3339,7 @@ export default {
   "Segment {0} (min)": "{0}. szakasz (perc)",
   "One steady pace": "Egyenletes tempó",
   "0 rest goes straight on to the next segment.": "0 pihenővel azonnal jön a következő szakasz.",
+  "Switch to {0}": "Váltás: {0}",
+  "Converts every stored weight": "Átszámolja az összes mentett súlyt",
+  "Now in {0}": "Mostantól: {0}",
 }

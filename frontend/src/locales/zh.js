@@ -3336,4 +3336,7 @@ export default {
   "Segment {0} (min)": "第 {0} 段（分钟）",
   "One steady pace": "匀速",
   "0 rest goes straight on to the next segment.": "休息为 0 时直接进入下一段。",
+  "Switch to {0}": "切换到 {0}",
+  "Converts every stored weight": "转换所有已保存的重量",
+  "Now in {0}": "现在使用 {0}",
 }

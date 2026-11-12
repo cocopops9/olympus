@@ -12,6 +12,7 @@ import { socialReady } from '../lib/social.js'
 import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS, BOTH, chatBucket, TEAM } from '../lib/hercules.js'
 import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine, Reply } from '../components/Hercules.jsx'
 import { ownCoachSheet } from '../components/OwnCoach.jsx'
+import { coachGoalsSheet } from '../components/CoachGoals.jsx'
 import { isOwn, ownCoach, providerOf } from '../lib/own-coach.js'
 import { Switch } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
@@ -191,6 +192,72 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff }) {
   </>
 }
 
+// Dragging down with a finger minimises the screen, like a sheet: from the top bar, or from the
+// conversation while it is scrolled to its top. The screen follows the finger; let go past a
+// third of the way (or with a quick flick) and it leaves, otherwise it springs back. Horizontal
+// moves, the text box, the conversations drawer and the coach menu are left alone.
+const PULL_ENGAGE = 12
+const PULL_LEAVE = 120
+function useSwipeDownToClose(ref, onLeave) {
+  const leaveRef = useRef(onLeave)
+  leaveRef.current = onLeave
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let g = null   // { x, y, t, pull, on }
+    const startsHere = target => {
+      if (!target?.closest || !target.closest('.cai-body')) return false
+      if (target.closest('textarea, input, .cai-models, .cai-in')) return false
+      if (target.closest('.cai-top')) return true
+      const main = target.closest('.cai-main')
+      return !!main && main.scrollTop <= 0
+    }
+    const start = e => {
+      g = e.touches.length === 1 && startsHere(e.target) ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), pull: 0, on: false } : null
+    }
+    const move = e => {
+      if (!g) return
+      const dx = e.touches[0].clientX - g.x, dy = e.touches[0].clientY - g.y
+      if (!g.on) {
+        if (Math.abs(dx) > PULL_ENGAGE && Math.abs(dx) > Math.abs(dy)) { g = null; return }
+        if (dy < -PULL_ENGAGE) { g = null; return }
+        if (dy < PULL_ENGAGE || dy < Math.abs(dx) * 1.5) return
+        g.on = true
+        el.style.transition = 'none'
+      }
+      g.pull = Math.max(0, dy - PULL_ENGAGE)
+      if (e.cancelable) e.preventDefault()
+      el.style.transform = 'translateY(' + g.pull + 'px)'
+      el.style.opacity = String(Math.max(0.5, 1 - g.pull / 600))
+    }
+    const end = () => {
+      if (!g || !g.on) { g = null; return }
+      const { pull, t } = g
+      g = null
+      const fast = pull > 40 && pull / Math.max(1, Date.now() - t) > 0.5
+      el.style.transition = 'transform .2s ease-out, opacity .2s ease-out'
+      if (pull > PULL_LEAVE || fast) {
+        el.style.transform = 'translateY(100%)'
+        el.style.opacity = '0'
+        setTimeout(() => leaveRef.current(), 200)
+      } else {
+        el.style.transform = ''
+        el.style.opacity = ''
+      }
+    }
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })
+    el.addEventListener('touchend', end)
+    el.addEventListener('touchcancel', end)
+    return () => {
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end)
+      el.removeEventListener('touchcancel', end)
+    }
+  }, [ref])
+}
+
 export default function CoachAI() {
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -231,9 +298,11 @@ export default function CoachAI() {
   }
   const newChat = () => { setChat('new'); setDrawer(false); setParams({ c: coach }, { replace: true }); bump() }
   const leave = () => (window.history.length > 1 ? nav(-1) : nav('/profile'))
+  const root = useRef(null)
+  useSwipeDownToClose(root, leave)
 
   if (!ready) return <div className="cai cai-off"><div className="cai-col"><p className="muted">{t('{0} is not available on this server.', t('AI coach'))}</p></div></div>
-  return <div className="cai">
+  return <div className="cai" ref={root}>
     <Drawer coach={coach} current={chat} open={drawer} onOpen={openChat} onNew={newChat} onClose={() => setDrawer(false)} version={version} bump={bump} own={own} />
     <div className="cai-body">
       <header className="cai-top">
@@ -245,7 +314,9 @@ export default function CoachAI() {
         {isOwn(coach) && <button className="iconbtn" onClick={() => ownCoachSheet(ownCoach(user?.id, coach), saved => pick(saved ? saved.id : 'hercules'))} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
         {canVoice && <button className={'iconbtn' + (voice ? ' voice-on' : '')} onClick={() => setVoice(v => { const n = !v; if (n) track('coach.voice'); try { localStorage.setItem('olympus_voice_mode', n ? '1' : '0') } catch { /* a convenience */ } return n })}
           aria-pressed={voice} aria-label={t('Voice mode')} title={t('Voice mode')}><Icon name="speaker" /></button>}
-        <button className="iconbtn" onClick={newChat} aria-label={t('New conversation')}><Icon name="pencil" /></button>
+        {/* The memory the coaches share (lib/coach-memory.js), one tap away. A new conversation is
+            the drawer's first button, so the pencil that did the same thing is gone. */}
+        <button className="iconbtn" onClick={() => coachGoalsSheet({ focus: 'memory' })} aria-label={t('Your memory')} title={t('Your memory')}><Icon name="brain" /></button>
         <button className="iconbtn" onClick={leave} aria-label={t('Close')}><Icon name="xmark" /></button>
         {models && <ModelMenu coach={coach} ons={ons} pick={pick} close={() => setModels(false)} own={own} />}
       </header>

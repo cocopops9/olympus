@@ -88,6 +88,14 @@ export { defaultIncrement }
 export function weightIncrement(cfg, unit) {
   return cfg && cfg.inc > 0 ? cfg.inc : defaultIncrement(cfg?.id, unit)
 }
+// One tap on a weight's + or − moves this far when the exercise has no step of its own: 1 kg
+// (1 lb) whatever the lift, so a load can be dialled in finely. The bigger defaultIncrement above
+// stays the size of an automatic progression jump; an exercise that sets its own Step (cfg.inc)
+// uses that for both, and the dumbbells you own still win over either (ownedWeightsFor).
+export const DEFAULT_TAP_STEP = 1
+export function tapIncrement(cfg) {
+  return cfg && cfg.inc > 0 ? cfg.inc : DEFAULT_TAP_STEP
+}
 export const DEFAULT_SEC_INCREMENT = 5
 // Where adding another set of push-ups stops being progress and starts being a way to spend
 // an evening. Past this the honest advice is load or a harder variation (issue #33).

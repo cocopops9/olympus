@@ -3329,4 +3329,7 @@ export default {
   "Segment {0} (min)": "第 {0} 段（分鐘）",
   "One steady pace": "等速",
   "0 rest goes straight on to the next segment.": "休息為 0 時直接進入下一段。",
+  "Switch to {0}": "切換到 {0}",
+  "Converts every stored weight": "轉換所有已儲存的重量",
+  "Now in {0}": "現在使用 {0}",
 }

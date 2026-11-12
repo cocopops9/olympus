@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription, plannedOf, planChanged,
-  policyFor, defaultIncrement, weightIncrement, epley1RM, deloadTarget1RM,
+  policyFor, defaultIncrement, weightIncrement, tapIncrement, DEFAULT_TAP_STEP, stepWeight, epley1RM, deloadTarget1RM,
   deloadFactorOf, DELOAD_FACTOR, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS
 } from './progression.js'
 import { entryExcluded } from './history.js'
@@ -1138,5 +1138,23 @@ describe('a weight off the increment grid keeps its offset when it goes up (issu
   it('still snaps from a weight that sits on the grid', () => {
     const p = nextPrescription(hist(LIFT, [[60, 5, 5, 5]]), { id: LIFT, sets: 3, reps: 5, weight: 60, prog: 'linear', inc: 2.5 })
     expect(p.weight).toBe(62.5)
+  })
+})
+
+describe('tapIncrement', () => {
+  it('moves a weight by 1 for any lift when the exercise has no step of its own', () => {
+    expect(DEFAULT_TAP_STEP).toBe(1)
+    expect(tapIncrement({ id: LIFT })).toBe(1)
+    expect(tapIncrement({ id: HEAVY })).toBe(1)
+    expect(tapIncrement(null)).toBe(1)
+  })
+  it('keeps an exercise own Step, and leaves the progression jump alone', () => {
+    expect(tapIncrement({ id: LIFT, inc: 2.5 })).toBe(2.5)
+    expect(tapIncrement({ id: LIFT, inc: 0 })).toBe(1)
+    expect(weightIncrement({ id: LIFT }, 'kg')).toBe(2.5)
+  })
+  it('a tap on the default step goes from 76 to 77 and back', () => {
+    expect(stepWeight(76, tapIncrement({ id: LIFT }), 1)).toBe(77)
+    expect(stepWeight(77, tapIncrement({ id: LIFT }), -1)).toBe(76)
   })
 })

@@ -3333,4 +3333,7 @@ export default {
   "Segment {0} (min)": "Відрізок {0} (хв)",
   "One steady pace": "Рівний темп",
   "0 rest goes straight on to the next segment.": "З 0 відпочинку одразу починається наступний відрізок.",
+  "Switch to {0}": "Перейти на {0}",
+  "Converts every stored weight": "Перераховує всі збережені ваги",
+  "Now in {0}": "Тепер у {0}",
 }

@@ -3347,4 +3347,7 @@ export default {
   "Segment {0} (min)": "ช่วงที่ {0} (นาที)",
   "One steady pace": "ความเร็วคงที่",
   "0 rest goes straight on to the next segment.": "พัก 0 คือเริ่มช่วงถัดไปทันที",
+  "Switch to {0}": "เปลี่ยนเป็น {0}",
+  "Converts every stored weight": "แปลงน้ำหนักที่บันทึกไว้ทั้งหมด",
+  "Now in {0}": "ตอนนี้เป็น {0}",
 }

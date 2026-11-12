@@ -148,7 +148,7 @@ afterEach(async () => {
 })
 
 describe('superset stepper — one tap moves one step', () => {
-  // Weight steps by 2.5. A single tap on the first exercise of a superset must land on 62.5,
+  // Weight steps by 1 (the default tap step). A single tap on the first exercise of a superset must land on 61,
   // not stay at 60 waiting for a second tap.
   it('increments a superset member weight by one step per tap', async () => {
     await mount([
@@ -158,7 +158,7 @@ describe('superset stepper — one tap moves one step', () => {
 
     await tap(stepperButton(0, 0, 0, 'Increase'))
 
-    expect(mocks.S.active.entries[0].sets[0].w).toBe(62.5)
+    expect(mocks.S.active.entries[0].sets[0].w).toBe(61)
   })
 
   // Reps step by 1 and do not cascade, so they isolate the stepper from weight's carry-through.
@@ -202,6 +202,6 @@ describe('superset stepper — one tap moves one step', () => {
 
     await tap(stepperButton(0, 0, 0, 'Decrease'))
 
-    expect(mocks.S.active.entries[0].sets[0].w).toBe(57.5)
+    expect(mocks.S.active.entries[0].sets[0].w).toBe(59)
   })
 })

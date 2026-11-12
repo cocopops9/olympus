@@ -3336,4 +3336,7 @@ export default {
   "Segment {0} (min)": "खंड {0} (मिनट)",
   "One steady pace": "एक जैसी गति",
   "0 rest goes straight on to the next segment.": "0 आराम पर अगला खंड तुरंत शुरू होता है।",
+  "Switch to {0}": "{0} में बदलें",
+  "Converts every stored weight": "सहेजे गए सभी वज़न बदल देता है",
+  "Now in {0}": "अब {0} में",
 }

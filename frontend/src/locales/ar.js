@@ -3391,4 +3391,7 @@ export default {
   "Segment {0} (min)": "المقطع {0} (د)",
   "One steady pace": "وتيرة ثابتة",
   "0 rest goes straight on to the next segment.": "مع راحة 0 يبدأ المقطع التالي مباشرة.",
+  "Switch to {0}": "التبديل إلى {0}",
+  "Converts every stored weight": "يحوّل جميع الأوزان المحفوظة",
+  "Now in {0}": "الآن بوحدة {0}",
 }

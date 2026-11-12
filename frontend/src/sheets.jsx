@@ -53,7 +53,7 @@ import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from 
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP, formulaOf, FORMULA_NAMES } from './lib/onerm.js'
 import { exerciseHistory } from './lib/exercise-history.js'
 import { isBellEx, dbLoadOf, dbLoadFor, withDbLoad, withMeaning, historyAs, entryDbLoad, currentDbLoad, isOneArm, ownedWeightsFor, dumbbellsOf, ownsDumbbells, withDumbbells, presetWeights, cleanWeights } from './lib/dumbbells.js'
-import { policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, MAX_TRIPLE_SETS, weightIncrement } from './lib/progression.js'
+import { policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, MAX_TRIPLE_SETS, weightIncrement, DEFAULT_TAP_STEP } from './lib/progression.js'
 import { normalizeRepRange } from './lib/rep-range.js'
 import { isBackoff, backoffWeights } from './lib/backoff.js'
 import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeight, pyramidFromFlat, flatFromPyramid, pyramidLabel, PYRAMID_MAX, MAX_PYRAMID_SETS, PYRAMID_PRESETS } from './lib/pyramid.js'
@@ -943,7 +943,7 @@ function OneRM({ ex }) {
       <span className="dim"> · {t('{0} × {1} on {2}', fmtNum(best.w) + ' ' + st.unit, best.r, fmtDate(best.d, true))}</span>
     </div>}
     <div className="row cfgrow" style={{ marginBottom: 10 }}>
-      <Stepper label={t('Weight ({0})', st.unit)} value={w} step={2.5} onChange={setW} />
+      <Stepper label={t('Weight ({0})', st.unit)} value={w} step={DEFAULT_TAP_STEP} onChange={setW} />
       <Stepper label={t('Reps')} value={r} step={1} decimal={false} onChange={setR} />
     </div>
     <div className="row between" style={{ marginBottom: 4 }}>
@@ -1862,7 +1862,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         <Stepper label={t('Seconds')} value={c.sec} step={5} decimal={false} onChange={v => setC(x => ({ ...x, sec: v }))} />
         {/* A bodyweight hold's load is the "Added" row below — showing both put two fields on
             one value. */}
-        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
+        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={DEFAULT_TAP_STEP} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </> : <>
         {/* Rest-pause always trains as exactly two rows — a warm-up at this rep count, then one
             rest-pause work set — so "Sets" has nothing left to mean and only invites a mismatch. */}
@@ -1871,7 +1871,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         {!ranged && !pyramid && <Stepper label={t('Reps')} value={c.reps} step={perSide ? 2 : 1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />}
         {/* On bodyweight work the weight stepper is the click #32 is about, so it is not here
             until there is a belt to describe — see the added-weight row below. */}
-        {!bw && !pyramid && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
+        {!bw && !pyramid && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={DEFAULT_TAP_STEP} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </>}
     </div>
     {/* Interval cardio (lib/intervals.js): a row per segment, its minutes, speed and the rest
@@ -1919,7 +1919,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         </div>
         {/* Bodyweight work has its one "Added" load below instead. */}
         {!bw && <div className="row cfgrow" style={{ marginBottom: 4 }}>
-          <Stepper label={t('Weight ({0})', st.unit)} value={(c.pyramidWeight || [])[i] || 0} step={2.5}
+          <Stepper label={t('Weight ({0})', st.unit)} value={(c.pyramidWeight || [])[i] || 0} step={DEFAULT_TAP_STEP}
             onChange={v => setC(x => {
               const weight = Array.from({ length: x.pyramid.length }, (_, j) => (x.pyramidWeight || [])[j] || 0)
               weight[i] = v
@@ -2026,7 +2026,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         reps, with its explanation underneath. */}
     {bw && <>
       <div className="row cfgrow" style={{ marginBottom: 8 }}>
-        <Stepper label={t('Added ({0})', st.unit)} value={c.weight || 0} step={2.5}
+        <Stepper label={t('Added ({0})', st.unit)} value={c.weight || 0} step={DEFAULT_TAP_STEP}
           onChange={v => setC(x => ({ ...x, weight: v }))} />
       </div>
       <div className="small dim" style={{ marginBottom: 18 }}>

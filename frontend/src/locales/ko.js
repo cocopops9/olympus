@@ -3336,4 +3336,7 @@ export default {
   "Segment {0} (min)": "구간 {0} (분)",
   "One steady pace": "일정한 속도",
   "0 rest goes straight on to the next segment.": "휴식이 0이면 다음 구간이 바로 이어집니다.",
+  "Switch to {0}": "{0}(으)로 전환",
+  "Converts every stored weight": "저장된 모든 무게를 변환합니다",
+  "Now in {0}": "이제 {0} 단위",
 }

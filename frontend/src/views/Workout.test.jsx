@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
     exercisePicker: vi.fn(),
     exConfigSheet: vi.fn(),
     toast: vi.fn(),
+    setUnit: vi.fn(),
     scrollCalls: [],
     headerHeight: 0,
     swapActiveWorkoutExercise: vi.fn(),
@@ -46,6 +47,7 @@ const mocks = vi.hoisted(() => {
   state.storeSnapshot = () => ({
     S: state.S,
     user: state.user,
+    setUnit: state.setUnit,
     update: mut => {
       const next = structuredClone(state.S)
       mut(next)
@@ -660,7 +662,7 @@ describe('active workout weight controls', () => {
     await unmount()
     await mount([exercise('plain-bench', [false])])
     await press('Increase', '.setrow .stp.w')
-    expect(mocks.S.active.entries[0].sets[0].w).toBe(62.5)
+    expect(mocks.S.active.entries[0].sets[0].w).toBe(61)
   })
 
   it.each(['list', 'cards', 'compact'])('keeps added weight editable at zero in %s view', async workoutView => {
@@ -713,7 +715,7 @@ describe('active workout weight controls', () => {
     await press('Increase', '.setrow .stp.w')
     expect(mocks.S.active.entries[0].sets[0].sec).toBe(35)
     await press('Increase', '.setrow .stp.r')
-    expect(mocks.S.active.entries[0].sets[0].w).toBe(62.5)
+    expect(mocks.S.active.entries[0].sets[0].w).toBe(61)
   })
 })
 
@@ -1621,7 +1623,7 @@ describe('workout focus view', () => {
     expect(value).toBeNull()
     await act(async () => { onPick(6.5) })
 
-    expect(mocks.S.active.entries[0].sets[0].w).toBe(62.5)
+    expect(mocks.S.active.entries[0].sets[0].w).toBe(61)
     expect(mocks.S.active.entries[0].sets[0].r).toBe(6)
     expect(mocks.S.active.entries[0].sets[0].rpe).toBe(6.5)
   })
@@ -1729,7 +1731,7 @@ describe('workout focus view', () => {
     const left = container.querySelector('[data-focus-side="L"]')
     expect(left.textContent).toContain('Drop 1')
     await click(left.querySelectorAll('button[aria-label="Increase load"]')[1])
-    expect(mocks.S.active.entries[0].sets[0].sides.L.drops[0].w).toBe(18.5)
+    expect(mocks.S.active.entries[0].sets[0].sides.L.drops[0].w).toBe(17)
     expect(mocks.S.active.entries[0].sets[0].sides.R.drops[0].w).toBe(16)
 
     await click(buttonNamed('Set menu'))
@@ -1814,7 +1816,7 @@ describe('workout focus view', () => {
     expect(container.textContent).toContain('Burst 1')
     await click(container.querySelectorAll('button[aria-label="Increase load"]')[1])
     await click(container.querySelectorAll('button[aria-label="Increase reps"]')[2])
-    expect(mocks.S.active.entries[0].sets[0].drops[0].w).toBe(47.5)
+    expect(mocks.S.active.entries[0].sets[0].drops[0].w).toBe(46)
     expect(mocks.S.active.entries[0].sets[0].clusters[0].r).toBe(4)
     expect(mocks.S.active.entries[0].sets[0].r).toBe(9)
     await click(buttonNamed('Set menu'))
@@ -2344,13 +2346,36 @@ describe('workout view header menu', () => {
     return mocks.menuSheet.mock.calls.at(-1)[0]
   }
 
+  it('offers the other weight unit and converts the stored weights when it is picked', async () => {
+    await mount([exercise('plain-bench', [false])])
+
+    const menu = await openMenu()
+    const switchTo = item(menu, 'Switch to lb')
+    expect(switchTo.sub).toBe('Converts every stored weight')
+    await act(async () => { switchTo.onClick() })
+
+    expect(mocks.setUnit).toHaveBeenCalledWith('lb')
+    expect(mocks.setUnit.mock.calls.at(-1)).toHaveLength(1)
+    expect(mocks.toast).toHaveBeenCalledWith('Now in lb')
+  })
+
+  it('offers kg when the profile is in lb', async () => {
+    await mount([exercise('plain-bench', [false])], 0, { unit: 'lb' })
+
+    const menu = await openMenu()
+    expect(item(menu, 'Switch to lb')).toBeUndefined()
+    await act(async () => { item(menu, 'Switch to kg').onClick() })
+
+    expect(mocks.setUnit).toHaveBeenCalledWith('kg')
+  })
+
   it('groups Workout settings, Add, This workout, AI coach and Discard, then a Layout sheet with the four layouts marked current', async () => {
     await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'list', routineIds: [] } })
 
     const menu = await openMenu()
     expect(menu.sections.map(g => g.title)).toEqual([undefined, 'Add', 'This workout', 'AI coach', undefined])
     expect(menuItemsOf(menu).map(it => it.label)).toEqual([
-      'Workout settings', 'Add exercise', 'Add routine', 'Rename workout', 'Layout', 'Add session note', 'Don’t count for progression', 'Coach during workouts', 'Discard workout',
+      'Workout settings', 'Add exercise', 'Add routine', 'Rename workout', 'Layout', 'Switch to lb', 'Add session note', 'Don’t count for progression', 'Coach during workouts', 'Discard workout',
     ])
     expect(item(menu, 'Coach during workouts').on).toBe(true)
     expect(item(menu, 'Workout settings').sub).toBe('1:30 rest · Silent')

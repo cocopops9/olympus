@@ -1,7 +1,7 @@
 // Olympus: telling the AI coaches what you train for (lib/coach-profile.js): how you train, the
 // phase you are in, and your goals and what is coming up in your own words. Opened from the coach
 // chat, the full-screen coach and Profile's AI coach card.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
@@ -11,7 +11,7 @@ import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../coach-goals.css'
 
-function Goals({ close }) {
+function Goals({ close, focus }) {
   const S = useStore(s => s.S)
   const [p, setP] = useState(() => coachProfileOf(S))
   const toggleStyle = id => setP(v => ({ ...v, styles: v.styles.includes(id) ? v.styles.filter(x => x !== id) : [...v.styles, id] }))
@@ -41,7 +41,7 @@ function Goals({ close }) {
       placeholder={t('e.g. I want progressive overload on the big lifts. Functional legs this week, but I play football in 3 days.')} />
     <div className="small dim" style={{ textAlign: 'end', marginTop: 4 }}>{p.goals.length}/{GOALS_MAX}</div>
 
-    <Memory />
+    <Memory focus={focus === 'memory'} />
 
     <div style={{ height: 12 }} />
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
@@ -50,14 +50,17 @@ function Goals({ close }) {
 
 // Olympus: their memory (lib/coach-memory.js), what they told any coach about themselves, as
 // notes they can correct, delete or add to. Each change is kept at once, whatever Save does.
-function Memory() {
+function Memory({ focus = false }) {
+  const me = useRef(null)
+  // Opened from the full-screen coach's memory button: the sheet comes up already at the memory.
+  useEffect(() => { if (focus) me.current?.scrollIntoView?.({ block: 'start' }) }, [focus])
   const uid = useStore(s => s.user?.id)
   const [notes, setNotes] = useState(() => loadNotes(uid))
   const [editing, setEditing] = useState(null)   // { id, text }
   const [draft, setDraft] = useState('')
   const commit = () => { if (editing) setNotes(editNote(uid, editing.id, editing.text)); setEditing(null) }
   const add = () => { if (!draft.trim()) return; setNotes(addNote(uid, draft)); setDraft('') }
-  return <div className="cg-mem">
+  return <div className="cg-mem" ref={me}>
     <div className="cg-l"><Icon name="brain" /> {t('Your memory')}</div>
     <p className="small muted" style={{ margin: '0 2px 8px' }}>{t('What you told your coaches about yourself. Every coach reads it, Chiron too. Correct it or delete what is no longer true.')}</p>
     {notes.length === 0 && <p className="small dim" style={{ margin: '0 2px 8px' }}>{t('Nothing yet: tell a coach about your goals and it will appear here.')}</p>}
@@ -77,4 +80,5 @@ function Memory() {
   </div>
 }
 
-export const coachGoalsSheet = () => useUI.getState().openSheet(close => <Goals close={close} />)
+// `focus: 'memory'` opens it scrolled to the memory notes.
+export const coachGoalsSheet = ({ focus } = {}) => useUI.getState().openSheet(close => <Goals close={close} focus={focus} />)

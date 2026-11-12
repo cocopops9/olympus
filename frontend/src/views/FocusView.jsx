@@ -13,7 +13,7 @@ import {
   isFailureSet, isSideSet, isWarmupRow, nextBurstReps, toggleFailure, nextDropWeight, setClusterAt,
   setDropAt, setSideClusterAt, setSideDropAt, setSideField,
 } from '../lib/workout-model.js'
-import { weightIncrement, stepWeight } from '../lib/progression.js'
+import { tapIncrement, stepWeight } from '../lib/progression.js'
 import { speedUnitOf, toSpeed, fromSpeed } from '../lib/speed.js'
 import { isIntervals } from '../lib/intervals.js'
 import { effortPickerSheet, exerciseDetailSheet, exerciseHistorySheet, exerciseNoteSheet, menuSheet, barWeightSheet } from '../sheets.jsx'
@@ -134,7 +134,7 @@ export default function FocusView({
   const effortField = EFFORT[effort]?.f
   const effortValue = effortField ? set[effortField] ?? null : null
   const effortTint = effortValue == null ? null : effortColor(rirOf({ [effortField]: effortValue }))
-  const loadStep = weightIncrement({ ...(entry.target || {}), id: entry.id }, S.unit)
+  const loadStep = tapIncrement({ ...(entry.target || {}), id: entry.id })
   // Bell to bell over the dumbbells you own, when the profile lists them (issue #376).
   const owned = mode === 'reps' ? ownedWeightsFor(S, { ...(entry.target || {}), id: entry.id }) : null
   const stepLoad = owned ? (v, _step, dir) => stepOwned(owned, v, dir) : stepWeight
