@@ -3339,4 +3339,13 @@ export default {
   "Switch to {0}": "{0}(으)로 전환",
   "Converts every stored weight": "저장된 모든 무게를 변환합니다",
   "Now in {0}": "이제 {0} 단위",
+  "{0} for 30 min": "30분 동안 {0}",
+  "{0} (sprint)": "{0} (스프린트)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "추정 VO2max",
+  "Top speed": "최고 속도",
+  "from a {0} min steady run at {1}": "{1}로 {0}분 지속주에서",
+  "from intervals at {0}": "{0} 인터벌에서",
+  "from sprints": "스프린트에서",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "달리기는 세션의 종류에 따라 평가합니다. 지속주는 속도와 그 속도를 유지한 시간으로 추정 VO2max를 주므로, 같은 속도라도 더 오래 달리면 더 높게 평가됩니다. 인터벌은 VO2max 속도 가까이에서 달리는 강한 구간의 속도로 이를 추정합니다. 긴 휴식을 둔 짧은 전력 질주인 스프린트는 VO2max를 주지 않으며, 그 수준은 도달한 최고 속도입니다. 공식은 Daniels와 Gilbert의 것이며, 값은 세션 중 가장 좋은 기록입니다. 가볍게 달린 기록은 실제 능력보다 낮게 나옵니다.",
 }

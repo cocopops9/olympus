@@ -3339,4 +3339,13 @@ export default {
   "Switch to {0}": "Cambiar a {0}",
   "Converts every stored weight": "Convierte todos los pesos guardados",
   "Now in {0}": "Ahora en {0}",
+  "{0} for 30 min": "{0} durante 30 min",
+  "{0} (sprint)": "{0} (sprint)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "VO2máx estimado",
+  "Top speed": "Velocidad máxima",
+  "from a {0} min steady run at {1}": "de una carrera continua de {0} min a {1}",
+  "from intervals at {0}": "de intervalos a {0}",
+  "from sprints": "de los sprints",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "La carrera se valora según el tipo de sesión. Una carrera continua da un VO2máx estimado a partir de la velocidad y de cuánto tiempo la mantuviste, así que una carrera más larga a la misma velocidad cuenta más. Los intervalos lo dan a partir de la velocidad de los tramos intensos, que se corren cerca de la velocidad del VO2máx. Los sprints, esfuerzos cortos al máximo con una recuperación larga, no dan VO2máx: su nivel es la velocidad máxima alcanzada. Las ecuaciones son las de Daniels y Gilbert, y la cifra es la mejor que muestran tus sesiones: una carrera suave da menos de lo que podrías hacer.",
 }

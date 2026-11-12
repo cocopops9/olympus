@@ -2,6 +2,7 @@
 // (lib/goal-parse.js), in the languages the coaches answer in.
 import { describe, it, expect } from 'vitest'
 import { parseGoals, norm } from './goal-parse.js'
+import { vo2maxOfRun } from './strength-level.js'
 
 const pick = (r, key) => r.targets.find(t => t.key === key)?.value
 
@@ -51,9 +52,12 @@ describe('goals as numbers', () => {
     expect(pick(parseGoals(['20 dips'], {}), 'dip')).toBe(20)
     expect(pick(parseGoals(['pull ups 10 kg'], {}), 'pull-up')).toBeUndefined()
   })
-  it('reads a pace in km/h', () => {
-    expect(pick(parseGoals(['run at 12 km/h'], {}), 'run')).toBe(12)
+  it('reads a running pace in km/h as the VO2max that holds it for 30 minutes', () => {
+    expect(pick(parseGoals(['run at 12 km/h'], {}), 'run')).toBeCloseTo(vo2maxOfRun(12, 30), 1)
     expect(pick(parseGoals(['run 10 km'], {}), 'run')).toBeUndefined()
+    // The run's name does not make it a sprint goal; the word "sprint" does, kept in km/h.
+    expect(pick(parseGoals(['run at 12 km/h'], {}), 'run-sprint')).toBeUndefined()
+    expect(pick(parseGoals(['sprint at 24 km/h'], {}), 'run-sprint')).toBe(24)
   })
   it('keeps the highest when it is named twice, and says which text it came from', () => {
     const r = parseGoals(['bench 90 kg', 'wants a bench of 100 kg'], {})

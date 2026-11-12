@@ -3339,4 +3339,13 @@ export default {
   "Switch to {0}": "{0} में बदलें",
   "Converts every stored weight": "सहेजे गए सभी वज़न बदल देता है",
   "Now in {0}": "अब {0} में",
+  "{0} for 30 min": "30 मिनट तक {0}",
+  "{0} (sprint)": "{0} (स्प्रिंट)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "अनुमानित VO2max",
+  "Top speed": "अधिकतम गति",
+  "from a {0} min steady run at {1}": "{1} पर {0} मिनट की लगातार दौड़ से",
+  "from intervals at {0}": "{0} पर इंटरवल से",
+  "from sprints": "स्प्रिंट से",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "दौड़ को सत्र के प्रकार के अनुसार आंका जाता है। लगातार दौड़ गति और उसे कितनी देर बनाए रखा, इससे अनुमानित VO2max देती है, इसलिए उसी गति पर लंबी दौड़ ज़्यादा गिनी जाती है। इंटरवल इसे तेज़ हिस्सों की गति से देते हैं, जो VO2max की गति के क़रीब दौड़े जाते हैं। स्प्रिंट, लंबे आराम के साथ छोटे पूरे ज़ोर के प्रयास, VO2max नहीं देते: उनका स्तर पहुँची गई अधिकतम गति है। समीकरण डेनियल्स और गिल्बर्ट के हैं, और मान आपके सत्रों में सबसे अच्छा है: आसान दौड़ आपकी क्षमता से कम दिखाती है।",
 }

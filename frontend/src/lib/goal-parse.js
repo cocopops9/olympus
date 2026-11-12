@@ -14,7 +14,7 @@
 // "What you train for" as a plain target.
 import { EXIDX } from './exercises.js'
 import { exerciseNameFor, getLang } from './i18n.js'
-import { METRICS } from './strength-level.js'
+import { METRICS, vo2maxOfRun } from './strength-level.js'
 
 const LB = 0.45359237
 
@@ -44,6 +44,7 @@ const WORDS = {
   dip: ['dip', 'dips', 'parallele', 'fondos', 'barrenstutz'],
   burpee: ['burpee', 'burpees'],
   run: ['run', 'running', 'corsa', 'correre', 'carrera', 'correr', 'course a pied', 'laufen'],
+  'run-sprint': ['sprint', 'sprints', 'sprintare', 'scatti', 'velocidad maxima', 'top speed', 'velocita massima'],
   rowing: ['rowing machine', 'rower', 'vogatore', 'remo', 'rameur', 'rudergerat'],
 }
 
@@ -59,7 +60,8 @@ function names() {
   index = METRICS.map(m => {
     const ex = EXIDX[m.id]
     const words = new Set(WORDS[m.key] || [])
-    if (ex) { words.add(norm(ex.n)); words.add(norm(exerciseNameFor(ex))) }
+    // A sprint shares its exercise with the run: only its own words ("sprint") point at it.
+    if (ex && m.type !== 'sprint') { words.add(norm(ex.n)); words.add(norm(exerciseNameFor(ex))) }
     // The shortest words first would let "dip" win over "dips": the longest are tried first.
     const list = [...words].filter(w => w.length >= 3).sort((a, b) => b.length - a.length)
     const rx = list.map(w => (isAscii(w) ? new RegExp('(?:^|[^a-z0-9])(' + escape(w) + '(?:s|es)?)(?=$|[^a-z0-9])', 'g') : new RegExp('(' + escape(w) + ')', 'g')))
@@ -94,7 +96,9 @@ const BW = /(\d(?:[.,]\d+)?)\s*(?:x|×|volte|veces|fois|times)?\s*(?:my |the |il
 /** A number that can be a target for a metric of this kind, or null. `unit` is the person's. */
 function targetFrom(kind, n, unit) {
   const u = n.unit
-  if (kind === 'speed') return WORD_SPEED.test(u) && n.v >= 4 && n.v <= 30 ? { v: n.v } : null
+  if (kind === 'speed' || kind === 'sprint') return WORD_SPEED.test(u) && n.v >= 4 && n.v <= 40 ? { v: n.v } : null
+  // "Run at 12 km/h": the VO2max it takes to hold that speed for 30 minutes (lib/strength-level.js).
+  if (kind === 'aerobic') return WORD_SPEED.test(u) && n.v >= 4 && n.v <= 30 ? { v: Math.round(vo2maxOfRun(n.v, 30) * 10) / 10 } : null
   if (kind === 'reps') {
     if (WORD_KG.test(u) || WORD_LB.test(u) || WORD_SPEED.test(u)) return null
     return n.v >= 1 && n.v <= 200 && Number.isInteger(n.v) ? { v: n.v } : null
@@ -112,7 +116,8 @@ function targetFrom(kind, n, unit) {
  * The targets in `texts` (an array of strings), for a person who weighs in `unit` ('kg' or 'lb') with
  * body weight `bw` (in `unit`, 0 when unknown):
  *   { targets: [{ key, kind, value, from }], perWeek }
- * `value` is in `unit` for a lift, in reps for reps and in km/h for a pace; `from` is the index of
+ * `value` is in `unit` for a lift, in reps for reps, in km/h for a pace or a sprint, and for a run
+ * the VO2max (ml/kg/min) that holds the speed asked for 30 minutes; `from` is the index of
  * the text it was found in. When a text names a target twice, the highest is kept.
  */
 export function parseGoals(texts, { unit = 'kg', bw = 0 } = {}) {

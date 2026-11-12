@@ -162,7 +162,10 @@ export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = f
   const bw = lastBW({ bodyweight: S?.bodyweight || [] })?.w || 0
   const who = { sex: female ? 'female' : 'male', age, bw, unit }
   const upper = x => String(x).charAt(0).toUpperCase() + String(x).slice(1)
-  const nameOf = m => upper(EXIDX[m.id] ? exerciseNameFor(EXIDX[m.id]) : m.name)
+  const nameOf = m => {
+    const name = upper(EXIDX[m.id] ? exerciseNameFor(EXIDX[m.id]) : m.name)
+    return m.type === 'sprint' ? t('{0} (sprint)', name) : name
+  }
   // The running best of an exercise, by date: { pts, best, start } (empty and 0 when never done).
   const series = m => {
     let pts

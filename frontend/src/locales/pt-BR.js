@@ -1759,6 +1759,15 @@ export const PT_BR_OVERRIDES = {
   "Switch to {0}": "Mudar para {0}",
   "Converts every stored weight": "Converte todos os pesos salvos",
   "Now in {0}": "Agora em {0}",
+  "{0} for 30 min": "{0} por 30 min",
+  "{0} (sprint)": "{0} (sprint)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "VO2máx estimado",
+  "Top speed": "Velocidade máxima",
+  "from a {0} min steady run at {1}": "de uma corrida contínua de {0} min a {1}",
+  "from intervals at {0}": "de intervalos a {0}",
+  "from sprints": "dos sprints",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "A corrida é avaliada pelo tipo de sessão. Uma corrida contínua dá um VO2máx estimado a partir da velocidade e de quanto tempo você a manteve, então uma corrida mais longa na mesma velocidade conta mais. Os intervalos dão o valor a partir da velocidade dos trechos intensos, corridos perto da velocidade do VO2máx. Os sprints, esforços curtos no máximo com recuperação longa, não dão VO2máx: o nível deles é a velocidade máxima atingida. As equações são as de Daniels e Gilbert, e o valor é o melhor que suas sessões mostram: uma corrida leve dá menos do que você conseguiria fazer.",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,

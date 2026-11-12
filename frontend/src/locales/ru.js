@@ -3343,4 +3343,13 @@ export default {
   "Switch to {0}": "Перейти на {0}",
   "Converts every stored weight": "Пересчитывает все сохранённые веса",
   "Now in {0}": "Теперь в {0}",
+  "{0} for 30 min": "{0} в течение 30 мин",
+  "{0} (sprint)": "{0} (спринт)",
+  "{0} ml/kg/min": "{0} мл/кг/мин",
+  "Est. VO2max": "Оценка МПК",
+  "Top speed": "Максимальная скорость",
+  "from a {0} min steady run at {1}": "по равномерному бегу {0} мин со скоростью {1}",
+  "from intervals at {0}": "по интервалам со скоростью {0}",
+  "from sprints": "по спринтам",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "Бег оценивается по типу тренировки. Равномерный бег даёт оценку МПК (VO2max) по скорости и тому, как долго вы её держали, поэтому более длинный бег с той же скоростью стоит больше. Интервалы дают её по скорости быстрых отрезков, которые бегут около скорости МПК. Спринты, короткие максимальные усилия с долгим отдыхом, МПК не дают: их уровень это достигнутая максимальная скорость. Уравнения взяты у Дэниелса и Гилберта, а значение лучшее из ваших тренировок: лёгкий бег показывает меньше, чем вы можете.",
 }

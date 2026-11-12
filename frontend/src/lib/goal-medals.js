@@ -15,7 +15,8 @@ import { t, tn } from './i18n.js'
 import { fmtNum, weekKey } from './format.js'
 import { coachProfileOf } from './coach-profile.js'
 import { parseGoals } from './goal-parse.js'
-import { METRICS, LIFTS, LEVELS, levelStart } from './strength-level.js'
+import { METRICS, LIFTS, LEVELS, levelStart, speedForVo2max } from './strength-level.js'
+import { fmtSpeed, speedUnitOf } from './speed.js'
 
 // The styles each kind of medal is for.
 const RECORD_STYLES = ['bodybuilding', 'powerlifting', 'strength', 'functional', 'calisthenics', 'sport']
@@ -97,7 +98,11 @@ export function goalGroup(c) {
     const steps = [0.5, 0.75].map(f => snap(base + (goal - base) * f)).filter((v, i, a) => v > base && v < goal && a.indexOf(v) === i)
     const values = [...steps, goal]
     const name = c.nameOf(m)
-    const text = v => (kind === 'load' ? c.vol(v) : kind === 'reps' ? `${fmtNum(v)} ${t('reps')}` : `${fmtNum(v)} km/h`)
+    // A running goal is kept as the VO2max it takes (lib/strength-level.js) and read back as the
+    // speed that VO2max holds for 30 minutes, the way it was asked for.
+    const su = speedUnitOf(S)
+    const text = v => (kind === 'load' ? c.vol(v) : kind === 'reps' ? `${fmtNum(v)} ${t('reps')}`
+      : kind === 'aerobic' ? t('{0} for 30 min', fmtSpeed(Math.round(speedForVo2max(v, 30) * 10) / 10, su)) : fmtSpeed(v, su))
     for (const v of values) covers.add(`${m.key}:${v}`)
     medals.push(...L({ id: `goal:${m.key}`, icon: 'target', values, best, ahead: 3, start: base,
       tierOf: v => (v === goal ? 4 : v === values[0] && values.length > 2 ? 1 : 2),

@@ -3339,4 +3339,13 @@ export default {
   "Switch to {0}": "{0} birimine geç",
   "Converts every stored weight": "Kayıtlı tüm ağırlıkları dönüştürür",
   "Now in {0}": "Artık {0}",
+  "{0} for 30 min": "30 dk boyunca {0}",
+  "{0} (sprint)": "{0} (sprint)",
+  "{0} ml/kg/min": "{0} ml/kg/dk",
+  "Est. VO2max": "Tahmini VO2max",
+  "Top speed": "En yüksek hız",
+  "from a {0} min steady run at {1}": "{1} hızla {0} dk tempolu koşudan",
+  "from intervals at {0}": "{0} hızla aralıklı koşudan",
+  "from sprints": "sprintlerden",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "Koşu, antrenmanın türüne göre değerlendirilir. Tempolu bir koşu, hızdan ve onu ne kadar süre koruduğundan tahmini bir VO2max verir; aynı hızda daha uzun bir koşu daha çok sayılır. Aralıklı koşular bunu, VO2max hızına yakın koşulan sert bölümlerin hızından verir. Sprintler, uzun dinlenmeli kısa ve maksimal eforlar, VO2max vermez: seviyeleri ulaşılan en yüksek hızdır. Denklemler Daniels ve Gilbert’e aittir ve değer, antrenmanlarının gösterdiği en iyisidir: kolay bir koşu yapabileceğinden daha düşük çıkar.",
 }

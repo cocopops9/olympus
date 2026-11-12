@@ -3394,4 +3394,13 @@ export default {
   "Switch to {0}": "التبديل إلى {0}",
   "Converts every stored weight": "يحوّل جميع الأوزان المحفوظة",
   "Now in {0}": "الآن بوحدة {0}",
+  "{0} for 30 min": "{0} لمدة 30 دقيقة",
+  "{0} (sprint)": "{0} (عدو سريع)",
+  "{0} ml/kg/min": "{0} مل/كغ/دقيقة",
+  "Est. VO2max": "VO2max المقدّر",
+  "Top speed": "السرعة القصوى",
+  "from a {0} min steady run at {1}": "من جري متواصل لمدة {0} دقيقة بسرعة {1}",
+  "from intervals at {0}": "من فترات متقطعة بسرعة {0}",
+  "from sprints": "من العدو السريع",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "يُقيَّم الجري حسب نوع الحصة. يعطي الجري المتواصل قيمة مقدّرة لـ VO2max من السرعة ومن المدة التي حافظت عليها، لذا يُحتسب الجري الأطول بالسرعة نفسها أكثر. وتعطيها الفترات المتقطعة من سرعة المقاطع القوية التي تُجرى قرب سرعة VO2max. أما العدو السريع، أي الجهود القصوى القصيرة مع راحة طويلة، فلا يعطي VO2max: مستواه هو أعلى سرعة بلغتها. المعادلات هي معادلات دانيلز وجيلبرت، والقيمة هي الأفضل في حصصك: الجري السهل يعطي أقل مما تستطيع.",
 }

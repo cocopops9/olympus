@@ -3332,4 +3332,13 @@ export default {
   "Switch to {0}": "切換到 {0}",
   "Converts every stored weight": "轉換所有已儲存的重量",
   "Now in {0}": "現在使用 {0}",
+  "{0} for 30 min": "維持 30 分鐘 {0}",
+  "{0} (sprint)": "{0}（衝刺）",
+  "{0} ml/kg/min": "{0} 毫升/公斤/分鐘",
+  "Est. VO2max": "估算最大攝氧量",
+  "Top speed": "最高速度",
+  "from a {0} min steady run at {1}": "來自 {0} 分鐘 {1} 的勻速跑",
+  "from intervals at {0}": "來自 {0} 的間歇跑",
+  "from sprints": "來自衝刺",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "跑步依訓練類型評估。勻速跑根據速度與維持時間估算最大攝氧量（VO2max），因此相同速度跑得越久，評分越高。間歇跑根據高強度段的速度估算，這些段落接近最大攝氧量速度。衝刺是短時間全力、恢復較長的努力，不提供最大攝氧量：其等級是達到的最高速度。公式來自 Daniels 與 Gilbert，數值取你訓練中的最佳成績：輕鬆跑會低於你的真實能力。",
 }

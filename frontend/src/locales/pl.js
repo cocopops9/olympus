@@ -3339,4 +3339,13 @@ export default {
   "Switch to {0}": "Przełącz na {0}",
   "Converts every stored weight": "Przelicza wszystkie zapisane ciężary",
   "Now in {0}": "Teraz w {0}",
+  "{0} for 30 min": "{0} przez 30 min",
+  "{0} (sprint)": "{0} (sprint)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "Szacowane VO2max",
+  "Top speed": "Prędkość maksymalna",
+  "from a {0} min steady run at {1}": "z biegu ciągłego {0} min w tempie {1}",
+  "from intervals at {0}": "z interwałów w tempie {0}",
+  "from sprints": "ze sprintów",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "Bieg jest oceniany według rodzaju treningu. Bieg ciągły daje szacowane VO2max z prędkości i czasu jej utrzymania, więc dłuższy bieg w tym samym tempie liczy się bardziej. Interwały dają je z prędkości mocnych odcinków, biegniętych blisko prędkości przy VO2max. Sprinty, krótkie maksymalne wysiłki z długą przerwą, nie dają VO2max: ich poziom to osiągnięta prędkość maksymalna. Równania pochodzą od Danielsa i Gilberta, a wynik jest najlepszym, jaki pokazują twoje treningi: lekki bieg daje mniej, niż potrafisz.",
 }

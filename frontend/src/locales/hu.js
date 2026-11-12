@@ -3342,4 +3342,13 @@ export default {
   "Switch to {0}": "Váltás: {0}",
   "Converts every stored weight": "Átszámolja az összes mentett súlyt",
   "Now in {0}": "Mostantól: {0}",
+  "{0} for 30 min": "{0} 30 percig",
+  "{0} (sprint)": "{0} (sprint)",
+  "{0} ml/kg/min": "{0} ml/kg/perc",
+  "Est. VO2max": "Becsült VO2max",
+  "Top speed": "Csúcssebesség",
+  "from a {0} min steady run at {1}": "{0} perces egyenletes futásból, {1} sebességgel",
+  "from intervals at {0}": "{0} sebességű intervallumokból",
+  "from sprints": "sprintekből",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "A futást az edzés típusa szerint értékeli. Az egyenletes futás a sebességből és abból, meddig tartottad, becsült VO2max-ot ad, így ugyanazon a sebességen a hosszabb futás többet ér. Az intervallumok a kemény szakaszok sebességéből adják, amelyeket a VO2max-sebesség közelében futnak. A sprintek, rövid maximális erőfeszítések hosszú pihenővel, nem adnak VO2max-ot: szintjük az elért csúcssebesség. Az egyenletek Danielstől és Gilberttől valók, az érték pedig az edzéseid legjobbja: egy könnyű futás kevesebbet mutat, mint amire képes vagy.",
 }

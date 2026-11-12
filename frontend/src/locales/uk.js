@@ -3336,4 +3336,13 @@ export default {
   "Switch to {0}": "Перейти на {0}",
   "Converts every stored weight": "Перераховує всі збережені ваги",
   "Now in {0}": "Тепер у {0}",
+  "{0} for 30 min": "{0} протягом 30 хв",
+  "{0} (sprint)": "{0} (спринт)",
+  "{0} ml/kg/min": "{0} мл/кг/хв",
+  "Est. VO2max": "Оцінка МСК",
+  "Top speed": "Максимальна швидкість",
+  "from a {0} min steady run at {1}": "з рівномірного бігу {0} хв зі швидкістю {1}",
+  "from intervals at {0}": "з інтервалів зі швидкістю {0}",
+  "from sprints": "зі спринтів",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "Біг оцінюється за типом тренування. Рівномірний біг дає оцінку МСК (VO2max) за швидкістю та тим, як довго ви її тримали, тож довший біг з тією ж швидкістю важить більше. Інтервали дають її за швидкістю швидких відрізків, які біжать близько до швидкості МСК. Спринти, короткі максимальні зусилля з довгим відпочинком, МСК не дають: їхній рівень це досягнута максимальна швидкість. Рівняння взяті в Деніелса і Гілберта, а значення найкраще з ваших тренувань: легкий біг показує менше, ніж ви можете.",
 }

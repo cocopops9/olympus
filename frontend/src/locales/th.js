@@ -3350,4 +3350,13 @@ export default {
   "Switch to {0}": "เปลี่ยนเป็น {0}",
   "Converts every stored weight": "แปลงน้ำหนักที่บันทึกไว้ทั้งหมด",
   "Now in {0}": "ตอนนี้เป็น {0}",
+  "{0} for 30 min": "{0} เป็นเวลา 30 นาที",
+  "{0} (sprint)": "{0} (สปรินต์)",
+  "{0} ml/kg/min": "{0} มล./กก./นาที",
+  "Est. VO2max": "VO2max โดยประมาณ",
+  "Top speed": "ความเร็วสูงสุด",
+  "from a {0} min steady run at {1}": "จากการวิ่งต่อเนื่อง {0} นาทีที่ {1}",
+  "from intervals at {0}": "จากอินเทอร์วัลที่ {0}",
+  "from sprints": "จากการสปรินต์",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "การวิ่งจะประเมินตามประเภทของเซสชัน การวิ่งต่อเนื่องให้ค่า VO2max โดยประมาณจากความเร็วและระยะเวลาที่คุณรักษาไว้ ดังนั้นการวิ่งที่นานกว่าด้วยความเร็วเท่ากันจะนับมากกว่า อินเทอร์วัลให้ค่านี้จากความเร็วของช่วงหนัก ซึ่งวิ่งใกล้ความเร็วที่ VO2max ส่วนการสปรินต์ ซึ่งเป็นการออกแรงเต็มที่ช่วงสั้นและพักนาน ไม่ให้ค่า VO2max ระดับของมันคือความเร็วสูงสุดที่ทำได้ สมการมาจาก Daniels และ Gilbert และค่าที่แสดงคือค่าที่ดีที่สุดจากเซสชันของคุณ การวิ่งเบา ๆ จะได้ค่าต่ำกว่าที่คุณทำได้จริง",
 }

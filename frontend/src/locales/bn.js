@@ -3418,4 +3418,13 @@ export default {
   "Switch to {0}": "{0}-এ বদলান",
   "Converts every stored weight": "সংরক্ষিত সব ওজন রূপান্তর করে",
   "Now in {0}": "এখন {0}-এ",
+  "{0} for 30 min": "৩০ মিনিট ধরে {0}",
+  "{0} (sprint)": "{0} (স্প্রিন্ট)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "আনুমানিক VO2max",
+  "Top speed": "সর্বোচ্চ গতি",
+  "from a {0} min steady run at {1}": "{1} গতিতে {0} মিনিটের একটানা দৌড় থেকে",
+  "from intervals at {0}": "{0} গতিতে ইন্টারভাল থেকে",
+  "from sprints": "স্প্রিন্ট থেকে",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "দৌড় সেশনের ধরন অনুযায়ী মাপা হয়। একটানা দৌড় গতি আর কতক্ষণ তা ধরে রেখেছেন তা থেকে আনুমানিক VO2max দেয়, তাই একই গতিতে লম্বা দৌড় বেশি গোনা হয়। ইন্টারভাল তা দেয় কঠিন অংশগুলোর গতি থেকে, যেগুলো VO2max-এর গতির কাছাকাছি দৌড়ানো হয়। স্প্রিন্ট, লম্বা বিশ্রামসহ ছোট সর্বোচ্চ প্রচেষ্টা, VO2max দেয় না: তার স্তর হলো পৌঁছানো সর্বোচ্চ গতি। সমীকরণগুলো ড্যানিয়েলস ও গিলবার্টের, আর মানটি আপনার সেশনগুলোর সেরা: সহজ দৌড় আপনার সামর্থ্যের চেয়ে কম দেখায়।",
 }

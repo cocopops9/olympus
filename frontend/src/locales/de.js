@@ -3359,4 +3359,13 @@ export default {
   "Switch to {0}": "Zu {0} wechseln",
   "Converts every stored weight": "Rechnet alle gespeicherten Gewichte um",
   "Now in {0}": "Jetzt in {0}",
+  "{0} for 30 min": "{0} für 30 min",
+  "{0} (sprint)": "{0} (Sprint)",
+  "{0} ml/kg/min": "{0} ml/kg/min",
+  "Est. VO2max": "Geschätzte VO2max",
+  "Top speed": "Höchstgeschwindigkeit",
+  "from a {0} min steady run at {1}": "aus einem {0}-Minuten-Dauerlauf mit {1}",
+  "from intervals at {0}": "aus Intervallen mit {0}",
+  "from sprints": "aus Sprints",
+  "Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.": "Laufen wird nach der Art der Einheit bewertet. Ein Dauerlauf ergibt eine geschätzte VO2max aus dem Tempo und wie lange du es gehalten hast, ein längerer Lauf im gleichen Tempo zählt also mehr. Intervalle ergeben sie aus dem Tempo der harten Abschnitte, die nahe der Geschwindigkeit bei VO2max gelaufen werden. Sprints, kurze maximale Belastungen mit langer Erholung, ergeben keine VO2max: ihre Stufe ist die erreichte Höchstgeschwindigkeit. Die Gleichungen stammen von Daniels und Gilbert, und der Wert ist der beste, den deine Einheiten zeigen: ein lockerer Lauf ergibt weniger, als du leisten könntest.",
 }

@@ -8,6 +8,7 @@ import { useUI } from '../store/useUI.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { EXIDX } from '../lib/exercises.js'
 import { fmtNum } from '../lib/format.js'
+import { fmtSpeed, speedUnitOf } from '../lib/speed.js'
 import { strengthLevels, missingFor, ageOn, METRICS } from '../lib/strength-level.js'
 import { lastBW } from '../lib/history.js'
 import { aboutYouSheet } from './AboutYou.jsx'
@@ -20,12 +21,33 @@ export const levelLabel = lvl => (lvl === 'beginner' ? t('Beginner') : lvl === '
 
 const pct = p => Math.round(Math.max(1, Math.min(99, p * 100)))
 
-/** A level's value as read: "120 kg" (an estimated one-rep max), "18 reps", "12.5 km/h". */
-export function levelValue(type, v, unit) {
+/**
+ * A level's value as read: "120 kg" (an estimated one-rep max), "18 reps", "12.5 km/h", "48 ml/kg/min"
+ * (a VO2max). Speeds follow the profile's speed unit, `speedUnit` ('kmh' or 'mph').
+ */
+export function levelValue(type, v, unit, speedUnit = 'kmh') {
   if (type === 'reps') return t('{0} reps', fmtNum(Math.round(v)))
-  if (type === 'speed') return fmtNum(Math.round(v * 10) / 10) + ' km/h'
+  if (type === 'speed' || type === 'sprint') return fmtSpeed(Math.round(v * 10) / 10, speedUnit)
+  if (type === 'aerobic') return t('{0} ml/kg/min', fmtNum(Math.round(v)))
   return fmtNum(Math.round(v * 2) / 2) + ' ' + unit
 }
+
+/** What a level's figure is: "Est. 1RM", "Best set", "Best pace", "Est. VO2max", "Top speed". */
+export const levelWhat = type => (type === 'load' ? t('Est. 1RM') : type === 'speed' ? t('Best pace')
+  : type === 'aerobic' ? t('Est. VO2max') : type === 'sprint' ? t('Top speed') : t('Best set'))
+
+/** How a running level was read: "from a 30 min steady run at 12 km/h", "from intervals at 17.5 km/h". */
+export function basisText(basis, speedUnit) {
+  if (!basis) return ''
+  const speed = fmtSpeed(basis.speed, speedUnit)
+  if (basis.kind === 'endurance') return t('from a {0} min steady run at {1}', fmtNum(Math.round(basis.min)), speed)
+  if (basis.kind === 'hiit') return t('from intervals at {0}', speed)
+  if (basis.kind === 'sprint') return t('from sprints')
+  return ''
+}
+
+/** A level's exercise name: a sprint is the run's own exercise, named as a sprint. */
+export const metricName = (lift, name) => (lift.type === 'sprint' ? t('{0} (sprint)', name) : name)
 const OPEN_KEY = 'olympus_levels_open'
 const readOpen = () => { try { return localStorage.getItem(OPEN_KEY) === '1' } catch { return false } }
 const writeOpen = v => { try { localStorage.setItem(OPEN_KEY, v ? '1' : '0') } catch { /* remembered for this visit only */ } }
@@ -35,6 +57,7 @@ function aboutSheet() {
     <h3 style={{ marginBottom: 8 }}>{t('How the levels are worked out')}</h3>
     <p className="small" style={{ lineHeight: 1.45 }}>{t('Your best estimated one-rep max of the last 12 months is compared with lifters of your sex, age and body weight. Among people who train, the ratio of a lift to body weight is close to a log-normal distribution; Olympus centres it for your age (strength peaks between about 23 and 35) and scales it for your weight (strength grows with about body weight to the power 2/3).')}</p>
     <p className="small" style={{ lineHeight: 1.45 }}>{t('Beginner: below the 30th percentile. Intermediate: 30th to 80th. Advanced: 80th to 97.5th. Elite: above the 97.5th.')}</p>
+    <p className="small" style={{ lineHeight: 1.45 }}>{t('Running is read by the kind of session. A steady run gives an estimated VO2max from its speed and how long you held it, so a longer run at the same speed counts for more. Intervals give one from the speed of the hard segments, which are run close to the speed at VO2max. Sprints, short all-out efforts with a long recovery, give no VO2max: their level is the top speed reached. The equations are those of Daniels and Gilbert, and the figure is the best your sessions show: an easy run reads lower than what you could do.')}</p>
     <p className="small muted" style={{ lineHeight: 1.45 }}>{t('The reference figures are rounded from common strength standards, not from a scientific study: read the level as an estimate that shows your progress, not as a measurement.')}</p>
     <Button onClick={close}>{t('Close')}</Button>
   </>)
@@ -49,7 +72,8 @@ export default function StrengthLevels() {
   const trainedAny = useMemo(() => METRICS.some(l => (S.workouts || []).some(w => (w.entries || []).some(e => e.id === l.id))), [S.workouts])
   const toggle = () => { setOpen(!open); writeOpen(!open) }
   const top = levels[0]
-  const nameOf = x => (EXIDX[x.lift.id] ? exerciseNameFor(EXIDX[x.lift.id]) : x.lift.name)
+  const su = speedUnitOf(S)
+  const nameOf = x => metricName(x.lift, EXIDX[x.lift.id] ? exerciseNameFor(EXIDX[x.lift.id]) : x.lift.name)
 
   // Folded by default: one line, opened on a tap (and remembered), never in the way.
   return <div className={'ov-card sl' + (open ? ' open' : '')}>
@@ -83,9 +107,10 @@ export default function StrengthLevels() {
               </div>
               <div className="sl-bar" aria-hidden="true"><i style={{ width: Math.round(x.progress * 100) + '%' }} /></div>
               <div className="small muted row between">
-                <span>{x.type === 'load' ? t('Est. 1RM') + ' ' : x.type === 'speed' ? t('Best pace') + ' ' : t('Best set') + ' '}{levelValue(x.type, x.value, unit)} · {t('better than {0}%', pct(x.percentile))}</span>
-                {x.next && <span>{t('{0} from {1}', levelLabel(x.next.level), x.type === 'load' ? fmtNum(Math.ceil(x.next.weight)) + ' ' + unit : levelValue(x.type, x.type === 'reps' ? Math.ceil(x.next.value) : x.next.value, unit))}</span>}
+                <span>{levelWhat(x.type) + ' '}{levelValue(x.type, x.value, unit, su)} · {t('better than {0}%', pct(x.percentile))}</span>
+                {x.next && <span>{t('{0} from {1}', levelLabel(x.next.level), x.type === 'load' ? fmtNum(Math.ceil(x.next.weight)) + ' ' + unit : levelValue(x.type, x.type === 'reps' ? Math.ceil(x.next.value) : x.next.value, unit, su))}</span>}
               </div>
+              {x.basis && <div className="small muted sl-basis">{basisText(x.basis, su)}</div>}
             </div>)}
           </>}
     </>}

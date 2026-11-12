@@ -31,3 +31,4 @@
 .sl-head-t .small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sl-head .icon{color:var(--label-3);flex:none}
 .sl.open .sl-head{margin-bottom:6px}
+.sl-basis{margin-top:2px}

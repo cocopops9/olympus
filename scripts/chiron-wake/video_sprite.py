@@ -2,7 +2,7 @@
 # background, 33 frames at 16 a second): every frame cut out, a frame added between each two by
 # following the motion (optical flow, seq.py), so 65 frames at 32 a second, packed as COLS x ROWS
 # cells of 256 px. Usage: python video_sprite.py frames_dir out.webp (frames_dir: ffmpeg -i v.mp4 %03d.png)
-import glob, sys
+import glob, os, sys
 import numpy as np, cv2
 from PIL import Image
 
@@ -25,7 +25,9 @@ def matte(path, thr=234):
     out = np.dstack([np.where(a[..., None] > 0.02, c, f), a * 255]).astype(np.uint8)
     return Image.fromarray(out, 'RGBA')
 
-SIZE, COLS, ROWS = 256, 9, 8
+# 384 px cells: the figure is drawn at about 150 CSS px, 400 to 450 device pixels on a phone, so
+# 256 px cells were enlarged and looked soft next to the 640 px portraits.
+SIZE, COLS, ROWS = 384, 9, 8
 from seq import flow, between
 A = '/root/olympus/frontend/src/assets/'
 
@@ -40,9 +42,19 @@ def portrait(name, mirror):
 
 files = sorted(glob.glob(sys.argv[1] + '/*.png'))
 frames = []
+def clean(path):
+    # The video is compressed: blocks and ringing are smoothed away first (non-local means, which
+    # keeps edges), then the lines are brought back with an unsharp mask.
+    bgr = cv2.cvtColor(np.asarray(Image.open(path).convert('RGB')), cv2.COLOR_RGB2BGR)
+    bgr = cv2.fastNlMeansDenoisingColored(bgr, None, 3, 3, 5, 15)
+    soft = cv2.GaussianBlur(bgr, (0, 0), 1.2)
+    bgr = cv2.addWeighted(bgr, 1.7, soft, -0.7, 0)
+    return Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+
 for f in files:
     tmp = '/tmp/_chiron_frame.png'
-    Image.open(f).convert('RGB').save(tmp)
+    # Frames restored by restore.py are already clean; the raw ones are cleaned here.
+    (Image.open(f).convert('RGB') if os.environ.get('RESTORED') else clean(f)).save(tmp)
     frames.append(premul(matte(tmp)))
 start, end = portrait('chiron-full-asleep.webp', True), portrait('chiron-full-awake.webp', False)
 # The video starts and ends on the portraits already (same place, same size); the exact pictures

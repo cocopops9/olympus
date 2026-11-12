@@ -34,7 +34,7 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseGuide from './components/ExerciseGuide.jsx'
 import EquipChips from './components/EquipChips.jsx'
 import RecordMedals, { Medal } from './components/RecordMedals.jsx'
-import { levelLabel, levelValue } from './components/StrengthLevels.jsx'
+import { levelLabel, levelValue, levelWhat } from './components/StrengthLevels.jsx'
 import { levelUps, liftOf, strengthLevels } from './lib/strength-level.js'
 import './strength.css'
 import { equipFamilies, liveEquip, matchesEquip, equipmentVariants } from './lib/equipment-groups.js'
@@ -990,16 +990,18 @@ export function detailTags(ex) {
   return out
 }
 
-// A main lift's strength level (lib/strength-level.js), under its description.
+// An exercise's levels (lib/strength-level.js), under its description: one for a lift, and for a
+// run two, the aerobic one (an estimated VO2max) and the sprint one (top speed) when it has both.
 function LiftLevel({ ex }) {
   const st = useStore(s => s.S)
   const lift = liftOf(ex.id)
-  const lv = useMemo(() => (lift ? strengthLevels(st).find(x => x.lift.key === lift.key) : null), [lift, st])
-  if (!lv) return null
-  return <div className="small row" style={{ gap: 6, margin: '2px 0 8px', alignItems: 'center' }}>
+  const levels = useMemo(() => (lift ? strengthLevels(st).filter(x => x.lift.id === ex.id) : []), [lift, st, ex.id])
+  if (!levels.length) return null
+  const su = speedUnitOf(st)
+  return levels.map(lv => <div key={lv.lift.key} className="small row" style={{ gap: 6, margin: '2px 0 8px', alignItems: 'center', flexWrap: 'wrap' }}>
     <span className={'sl-badge lvl-' + lv.level}>{levelLabel(lv.level)}</span>
-    <span className="muted">{t('better than {0}%', Math.round(Math.max(1, Math.min(99, lv.percentile * 100))))}{lv.next ? ' · ' + t('{0} from {1}', levelLabel(lv.next.level), lv.type === 'load' ? fmtNum(Math.ceil(lv.next.weight)) + ' ' + st.unit : levelValue(lv.type, lv.next.value, st.unit)) : ''}</span>
-  </div>
+    <span className="muted">{lv.type === 'aerobic' || lv.type === 'sprint' ? levelWhat(lv.type) + ' ' + levelValue(lv.type, lv.value, st.unit, su) + ' · ' : ''}{t('better than {0}%', Math.round(Math.max(1, Math.min(99, lv.percentile * 100))))}{lv.next ? ' · ' + t('{0} from {1}', levelLabel(lv.next.level), lv.type === 'load' ? fmtNum(Math.ceil(lv.next.weight)) + ' ' + st.unit : levelValue(lv.type, lv.next.value, st.unit, su)) : ''}</span>
+  </div>)
 }
 
 // The same movement with other equipment (barbell curl: EZ bar, cable), one chip each.
