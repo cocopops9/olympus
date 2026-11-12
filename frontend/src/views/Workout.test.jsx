@@ -2346,36 +2346,13 @@ describe('workout view header menu', () => {
     return mocks.menuSheet.mock.calls.at(-1)[0]
   }
 
-  it('offers the other weight unit and converts the stored weights when it is picked', async () => {
-    await mount([exercise('plain-bench', [false])])
-
-    const menu = await openMenu()
-    const switchTo = item(menu, 'Switch to lb')
-    expect(switchTo.sub).toBe('Converts every stored weight')
-    await act(async () => { switchTo.onClick() })
-
-    expect(mocks.setUnit).toHaveBeenCalledWith('lb')
-    expect(mocks.setUnit.mock.calls.at(-1)).toHaveLength(1)
-    expect(mocks.toast).toHaveBeenCalledWith('Now in lb')
-  })
-
-  it('offers kg when the profile is in lb', async () => {
-    await mount([exercise('plain-bench', [false])], 0, { unit: 'lb' })
-
-    const menu = await openMenu()
-    expect(item(menu, 'Switch to lb')).toBeUndefined()
-    await act(async () => { item(menu, 'Switch to kg').onClick() })
-
-    expect(mocks.setUnit).toHaveBeenCalledWith('kg')
-  })
-
   it('groups Workout settings, Add, This workout, AI coach and Discard, then a Layout sheet with the four layouts marked current', async () => {
     await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'list', routineIds: [] } })
 
     const menu = await openMenu()
     expect(menu.sections.map(g => g.title)).toEqual([undefined, 'Add', 'This workout', 'AI coach', undefined])
     expect(menuItemsOf(menu).map(it => it.label)).toEqual([
-      'Workout settings', 'Add exercise', 'Add routine', 'Rename workout', 'Layout', 'Switch to lb', 'Add session note', 'Don’t count for progression', 'Coach during workouts', 'Discard workout',
+      'Workout settings', 'Add exercise', 'Add routine', 'Rename workout', 'Layout', 'Add session note', 'Don’t count for progression', 'Coach during workouts', 'Discard workout',
     ])
     expect(item(menu, 'Coach during workouts').on).toBe(true)
     expect(item(menu, 'Workout settings').sub).toBe('1:30 rest · Silent')
@@ -3417,10 +3394,38 @@ describe('the workout screen chrome (v1.3.11)', () => {
     expect(groups).toEqual([
       ['Today', ['Swap exercise', 'Add warm-up set', 'Add note', 'Don’t count for progression']],
       ['Look it up', ['History', 'How to do it']],
-      ['Settings', ['Exercise settings', 'Rest timer', 'Plate loading']],
+      ['Settings', ['Weight (kg)', 'Exercise settings', 'Rest timer', 'Plate loading']],
       ['Order and supersets', ['Make superset with next', 'Move up', 'Move down']],
       [undefined, ['Remove exercise']],
     ])
+  })
+
+  it('switches kg and lb from the Weight row of the exercise menu, converting every stored weight', async () => {
+    await mount([exercise('plain-bench', [false])])
+    await openMore()
+    const row = item('Weight (kg)')
+    expect(row.sub).toBe('Switch to lb · Converts every stored weight')
+    await act(async () => { row.onClick() })
+
+    expect(mocks.setUnit).toHaveBeenCalledWith('lb')
+    expect(mocks.setUnit.mock.calls.at(-1)).toHaveLength(1)
+    expect(mocks.toast).toHaveBeenCalledWith('Now in lb')
+  })
+
+  it('names the row like the weight column and offers kg when the profile is in lb', async () => {
+    await mount([exercise('plain-bench', [false])], 0, { unit: 'lb' })
+    await openMore()
+    expect(item('Weight (kg)')).toBeUndefined()
+    expect(item('Weight (lb)').sub).toMatch(/^Switch to kg/)
+    await act(async () => { item('Weight (lb)').onClick() })
+
+    expect(mocks.setUnit).toHaveBeenCalledWith('kg')
+  })
+
+  it('is not on the workout options menu any more', async () => {
+    await mount([exercise('plain-bench', [false])])
+    await click(container.querySelector('button[aria-label="Workout options"]'))
+    expect(menuItemsOf(lastMenu()).map(it => it.label).some(l => /^Switch to/.test(l))).toBe(false)
   })
 
   it('sets an exercise’s own rest on the wheel, 0:00 meaning the default', async () => {

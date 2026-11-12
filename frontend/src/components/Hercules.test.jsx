@@ -20,6 +20,7 @@ import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import HerculesButton, { herculesSheet, resetGreetingForTests } from './Hercules.jsx'
 import { chatsOf } from '../lib/coach-memory.js'
+import { saveChats, putChat } from '../lib/hercules.js'
 
 const roots = []
 const flush = () => act(() => new Promise(r => setTimeout(r, 0)))
@@ -231,5 +232,83 @@ describe('Hercules', () => {
     expect(chat.querySelector('.hc-name').textContent).toBe('Athena')
     expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Athena'])
     expect(chat.querySelector('.hc-add').getAttribute('aria-label')).toBe('Add your own AI coach')
+  })
+
+  it('opens on the conversation it is given, the one the full screen was showing', async () => {
+    const uid = useStore.getState().user.id
+    let data = putChat({ current: null, chats: [] }, 'old', [{ role: 'user', content: 'Older question' }, { role: 'assistant', content: 'Older answer' }])
+    data = putChat(data, 'new', [{ role: 'user', content: 'Newest question' }, { role: 'assistant', content: 'Newest answer' }])
+    saveChats(uid, { ...data, current: 'new' })
+    herculesSheet({ coach: 'hercules', chat: 'old' })
+    const chat = renderTopSheet()
+    await flush()
+    expect(chat.textContent).toContain('Older question')
+    expect(chat.textContent).not.toContain('Newest question')
+  })
+
+  describe('dragging the small window up makes it the full screen', () => {
+    const touch = (el, type, y, x = 100) => {
+      const ev = new Event(type, { bubbles: true, cancelable: true })
+      ev.touches = type === 'touchend' ? [] : [{ clientX: x, clientY: y }]
+      act(() => { el.dispatchEvent(ev) })
+      return ev
+    }
+    // The real sheet host wraps the chat in .sheet with a .grab handle; the swipe listens there.
+    const open = async () => {
+      const uid = useStore.getState().user.id
+      saveChats(uid, { ...putChat({ current: null, chats: [] }, 'c1', [{ role: 'user', content: 'Squat tips' }, { role: 'assistant', content: 'Brace.' }]), current: 'c1' })
+      herculesSheet({ coach: 'athena' })
+      const sheet = useUI.getState().sheets.at(-1)
+      const host = mount(<div className="sheet"><div className="grab" />{sheet.render(() => {})}</div>)
+      await flush()
+      return host
+    }
+    const later = ms => act(() => new Promise(r => setTimeout(r, ms)))
+    let before
+    beforeEach(() => { before = window.location.hash; window.location.hash = '' })
+    afterEach(() => { window.location.hash = before })
+
+    it('from the header: a long pull goes to #/ai on the same coach and conversation', async () => {
+      const host = await open()
+      const head = host.querySelector('.hc-h')
+      touch(head, 'touchstart', 400); touch(head, 'touchmove', 380)
+      const ev = touch(head, 'touchmove', 300)
+      expect(ev.defaultPrevented).toBe(true)
+      touch(head, 'touchend', 300)
+      await later(20)
+      expect(window.location.hash).toBe('#/ai?c=athena&chat=c1')
+    })
+
+    it('from the grab handle, and from a conversation with nothing to scroll', async () => {
+      let host = await open()
+      touch(host.querySelector('.grab'), 'touchstart', 400); touch(host.querySelector('.grab'), 'touchmove', 330); touch(host.querySelector('.grab'), 'touchend', 330)
+      await later(20)
+      expect(window.location.hash).toMatch(/^#\/ai\?c=athena/)
+      window.location.hash = ''
+      host = await open()
+      const list = host.querySelector('.hc-list')
+      touch(list, 'touchstart', 400); touch(list, 'touchmove', 340); touch(list, 'touchmove', 300); touch(list, 'touchend', 300)
+      await later(20)
+      expect(window.location.hash).toMatch(/^#\/ai\?c=athena/)
+    })
+
+    it('a short slow pull, a pull down, a sideways one, the text box and a scrolling conversation do nothing', async () => {
+      const host = await open()
+      const head = host.querySelector('.hc-h')
+      let now = 1000
+      const clock = vi.spyOn(Date, 'now').mockImplementation(() => now)
+      touch(head, 'touchstart', 400); touch(head, 'touchmove', 370); now += 2000; touch(head, 'touchend', 370)
+      clock.mockRestore()
+      touch(head, 'touchstart', 300); touch(head, 'touchmove', 400); touch(head, 'touchmove', 200); touch(head, 'touchend', 200)
+      touch(head, 'touchstart', 400, 100); touch(head, 'touchmove', 380, 220); touch(head, 'touchmove', 300, 260); touch(head, 'touchend', 300, 260)
+      const box = host.querySelector('textarea')
+      touch(box, 'touchstart', 400); touch(box, 'touchmove', 300); touch(box, 'touchend', 300)
+      const list = host.querySelector('.hc-list')
+      Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 900 })
+      Object.defineProperty(list, 'clientHeight', { configurable: true, value: 300 })
+      touch(list, 'touchstart', 400); touch(list, 'touchmove', 300); touch(list, 'touchend', 300)
+      await later(20)
+      expect(window.location.hash).toBe('')
+    })
   })
 })

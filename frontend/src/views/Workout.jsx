@@ -382,6 +382,14 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const restSub = ownRest ? fmtRest(ownRest) : t('Default ({0})', fmtRest(S.restSec))
   // The same movement with other equipment, for "Change equipment" (lib/equipment-groups.js).
   const variants = useMemo(() => (onSwapTo ? equipmentVariants(ex, allExercises(S)) : []), [ex.id, !!onSwapTo, S.customEx])
+  // kg <-> lb from the exercise's own menu, on the row named like the weight column. The unit is
+  // the profile's, so every weight is converted (the running workout, the history, the routines),
+  // which is what Settings offers first; Settings still has "keep the numbers, change the label".
+  const otherUnit = S.unit === 'lb' ? 'kg' : 'lb'
+  const switchUnit = () => {
+    useStore.getState().setUnit(otherUnit)
+    useUI.getState().toast(t('Now in {0}', otherUnit))
+  }
   const openMore = () => menuSheet({
     title: exerciseNameFor(ex),
     titleClass: exerciseNameClass(ex),
@@ -401,6 +409,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
         { icon: 'info', label: t('How to do it'), onClick: () => exerciseDetailSheet(ex) },
       ] },
       { title: t('Settings'), items: [
+        mode === 'reps' && { icon: 'scale', label: bw ? t('Added ({0})', S.unit) : t('Weight ({0})', S.unit), sub: t('Switch to {0}', otherUnit) + ' · ' + t('Converts every stored weight'), onClick: switchUnit },
         onProgressionSettings && { icon: 'slider', label: t('Exercise settings'), sub: guidance ? t(guidance.policyLabel) : t('Sets, reps, rest, progression'), onClick: onProgressionSettings },
         onRest && { icon: 'timer', label: t('Rest timer'), sub: restSub, onClick: onRest },
         plateLoading && { icon: 'plate', label: t('Plate loading'), sub: loadSummary, onClick: () => barWeightSheet(entry.id, cfg) },
@@ -1424,13 +1433,6 @@ function ActiveWorkout() {
   // values as Settings), then what to add, what to change about this workout, and Discard last.
   // Layout here stays this session's own (s.active.workoutView); the settings sheet's Layout is
   // the saved one.
-  // kg <-> lb from the workout menu: the weights are converted (the running workout, the history,
-  // the routines), which is what Settings offers first. Settings still has "keep the numbers".
-  const otherUnit = S.unit === 'lb' ? 'kg' : 'lb'
-  const switchUnit = () => {
-    useStore.getState().setUnit(otherUnit)
-    useUI.getState().toast(t('Now in {0}', otherUnit))
-  }
   const openViewMenu = () => menuSheet({
     sections: [
       { items: [
@@ -1446,7 +1448,6 @@ function ActiveWorkout() {
         A.backfill && A.entries.length > 0 && { icon: 'checkCircle', label: t('Mark all sets done'), onClick: markAllDone },
         { icon: 'pencil', label: t('Rename workout'), onClick: renameWorkoutSheet },
         { icon: 'layout', label: t('Layout'), sub: LAYOUT_LABEL[workoutView] || LAYOUT_LABEL.cards, onClick: openLayoutMenu },
-        { icon: 'scale', label: t('Switch to {0}', otherUnit), sub: t('Converts every stored weight'), onClick: switchUnit },
         { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
         noProgSwitchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A), onClick: toggleSessionNoProg },
       ] },

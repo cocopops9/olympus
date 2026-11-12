@@ -10,7 +10,7 @@ import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
 import { socialReady } from '../lib/social.js'
 import { herculesStatus, loadChats, saveChats, dropChat, setLastCoach, lastCoach, COACH_IDS, BOTH, chatBucket, TEAM } from '../lib/hercules.js'
-import { Avatar, Rich, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine, Reply } from '../components/Hercules.jsx'
+import { Avatar, Rich, herculesSheet, useCoachChat, coachName, statusOf, setCached, whenOf, fabHidden, setFabHidden, useOwnCoaches, GoalsLine, Reply } from '../components/Hercules.jsx'
 import { ownCoachSheet } from '../components/OwnCoach.jsx'
 import { coachGoalsSheet } from '../components/CoachGoals.jsx'
 import { isOwn, ownCoach, providerOf } from '../lib/own-coach.js'
@@ -192,15 +192,16 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff }) {
   </>
 }
 
-// Dragging down with a finger minimises the screen, like a sheet: from the top bar, or from the
-// conversation while it is scrolled to its top. The screen follows the finger; let go past a
-// third of the way (or with a quick flick) and it leaves, otherwise it springs back. Horizontal
-// moves, the text box, the conversations drawer and the coach menu are left alone.
+// Dragging down with a finger makes the screen smaller, like a sheet: from the top bar, or from
+// the conversation while it is scrolled to its top. The screen follows the finger; let go past a
+// third of the way (or with a quick flick) and it hands over to the small chat window on the same
+// conversation (dragging that window up brings this screen back), otherwise it springs back.
+// Horizontal moves, the text box, the conversations drawer and the coach menu are left alone.
 const PULL_ENGAGE = 12
 const PULL_LEAVE = 120
-function useSwipeDownToClose(ref, onLeave) {
-  const leaveRef = useRef(onLeave)
-  leaveRef.current = onLeave
+function useSwipeDownToShrink(ref, onShrink) {
+  const leaveRef = useRef(onShrink)
+  leaveRef.current = onShrink
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -299,7 +300,17 @@ export default function CoachAI() {
   const newChat = () => { setChat('new'); setDrawer(false); setParams({ c: coach }, { replace: true }); bump() }
   const leave = () => (window.history.length > 1 ? nav(-1) : nav('/profile'))
   const root = useRef(null)
-  useSwipeDownToClose(root, leave)
+  // Making the screen smaller leaves it like the ✕ does, and the small chat window opens on the
+  // same coach and conversation once it is gone (a window opened while this one is still the
+  // route would be closed by the route change).
+  const shrinkTo = useRef(null)
+  const shrink = () => { shrinkTo.current = { coach, chat: chat && chat !== 'new' ? chat : undefined }; leave() }
+  useSwipeDownToShrink(root, shrink)
+  useEffect(() => () => {
+    const to = shrinkTo.current
+    shrinkTo.current = null
+    if (to) setTimeout(() => herculesSheet(to), 0)
+  }, [])
 
   if (!ready) return <div className="cai cai-off"><div className="cai-col"><p className="muted">{t('{0} is not available on this server.', t('AI coach'))}</p></div></div>
   return <div className="cai" ref={root}>

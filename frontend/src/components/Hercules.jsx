@@ -312,8 +312,61 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   return { uid, name, data, list, draft, setDraft, busy, writing: writing || (coach === BOTH ? 'hercules' : coach), err, left, lefts, status, input, send, start, open, remove, suggestions, markApplied, authorOf }
 }
 
-function Chat({ close, ask, coach, ons, pick, own }) {
-  const c = useCoachChat({ coach, ask })
+// Dragging the small chat window up makes it the full screen, the way dragging the full screen
+// down (views/CoachAI.jsx) makes it the small window again. It starts from the grab handle, the
+// header, or the conversation while that has nothing to scroll; the conversation itself, the text
+// box and the coach pills keep their own touches. A long pull or a quick flick does it.
+const SWIPE_UP_ENGAGE = 14
+const SWIPE_UP_EXPAND = 60
+function useSwipeUpToExpand(ref, onExpand) {
+  const expandRef = useRef(onExpand)
+  expandRef.current = onExpand
+  useEffect(() => {
+    const el = ref.current?.closest?.('.sheet') || ref.current
+    if (!el) return
+    let g = null   // { x, y, t, up, on }
+    const startsHere = target => {
+      if (!target?.closest) return false
+      if (target.closest('textarea, input, .hc-switch, .hc-in')) return false
+      const list = target.closest('.hc-list')
+      if (list) return list.scrollHeight <= list.clientHeight + 1
+      return !!target.closest('.grab, .hc-h')
+    }
+    const start = e => {
+      g = e.touches.length === 1 && startsHere(e.target) ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), up: 0, on: false } : null
+    }
+    const move = e => {
+      if (!g) return
+      const dx = e.touches[0].clientX - g.x, dy = e.touches[0].clientY - g.y
+      if (!g.on) {
+        if (dy > SWIPE_UP_ENGAGE || Math.abs(dx) > SWIPE_UP_ENGAGE && Math.abs(dx) > Math.abs(dy)) { g = null; return }
+        if (dy > -SWIPE_UP_ENGAGE || -dy < Math.abs(dx) * 1.5) return
+        g.on = true
+      }
+      g.up = Math.max(0, -dy - SWIPE_UP_ENGAGE)
+      if (e.cancelable) e.preventDefault()
+    }
+    const end = () => {
+      const d = g
+      g = null
+      if (!d || !d.on) return
+      const fast = d.up > 30 && d.up / Math.max(1, Date.now() - d.t) > 0.5
+      if (d.up > SWIPE_UP_EXPAND || fast) expandRef.current()
+    }
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })
+    el.addEventListener('touchend', end)
+    el.addEventListener('touchcancel', () => { g = null })
+    return () => {
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end)
+    }
+  }, [ref])
+}
+
+function Chat({ close, ask, chatId, coach, ons, pick, own }) {
+  const c = useCoachChat({ coach, ask, chatId })
   const { name, data, list, draft, setDraft, busy, err, left, input, send, remove, suggestions } = c
   const [menu, setMenu] = useState(false)
   const end = useRef(null)
@@ -322,6 +375,8 @@ function Chat({ close, ask, coach, ons, pick, own }) {
   useEffect(() => { if (!menu) end.current?.scrollIntoView?.({ block: 'end' }) }, [list.length, busy, err, menu, data.current])
   // The same conversation, full screen (views/CoachAI.jsx).
   const expand = () => { close(); setTimeout(() => { window.location.hash = '#/ai?c=' + coach + (data.current ? '&chat=' + data.current : '') }, 0) }
+  const root = useRef(null)
+  useSwipeUpToExpand(root, expand)
 
   // Which model each coach answers with (api/hercules.js modelLabel): they are not the same one.
   const modelOf = id => statusOf(c.uid, id)?.model || ''
@@ -331,7 +386,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
   const addOwn = () => ownCoachSheet(null, saved => { if (saved) pick(saved.id) })
   const editOwn = () => ownCoachSheet(ownCoach(useStore.getState().user?.id, coach), saved => pick(saved ? saved.id : 'hercules'))
 
-  return <div className="hc" data-coach={coach}>
+  return <div className="hc" data-coach={coach} ref={root}>
     <div className="hc-h">
       <Avatar size="md" live={busy} coach={coach} />
       <div className="grow" style={{ minWidth: 0 }}>
@@ -393,7 +448,7 @@ function Chat({ close, ask, coach, ons, pick, own }) {
 }
 
 /** The chat sheet: one coach at a time, and the pills to change. */
-function CoachSheet({ close, ask, first, ons: initial }) {
+function CoachSheet({ close, ask, chat, first, ons: initial }) {
   const user = useStore(s => s.user)
   const [coach, setCoach] = useState(first)
   const [ons, setOns] = useState(initial)
@@ -407,15 +462,15 @@ function CoachSheet({ close, ask, first, ons: initial }) {
   const pick = id => { setCoach(id); setLastCoach(user?.id, id) }
   // `ask` is a question for the coach it was offered by, and only for the first conversation.
   // Hercules, Athena and Both share one conversation, so changing between them keeps it open.
-  return <Chat key={chatBucket(coach)} close={close} ask={coach === first ? ask : undefined} coach={coach} ons={ons} pick={pick} own={own} />
+  return <Chat key={chatBucket(coach)} close={close} ask={coach === first ? ask : undefined} chatId={coach === first ? chat : undefined} coach={coach} ons={ons} pick={pick} own={own} />
 }
 
-/** Opens the chat on `coach` (the one talked to last by default). */
-export const herculesSheet = ({ ask, coach } = {}) => {
+/** Opens the chat on `coach` (the one talked to last by default), on conversation `chat` if given. */
+export const herculesSheet = ({ ask, coach, chat } = {}) => {
   const uid = useStore.getState().user?.id
   const first = COACH_IDS.includes(coach) || coach === BOTH ? coach : (lastCoach(uid) || 'hercules')
   const ons = Object.fromEntries(COACH_IDS.map(id => [id, statusOf(uid, id)?.on]).filter(([, v]) => v !== undefined && v !== null))
-  return useUI.getState().openSheet(close => <CoachSheet close={close} ask={ask} first={first} ons={ons} />)
+  return useUI.getState().openSheet(close => <CoachSheet close={close} ask={ask} chat={chat} first={first} ons={ons} />)
 }
 
 /**

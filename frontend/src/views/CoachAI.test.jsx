@@ -103,13 +103,53 @@ describe('AI coach, drag down to minimise', () => {
   }
   const drag = (el, ys) => { touch(el, 'touchstart', ys[0]); ys.slice(1).forEach(y => touch(el, 'touchmove', y)); touch(el, 'touchend', ys.at(-1)) }
   const later = ms => act(() => new Promise(r => setTimeout(r, ms)))
+  // Leaving opens the small chat window a tick later: caught here so one test's window never
+  // lands in the next one.
+  let openSheet, realOpen
+  beforeEach(() => { realOpen = useUI.getState().openSheet; openSheet = vi.fn(); useUI.setState({ openSheet }) })
+  afterEach(() => { useUI.setState({ openSheet: realOpen }) })
 
   it('leaves after a long pull down from the top bar', async () => {
     screen(); await flush()
     drag(host.querySelector('.cai-top'), [100, 140, 220, 330])
     expect(host.querySelector('.cai').style.transform).toBe('translateY(100%)')
-    await later(260)
+    await later(300)
     expect(host.querySelector('#profile-page')).toBeTruthy()
+  })
+
+  it('hands over to the small chat window on the same coach and conversation', async () => {
+    useStore.setState({ S: structuredClone(DEF), user: { id: 'u1', name: 'Giuseppe Rossi' }, ready: true })
+    screen(); await flush()
+    const box = host.querySelector('.cai-box textarea')
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+    act(() => { setter.call(box, 'Squat tips'); box.dispatchEvent(new Event('input', { bubbles: true })) })
+    act(() => host.querySelector('.cai-box .hc-send').click())
+    await flush(); await flush()
+    openSheet.mockClear()
+    drag(host.querySelector('.cai-top'), [100, 160, 260, 360])
+    await later(300)
+    expect(host.querySelector('#profile-page')).toBeTruthy()
+    await later(20)   // the window opens a tick after the screen has gone
+    expect(openSheet).toHaveBeenCalledTimes(1)
+    // the window it opens is the chat of the conversation that was on screen
+    const sheet = document.createElement('div'); document.body.appendChild(sheet)
+    const sheetRoot = createRoot(sheet)
+    act(() => sheetRoot.render(openSheet.mock.calls[0][0](() => {})))
+    await flush()
+    expect(sheet.querySelector('.hc')).toBeTruthy()
+    expect(sheet.textContent).toContain('Squat tips')
+    act(() => sheetRoot.unmount()); sheet.remove()
+  })
+
+  it('does not open the small window when the pull is let go short', async () => {
+    screen(); await flush()
+    let now = 1000
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const top = host.querySelector('.cai-top')
+    touch(top, 'touchstart', 100); touch(top, 'touchmove', 170); now += 2000; touch(top, 'touchend', 170)
+    clock.mockRestore()
+    await later(300)
+    expect(openSheet).not.toHaveBeenCalled()
   })
 
   it('springs back after a short pull, and stays', async () => {
@@ -158,7 +198,7 @@ describe('AI coach, drag down to minimise', () => {
     expect(host.querySelector('.cai').style.transform).toBe('')
     main.scrollTop = 0
     drag(main, [100, 160, 260, 400])
-    await later(260)
+    await later(300)
     expect(host.querySelector('#profile-page')).toBeTruthy()
   })
 })
