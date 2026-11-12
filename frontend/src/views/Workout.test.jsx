@@ -3412,6 +3412,23 @@ describe('the workout screen chrome (v1.3.11)', () => {
     expect(mocks.toast).toHaveBeenCalledWith('Now in lb')
   })
 
+  it('switches kg and lb with a tap on the Weight column title', async () => {
+    await mount([exercise('plain-bench', [false])])
+    const title = container.querySelector('.sethead button.w-sp')
+    expect(title.textContent).toBe('Weight (kg)')
+    expect(title.getAttribute('aria-label')).toBe('Switch to lb')
+    await click(title)
+
+    expect(mocks.setUnit).toHaveBeenCalledWith('lb')
+    expect(mocks.toast).toHaveBeenCalledWith('Now in lb')
+  })
+
+  it('only the weight title is a button: reps and cardio columns stay plain text', async () => {
+    await mount([exercise('plain-bench', [false])])
+    expect(container.querySelector('.sethead .r-sp').tagName).toBe('SPAN')
+    expect(container.querySelectorAll('.sethead button')).toHaveLength(1)
+  })
+
   it('names the row like the weight column and offers kg when the profile is in lb', async () => {
     await mount([exercise('plain-bench', [false])], 0, { unit: 'lb' })
     await openMore()

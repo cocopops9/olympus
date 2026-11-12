@@ -71,7 +71,8 @@ import { repeatSessionEntries } from './lib/session-repeat.js'
 import { swapActiveExercise } from './lib/active-exercise-swap.js'
 import { useSheetKeyboard, useRevealActiveChip, tappable } from './lib/use-sheet-keyboard.js'
 import { useAutoMore } from './lib/use-auto-more.js'
-import { isFav, toggleFav, sortFavouritesFirst, sortYoursFirst } from './lib/favourites.js'
+import { isFav, toggleFav } from './lib/favourites.js'
+import { rankForPicker } from './lib/picker-rank.js'
 import { buildSessionEntries, buildPlannedEntry, builtOutOfProgression } from './lib/session-start.js'
 import { finishCompare, finishCardio } from './lib/finish-compare.js'
 import { workoutFit, fitFileName } from './lib/fit-export.js'
@@ -1370,13 +1371,11 @@ function ExerciseSearch({ onPick, title, close, like, query, onBody }) {
   const eqOpts = equipFamilies(eqFiltered)
   // Drop the equipment filter if the search narrowed it away, so you never hit a dead end.
   const eqOn = liveEquip(eqOpts, eq)
-  // Favourites float to the top of whatever the filters left (issue #6), the rest keeps its order.
-  // On the same-muscle list the equipment order wins: what is on the same kit comes first,
-  // favourites leading within each half.
-  // While searching, what you have logged or planned follows right after them.
   const narrowedList = eqOn ? eqFiltered.filter(e => matchesEquip(e, eqOn)) : eqFiltered
-  const ranked = q.trim() ? sortYoursFirst(narrowedList, st, usage) : sortFavouritesFirst(narrowedList, st)
-  const f = bp === SAME ? sameMuscleFirst(ranked, likeEx) : ranked
+  // The order: what you do most, then what is popular, then the rest; while typing, names that
+  // start with the letters come first and the same three apply inside them (lib/picker-rank.js).
+  // On a swap the same equipment leads inside each of those.
+  const f = rankForPicker(bp === SAME ? sameMuscleFirst(narrowedList, likeEx) : narrowedList, st, usage, { query: q, nameOf: exerciseNameFor })
   const chosenCount = Object.keys(usage).length
   const favCount = (st.favEx || []).length
   const special = bp === '★' || bp === '☆'

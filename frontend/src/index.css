@@ -1035,6 +1035,11 @@ body.chips-dragging *{cursor:inherit}
 .sethead .r-sp{flex:1;text-align:center}
 .sethead .eff-sp{text-align:center}
 .sethead .ck-sp{width:30px;flex:none}
+/* The weight column's title is a button: a tap switches kg and lb. It looks like the other titles,
+   with a dotted underline to say it does something, and a taller touch area than the line itself. */
+.sethead .unit-hd{background:none;border:0;padding:8px 0;margin:-8px 0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer;
+  text-decoration:underline dotted;text-decoration-color:var(--label-4,currentColor);text-underline-offset:3px;-webkit-tap-highlight-color:transparent}
+.sethead .unit-hd:active{color:var(--acc)}
 .setrow{display:flex;align-items:center;gap:8px;padding:7px 0;position:relative}
 .setrow+.setrow::before{
   content:'';position:absolute;inset-inline-start:32px;inset-inline-end:0;top:0;height:var(--hair);background:var(--sep);

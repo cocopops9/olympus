@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // #473: a swap opens on what trains the same muscle. Mid-workout (Swap exercise) and in the
 // routine editor (Replace exercise) the picker starts on the exercises sharing the swapped one's
-// target muscle, same equipment first, and "All" is one tap back to the whole list.
+// target muscle, yours then popular then the rest, same equipment first inside each, and "All" is one tap back to the whole list.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
@@ -10,6 +10,7 @@ import { useUI } from './store/useUI.js'
 import { EXDB } from './lib/exercises.js'
 import { exercisePicker, swapActiveWorkoutExercise } from './sheets.jsx'
 import { sameMuscleFirst } from './lib/similar-exercises.js'
+import { POPULAR } from './lib/exercise-guide.js'
 
 const mounted = []
 function renderTop() {
@@ -76,10 +77,18 @@ describe('swap picker opens on the same muscle', () => {
     const listed = rows(host)
     expect(listed.length).toBeGreaterThan(1)
     expect(listed.every(s => s.startsWith('Triceps'))).toBe(true)
-    // Cable first: once something else shows up, no cable exercise follows it.
-    const firstOther = listed.findIndex(s => !s.endsWith('cable'))
-    expect(listed[0].endsWith('cable')).toBe(true)
-    if (firstOther > 0) expect(listed.slice(firstOther).some(s => s.endsWith('cable'))).toBe(false)
+    // The order is yours, then popular, then the rest (nothing is yours here), and cable leads
+    // inside each of those: once something else shows up, no cable exercise follows it.
+    const byName = new Map(EXDB.map(e => [e.n, e]))
+    const shown = [...host.querySelectorAll('.list .item:not(.ex-new) .tt')].map(x => byName.get(x.textContent))
+    expect(shown.every(Boolean)).toBe(true)
+    const isPop = e => POPULAR.has(e.id)
+    const firstRest = shown.findIndex(e => !isPop(e))
+    if (firstRest >= 0) expect(shown.slice(firstRest).some(isPop)).toBe(false)
+    for (const block of [shown.filter(isPop), shown.filter(e => !isPop(e))]) {
+      const firstOther = block.findIndex(e => e.eq !== 'cable')
+      if (firstOther >= 0) expect(block.slice(firstOther).some(e => e.eq === 'cable')).toBe(false)
+    }
     // The exercise being swapped away is not offered as its own replacement.
     expect([...host.querySelectorAll('.list .item .tt')].map(x => x.textContent)).not.toContain(CABLE_TRI.n)
 

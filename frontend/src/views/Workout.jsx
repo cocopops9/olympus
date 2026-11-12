@@ -390,6 +390,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     useStore.getState().setUnit(otherUnit)
     useUI.getState().toast(t('Now in {0}', otherUnit))
   }
+  // The weight column's title is the unit switch: a tap on "Weight (kg)" turns the profile to lb
+  // and every stored weight with it (and back). Not while a saved workout is only being looked at.
+  const unitHead = cls => <button type="button" className={cls + ' unit-hd'} onClick={switchUnit}
+    aria-label={t('Switch to {0}', otherUnit)} title={t('Switch to {0}', otherUnit)}>{loadCol.hd}</button>
   const openMore = () => menuSheet({
     title: exerciseNameFor(ex),
     titleClass: exerciseNameClass(ex),
@@ -690,7 +694,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
           columns; over L/R rows it also has to skip the side badge that sits in front of the weight cell */}
-      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
+      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" />{col1 === loadCol ? unitHead('w-sp') : <span className="w-sp">{col1.hd}</span>}{col2 && (col2 === loadCol ? unitHead('r-sp') : <span className="r-sp">{col2.hd}</span>)}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
       <span id={optsId} className="vh">{t('Options: copy, remove')}</span>
       {entry.sets.map((s, i) => {
         const warm = isWarmupRow(s)
