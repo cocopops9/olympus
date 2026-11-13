@@ -1,0 +1,18 @@
+name: fetch
+on: push
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          curl -fsSL -o base.png 'https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2F9f5ce4ab-4aa1-4628-aac3-0c805aa62745?csig=AAAAAAAAAAAAAAAAAAAAACpv79wOcsWK8frYkJQmAXXi95hMsSv21yZk3X9_XAtm&exp=1794618365&signer=media-rpc&token=AAIAAU0AJDlmNWNlNGFiLTRhYTEtNDYyOC1hYWMzLTBjODA1YWE2Mjc0NQAAAAABodeXFEhMb5O-d6ZKnvtJ5VP_iAPoXNGqHQqEdpNA1YTZOvFgLg'
+          curl -fsSL -o cut.png 'https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2F57ef94d1-2b81-467f-95e6-ec49951c109f?csig=AAAAAAAAAAAAAAAAAAAAAPNTSvl70wR6A8FiRmx4RC_delNw7Xg-iqFkJZcmCLeG&exp=1794620348&signer=media-rpc&token=AAIAAU0AJDU3ZWY5NGQxLTJiODEtNDY3Zi05NWU2LWVjNDk5NTFjMTA5ZgAAAAABode1VmA2LqZsUYKPPNL3siqAwMRpirqpliT9XYVT1MOIEu5rlQ'
+          curl -fsSL -o talk.png 'https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2F1af28b4d-d8f6-4670-8367-dcc664ae844c?csig=AAAAAAAAAAAAAAAAAAAAAP0QSAvxxqBIctzItNA9MnyUu_J1-SHv5AsclcCIXMWs&exp=1794619496&signer=media-rpc&token=AAIAAU0AJDFhZjI4YjRkLWQ4ZjYtNDY3MC04MzY3LWRjYzY2NGFlODQ0YwAAAAABodeoVkBwXYgVTlT41qKvzyN4GXnF8FqB9qfWsiP3F-buvIKMmA'
+          git config user.name olympus
+          git config user.email noreply@anthropic.com
+          git add *.png
+          git commit -m images
+          git push
