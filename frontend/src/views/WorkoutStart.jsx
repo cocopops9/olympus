@@ -117,7 +117,7 @@ export default function WorkoutStart() {
       </div>
     </div>
 
-    <Tip id="workoutStart" icon="play" title={t('How to start')}>
+    <Tip id="workoutStart" title={t('How to start')}>
       {t('Tap Start routine on one of your routines, or Start empty workout and add exercises as you go. No routine yet? Explore routines has ready-made ones to copy.')}
     </Tip>
 

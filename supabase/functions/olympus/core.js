@@ -7,7 +7,8 @@
 //   'state:<uid>' one profile's training  (the document GET/PUT /api/data move)
 //   'social'      the social layer        (api/social.js's document)
 //   'secret'      the key that signs sessions
-//   'hercules', 'athena', 'chiron'   today's count of messages to each coach, per profile (hercules.js)
+//   'hercules', 'athena', 'chiron', 'calliope'   today's count of messages to each coach and to the guide, per profile (hercules.js)
+//   'speech:<digest>', 'speech-index'   the guide's fixed lines, read once and kept (voice.js synthesizeCached)
 //   'tel:<uid>'   the usage statistics a profile shares, and 'feedback' (insights.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
 // are serialized the way the single Node process serialized them.
@@ -22,7 +23,7 @@ import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { countryOf, topSongs, searchSongs, deezerPreview } from './music.js';
-import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
+import { transcribe, synthesizeCached, keptIndex, canSynthesize, speakers, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
@@ -63,7 +64,7 @@ const sessionVersion = u => u.sv || 0;
  * `photos`: put(name, bytes, contentType), get(name) -> Uint8Array | null, del(name).
  */
 export function createApp({ store, photos, now = () => Date.now(), env = {}, fetchImpl = globalThis.fetch }) {
-  const coaches = { hercules: herculesConfig(env, 'hercules'), athena: herculesConfig(env, 'athena'), chiron: herculesConfig(env, 'chiron') };
+  const coaches = { hercules: herculesConfig(env, 'hercules'), athena: herculesConfig(env, 'athena'), chiron: herculesConfig(env, 'chiron'), calliope: herculesConfig(env, 'calliope') };
   let secret = null;
   async function key() {
     if (secret) return secret;
@@ -299,6 +300,25 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     for (const name of deletes) { try { await photos.del(name); } catch { /* best effort */ } }
     return result;
   }
+
+  // The guide's fixed lines, read once and kept (voice.js synthesizeCached): one document a line,
+  // and an index of when each was last heard, which decides what makes room when it is full. A
+  // line heard again is not stamped more than once a day: reads stay reads.
+  const keptLines = {
+    get: async key => {
+      const doc = await store.read(key);
+      if (!doc?.audio) return null;
+      const index = await store.read('speech-index');
+      if (!(now() - (Number(index?.[key]) || 0) < 86400000)) await store.update(['speech-index'], ({ get, set }) => { set('speech-index', keptIndex(get('speech-index'), key, now()).index); });
+      return doc;
+    },
+    put: (key, value) => store.update(['speech-index', key], ({ get, set }) => {
+      const { index, drop } = keptIndex(get('speech-index'), key, now());
+      for (const old of drop) set(old, null);
+      set('speech-index', index);
+      set(key, value);
+    }),
+  };
 
   // Hercules and Athena, the free coaches (hercules.js): whether each is on and how many messages
   // are left today, and one message with the conversation so far.
@@ -588,6 +608,9 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/athena/plan': coachPlan('athena'),
     'GET /api/chiron': coachStatus('chiron'),
     'POST /api/chiron': coachAsk('chiron'),
+    // Calliope, the guide: questions about the app itself (frontend lib/calliope.js).
+    'GET /api/calliope': coachStatus('calliope'),
+    'POST /api/calliope': coachAsk('calliope'),
     // The coaches' memory, distilled from the person's chats on Chiron's model (hercules.js).
     'POST /api/coach/memory': async req => {
       const { user } = await signedIn(req);
@@ -630,10 +653,10 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     },
     'POST /api/voice/speak': async req => {
       await signedIn(req); const b = await readJson(req);
-      try { return { body: await synthesize({ text: b.text, lang: b.lang, who: b.who }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(env.GEMINI_API_KEY || '').trim(), geminiModel: String(env.GEMINI_TTS_MODEL || '').trim(), fetchImpl }) }; }
+      try { return { body: await synthesizeCached({ text: b.text, lang: b.lang, who: b.who, keep: b.keep === true }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(env.GEMINI_API_KEY || '').trim(), geminiModel: String(env.GEMINI_TTS_MODEL || '').trim(), fetchImpl }, keptLines) }; }
       catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
     },
-    'GET /api/voice': async req => { await signedIn(req); return { body: { speak: canSynthesize(env), listen: !!herculesConfig(env, 'chiron').key } }; },
+    'GET /api/voice': async req => { await signedIn(req); return { body: { speak: canSynthesize(env), who: speakers(), listen: !!herculesConfig(env, 'chiron').key } }; },
     // Songs for a post: what is popular now in a country, and search (api/music.js).
     'GET /api/music/top': async (req, q) => {
       await signedIn(req);

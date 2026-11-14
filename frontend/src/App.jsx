@@ -11,7 +11,7 @@ import { useUpdatePrompt } from './components/UpdatePrompt.jsx'
 import UpdateBar from './components/UpdateBar.jsx'
 import { aboutYouSheet } from './components/AboutYou.jsx'
 import HerculesButton from './components/Hercules.jsx'
-import { useWelcome } from './components/Welcome.jsx'
+import { useWelcome, useTouring, WelcomeTour } from './components/Welcome.jsx'
 import { useVoiceSetup } from './components/VoiceSetup.jsx'
 import MedalsView, { MedalCelebration, useMedalWatcher } from './components/Medals.jsx'
 import './voice-setup.css'
@@ -155,18 +155,20 @@ function Shell() {
     if (!ready || !needsDefaults(S)) return
     update(applyOlympusDefaults)
   }, [ready, S.accentGold, S.weighInQuiet, update])
+  const touring = useTouring()
   // Sex, birth date and body weight, for the strength levels: asked once per profile, a moment
   // after it is ready (components/AboutYou.jsx), never over a workout or another sheet.
   useEffect(() => {
-    if (!ready || !user || S.aboutAsked || S.birth || S.active || import.meta.env?.MODE === 'test') return
+    // Not while Calliope is showing someone around: the welcome asks it itself when it ends.
+    if (!ready || !user || S.aboutAsked || S.birth || S.active || touring || import.meta.env?.MODE === 'test') return
     const tm = setTimeout(() => { if (!useUI.getState().sheets.length && !useStore.getState().S.aboutAsked) aboutYouSheet() }, 2500)
     return () => clearTimeout(tm)
-  }, [ready, user?.id, S.aboutAsked, S.birth, !!S.active])
+  }, [ready, user?.id, S.aboutAsked, S.birth, !!S.active, touring])
   // A profile with nothing in it yet is welcomed first, and asked how much help it wants
   // (components/Welcome.jsx). It opens before About you, which then follows it.
   useWelcome({ ready: ready && !!(user || isGuest), blocked: needsMobileOnboarding })
   // The coaches' offline voice: downloaded on the first start, offered for a language picked later.
-  useVoiceSetup({ ready: ready && !!(user || isGuest), blocked: needsMobileOnboarding, lang: langV })
+  useVoiceSetup({ ready: ready && !!(user || isGuest), blocked: needsMobileOnboarding || touring, lang: langV })
   useMedalWatcher(ready && !!(user || isGuest) && !needsMobileOnboarding)
   // 'system' needs to react live if the OS theme flips while the app is open, not just on
   // the next mount — a fixed 'dark'/'light' choice never re-fires this since matchMedia
@@ -331,6 +333,7 @@ function Shell() {
       {!noTabs && <TabBar onStart={startFlow} />}
       {authed && !needsMobileOnboarding && <HerculesButton />}
       <RestTimer />
+      {authed && !needsMobileOnboarding && <WelcomeTour />}
       <Modals />
       {authed && !needsMobileOnboarding && <MedalCelebration />}
       <Toast />

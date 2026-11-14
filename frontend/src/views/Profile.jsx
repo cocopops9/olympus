@@ -209,7 +209,7 @@ export default function Profile() {
       </div>}
     </div>
 
-    <Tip id="profile" icon="person" title={t('Your training, in one place')}>
+    <Tip id="profile" title={t('Your training, in one place')}>
       {t('Overview is this week at a glance and Stats has your progress charts. Further down: your Plan, the exercise library and Settings.')}
     </Tip>
 

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transcribe, synthesize, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
+import { transcribe, synthesize, synthesizeCached, keepable, keptKey, keptIndex, KEPT, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
+import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
 
@@ -222,4 +223,68 @@ test('a Gemini model that timed out or is overloaded rests, so the next clips do
   urls.length = 0;
   await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', hearGraceMs: 200, fetchImpl });
   assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 0);
+});
+
+test('the guide\'s fixed lines are read once and kept: only hers, only short ones, only when the app says so', async () => {
+  assert.equal(keepable({ text: 'Welcome to Olympus!', who: 'calliope', keep: true }), true);
+  assert.equal(keepable({ text: 'Welcome to Olympus!', who: 'calliope' }), false);
+  assert.equal(keepable({ text: 'Rest two minutes.', who: 'chiron', keep: true }), false);
+  assert.equal(keepable({ text: 'x'.repeat(KEPT.chars + 1), who: 'calliope', keep: true }), false);
+  assert.equal(keepable({ text: '   ', who: 'calliope', keep: true }), false);
+  const k = await keptKey({ text: ' Ciao. ', lang: 'it-IT', who: 'calliope' });
+  assert.match(k, /^speech:[0-9a-f]{32}$/);
+  assert.equal(k, await keptKey({ text: 'Ciao.', lang: 'it-IT', who: 'calliope' }));
+  assert.notEqual(k, await keptKey({ text: 'Ciao.', lang: 'en-US', who: 'calliope' }));
+
+  let made = 0;
+  const fetchImpl = async () => { made++; return { ok: true, json: async () => ({ audioContent: 'QUJD' }) }; };
+  const docs = new Map();
+  const kept = { get: async key => docs.get(key) || null, put: async (key, value) => { docs.set(key, value); } };
+  const line = { text: 'Welcome to Olympus!', lang: 'en-US', who: 'calliope', keep: true };
+  assert.deepEqual(await synthesizeCached(line, { key: 'g', fetchImpl }, kept), { audio: 'QUJD', type: 'audio/mpeg' });
+  assert.deepEqual(await synthesizeCached(line, { key: 'g', fetchImpl }, kept), { audio: 'QUJD', type: 'audio/mpeg' });
+  assert.equal(made, 1, 'the second hearing comes from the store');
+  assert.equal(docs.size, 1);
+  // One of her answers is not a fixed line: synthesized each time, never stored.
+  await synthesizeCached({ ...line, keep: false, text: 'Open Plan, Ada.' }, { key: 'g', fetchImpl }, kept);
+  assert.equal(made, 2); assert.equal(docs.size, 1);
+  // A store that fails is not a reason for silence.
+  const broken = { get: async () => { throw new Error('down'); }, put: async () => { throw new Error('down'); } };
+  const quiet = console.error; console.error = () => {};
+  try { assert.equal((await synthesizeCached({ ...line, text: 'Another line.' }, { key: 'g', fetchImpl }, broken)).audio, 'QUJD'); } finally { console.error = quiet; }
+});
+
+test('kept lines make room: the least recently heard goes when there are too many', () => {
+  let index = null;
+  for (let i = 0; i < 4; i++) index = keptIndex(index, 'speech:' + i, 100 + i, 3).index;
+  assert.deepEqual(Object.keys(index).sort(), ['speech:1', 'speech:2', 'speech:3']);
+  const heard = keptIndex(index, 'speech:1', 500, 3);
+  assert.deepEqual(heard.drop, []);
+  const next = keptIndex(heard.index, 'speech:9', 600, 3);
+  assert.deepEqual(next.drop, ['speech:2']);
+  assert.deepEqual(Object.keys(next.index).sort(), ['speech:1', 'speech:3', 'speech:9']);
+});
+
+test('on the server a kept line is stored with the documents and served to the next person without the provider', async () => {
+  let made = 0;
+  const fetchImpl = async () => { made++; return { ok: true, json: async () => ({ audioContent: 'QUJD' }) }; };
+  const store = memoryStore();
+  const app = createApp({ store, photos: memoryPhotos(), env: { GOOGLE_TTS_API_KEY: 'g' }, fetchImpl });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const ada = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body.token;
+  const bea = (await call('POST', '/api/app/signup', { name: 'bea_runs', email: 'bea@example.com', password: 'correct horse battery staple' })).body.token;
+  const line = { text: 'Welcome to Olympus!', lang: 'en-US', who: 'calliope', keep: true };
+  assert.equal((await call('POST', '/api/voice/speak', line, ada)).body.audio, 'QUJD');
+  assert.equal((await call('POST', '/api/voice/speak', line, bea)).body.audio, 'QUJD');
+  assert.equal(made, 1);
+  const key = await keptKey(line);
+  assert.equal(store.docs.get(key).audio, 'QUJD');
+  assert.ok(store.docs.get('speech-index')[key] > 0);
+  // The coaches' words are never kept.
+  await call('POST', '/api/voice/speak', { ...line, who: 'hercules' }, ada);
+  await call('POST', '/api/voice/speak', { ...line, who: 'hercules' }, ada);
+  assert.equal(made, 3);
 });

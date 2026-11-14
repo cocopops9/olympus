@@ -916,7 +916,7 @@ export default function Stats({ embedded = false } = {}) {
         <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div></div>}
     {embedded && <div className="stats-top"><StatsPickerButton /></div>}
 
-    <Tip id="stats" icon="chartLine" title={t('Your progress, made simple')}>
+    <Tip id="stats" title={t('Your progress, made simple')}>
       {t('Simple shows the essentials in plain words. Switch to Detailed for every chart and number. Tap ⓘ next to a title to learn what a card shows.')}
     </Tip>
     {workouts.length > 0 && <div className="stats-mode" data-stats-detail={detail}>

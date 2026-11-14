@@ -246,7 +246,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>113 endpoints</span>
+    <span>115 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -3911,6 +3911,110 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-calliopeStatus">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/calliope</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Whether Calliope, the guide, is on, and today's questions left</span>
+  </summary>
+  <div class="ep-body">
+<p>Calliope is not a coach: she is the guide of the app, who shows a new profile around and answers questions about Olympus itself (&quot;how do I create a routine?&quot;). The same exchange as Hercules (<code>/api/hercules</code>), answered from a manual of the app held by the server, in at most about 70 words, with her own allowance (30 a day unless <code>CALLIOPE_PER_DAY</code> says otherwise). She uses Hercules's provider key unless <code>CALLIOPE_API_KEY</code> is set; <code>CALLIOPE_MODEL</code> and <code>CALLIOPE_FALLBACK_MODEL</code> pick her models.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The state.<span class="r-sig">{ on: boolean, perDay: integer, left: integer }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-calliopeAsk">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/calliope</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Ask Calliope how something in the app works</span>
+  </summary>
+  <div class="ep-body">
+<p>One question, with the conversation so far (the last 8 turns are used) and a line or two from the app about where the person is (up to 1500 characters). The answer is plain sentences, meant to be read aloud; when one screen is the place to go, its last line is <code>GO: &lt;screen&gt;</code> (for example <code>GO: plan</code>), which the app turns into a button. Questions about training itself are sent on to the coaches. A question the model did not answer is not counted.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">messages<em class="p-req" title="required">required</em></span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].role</span>
+    <span class="p-type">&quot;user&quot; | &quot;assistant&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">messages[].content</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The app's language; the answer is in it.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">context</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Where the person is in the app and how far they have come.</span>
+  </div>
+</div>
+<pre><code>{
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;How do I create a routine?&quot;
+    }
+  ],
+  &quot;lang&quot;: &quot;en&quot;,
+  &quot;context&quot;: &quot;Screen open now: Home (the feed). No routine yet.&quot;
+}</code></pre>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The answer.<span class="r-sig">{ reply: string, left: integer, perDay: integer }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">No message (<code>empty</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">No questions left today (<code>hercules-limit</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The model did not answer (<code>hercules-failed</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">503</span>
+    <span class="p-desc">Not set up (<code>hercules-off</code>), or the provider is out of quota for the day (<code>hercules-busy</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-voiceStatus">
   <summary>
     <span class="m get">GET</span>
@@ -3927,7 +4031,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc"><code>{ listen, speak }</code>.</span>
+    <span class="p-desc"><code>{ listen, speak, who }</code>: <code>who</code> lists whose voices the server has (<code>chiron</code>, <code>hercules</code>, <code>athena</code>, <code>calliope</code>).</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -4019,8 +4123,13 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow">
     <span class="p-name">who</span>
-    <span class="p-type">&quot;chiron&quot; | &quot;hercules&quot; | &quot;athena&quot;</span>
+    <span class="p-type">&quot;chiron&quot; | &quot;hercules&quot; | &quot;athena&quot; | &quot;calliope&quot;</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">keep</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc">A fixed line of the app (the tour and the tips of the guide): on the hosted server it is read once and kept, and served to whoever asks for the same words after. Only for <code>calliope</code>, 320 characters at most.</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>

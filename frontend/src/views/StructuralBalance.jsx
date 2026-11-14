@@ -71,7 +71,7 @@ export default function StructuralBalance() {
       <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('Structural balance')}</h1>
         <div className="sub">{t('Are your lifts in proportion to each other?')}</div></div></div>
 
-    <Tip id="structural" icon="layout" title={t('What is structural balance?')}>
+    <Tip id="structural" title={t('What is structural balance?')}>
       {t('Your lifts support each other. When one falls far behind the rest, it holds back your progress and can strain your joints. This screen compares your best lifts with each other and tells you which one to work on.')}
     </Tip>
 

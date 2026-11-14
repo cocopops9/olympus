@@ -14,6 +14,7 @@ import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
 import { Tip } from '../components/Guide.jsx'
+import { CalliopeButton } from '../components/Calliope.jsx'
 import '../social.css'
 
 function NoServer() {
@@ -197,6 +198,8 @@ export default function Feed() {
     <div className="hdr">
       <div><h1>Olympus</h1><div className="sub">{ready ? t('Your feed') : t('Train, share, follow')}</div></div>
       <div className="hdr-actions">
+        {/* Calliope, the guide: how anything in the app works (components/Calliope.jsx). */}
+        <CalliopeButton />
         {ready && <button className="iconbtn" onClick={() => nav('/notifications')} aria-label={news ? t('Notifications') + ', ' + t('New notifications') : t('Notifications')}>
           <Icon name="bell" />{news > 0 && <span className="icon-badge" aria-hidden="true">{news > 9 ? '9+' : news}</span>}</button>}
         {ready && <button className="iconbtn" onClick={() => setSearching(v => !v)} aria-label={t('Search people')}><Icon name="magnifier" /></button>}
@@ -204,7 +207,7 @@ export default function Feed() {
       </div>
     </div>
 
-    <Tip id="feed" icon="house" title={t('Finding your way')}>
+    <Tip id="feed" title={t('Finding your way')}>
       {t('Three tabs at the bottom: Home is this feed, the round Workout button starts training, and Profile holds your plan, progress and settings.')}
     </Tip>
 

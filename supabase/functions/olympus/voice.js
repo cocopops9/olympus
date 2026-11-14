@@ -217,13 +217,16 @@ async function mended(text, { lang, words }, { key, baseUrl, model, fetchImpl })
   } catch { return text; } finally { clearTimeout(timer); }
 }
 
-// Chirp 3 HD speakers: Algenib is a gravelly, deep man's voice; Orus a firm one; Kore a woman's.
-const SPEAKER = { chiron: 'Algenib', hercules: 'Orus', athena: 'Kore' };
+// Chirp 3 HD speakers: Algenib is a gravelly, deep man's voice; Orus a firm one; Kore a woman's;
+// Aoede (named after a muse, as it happens) a warm, bright woman's, for Calliope the guide.
+const SPEAKER = { chiron: 'Algenib', hercules: 'Orus', athena: 'Kore', calliope: 'Aoede' };
 // The locales Chirp 3 HD speaks, by the app's language.
 const LOCALE = {
   en: 'en-US', it: 'it-IT', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', pt: 'pt-BR', ru: 'ru-RU', uk: 'uk-UA', pl: 'pl-PL',
   tr: 'tr-TR', hu: 'hu-HU', ar: 'ar-XA', hi: 'hi-IN', bn: 'bn-IN', ko: 'ko-KR', th: 'th-TH', zh: 'cmn-CN',
 };
+/** Whose voices this server has: a newer app asks before it lets someone new speak through it. */
+export const speakers = () => Object.keys(SPEAKER);
 export const canSynthesize = env => !!(String(env?.GOOGLE_TTS_API_KEY || '').trim() || String(env?.GEMINI_API_KEY || '').trim());
 
 // Gemini speech generation. The voices carry the same names as Chirp 3 HD's; how to speak is said in
@@ -343,4 +346,50 @@ export async function synthesize({ text, lang, who } = {}, { key, geminiKey, gem
     if (!j?.audioContent) throw new VoiceError(502, 'the voice service did not answer', 'tts-failed');
     return { audio: j.audioContent, type: 'audio/mpeg' };
   } finally { clearTimeout(timer); }
+}
+
+// ---- Lines kept: the guide's fixed lines, read once and served to everyone after ----------------
+// Calliope's tour and tips are the same words for every person in a language. The free voice has a
+// small daily quota, which a few new profiles a day would use up on those same sentences, so a
+// line the app marks as fixed (`keep`) is synthesized once and kept by the caller's store. Only
+// hers, only short ones, and only so many: the least recently heard makes room for a new one.
+export const KEPT = Object.freeze({ who: ['calliope'], chars: 320, entries: 120 });
+
+/** Whether this request may be kept: one of the guide's fixed lines, short enough. */
+export const keepable = ({ text, who, keep } = {}) => !!keep && KEPT.who.includes(who) && String(text || '').trim().length > 0 && String(text || '').trim().length <= KEPT.chars;
+
+/** The name a kept line is stored under: who, the language and a digest of the words. */
+export async function keptKey({ text, lang, who } = {}) {
+  const bytes = new TextEncoder().encode([who, String(lang || 'en-US'), String(text || '').trim()].join('\n'));
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return 'speech:' + [...hash.slice(0, 16)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * The index of kept lines with `key` heard at `now`: { index, drop }. `index` is { key: time };
+ * `drop` the keys to delete, the least recently heard beyond KEPT.entries.
+ */
+export function keptIndex(index, key, now = Date.now(), max = KEPT.entries) {
+  const next = { ...(index && typeof index === 'object' ? index : {}), [key]: now };
+  const keys = Object.keys(next).sort((a, b) => next[a] - next[b]);
+  const drop = keys.slice(0, Math.max(0, keys.length - max));
+  for (const k of drop) delete next[k];
+  return { index: next, drop };
+}
+
+/**
+ * synthesize(), through a store of kept lines. `kept` is { get(key), put(key, value) }, both
+ * async; put stores { audio, type } and looks after the index (keptIndex). A line that is not
+ * keepable, or a store that fails, is synthesized as always.
+ */
+export async function synthesizeCached(input, opts, kept) {
+  if (!kept || !keepable(input)) return synthesize(input, opts);
+  const key = await keptKey(input);
+  try {
+    const had = await kept.get(key);
+    if (had && had.audio) return { audio: had.audio, type: had.type || 'audio/wav' };
+  } catch { /* read failed: synthesize */ }
+  const made = await synthesize(input, opts);
+  try { await kept.put(key, { audio: made.audio, type: made.type }); } catch (e) { console.error('kept voice', e?.message || e); }
+  return made;
 }

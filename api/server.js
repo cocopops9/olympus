@@ -33,7 +33,7 @@ import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } fro
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
 import { topSongs, searchSongs, deezerPreview } from './music.js';
-import { transcribe, synthesize, canSynthesize, VoiceError } from './voice.js';
+import { transcribe, synthesize, canSynthesize, speakers, VoiceError } from './voice.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
@@ -184,7 +184,7 @@ setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ }
 // they have their own), each one's message counts for today in DATA_DIR/<coach>.json.
 const COACH_STATE = {};
 // 'coach-memory' counts the distillations of the coaches' memory (handleMemory), on Chiron's model.
-for (const id of ['hercules', 'athena', 'chiron', 'coach-memory']) {
+for (const id of ['hercules', 'athena', 'chiron', 'calliope', 'coach-memory']) {
   const file = path.join(DATA, id + '.json');
   const st = { config: herculesConfig(process.env, id === 'coach-memory' ? 'chiron' : id), doc: null };
   try { st.doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { st.doc = null; }
@@ -2694,7 +2694,7 @@ const routes = {
   },
   'GET /api/voice': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
-    json(res, 200, { speak: canSynthesize(process.env), listen: !!herculesConfig(process.env, 'chiron').key });
+    json(res, 200, { speak: canSynthesize(process.env), who: speakers(), listen: !!herculesConfig(process.env, 'chiron').key });
   },
   // Songs for a post: what is popular now in a country, and search (api/music.js).
   'GET /api/music/top': async (req, res) => {
@@ -2758,6 +2758,9 @@ const routes = {
   // Chiron, the coach woken up during a workout (frontend components/Chiron.jsx).
   'GET /api/chiron': coachStatus('chiron'),
   'POST /api/chiron': coachAsk('chiron'),
+  // Calliope, the guide: questions about the app itself (frontend lib/calliope.js).
+  'GET /api/calliope': coachStatus('calliope'),
+  'POST /api/calliope': coachAsk('calliope'),
   'POST /api/coach/memory': coachMemory,
   'GET /api/social/feed': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;

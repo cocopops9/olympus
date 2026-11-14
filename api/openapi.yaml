@@ -1414,6 +1414,78 @@ paths:
         '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
+  /api/calliope:
+    get:
+      tags: [coach]
+      operationId: calliopeStatus
+      summary: Whether Calliope, the guide, is on, and today's questions left
+      description: |
+        Calliope is not a coach: she is the guide of the app, who shows a new profile around
+        and answers questions about Olympus itself ("how do I create a routine?"). The same
+        exchange as Hercules (`/api/hercules`), answered from a manual of the app held by the
+        server, in at most about 70 words, with her own allowance (30 a day unless
+        `CALLIOPE_PER_DAY` says otherwise). She uses Hercules's provider key unless
+        `CALLIOPE_API_KEY` is set; `CALLIOPE_MODEL` and `CALLIOPE_FALLBACK_MODEL` pick her models.
+      responses:
+        '200':
+          description: The state.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  on: { type: boolean }
+                  perDay: { type: integer }
+                  left: { type: integer }
+              example: { on: true, perDay: 30, left: 28 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [coach]
+      operationId: calliopeAsk
+      summary: Ask Calliope how something in the app works
+      description: |
+        One question, with the conversation so far (the last 8 turns are used) and a line or two
+        from the app about where the person is (up to 1500 characters). The answer is plain
+        sentences, meant to be read aloud; when one screen is the place to go, its last line is
+        `GO: <screen>` (for example `GO: plan`), which the app turns into a button. Questions
+        about training itself are sent on to the coaches. A question the model did not answer is
+        not counted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [user, assistant] }
+                      content: { type: string }
+                lang: { type: string, description: The app's language; the answer is in it. }
+                context: { type: string, description: Where the person is in the app and how far they have come. }
+            example: { messages: [{ role: user, content: "How do I create a routine?" }], lang: en, context: "Screen open now: Home (the feed). No routine yet." }
+      responses:
+        '200':
+          description: The answer.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+                  left: { type: integer }
+                  perDay: { type: integer }
+              example: { reply: "Open Profile, then Plan, then New routine.\nGO: plan", left: 29, perDay: 30 }
+        '400': { description: 'No message (`empty`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { description: 'No questions left today (`hercules-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '502': { description: 'The model did not answer (`hercules-failed`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '503': { description: 'Not set up (`hercules-off`), or the provider is out of quota for the day (`hercules-busy`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/account/email:
     post:
       tags: [password]
@@ -3337,7 +3409,7 @@ paths:
       operationId: voiceStatus
       summary: Whether the server can transcribe recordings and read text aloud
       responses:
-        '200': { description: '`{ listen, speak }`.' }
+        '200': { description: '`{ listen, speak, who }`: `who` lists whose voices the server has (`chiron`, `hercules`, `athena`, `calliope`).' }
         '401': { description: Not signed in. }
   /api/voice/transcribe:
     post:
@@ -3377,7 +3449,8 @@ paths:
               properties:
                 text: { type: string }
                 lang: { type: string }
-                who: { type: string, enum: [chiron, hercules, athena] }
+                who: { type: string, enum: [chiron, hercules, athena, calliope] }
+                keep: { type: boolean, description: 'A fixed line of the app (the tour and the tips of the guide): on the hosted server it is read once and kept, and served to whoever asks for the same words after. Only for `calliope`, 320 characters at most.' }
       responses:
         '200': { description: '`{ audio, type }`, base64 MP3.' }
         '401': { description: Not signed in. }

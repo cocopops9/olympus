@@ -173,7 +173,7 @@ export default function Plan() {
       </div>
     </div>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
-    <Tip id="plan" icon="calendar" title={t('Plan your week')}>
+    <Tip id="plan" title={t('Plan your week')}>
       {t('Routines holds your workouts, each a list of exercises. Schedule puts them on weekdays: tap a day to choose what you train, and that day’s workout is ready when you open the app.')}
     </Tip>
     <Segmented className="plan-views" value={view} onChange={setView}

@@ -234,7 +234,8 @@ export function speakable(text) {
 }
 
 // Who is talking: Chiron, an old giant of a centaur, has a deep man's voice in every language;
-// Hercules a man's voice; Athena a woman's. The server reads with a natural voice of that kind when
+// Hercules a man's voice; Athena a woman's; Calliope, the guide (lib/calliope.js), a warm woman's
+// voice of her own. The server reads with a natural voice of that kind when
 // it has one (api/voice.js); otherwise a voice of the right kind is picked from the phone's own
 // ones for the language when one can be told apart by its name (Google's voices are named
 // it-it-x-itd-local and so on, a code per speaker). The pitch is left alone: lowered, the phone's
@@ -243,6 +244,7 @@ export const VOICES = {
   chiron: { male: true, rate: 0.95 },
   hercules: { male: true, rate: 1 },
   athena: { male: false, rate: 1 },
+  calliope: { male: false, rate: 1 },
 }
 // Speakers of Google's voices known to be men, by the code in the voice's name.
 const MALE_CODES = ['iol', 'iom', 'tpd', 'rjs', 'gbd', 'aud', 'itd', 'itc', 'eed', 'esd', 'frd', 'frb', 'deg', 'ptd', 'pmj', 'jmn', 'rud', 'ruf']
@@ -272,6 +274,11 @@ export function pickVoice(voices, lang, male) {
 
 // The server's voice: unknown until asked, then on or off for the rest of the session.
 let serverVoice = null
+// Whose voices the server has. A server from before the guide has the three coaches only, and
+// would read her lines in Hercules's voice: until it says it has hers, the phone's voice reads them.
+const FIRST_SPEAKERS = ['chiron', 'hercules', 'athena']
+let serverWho = FIRST_SPEAKERS
+const onServer = who => serverVoice === true && serverWho.includes(who)
 let playing = null   // { audio, stop } of what the server's voice is reading now
 let speakRun = 0
 let voiceFails = 0
@@ -287,9 +294,40 @@ export function pieces(text, max = 800) {
   return [clean[0], ...(rest.length > max ? rest.match(new RegExp('.{1,' + max + '}', 'g')) : [rest])]
 }
 
-async function speakOnServer(say, lang, who, run, onStart) {
+// Lines asked for ahead of time (preloadVoice): the answer waits here until the line is spoken,
+// so the guide's next bubble starts talking at once. A handful at most; a failed one is dropped.
+const ahead = new Map()
+const aheadKey = (piece, lang, who) => who + '|' + lang + '|' + piece
+// `keep`: a fixed line of the app (the guide's tour and tips), which the server may keep and
+// serve to everyone who hears it after the first (api/voice.js synthesizeCached).
+const askServer = (piece, lang, who, keep) => api('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text: piece, lang, who, ...(keep ? { keep: true } : {}) }), timeout: 25000 })
+
+/**
+ * Asks the server for `text` read by `who` before it is needed. Nothing is played. Only when the
+ * server has a voice; quietly nothing otherwise.
+ */
+export function preloadVoice(text, { lang = voiceTag(), who, keep = false } = {}) {
+  if (!onServer(who)) return
+  const say = speakable(text)
+  if (!say) return
+  for (const piece of pieces(say)) {
+    const k = aheadKey(piece, lang, who)
+    if (ahead.has(k)) continue
+    if (ahead.size >= 12) ahead.delete(ahead.keys().next().value)
+    const p = askServer(piece, lang, who, keep)
+    p.catch(() => { if (ahead.get(k) === p) ahead.delete(k) })
+    ahead.set(k, p)
+  }
+}
+
+async function speakOnServer(say, lang, who, run, onStart, keep) {
   // One more try when a piece fails: a cold start or a busy moment is not a reason for the phone's voice.
-  const once = piece => api('/api/voice/speak', { method: 'POST', body: JSON.stringify({ text: piece, lang, who }), timeout: 25000 })
+  const once = piece => {
+    const k = aheadKey(piece, lang, who)
+    const had = ahead.get(k)
+    if (had) { ahead.delete(k); return had }
+    return askServer(piece, lang, who, keep)
+  }
   const ask = piece => once(piece).catch(e => ([501, 404, 401, 429].includes(e?.status) ? Promise.reject(e) : once(piece)))
   const parts = pieces(say)
   let next = ask(parts[0])
@@ -325,7 +363,7 @@ async function speakOnServer(say, lang, who, run, onStart) {
 let nativeVoiceList = null
 let webUtterance = null
 /** Reads `text` aloud as `who` (VOICES); resolves when it is done (or stopped). */
-export async function speak(text, { lang = voiceTag(), rate, who, onStart } = {}) {
+export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep = false } = {}) {
   // onStart: called once, when the sound really begins (the server's voice can take a few seconds).
   let started = false
   const begin = () => { if (!started) { started = true; onStart?.() } }
@@ -342,8 +380,8 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart } = {}
     if (run !== speakRun) return
   }
   if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 6000))])
-  if (kind && serverVoice === true) {
-    try { if (await speakOnServer(say, lang, who, run, begin)) return } catch { /* the phone's voice instead */ }
+  if (kind && onServer(who)) {
+    try { if (await speakOnServer(say, lang, who, run, begin, keep)) return } catch { /* the phone's voice instead */ }
     if (run !== speakRun) return
   }
   if (MOBILE) {
@@ -383,7 +421,7 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart } = {}
 let warming = null
 export function warmVoice() {
   if (serverVoice !== null || warming) return warming
-  warming = api('/api/voice').then(r => { serverVoice = !!r?.speak }, () => {}).finally(() => { warming = null })
+  warming = api('/api/voice').then(r => { serverVoice = !!r?.speak; serverWho = Array.isArray(r?.who) ? r.who : FIRST_SPEAKERS }, () => {}).finally(() => { warming = null })
   return warming
 }
 export async function stopSpeaking() {

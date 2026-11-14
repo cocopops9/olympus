@@ -2,7 +2,7 @@
    the fallback model, and the two servers' routes with a stand-in provider. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS, modelLabel } from '../hercules.js';
+import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS, CALLIOPE_DEFAULTS, APP_GUIDE, GUIDE_SCREENS, modelLabel } from '../hercules.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const fakeFetch = (answers, seen = []) => async (url, init) => {
@@ -237,4 +237,43 @@ test('Athena thinks with other models than Hercules, and both know they share th
   assert.match(systemPrompt({ coach: 'athena' }), /\[Hercules answered this one\]/);
   assert.match(systemPrompt({ coach: 'hercules' }), /\[Athena answered this one\]/);
   assert.doesNotMatch(systemPrompt({ coach: 'chiron' }), /answered this one/);
+});
+
+test('Calliope, the guide, answers about the app from its manual, briefly, and sends training questions to the coaches', async () => {
+  const env = { HERCULES_API_KEY: 'k' };
+  const c = herculesConfig(env, 'calliope');
+  assert.equal(c.coach, 'calliope'); assert.equal(c.key, 'k');
+  assert.equal(c.perDay, CALLIOPE_DEFAULTS.perDay); assert.equal(c.replyTokens, CALLIOPE_DEFAULTS.replyTokens);
+  assert.equal(herculesConfig({ ...env, CALLIOPE_PER_DAY: '7' }, 'calliope').perDay, 7);
+  const p = systemPrompt({ coach: 'calliope', lang: 'it', name: 'Ada', context: 'Screen open now: Plan. No routine yet.' });
+  assert.match(p, /You are Calliope/);
+  assert.match(p, /Answer in Italian/);
+  assert.ok(p.includes(APP_GUIDE), 'the manual of the app is in her instructions');
+  assert.match(p, /Screen open now: Plan/);
+  assert.match(p, /Never invent a button/);
+  assert.match(p, /Hercules and Athena/);
+  assert.match(p, /GO: /);
+  for (const screen of GUIDE_SCREENS) assert.ok(p.includes(screen));
+  // Not a coach: none of the training instructions, and nothing about workout cards.
+  assert.doesNotMatch(p, /olympus-action/);
+  assert.doesNotMatch(p, /olympus-routine/);
+  // The manual names the things a newcomer asks about.
+  for (const word of ['Start empty workout', 'New routine', 'Fixed Week', 'Import from Hevy', 'magnifier', 'Finish workout']) assert.ok(APP_GUIDE.includes(word), word);
+
+  const seen = [];
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env, fetchImpl: fakeFetch([{ status: 200, reply: 'Open Profile, then Plan.\nGO: plan' }], seen) });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  assert.equal((await call('GET', '/api/calliope')).status, 401);
+  const token = (await call('POST', '/api/app/signup', { name: 'ada_lifts', email: 'ada@example.com', password: 'correct horse battery staple' })).body?.token;
+  assert.equal((await call('GET', '/api/calliope', null, token)).body.left, CALLIOPE_DEFAULTS.perDay);
+  const r = await call('POST', '/api/calliope', { messages: [{ role: 'user', content: 'How do I plan my week?' }], lang: 'en', context: 'Screen open now: Home (the feed).' }, token);
+  assert.equal(r.body.reply, 'Open Profile, then Plan.\nGO: plan');
+  assert.equal(r.body.left, CALLIOPE_DEFAULTS.perDay - 1);
+  assert.match(seen[0].messages[0].content, /You are Calliope/);
+  assert.match(seen[0].messages[0].content, /Screen open now: Home/);
+  // Her count is her own: the coaches' messages are untouched.
+  assert.equal((await call('GET', '/api/hercules', null, token)).body.left, LIMITS.perDay);
 });
