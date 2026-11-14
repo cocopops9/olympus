@@ -23,23 +23,102 @@ export function withVoice(hints, on) {
 }
 
 /*
- * The tour: what she says, and what on the screen she points at while she says it. Each step is
- * one bubble of one to three sentences; the whole of it is under a minute, and every bubble has
- * a way out. `target` is a CSS selector of something on Home (the tour runs there); a step whose
- * target is not on screen is told without a spotlight. `demo` names a small drawing shown in the
- * bubble. The coach step is only for a profile that has the coaches.
+ * The tours: Calliope shows each screen the first time it is opened, and only that screen, in a
+ * few bubbles, each pointing at the real thing it is about. Nobody is told everything at once.
+ *
+ * A step: { id, target, text, need, scroll }. `target` is a CSS selector of what she points at
+ * (a step without one is told without a spotlight); `need` leaves the step out when its target is
+ * not on screen (a button that only some profiles have); `scroll` brings the target into view
+ * first. A tour: { kind, ready, steps }. `kind` is who it is for ('basic': someone who said they
+ * are new; 'analysis': a screen of numbers, for everyone who has not switched help off, as the
+ * tips of lib/guide.js); `ready` is a selector that must be on screen before it starts (Stats
+ * with nothing logged has nothing to show yet).
  */
-export function tourSteps({ coach = false } = {}) {
-  return [
-    { id: 'start', target: '#tabbar .start', text: t('The round button in the middle of the bar at the bottom starts a workout. Pick a routine, or start an empty workout and add exercises as you go.') },
-    { id: 'log', demo: 'set', text: t('Type the weight and the reps, then tick the set when it is done. The rest timer starts by itself, and next time Olympus suggests what to lift.') },
-    { id: 'home', target: '#tabbar > button:first-child', text: t('Home is your feed: your friends’ workouts next to yours. Follow people you know and train together, even from far away.') },
-    { id: 'profile', target: '#tabbar > button:last-child', text: t('Profile has your week, your charts and your settings. Stats starts simple; switch to Detailed whenever you want every number.') },
-    ...(coach ? [{ id: 'coach', target: '.hc-fab', text: t('The round face on the screen is your AI coach. Ask it about training, technique or food. Drag it aside if it is in the way.') }] : []),
-    { id: 'me', target: '.cal-help', text: t('And I am always here. Tap my face at the top of Home whenever you are not sure how something works, and ask me.') },
-    { id: 'go', last: true, text: t('That is all you need to begin. Start with a ready-made routine, or look around on your own.') },
-  ]
+export const SCREEN_TOURS = {
+  home: {
+    kind: 'basic',
+    steps: () => [
+      { id: 'start', target: '#tabbar .start', text: t('The round button in the middle of the bar at the bottom starts a workout. Pick a routine, or start an empty workout and add exercises as you go.') },
+      { id: 'feed', target: '[data-tour="feed-tabs"]', need: true, text: t('Home is your feed: your friends’ workouts next to yours. Follow people you know and train together, even from far away.') },
+      { id: 'profile', target: '#tabbar > button:last-child', text: t('Profile has your week, your charts and your settings. Stats starts simple; switch to Detailed whenever you want every number.') },
+      { id: 'coach', target: '.hc-fab', need: true, text: t('The round face on the screen is your AI coach. Ask it about training, technique or food. Drag it aside if it is in the way.') },
+      { id: 'me', target: '.cal-help', need: true, text: t('And I am always here. Tap my face at the top of Home whenever you are not sure how something works, and ask me.') },
+    ],
+  },
+  workoutStart: {
+    kind: 'basic',
+    steps: () => [
+      { id: 'empty', target: '.ws-empty', text: t('Tap Start routine on one of your routines, or Start empty workout and add exercises as you go. No routine yet? Explore routines has ready-made ones to copy.') },
+      { id: 'routines', target: '.ws-tiles', text: t('A routine is a list of exercises you repeat, like “Push day”. Make your own, or pick a ready-made one.') },
+      { id: 'card', target: '.rt-card', need: true, scroll: true, text: t('Your routines are here, today’s first. Start routine opens it, ready to log.') },
+      { id: 'week', target: '[data-tour="ws-plan"]', need: true, text: t('The calendar puts your routines on the days of the week, so each day’s workout is waiting for you.') },
+    ],
+  },
+  workout: {
+    kind: 'basic',
+    ready: '.setrow',
+    steps: () => [
+      { id: 'set', target: '.setrow', scroll: true, text: t('Type the weight and the reps, then tick the set when it is done. The rest timer starts by itself, and next time Olympus suggests what to lift.') },
+      { id: 'unit', target: '.sethead .unit-hd', need: true, text: t('Tap the Weight title to switch between kg and lb.') },
+      { id: 'kind', target: '.setrow .n', text: t('Tap a set’s number to mark it as a warm-up, a drop set or a set taken to failure.') },
+      { id: 'menu', target: '.exhd .iconbtn:last-child', scroll: true, text: t('The dots open this exercise’s menu: swap it, see your history, learn how to do it, or change its rest timer.') },
+      { id: 'add', target: '.wadd', need: true, scroll: true, text: t('Add exercise is below the last exercise.') },
+      { id: 'chiron', target: '.whdr-chiron', need: true, scroll: true, text: t('Chiron is asleep up here: tap him three times to wake him, and ask him anything between sets, even by voice.') },
+      { id: 'finish', target: '.whdr-finish', text: t('When you are done, Finish saves the workout.') },
+    ],
+  },
+  plan: {
+    kind: 'basic',
+    steps: () => [
+      { id: 'views', target: '.plan-views', text: t('Routines holds your workouts, each a list of exercises. Schedule puts them on weekdays: tap a day to choose what you train, and that day’s workout is ready when you open the app.') },
+      { id: 'mode', target: '.plan-mode', need: true, text: t('Fixed week repeats the same routines on the same weekdays; Rotation goes through them in order, whatever the day.') },
+    ],
+  },
+  profile: {
+    kind: 'basic',
+    steps: () => [
+      { id: 'tabs', target: '.prof-tab', text: t('Overview is this week at a glance and Stats has your progress charts. Further down: your Plan, the exercise library and Settings.') },
+      { id: 'medals', target: '[data-tour="medals"]', need: true, text: t('Your medals: records, streaks and goals reached.') },
+      { id: 'settings', target: '[data-tour="settings"]', need: true, text: t('Settings: units, rest timer, language, reminders, and importing your history from other apps.') },
+    ],
+  },
+  stats: {
+    kind: 'analysis',
+    ready: '.stats-mode',
+    steps: () => [
+      { id: 'mode', target: '.stats-mode', scroll: true, text: t('Simple shows the essentials in plain words. Switch to Detailed for every chart and number. Tap ⓘ next to a title to learn what a card shows.') },
+      { id: 'chapters', target: '.stats-chap-tabs', need: true, text: t('The chapters group your statistics: tap one to see its cards.') },
+      { id: 'pick', target: '[data-tour="stats-pick"]', need: true, text: t('Here you choose which statistics to keep on the page.') },
+    ],
+  },
+  library: {
+    kind: 'basic',
+    ready: '.eg-map',
+    steps: () => [
+      { id: 'map', target: '.eg-map', text: t('Tap a muscle to see the exercises that train it, the best-known first.') },
+      { id: 'groups', target: '.eg-tiles', need: true, scroll: true, text: t('Or pick a group: full body, cardio, stretching and more.') },
+      { id: 'search', target: '.eg-search', need: true, scroll: true, text: t('Search by name finds any exercise, with filters for equipment.') },
+    ],
+  },
 }
+
+const onScreen = sel => typeof document !== 'undefined' && !!document.querySelector(sel)
+
+/**
+ * The steps of screen `id` as they apply now: those whose target must be there and is not are
+ * left out. An empty list for a screen with no tour, or one that is not ready yet.
+ */
+export function tourFor(id, { has = onScreen } = {}) {
+  const tour = SCREEN_TOURS[id]
+  if (!tour || (tour.ready && !has(tour.ready))) return []
+  return tour.steps().filter(s => !s.need || !s.target || has(s.target))
+}
+
+/** What she says to a newcomer, before showing the first screen: how she will help from now on. */
+export const introStep = () => ({ id: 'intro', text: t('From now on, the first time you open each part of the app, I’ll show you how it works. Let’s start here.') })
+
+/** What she says to someone who knows apps like this: only where she is. */
+export const whereStep = () => ({ id: 'where', target: '.cal-help', text: t('And I am always here. Tap my face at the top of Home whenever you are not sure how something works, and ask me.') })
 
 /** What she says first, before the question of how much help the person wants. */
 export const greeting = () => t('Welcome to Olympus! I am Calliope, your guide. One question first: how much help would you like?')

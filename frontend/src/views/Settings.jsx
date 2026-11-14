@@ -9,8 +9,7 @@ import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
 import { copyText } from '../lib/clipboard.js'
 import { useUI } from '../store/useUI.js'
 import { guideLevelOf, withGuideLevel, withTipsReset } from '../lib/guide.js'
-import { welcomeSheet } from '../components/Welcome.jsx'
-import { calliopeSheet } from '../components/Calliope.jsx'
+import { calliopeSheet, replayGuide } from '../components/Calliope.jsx'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
 import { dumbbellsOf } from '../lib/dumbbells.js'
@@ -814,7 +813,7 @@ export default function Settings({ page = null, find = null, via = null }) {
             { value: 'off', label: t('Off') },
           ]}
           onChange={level => update(s => { s.hints = withGuideLevel(s.hints, level) })} />
-        <Row icon="sparkles" iconTint="var(--acc)" title={t('Show the welcome tour again')} accessory="chevron" onClick={() => { nav('/home'); setTimeout(() => welcomeSheet(), 350) }} />
+        <Row icon="sparkles" iconTint="var(--acc)" title={t('Show the welcome tour again')} accessory="chevron" onClick={() => replayGuide()} />
         <Row icon="chat" iconTint="var(--acc)" title={t('Ask Calliope')} subtitle={t('Your guide: how anything in the app works')} accessory="chevron" onClick={() => calliopeSheet()} />
         <Row icon="reset" iconTint="var(--grey)" title={t('Show the tips again')} onClick={() => {
           update(s => { s.hints = withTipsReset(s.hints) })

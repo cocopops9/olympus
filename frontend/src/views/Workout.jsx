@@ -56,6 +56,7 @@ import WorkoutStart from './WorkoutStart.jsx'
 import { withMeaning, historyAs, dbLoadFor, entryDbLoad, bellsIn, ownedWeightsFor, stepOwned } from '../lib/dumbbells.js'
 import { markSuggested, isSuggested, clearSuggested } from '../lib/suggested.js'
 import { WorkoutChiron } from '../components/Chiron.jsx'
+import { useScreenTour } from '../components/Calliope.jsx'
 
 // How long after a key starts a hold the same key is not yet its "Done" (#133). A USB button
 // that bounces, or a double press, sends two presses a moment apart: the first starts the hold,
@@ -925,6 +926,8 @@ const coveredTop = () => {
 function ActiveWorkout() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
+  // Calliope shows a workout the first time one is open with an exercise in it, editing aside.
+  useScreenTour('workout', !!S.active?.entries?.length && !S.active?.editingWorkoutId && !S.active?.backfill)
   const update = useStore(s => s.update)
   const { startRest: liveRest, stopRest, stopWork, work, timer } = useUI()
   const A = S.active

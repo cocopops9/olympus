@@ -20,12 +20,15 @@ import { Button } from '../components/ui.jsx'
 import { tappable, useRevealActiveChip } from '../lib/use-sheet-keyboard.js'
 import { useAutoMore } from '../lib/use-auto-more.js'
 import { isFav, sortFavouritesFirst, sortYoursFirst, usageOf } from '../lib/favourites.js'
+import { useScreenTour } from '../components/Calliope.jsx'
 
 // The library opens on the body (components/ExerciseGuide.jsx), as the exercise picker does: a
 // tap on a muscle, or on full body, cardio, stretching, lists what fits, the well-known movements
 // first. "Search by name" opens the whole list below, with its filters.
 export default function Library({ start = 'guide' }) {
   const [mode, setMode] = useState(start)
+  // Calliope shows this screen the first time it is opened (components/Calliope.jsx).
+  useScreenTour('library', mode === 'guide')
   if (mode === 'guide') return <>
     <div className="hdr lib-hdr"><div><h1>{t('Exercises')}</h1></div></div>
     <ExerciseGuide title={false}

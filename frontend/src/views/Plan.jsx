@@ -11,7 +11,6 @@ import {
 } from '../sheets.jsx'
 import { planTextSheet, planTextReady } from '../components/PlanText.jsx'
 import Icon from '../components/Icon.jsx'
-import { Tip } from '../components/Guide.jsx'
 import { Button, Row, Section, Segmented } from '../components/ui.jsx'
 import SwipeRow from '../components/SwipeRow.jsx'
 import { copyRoutine, deleteRoutine, restoreRoutine, routineSnapshot } from '../lib/routines.js'
@@ -25,6 +24,7 @@ import { coachAvailable } from '../lib/coach.js'
 import { queueOf, queueView } from '../lib/queue.js'
 import { deriveSessionName } from '../lib/session-merge.js'
 import { markUndone, undoMarks } from '../lib/sync-merge.js'
+import { useScreenTour } from '../components/Calliope.jsx'
 import {
   scheduleModeOf, queueRecovery, rotationIds, saveRotation, startNewPass, startPass, stopPass,
   chooseRotation, chooseFixedWeek,
@@ -125,6 +125,8 @@ export function undoTakeOut({ id, at, label, snap, mark, marks }) {
 let flashSeq = 0
 
 export default function Plan() {
+  // Calliope shows this screen the first time it is opened (components/Calliope.jsx).
+  useScreenTour('plan')
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
@@ -173,9 +175,6 @@ export default function Plan() {
       </div>
     </div>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
-    <Tip id="plan" title={t('Plan your week')}>
-      {t('Routines holds your workouts, each a list of exercises. Schedule puts them on weekdays: tap a day to choose what you train, and that day’s workout is ready when you open the app.')}
-    </Tip>
     <Segmented className="plan-views" value={view} onChange={setView}
       options={[{ value: 'schedule', label: t('Schedule') }, { value: 'routines', label: t('Routines') }]} />
     {view === 'routines'

@@ -5,23 +5,45 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const api = vi.hoisted(() => vi.fn())
 vi.mock('./api.js', () => ({ api }))
 
-import { askCalliope, askErrorText, guideContext, parseReply, tourSteps, voiceOn, withVoice } from './calliope.js'
+import { SCREEN_TOURS, askCalliope, askErrorText, guideContext, parseReply, tourFor, voiceOn, withVoice } from './calliope.js'
 
 beforeEach(() => { api.mockReset() })
 
-describe('the tour', () => {
-  it('is short, ends on the choice, and points at something real on most steps', () => {
-    const steps = tourSteps()
-    expect(steps.length).toBeLessThanOrEqual(7)
-    expect(steps.at(-1)).toMatchObject({ id: 'go', last: true })
-    expect(steps.filter(s => s.target).length).toBeGreaterThanOrEqual(4)
-    expect(new Set(steps.map(s => s.id)).size).toBe(steps.length)
-    for (const s of steps) expect(s.text.length).toBeLessThan(200)
+describe('the tours', () => {
+  const has = present => sel => present.includes(sel)
+
+  it('each screen has a short tour of its own, in a few bubbles', () => {
+    for (const [id, tour] of Object.entries(SCREEN_TOURS)) {
+      const steps = tour.steps()
+      expect(steps.length, id).toBeGreaterThanOrEqual(2)
+      expect(steps.length, id).toBeLessThanOrEqual(7)
+      expect(new Set(steps.map(s => s.id)).size, id).toBe(steps.length)
+      for (const step of steps) {
+        expect(step.target, id + '/' + step.id).toBeTruthy()
+        expect(step.text.length, id + '/' + step.id).toBeLessThan(220)
+      }
+      expect(['basic', 'analysis']).toContain(tour.kind)
+    }
+    expect(Object.keys(SCREEN_TOURS)).toEqual(expect.arrayContaining(['home', 'workoutStart', 'workout', 'plan', 'profile', 'stats', 'library']))
   })
 
-  it('talks about the coaches only to a profile that has them', () => {
-    expect(tourSteps().some(s => s.id === 'coach')).toBe(false)
-    expect(tourSteps({ coach: true }).some(s => s.id === 'coach')).toBe(true)
+  it('leaves out a step whose button is not on screen, and keeps the others', () => {
+    const home = tourFor('home', { has: has(['#tabbar .start', '#tabbar > button:last-child', '.cal-help']) })
+    expect(home.map(s => s.id)).toEqual(['start', 'profile', 'me'])
+    const withCoach = tourFor('home', { has: () => true })
+    expect(withCoach.map(s => s.id)).toContain('coach')
+  })
+
+  it('waits for a screen that has nothing to show yet', () => {
+    expect(tourFor('stats', { has: has([]) })).toEqual([])
+    expect(tourFor('workout', { has: has(['.whdr-finish']) })).toEqual([])
+    expect(tourFor('workout', { has: has(['.setrow', '.setrow .n', '.exhd .iconbtn:last-child', '.whdr-finish']) }).map(s => s.id)).toEqual(['set', 'kind', 'menu', 'finish'])
+    expect(tourFor('nowhere')).toEqual([])
+  })
+
+  it('the numbers screens are for everyone who wants help, the rest for newcomers', () => {
+    expect(SCREEN_TOURS.stats.kind).toBe('analysis')
+    expect(SCREEN_TOURS.workout.kind).toBe('basic')
   })
 })
 

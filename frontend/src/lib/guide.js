@@ -5,6 +5,7 @@
 //   hints.guide    'new' | 'some' | 'off' — how much help this person wants (the welcome asks)
 //   hints.welcomed true once the welcome was shown, answered or skipped
 //   hints.tips     { <tip id>: true } — the tips already dismissed
+//   hints.tours    { <screen id>: true } — the screens Calliope has already shown (lib/calliope.js)
 //
 // Two kinds of tip. A 'basic' tip explains the app itself (where Start is, what a routine is) and
 // is for someone who said they are new. An 'analysis' tip explains a screen full of numbers
@@ -61,6 +62,27 @@ export function tipVisible(S, id) {
 
 // The writers below return a new hints map and never touch the one they were given: the store
 // stamps an edit by comparing the old state with the new one (lib/sync-merge.js stampEdits).
+
+/** Whether Calliope's tour of screen `id`, a tour of `kind` ('basic' or 'analysis'), is due now. */
+export function tourDue(S, id, kind = 'basic') {
+  const h = hintsOf(S)
+  if (h.tours && h.tours[id]) return false
+  const level = guideLevelOf(S)
+  if (level === 'off') return false
+  // Not before the welcome has asked how much help is wanted: that answer decides.
+  if (!(h.welcomed || GUIDE_LEVELS.includes(h.guide))) return false
+  return kind === 'analysis' || level === 'new'
+}
+
+/** `hints` with screen `id` shown. */
+export const withTourSeen = (hints, id) => ({ ...(hints || {}), tours: { ...(hints?.tours || {}), [id]: true } })
+
+/** `hints` with every screen to be shown again (the welcome replayed from Settings). */
+export function withToursReset(hints) {
+  const next = { ...(hints || {}) }
+  delete next.tours
+  return next
+}
 
 /** `hints` with tip `id` dismissed. */
 export const withTipSeen = (hints, id) => ({ ...(hints || {}), tips: { ...(hints?.tips || {}), [id]: true } })

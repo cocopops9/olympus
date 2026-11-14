@@ -33,7 +33,7 @@ import { inviteSheet, feedbackSheet } from '../components/Community.jsx'
 import { openAccountSheet } from './MobileOnboarding.jsx'
 import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
-import { Tip } from '../components/Guide.jsx'
+import { useScreenTour } from '../components/Calliope.jsx'
 
 const TABS = ['overview', 'stats', 'posts']
 
@@ -114,6 +114,8 @@ function PostsTab({ posts, setPosts, error, onRetry }) {
 }
 
 export default function Profile() {
+  // Calliope shows this screen the first time it is opened (components/Calliope.jsx).
+  useScreenTour('profile')
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const S = useStore(s => s.S)
@@ -170,10 +172,10 @@ export default function Profile() {
     <div className="hdr">
       <div><h1>{t('Profile')}</h1></div>
       <div className="hdr-actions">
-        <button className="iconbtn" onClick={() => nav('/medals')} aria-label={t('Medals')}><Icon name="medal" /></button>
+        <button className="iconbtn" data-tour="medals" onClick={() => nav('/medals')} aria-label={t('Medals')}><Icon name="medal" /></button>
         <ThemeToggle />
         <button className="iconbtn" onClick={() => calendarSheet()} aria-label={t('Calendar')}><Icon name="calendar" /></button>
-        <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>
+        <button className="iconbtn" data-tour="settings" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}>
           <Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}
         </button>
       </div>
@@ -209,9 +211,6 @@ export default function Profile() {
       </div>}
     </div>
 
-    <Tip id="profile" title={t('Your training, in one place')}>
-      {t('Overview is this week at a glance and Stats has your progress charts. Further down: your Plan, the exercise library and Settings.')}
-    </Tip>
 
     <Segmented className="prof-tab" value={tab} onChange={setTab} options={options} />
 

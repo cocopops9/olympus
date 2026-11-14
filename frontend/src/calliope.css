@@ -33,6 +33,9 @@
 .cal-stage>*{pointer-events:auto}
 /* The question points at nothing, so on a small screen it may use the room down to the edge. */
 .cal-tour[data-step="ask"] .cal-stage{bottom:calc(var(--sab) + 18px);max-height:calc(100dvh - var(--sab) - var(--sat,0px) - 30px)}
+/* At the top, when what she points at is low on the screen: the bubble alone, her face in it. */
+.cal-stage.top{top:calc(var(--sat,0px) + 12px);bottom:auto}
+.cal-stage.top .cal-bubble::after{display:none}
 .cal-stage-fig{height:min(31vh,264px);flex:0 1 auto;min-height:84px;margin:-6px 0 0 6px;animation:cal-rise .38s cubic-bezier(.2,.9,.3,1.2) backwards,cal-breathe 4.2s ease-in-out .4s infinite}
 @keyframes cal-rise{from{opacity:0;transform:translateY(40px)}}
 
@@ -66,16 +69,6 @@
 .cal-level b{display:block;font-size:15.5px;margin-bottom:2px}
 .cal-level-i{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:var(--acc-soft);color:var(--acc);font-size:18px;flex:none}
 
-/* A set being logged: the tick lights up, then the rest timer appears. Loops. */
-.cal-demo{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px 12px;border-radius:14px;background:var(--surface-2);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
-.cal-demo-n{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--bg);color:var(--label-2);font-size:13px}
-.cal-demo-v i{font-style:normal;font-weight:400;color:var(--label-2);font-size:13px}
-.cal-demo-x{color:var(--label-3);font-weight:400}
-.cal-demo-c{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;margin-inline-start:auto;border-radius:9px;background:var(--bg);color:var(--label-3);font-size:16px;animation:cal-tick 3.6s ease-in-out infinite}
-.cal-demo-t{display:inline-flex;align-items:center;gap:4px;color:var(--acc);font-size:14px;animation:cal-timer 3.6s ease-in-out infinite}
-@keyframes cal-tick{0%,30%{background:var(--bg);color:var(--label-3);transform:scale(1)}36%{transform:scale(1.22)}42%,92%{background:var(--acc);color:var(--on-acc);transform:scale(1)}100%{background:var(--bg);color:var(--label-3)}}
-@keyframes cal-timer{0%,44%{opacity:0;transform:translateX(-6px)}54%,92%{opacity:1;transform:none}100%{opacity:0}}
-
 /* Ask Calliope: a sheet with her at the top and the conversation under her. */
 .cal-ask{display:flex;flex-direction:column;min-height:min(62vh,520px);max-height:78vh}
 .cal-ask-h{display:flex;align-items:center;gap:11px;padding:2px 2px 10px;border-bottom:var(--hair) solid var(--sep)}
@@ -106,7 +99,6 @@
 .guide-tip-say.on{background:var(--acc);color:var(--on-acc)}
 
 @media (prefers-reduced-motion:reduce){
-  .cal-fig,.cal-stage-fig,.cal-face.talking,.cal-tour,.cal-bubble,.cal-spot::after,.cal-demo-c,.cal-demo-t,.cal-typing i{animation:none}
-  .cal-demo-c{background:var(--acc);color:var(--on-acc)}
+  .cal-fig,.cal-stage-fig,.cal-face.talking,.cal-tour,.cal-bubble,.cal-spot::after,.cal-typing i{animation:none}
   .cal-spot{transition:none}
 }

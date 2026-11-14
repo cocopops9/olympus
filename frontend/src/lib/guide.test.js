@@ -1,7 +1,7 @@
 // The guide (lib/guide.js): who is welcomed, which tips each level of help shows, and the writers
 // leaving the hints map they were given alone.
 import { describe, expect, it } from 'vitest'
-import { guideLevelOf, needsWelcome, tipVisible, withTipSeen, withGuideLevel, withWelcomed, withTipsReset, TIPS } from './guide.js'
+import { guideLevelOf, needsWelcome, tipVisible, withTipSeen, withGuideLevel, withWelcomed, withTipsReset, TIPS, tourDue, withTourSeen, withToursReset } from './guide.js'
 
 const blank = (hints = {}) => ({ hints, workouts: [], routines: [] })
 const trained = (hints = {}) => ({ hints, workouts: [{ id: 'w1' }], routines: [] })
@@ -72,5 +72,23 @@ describe('writers', () => {
   it('handle a profile with no hints map at all', () => {
     expect(withTipSeen(undefined, 'feed')).toEqual({ tips: { feed: true } })
     expect(tipVisible({ workouts: [], routines: [] }, 'stats')).toBe(true)
+  })
+})
+
+describe('screen tours', () => {
+  const S = hints => ({ hints, workouts: [], routines: [] })
+  it('wait for the welcome, then follow the help asked for', () => {
+    expect(tourDue(S({}), 'plan')).toBe(false)
+    expect(tourDue(S({ guide: 'new', welcomed: true }), 'plan')).toBe(true)
+    expect(tourDue(S({ guide: 'some', welcomed: true }), 'plan')).toBe(false)
+    expect(tourDue(S({ guide: 'some', welcomed: true }), 'stats', 'analysis')).toBe(true)
+    expect(tourDue(S({ guide: 'off', welcomed: true }), 'stats', 'analysis')).toBe(false)
+  })
+  it('show each screen once, until the welcome is replayed', () => {
+    const seen = withTourSeen({ guide: 'new', welcomed: true }, 'plan')
+    expect(tourDue(S(seen), 'plan')).toBe(false)
+    expect(tourDue(S(seen), 'profile')).toBe(true)
+    expect(tourDue(S(withToursReset(seen)), 'plan')).toBe(true)
+    expect(withToursReset(seen)).toEqual({ guide: 'new', welcomed: true })
   })
 })

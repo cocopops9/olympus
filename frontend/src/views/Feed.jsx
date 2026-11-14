@@ -13,8 +13,7 @@ import { PostCard, PersonRow, composeSheet, POSTED_EVENT, Avatar, Name, FollowBu
 import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
-import { Tip } from '../components/Guide.jsx'
-import { CalliopeButton } from '../components/Calliope.jsx'
+import { CalliopeButton, useScreenTour } from '../components/Calliope.jsx'
 import '../social.css'
 
 function NoServer() {
@@ -112,6 +111,8 @@ const RETRY_MS = [2000, 5000, 10000]
 const passing = e => !e || e.status == null || e.status === 0 || e.code === 'timeout' || e.code === 'not-paired' || [502, 503, 504].includes(e.status)
 
 export default function Feed() {
+  // Calliope shows this screen the first time it is opened (components/Calliope.jsx).
+  useScreenTour('home')
   const nav = useNavigate()
   const user = useStore(s => s.user)
   // On a phone the account is back from storage at once, but the server's address only once
@@ -207,12 +208,9 @@ export default function Feed() {
       </div>
     </div>
 
-    <Tip id="feed" title={t('Finding your way')}>
-      {t('Three tabs at the bottom: Home is this feed, the round Workout button starts training, and Profile holds your plan, progress and settings.')}
-    </Tip>
 
     {waiting ? <div className="empty">{t('Loading…')}</div> : !ready ? <NoServer /> : searching ? <People onClose={() => setSearching(false)} /> : <>
-      <Segmented className="feed-tabs" value={tab} onChange={setTab}
+      <Segmented data-tour="feed-tabs" className="feed-tabs" value={tab} onChange={setTab}
         options={[{ value: 'following', label: t('Following') }, { value: 'discover', label: t('Discover') }]} />
       {tab === 'following' && follows === 0 && <SuggestedStrip first />}
       {error ? <div className="empty">{socialErrorText(error, t)}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={refresh}>{t('Try again')}</Button></div></div>

@@ -18,9 +18,9 @@ import { startFlow, planCopy, loadStarterPlan, confirmSheet } from '../sheets.js
 import BodyMap from '../components/BodyMap.jsx'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import { Tip } from '../components/Guide.jsx'
 import { planTextSheet, planTextReady } from '../components/PlanText.jsx'
 import '../workout-start.css'
+import { useScreenTour } from '../components/Calliope.jsx'
 
 const TINTS = ['var(--acc)', 'var(--blue)', 'var(--orange)', 'var(--pink)', 'var(--indigo)', 'var(--teal)', 'var(--red)']
 const tintOf = id => TINTS[[...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % TINTS.length]
@@ -109,17 +109,16 @@ export default function WorkoutStart() {
     update(s => { s.routines.push(r) })
     nav('/plan/r/' + r.id)
   }
+  // Calliope shows this screen the first time it is opened (components/Calliope.jsx).
+  useScreenTour('workoutStart')
   return <div className="narrow ws">
     <div className="hdr">
       <div><h1>{t('Workout')}</h1></div>
       <div className="hdr-actions">
-        <button className="iconbtn" onClick={() => nav('/plan')} aria-label={t('Weekly plan')}><Icon name="calendar" /></button>
+        <button className="iconbtn" data-tour="ws-plan" onClick={() => nav('/plan')} aria-label={t('Weekly plan')}><Icon name="calendar" /></button>
       </div>
     </div>
 
-    <Tip id="workoutStart" title={t('How to start')}>
-      {t('Tap Start routine on one of your routines, or Start empty workout and add exercises as you go. No routine yet? Explore routines has ready-made ones to copy.')}
-    </Tip>
 
     <button className="ws-empty" onClick={() => startFlow([])}>
       <span className="ws-empty-i"><Icon name="plus" /></span>

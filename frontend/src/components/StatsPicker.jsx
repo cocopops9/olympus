@@ -68,6 +68,6 @@ export const statsPickerSheet = () => useUI.getState().openSheet(close => <Picke
 /** The button that opens the picker, for the Stats page header or its top. */
 export function StatsPickerButton({ compact = false }) {
   return compact
-    ? <button className="iconbtn" onClick={statsPickerSheet} aria-label={t('Choose your statistics')}><Icon name="slider" /></button>
-    : <Button size="sm" variant="tinted" icon="slider" onClick={statsPickerSheet}>{t('Customize')}</Button>
+    ? <button className="iconbtn" data-tour="stats-pick" onClick={statsPickerSheet} aria-label={t('Choose your statistics')}><Icon name="slider" /></button>
+    : <Button size="sm" variant="tinted" icon="slider" data-tour="stats-pick" onClick={statsPickerSheet}>{t('Customize')}</Button>
 }

@@ -1,6 +1,7 @@
 // Olympus: Calliope, the guide, on screen (lib/calliope.js has what she says and knows).
-//   <CalliopeTour>  the welcome: she stands on the screen, asks how much help the person wants,
-//                   and shows a newcomer around, pointing at the real buttons one at a time
+//   <CalliopeTour>  she stands on the screen and talks: the welcome (how much help do you want)
+//                   and, the first time each screen opens, a few bubbles about that screen only,
+//                   pointing at the real buttons one at a time (useScreenTour)
 //   calliopeSheet() "ask Calliope": a question about the app, answered in her bubble and aloud
 //   <CalliopeFace>  her portrait, for the tips and for the button that opens her
 // She talks in a speech bubble, written out as she says it, with her own voice (lib/voice.js),
@@ -10,11 +11,10 @@ import { create } from 'zustand'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { socialReady } from '../lib/social.js'
-import { withGuideLevel, withTipSeen } from '../lib/guide.js'
+import { tourDue, withGuideLevel, withTourSeen, withToursReset } from '../lib/guide.js'
 import { backTrap } from '../lib/back.js'
 import { speak, stopSpeaking, preloadVoice, warmVoice } from '../lib/voice.js'
-import { GUIDE, askCalliope, askErrorText, greeting, starterQuestions, tourSteps, voiceOn, withVoice } from '../lib/calliope.js'
+import { GUIDE, SCREEN_TOURS, askCalliope, askErrorText, greeting, introStep, starterQuestions, tourFor, voiceOn, whereStep, withVoice } from '../lib/calliope.js'
 import { MicButton } from './Voice.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -23,13 +23,54 @@ import figure from '../assets/calliope-full.webp'
 import mouth from '../assets/calliope-mouth.webp'
 import '../calliope.css'
 
-/** The tour on screen: null, or { then } (run once it is finished or skipped). */
-export const useCalliope = create(() => ({ tour: null }))
+/**
+ * What she is doing on screen: `tour` is null, or { id, steps, then, key }: `steps` null for the
+ * welcome (the question comes first), `id` the screen a screen tour is about, `then` run once it
+ * ends, however it ends. `inTests` lets the screens start their tours under a test runner.
+ */
+export const useCalliope = create(() => ({ tour: null, inTests: false }))
 
-/** Starts the tour. `then` runs when it ends, however it ends. */
+/** Starts the welcome. `then` runs when it ends, however it ends. */
 export function startTour(then) {
   warmVoice()
-  useCalliope.setState({ tour: { then: typeof then === 'function' ? then : null, key: Date.now() } })
+  useCalliope.setState({ tour: { id: 'welcome', steps: null, then: typeof then === 'function' ? then : null, key: Date.now() } })
+}
+
+/** Starts the tour of screen `id` with `steps` (lib/calliope.js tourFor). */
+export function startScreenTour(id, steps) {
+  if (!steps?.length) return
+  warmVoice()
+  useCalliope.setState({ tour: { id, steps, then: null, key: Date.now() } })
+}
+
+/**
+ * The tour of screen `id`, the first time it is open: a moment after the screen has settled,
+ * when nothing else is on it (no sheet, no other tour), and only for someone it is due to
+ * (lib/guide.js tourDue). It counts as shown from the moment it starts, so leaving it does not
+ * bring it back. `ready` false holds it back (a workout with no exercise in it yet). Leaving the
+ * screen ends it.
+ */
+export function useScreenTour(id, ready = true) {
+  const kind = SCREEN_TOURS[id]?.kind || 'basic'
+  const due = useStore(s => tourDue(s.S, id, kind))
+  useEffect(() => {
+    if (!due || !ready) return
+    if (import.meta.env?.MODE === 'test' && !useCalliope.getState().inTests) return
+    let tm
+    let tries = 0
+    const go = () => {
+      const st = useStore.getState()
+      if (!tourDue(st.S, id, kind)) return
+      if (useCalliope.getState().tour || useUI.getState().sheets.length) { if (++tries < 40) tm = setTimeout(go, 1500); return }
+      const steps = tourFor(id)
+      if (!steps.length) { if (++tries < 6) tm = setTimeout(go, 1500); return }
+      st.update(s => { s.hints = withTourSeen(s.hints, id) })
+      startScreenTour(id, steps)
+    }
+    tm = setTimeout(go, 900)
+    return () => clearTimeout(tm)
+  }, [id, kind, due, ready])
+  useEffect(() => () => { if (useCalliope.getState().tour?.id === id) useCalliope.setState({ tour: null }) }, [id])
 }
 
 const calm = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -63,18 +104,23 @@ export function CalliopeFigure({ talking = false, className = '' }) {
 export function useTyped(text) {
   const full = String(text || '')
   const [n, setN] = useState(() => (calm() ? full.length : 0))
+  const timer = useRef(null)
+  const stop = () => { clearInterval(timer.current); timer.current = null }
   useEffect(() => {
+    stop()
     if (calm()) { setN(full.length); return }
     setN(0)
     let at = 0
-    const tm = setInterval(() => {
+    timer.current = setInterval(() => {
       at = Math.min(full.length, at + 2)
       setN(at)
-      if (at >= full.length) clearInterval(tm)
+      if (at >= full.length) stop()
     }, 34)
-    return () => clearInterval(tm)
+    return stop
   }, [full])
-  return [full.slice(0, n), n >= full.length, () => setN(full.length)]
+  // Finishing stops the writing too: the timer would otherwise take the line back to where it was.
+  const finish = useCallback(() => { stop(); setN(full.length) }, [full])
+  return [full.slice(0, n), n >= full.length, finish]
 }
 
 /**
@@ -114,20 +160,9 @@ function VoiceToggle({ voice }) {
   </button>
 }
 
-// A set being logged, drawn small: the numbers, then the tick, then the rest timer starting.
-function SetDemo() {
-  return <div className="cal-demo" aria-hidden="true">
-    <span className="cal-demo-n">1</span>
-    <span className="cal-demo-v">60 <i>kg</i></span>
-    <span className="cal-demo-x">×</span>
-    <span className="cal-demo-v">8</span>
-    <span className="cal-demo-c"><Icon name="check" /></span>
-    <span className="cal-demo-t"><Icon name="timer" /> 1:30</span>
-  </div>
-}
-
 // Where the thing she points at is on the screen: { x, y, w, h } with some air around it, or null.
-function useSpot(selector) {
+// With `scroll`, the thing is brought to the middle of the screen first.
+function useSpot(selector, scroll) {
   const [rect, setRect] = useState(null)
   useLayoutEffect(() => {
     if (!selector) { setRect(null); return }
@@ -138,11 +173,13 @@ function useSpot(selector) {
       const pad = 6
       setRect({ x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 })
     }
+    if (scroll) document.querySelector(selector)?.scrollIntoView?.({ block: 'center' })
     measure()
     const tm = setTimeout(measure, 260)   // once the screen has settled
     window.addEventListener('resize', measure)
-    return () => { clearTimeout(tm); window.removeEventListener('resize', measure) }
-  }, [selector])
+    window.addEventListener('scroll', measure, true)
+    return () => { clearTimeout(tm); window.removeEventListener('resize', measure); window.removeEventListener('scroll', measure, true) }
+  }, [selector, scroll])
   return rect
 }
 
@@ -153,32 +190,39 @@ const LEVELS = () => [
 ]
 
 /**
- * The welcome and the tour, over the app. First the question (how much help), then, for a
- * newcomer, the steps of lib/calliope.js tourSteps, each with a spotlight on what it is about.
- * `onPick` opens the ready-made routines at the end. Mounted by App while useCalliope has a tour.
+ * Calliope on screen, over the app: the welcome, or the tour of a screen. Mounted once by App;
+ * nothing until useCalliope has a tour.
  */
-export function CalliopeTour({ onPick }) {
+export function CalliopeTour() {
   const tour = useCalliope(s => s.tour)
   if (!tour) return null
-  return <Tour key={tour.key} then={tour.then} onPick={onPick} />
+  return <Tour key={tour.key} tour={tour} />
 }
 
-function Tour({ then, onPick }) {
+function Tour({ tour }) {
   const update = useStore(s => s.update)
-  const user = useStore(s => s.user)
   const voice = useCalliopeVoice()
-  const [steps, setSteps] = useState(null)   // null: the question; then the steps to tell
+  const [steps, setSteps] = useState(tour.steps)   // null: the welcome's question; then the steps to tell
   const [at, setAt] = useState(0)
   const step = steps ? steps[at] : null
   const text = step ? step.text : greeting()
   const [shown, typed, finishTyping] = useTyped(text)
-  const spot = useSpot(step?.target)
+  const spot = useSpot(step?.target, !!step?.scroll)
+  const stage = useRef(null)
+  // Where she stands: at the bottom, unless what she points at is down there, then at the top.
+  const [top, setTop] = useState(false)
+  useLayoutEffect(() => { setTop(false) }, [at])
+  useLayoutEffect(() => {
+    if (top || !spot || !stage.current) return
+    const r = stage.current.getBoundingClientRect()
+    if (spot.y + spot.h > r.top && spot.y < r.bottom) setTop(true)
+  }, [spot, top])
 
   const hush = voice.hush
-  const end = useCallback(after => {
+  const { then } = tour
+  const end = useCallback(() => {
     hush()
     useCalliope.setState({ tour: null })
-    after?.()
     then?.()
   }, [then, hush])
 
@@ -193,34 +237,34 @@ function Tour({ then, onPick }) {
   useEffect(() => backTrap(() => { end(); return true }), [end])
 
   const choose = level => {
-    // The tour says what Home's own tip says (the three buttons at the bottom): told once is enough.
-    update(s => { s.hints = level === 'new' ? withTipSeen(withGuideLevel(s.hints, level), 'feed') : withGuideLevel(s.hints, level) })
+    update(s => { s.hints = withGuideLevel(s.hints, level) })
     if (level === 'off') { end(); return }
-    const all = tourSteps({ coach: socialReady(user) && !!document.querySelector('.hc-fab') })
-    // Someone who knows apps like this is told one thing only: where to find her.
-    setSteps(level === 'new' ? all : all.filter(s => s.id === 'me').map(s => ({ ...s, last: true, only: true })))
+    if (level === 'some') { setSteps([whereStep()]); setAt(0); return }
+    // A newcomer: how she will help from now on, then this screen (Home), which counts as shown.
+    update(s => { s.hints = withTourSeen(s.hints, 'home') })
+    setSteps([introStep(), ...tourFor('home')])
     setAt(0)
   }
-  const next = () => { if (!typed) { finishTyping(); return } if (at < steps.length - 1) setAt(at + 1) }
-  const last = !!step?.last
+  const last = !!steps && at === steps.length - 1
+  const next = () => { if (!typed) { finishTyping(); return } if (last) end(); else setAt(at + 1) }
 
-  return <div className="cal-tour" role="dialog" aria-modal="true" aria-label={t('Calliope, your guide')} data-step={step ? step.id : 'ask'}>
+  return <div className="cal-tour" role="dialog" aria-modal="true" aria-label={t('Calliope, your guide')} data-step={step ? step.id : 'ask'} data-tour-of={tour.id}>
     {spot
       ? <div className="cal-spot" style={{ left: spot.x, top: spot.y, width: spot.w, height: spot.h }} />
       : <div className="cal-dim" />}
-    <div className="cal-stage">
+    <div className={'cal-stage' + (top ? ' top' : '')} ref={stage}>
       <div className="cal-bubble">
         <div className="cal-bubble-h">
+          {top && <CalliopeFace size={28} className={voice.talking ? 'talking' : ''} />}
           <b>Calliope</b>
           <VoiceToggle voice={voice} />
           <span className="cal-gap" />
-          {steps && !last && <button type="button" className="cal-skip" onClick={() => end()}>{t('Skip the tour')}</button>}
+          {steps && !last && <button type="button" className="cal-skip" onClick={end}>{t('Skip the tour')}</button>}
         </div>
         <p className="cal-say" onClick={finishTyping}>
           <span aria-hidden="true">{shown}</span>
           <span className="cal-sr" aria-live="polite">{text}</span>
         </p>
-        {step?.demo === 'set' && <SetDemo />}
         {!steps && <div className="cal-levels" role="list">
           {LEVELS().map(l => <button key={l.value} role="listitem" className="cal-level" data-level={l.value} onClick={() => choose(l.value)}>
             <span className="cal-level-i" aria-hidden="true"><Icon name={l.icon} /></span>
@@ -228,21 +272,15 @@ function Tour({ then, onPick }) {
             <Icon name="chevronRight" className="dim" />
           </button>)}
         </div>}
-        {steps && !last && <div className="cal-nav">
+        {steps && <div className="cal-nav">
           {at > 0 ? <button type="button" className="cal-back" onClick={() => setAt(at - 1)} aria-label={t('Back')}><Icon name="chevronLeft" /></button> : <span className="cal-back-gap" />}
           <div className="cal-dots" aria-label={t('Step {0} of {1}', at + 1, steps.length)}>
-            {steps.map((s, i) => <i key={s.id} className={i === at ? 'on' : ''} />)}
+            {steps.length > 1 && steps.map((s, i) => <i key={s.id} className={i === at ? 'on' : ''} />)}
           </div>
-          <Button size="sm" variant="primary" trailingIcon="chevronRight" onClick={next}>{t('Next')}</Button>
+          <Button size="sm" variant="primary" trailingIcon={last ? undefined : 'chevronRight'} onClick={next}>{last ? t('Got it') : t('Next')}</Button>
         </div>}
-        {steps && last && (step.only
-          ? <div className="cal-end"><Button variant="primary" onClick={() => end()}>{t('Got it')}</Button></div>
-          : <div className="cal-end">
-            <Button variant="primary" icon="magnifier" onClick={() => end(onPick)}>{t('Pick a ready-made routine')}</Button>
-            <Button onClick={() => end()}>{t('I’ll look around myself')}</Button>
-          </div>)}
       </div>
-      <CalliopeFigure talking={voice.talking || (!typed && !voice.on)} className="cal-stage-fig" />
+      {!top && <CalliopeFigure talking={voice.talking || (!typed && !voice.on)} className="cal-stage-fig" />}
     </div>
   </div>
 }
@@ -280,7 +318,7 @@ function AskSheet({ close, question }) {
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [log.length, busy, err])
 
   const go = route => { voice.hush(); close(); window.location.hash = '#' + route }
-  const tour = () => { voice.hush(); close(); window.location.hash = '#/home'; setTimeout(() => startTour(), 350) }
+  const tour = () => { voice.hush(); close(); replayGuide() }
 
   return <div className="cal-ask">
     <div className="cal-ask-h">
@@ -309,6 +347,16 @@ function AskSheet({ close, question }) {
     </form>
     <button type="button" className="cal-again" onClick={tour}><Icon name="sparkles" /> {t('Show me around again')}</button>
   </div>
+}
+
+/**
+ * The welcome again, from the start, and every screen to be shown again as it is opened (Settings
+ * and "Show me around again").
+ */
+export function replayGuide() {
+  useStore.getState().update(s => { s.hints = withToursReset(s.hints) })
+  window.location.hash = '#/home'
+  setTimeout(() => startTour(), 350)
 }
 
 /** Opens Calliope to ask her about the app. With `question`, asks it at once. */

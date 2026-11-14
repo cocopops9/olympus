@@ -8,7 +8,7 @@ import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
 import { t, tn, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
 import { STATS_CARDS, statsCardsOf, statsDetailOf, chaptersOf } from '../lib/stats-cards.js'
 import { statsInsights, PROGRESS_DAYS, GAP_DAYS } from '../lib/stats-insights.js'
-import { Tip, InfoButton, helpSheet } from '../components/Guide.jsx'
+import { InfoButton, helpSheet } from '../components/Guide.jsx'
 import { StatsPickerButton, statsPickerSheet } from '../components/StatsPicker.jsx'
 import { calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
@@ -34,6 +34,7 @@ import ProgressPicker from '../components/ProgressPicker.jsx'
 import { gymsForExercise, cleanGym } from '../lib/gyms.js'
 import Activity from '../components/Activity.jsx'
 import { workoutsSheet, monthSheet, streakSheet, recordsSheet } from '../components/StatSheets.jsx'
+import { useScreenTour } from '../components/Calliope.jsx'
 
 // Set 1 to 5 on the per-set chart — system colours, so each line keeps its hue in dark mode.
 const SET_COLORS = ['var(--blue)', 'var(--green)', 'var(--orange)', 'var(--purple)', 'var(--pink)']
@@ -533,6 +534,8 @@ export function WeeklyPlanVolume({ S }) {
 
 // `embedded`: shown inside Profile → Stats, which has a header of its own.
 export default function Stats({ embedded = false } = {}) {
+  // Calliope shows this screen the first time it is opened (components/Calliope.jsx).
+  useScreenTour('stats')
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
@@ -916,9 +919,6 @@ export default function Stats({ embedded = false } = {}) {
         <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div></div>}
     {embedded && <div className="stats-top"><StatsPickerButton /></div>}
 
-    <Tip id="stats" title={t('Your progress, made simple')}>
-      {t('Simple shows the essentials in plain words. Switch to Detailed for every chart and number. Tap ⓘ next to a title to learn what a card shows.')}
-    </Tip>
     {workouts.length > 0 && <div className="stats-mode" data-stats-detail={detail}>
       <Segmented value={detail} onChange={v => update(s => { s.statsDetail = v })}
         options={[{ value: 'simple', label: t('Simple') }, { value: 'detailed', label: t('Detailed') }]} />
