@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const api = vi.hoisted(() => vi.fn())
 vi.mock('./api.js', () => ({ api }))
 
-import { SCREEN_TOURS, askCalliope, askErrorText, guideContext, parseReply, tourFor, voiceOn, withVoice } from './calliope.js'
+import { SCREEN_TOURS, askCalliope, askErrorText, calledByName, guideContext, openGuide, parseReply, setGuideOpener, tourFor, voiceOn, withVoice } from './calliope.js'
 
 beforeEach(() => { api.mockReset() })
 
@@ -104,5 +104,39 @@ describe('asking', () => {
     const off = askErrorText({ status: 404 })
     const other = askErrorText(new Error('offline'))
     expect(new Set([limit, off, other]).size).toBe(3)
+  })
+})
+
+describe('called by name', () => {
+  it('a sentence that starts with her name is a question for her', () => {
+    expect(calledByName('Calliope, how do I add a friend?')).toBe('how do I add a friend?')
+    expect(calledByName('Ehi Calliope come creo una routine')).toBe('come creo una routine')
+    expect(calledByName('Calíope ¿cómo registro una serie?')).toBe('¿cómo registro una serie?')
+    expect(calledByName('Каллиопа, как добавить друзей?')).toBe('как добавить друзей?')
+    expect(calledByName('卡利俄佩，怎么添加朋友？')).toBe('怎么添加朋友？')
+  })
+
+  it('forgives how dictation spells her', () => {
+    expect(calledByName('Kalliope where are my medals')).toBe('where are my medals')
+    expect(calledByName('Caliope where are my medals')).toBe('where are my medals')
+    expect(calledByName('Calliopi dove sono le medaglie')).toBe('dove sono le medaglie')
+  })
+
+  it('her name alone opens her with no question; anything else is not for her', () => {
+    expect(calledByName('Calliope')).toBe('')
+    expect(calledByName('How much should I squat today?')).toBe(null)
+    expect(calledByName('I asked Calliope yesterday')).toBe(null)
+    expect(calledByName('Call me later')).toBe(null)
+    expect(calledByName('Calories for today')).toBe(null)
+    expect(calledByName('')).toBe(null)
+  })
+
+  it('opens her through the opener her sheet registers', () => {
+    const seen = []
+    setGuideOpener(q => seen.push(q))
+    expect(openGuide('where is the plan?')).toBe(true)
+    expect(seen).toEqual(['where is the plan?'])
+    setGuideOpener(null)
+    expect(openGuide('x')).toBe(false)
   })
 })

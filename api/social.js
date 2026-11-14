@@ -824,6 +824,25 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
 
     sweepOrphans,
 
+    // For messages (chat.js): the other profile as `viewer` may write to it, or an error. A block
+    // either way stops it, and the one who blocked reads as not there at all.
+    messageable(viewer, id) {
+      const u = findUser(viewer, id);
+      if (u.id === viewer.id) throw new SocialError(400, 'that is you', 'chat-self');
+      if (blocked(viewer.id, u.id)) throw new SocialError(403, 'you blocked this profile', 'blocked');
+      return authorOf(u.id);
+    },
+    // The profiles of `ids` as `viewer` sees them in a list of conversations: { id: card }, with
+    // those that are gone, or blocked either way, left out.
+    cards(viewer, ids) {
+      const out = {};
+      for (const id of ids) {
+        const card = authorOf(id);
+        if (card && !blockedEither(viewer.id, id)) out[id] = card;
+      }
+      return out;
+    },
+
     // An account deleted from the instance (admin dashboard): nothing of it stays behind.
     removeUser(uid) {
       delete doc.follows[uid];

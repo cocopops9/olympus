@@ -191,7 +191,9 @@ describe('Hercules', () => {
     const chat = renderTopSheet()
     await flush(); await flush()
     // one or the other: no pill for both at once
-    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Hercules', 'Athena'])
+    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add):not(.hc-guide)')].map(b => b.textContent)).toEqual(['Hercules', 'Athena'])
+    // Calliope, the guide, has no button of her own: she is listed here, after the coaches
+    expect(chat.querySelector('.hc-pill.hc-guide').textContent).toBe('Calliope')
     expect(chat.querySelector('.hc-name').textContent).toBe('Hercules')
     type(chat, 'Question for Hercules'); await flush(); await flush()
     act(() => [...chat.querySelectorAll('.hc-pill')].find(b => b.textContent === 'Athena').click())
@@ -230,7 +232,7 @@ describe('Hercules', () => {
     const chat = renderTopSheet()
     await flush(); await flush()
     expect(chat.querySelector('.hc-name').textContent).toBe('Athena')
-    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add)')].map(b => b.textContent)).toEqual(['Athena'])
+    expect([...chat.querySelectorAll('.hc-pill:not(.hc-add):not(.hc-guide)')].map(b => b.textContent)).toEqual(['Athena'])
     expect(chat.querySelector('.hc-add').getAttribute('aria-label')).toBe('Add your own AI coach')
   })
 

@@ -48,6 +48,26 @@ export const answerRequest = (id, accept) => post('/api/social/requests/answer',
 export const setBlock = (id, block) => post('/api/social/block', { id, block }).then(r => r.user)
 export const fetchBlocked = () => api('/api/social/blocked').then(r => r.users || [])
 export const fetchNotifications = () => api('/api/social/notifications')
+
+// Messages between two profiles (api/chat.js). A server from before them answers 404, which reads
+// as "no messages": the screens say so instead of failing.
+export const fetchChats = () => api('/api/chat')
+export const fetchChatUnread = () => api('/api/chat/unread').then(r => r?.unread | 0, () => 0)
+export const fetchThread = (id, before) => api('/api/chat/thread?id=' + encodeURIComponent(id) + (before ? '&before=' + before : ''))
+export const sendMessage = (id, text) => api('/api/chat/send', { method: 'POST', body: JSON.stringify({ id, text }) })
+export const markChatRead = id => api('/api/chat/read', { method: 'POST', body: JSON.stringify({ id }) })
+export const deleteMessage = (id, message) => api('/api/chat/delete', { method: 'POST', body: JSON.stringify({ id, message }) })
+
+/** Why a message could not be sent or a conversation opened, in words. */
+export function chatErrorText(e, t) {
+  const code = e?.data?.code || e?.code
+  if (code === 'chat-limit') return t('You are sending messages too fast. Wait a little.')
+  if (code === 'too-long') return t('That message is too long.')
+  if (code === 'blocked') return t('You blocked this person. Unblock them to write.')
+  if (code === 'no-profile') return t('This person cannot be reached.')
+  if (e?.status === 404) return t('Messages are not available on this server yet.')
+  return socialErrorText(e, t)
+}
 export const markNotificationsRead = () => post('/api/social/notifications/read')
 /** A photo as a data URL (what preparePhoto makes); answers its id, to put in a post. */
 export const uploadPhoto = data => post('/api/social/photos', { data }).then(r => r.id)

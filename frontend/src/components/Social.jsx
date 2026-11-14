@@ -330,7 +330,7 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
       {post.mine && post.wid && useStore.getState().S.workouts.some(w => w.id === post.wid) && <button className="iconbtn"
         onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos, song: post.song || null, video: post.video || null })}
         aria-label={t('Edit post')}><Icon name="pencil" /></button>}
-      {(post.mine || me?.admin) && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
+      {post.mine && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
     </div>
     {post.text && <p className="post-text">{post.text}</p>}
     <PostPhotos ids={post.photos} />

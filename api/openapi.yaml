@@ -3344,6 +3344,102 @@ paths:
                     items: { type: object, properties: { id: { type: string }, name: { type: string } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /api/chat:
+    get:
+      tags: [social]
+      operationId: chatList
+      summary: Your conversations
+      description: |
+        Messages between two profiles. Each conversation is listed with the other profile, its
+        latest line and how many messages wait unread, the latest first. A conversation with a
+        profile that is gone, or with a block either way, is left out. Messages are private to
+        the two people: the administrator's routes never return them.
+      responses:
+        '200':
+          description: The conversations.
+          content:
+            application/json:
+              example: { chats: [{ id: u_2, at: 1794600000000, text: "See you at 7", mine: false, unread: 1, user: { id: u_2, name: bea_runs } }] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/chat/unread:
+    get:
+      tags: [social]
+      operationId: chatUnread
+      summary: How many messages wait unread
+      responses:
+        '200': { description: '`{ unread }`.' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/chat/thread:
+    get:
+      tags: [social]
+      operationId: chatThread
+      summary: One conversation
+      description: |
+        The latest 50 messages with profile `id`, or the 50 before message `before`. `more` says
+        older ones exist; `seen` is the last of your messages the other has read.
+      parameters:
+        - { name: id, in: query, required: true, schema: { type: string }, description: The other profile. }
+        - { name: before, in: query, schema: { type: integer }, description: A message id, to page back. }
+      responses:
+        '200':
+          description: The messages.
+          content:
+            application/json:
+              example: { user: { id: u_2, name: bea_runs }, messages: [{ id: 4, mine: true, text: "Leg day tomorrow?", at: 1794600000000 }], more: false, seen: 4 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'No such profile, or it blocked you (`no-profile`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/chat/send:
+    post:
+      tags: [social]
+      operationId: chatSend
+      summary: Send a message
+      description: Up to 2000 characters, 240 messages an hour. A block either way stops it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, text]
+              properties:
+                id: { type: string, description: The profile to write to. }
+                text: { type: string }
+      responses:
+        '200': { description: '`{ message }`, as the sender sees it.' }
+        '400': { description: 'Empty (`empty`), or to yourself (`chat-self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 'You blocked this profile (`blocked`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: 'No such profile, or it blocked you (`no-profile`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '413': { description: 'Too long (`too-long`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'Too many messages this hour (`chat-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/chat/read:
+    post:
+      tags: [social]
+      operationId: chatRead
+      summary: Mark a conversation as read
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id], properties: { id: { type: string } } }
+      responses:
+        '200': { description: '`{ ok: true }`.' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/chat/delete:
+    post:
+      tags: [social]
+      operationId: chatDelete
+      summary: Take back a message you sent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id, message], properties: { id: { type: string, description: The other profile. }, message: { type: integer } } }
+      responses:
+        '200': { description: '`{ ok: true }`.' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'Not a message of yours (`no-message`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
   /api/social/notifications:
     get:
       tags: [social]

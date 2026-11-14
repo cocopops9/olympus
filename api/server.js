@@ -32,6 +32,7 @@ import {
 import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } from './device-link.js';
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { createSocial, SocialError } from './social.js';
+import { createChat, ChatError, memoryKv } from './chat.js';
 import { topSongs, searchSongs, deezerPreview } from './music.js';
 import { transcribe, synthesize, canSynthesize, speakers, VoiceError } from './voice.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
@@ -176,6 +177,17 @@ const SOCIAL = createSocial({
   dataDir: DATA, write: (f, c) => atomicWrite(f, c, 0o600), users: () => db.users,
   onNotify: (uid, note) => { sendPush(uid, socialPush(readStateCached(uid)?.lang, note)).catch(e => console.error('social push failed', e.message)); },
 });
+// Messages between two profiles (chat.js): the conversations and the lists of them, kept in
+// memory and saved as one file, DATA_DIR/chats.json.
+const CHAT_FILE = path.join(DATA, 'chats.json');
+const chatDocs = new Map();
+try { for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(CHAT_FILE, 'utf8')))) chatDocs.set(k, v); } catch { /* none yet */ }
+const CHATS = createChat({ kv: memoryKv(chatDocs, docs => atomicWrite(CHAT_FILE, JSON.stringify(Object.fromEntries(docs)), 0o600)) });
+const chatRoute = fn => async (req, res) => {
+  const me = socialUser(req, res); if (!me) return;
+  try { json(res, 200, await fn(me, req, qs(req))); }
+  catch (e) { if (e instanceof ChatError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
+};
 // Photos uploaded and never posted are removed after a day; checked hourly and at start.
 setInterval(() => { try { SOCIAL.sweepOrphans(); } catch (e) { console.error('social: photo sweep failed', e.message); } }, 3600000).unref();
 setTimeout(() => { try { SOCIAL.sweepOrphans(); } catch { /* retried hourly */ } }, 5000).unref();
@@ -2607,6 +2619,7 @@ const routes = {
     try { MEDIA.removeUser(u.id); } catch (e) { console.error('media: could not remove uploads of', u.id, e.message); }
     // Their posts, likes, comments and follows (social.js).
     try { SOCIAL.removeUser(u.id); } catch (e) { console.error('social: could not remove', u.id, e.message); }
+    CHATS.removeUser(u.id).catch(e => console.error('chat: could not remove', u.id, e.message));
     saveDb();
     // Logged with the name, because the id is about to mean nothing to anyone reading this back.
     audit(req, 'admin.user.delete', { user: admin, msg: name });
@@ -2665,6 +2678,25 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, { users: SOCIAL.blockedList(me) });
   },
+  // Messages between two profiles (chat.js). The other profile is looked up through the social
+  // layer first: a block stops messages both ways.
+  'GET /api/chat': chatRoute(async me => {
+    const list = await CHATS.list(me.id);
+    const cards = SOCIAL.cards(me, list.map(c => c.id));
+    return { chats: list.filter(c => cards[c.id]).map(c => ({ ...c, user: cards[c.id] })) };
+  }),
+  'GET /api/chat/unread': chatRoute(async me => ({ unread: await CHATS.unread(me.id) })),
+  'GET /api/chat/thread': chatRoute(async (me, req, q) => {
+    const user = SOCIAL.messageable(me, String(q.get('id') || ''));
+    return { user, ...(await CHATS.thread(me.id, user.id, { before: q.get('before') })) };
+  }),
+  'POST /api/chat/send': chatRoute(async (me, req) => {
+    const b = await readBody(req);
+    const user = SOCIAL.messageable(me, String(b.id || ''));
+    return { message: await CHATS.send(me.id, user.id, b.text) };
+  }),
+  'POST /api/chat/read': chatRoute(async (me, req) => { const b = await readBody(req); await CHATS.read(me.id, String(b.id || '')); return { ok: true }; }),
+  'POST /api/chat/delete': chatRoute(async (me, req) => { const b = await readBody(req); await CHATS.remove(me.id, String(b.id || ''), b.message); return { ok: true }; }),
   'GET /api/social/notifications': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, SOCIAL.notifications(me));

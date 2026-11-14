@@ -181,3 +181,5 @@ body.no-tabbar .hc-bubble{bottom:calc(var(--sab) + 94px)}
 .hc-pair-xs{--sz:22px}.hc-pair-sm{--sz:30px}.hc-pair-md{--sz:46px}.hc-pair-lg{--sz:62px}.hc-pair-xl{--sz:96px}
 .hc-by{font-size:12px;font-weight:700;color:var(--acc);margin:-1px 0 3px;letter-spacing:.01em}
 .hc-by span{font-weight:500;color:var(--label-3);margin-inline-start:6px}
+/* Calliope, the guide, listed after the coaches. */
+.hc-pill.hc-guide{gap:6px}

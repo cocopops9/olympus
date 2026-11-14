@@ -1,14 +1,14 @@
 // @vitest-environment happy-dom
-// Olympus: Chiron's wake-up is a moving picture: a sprite sheet of 48 frames played by the clock on
-// one layer that exists only while he wakes; it ends on the last frame, where the awake portrait
-// takes over, and the sleeping portrait is not shown again at the end.
+// Olympus: Chiron's wake-up is animated by hand from his two real drawings (asleep and awake):
+// both are on screen while he wakes, the keyframes hand over from one to the other, and nothing
+// generated is played in between.
 import React, { act } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
-import ChironFigure, { WAKE_FPS, WAKE_FRAMES, WAKE_SECONDS, wakeFramePosition } from './ChironFigure.jsx'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import ChironFigure, { WAKE_SECONDS } from './ChironFigure.jsx'
 
-// The frame number a background-position stands for (the inverse of wakeFramePosition).
-const frameOf = pos => { const [x, y] = pos.split(' ').map((v, i) => Math.round(parseFloat(v) / 100 * (i ? 7 : 8))); return y * 9 + x }
 const roots = []
 function mount(state) {
   const el = document.createElement('div')
@@ -18,56 +18,43 @@ function mount(state) {
   act(() => root.render(<ChironFigure state={state} size={150} />))
   return el
 }
-afterEach(() => { for (const { root, el } of roots.splice(0)) { act(() => root.unmount()); el.remove() }; vi.useRealTimers() })
+afterEach(() => { for (const { root, el } of roots.splice(0)) { act(() => root.unmount()); el.remove() } })
+const css = readFileSync(resolve(process.cwd(), 'src/chiron-figure.css'), 'utf8')
 
 describe('ChironFigure wake-up', () => {
-  it('finds each frame in the 9 by 8 sheet (65 frames, the last row partly empty)', () => {
-    expect(wakeFramePosition(0)).toBe('0% 0%')
-    expect(wakeFramePosition(8)).toBe('100% 0%')
-    expect(wakeFramePosition(WAKE_FRAMES - 1)).toBe('12.5% 100%')
-    expect(wakeFramePosition(-5)).toBe('0% 0%')
-    expect(wakeFramePosition(999)).toBe('12.5% 100%')
-    for (let i = 0; i < WAKE_FRAMES; i++) expect(frameOf(wakeFramePosition(i))).toBe(i)
+  it('shows the drawing that fits each pose', () => {
+    const asleep = mount('asleep')
+    expect(asleep.querySelector('.chf-sleep.on')).not.toBeNull()
+    expect(asleep.querySelector('.chf-wake.on')).toBeNull()
+    for (const state of ['idle', 'listening', 'thinking', 'speaking']) {
+      const el = mount(state)
+      expect(el.querySelector('.chf-wake.on'), state).not.toBeNull()
+      expect(el.querySelector('.chf-sleep.on'), state).toBeNull()
+    }
   })
 
-  it('has the clip layer only while waking', () => {
-    expect(mount('asleep').querySelector('.chf-clip')).toBeNull()
-    expect(mount('idle').querySelector('.chf-clip')).toBeNull()
-    expect(mount('waking').querySelector('.chf-clip')).not.toBeNull()
-  })
-
-  it('plays the frames by the clock and stops on the last one', () => {
-    vi.useFakeTimers()
+  it('while waking both drawings are there for the keyframes to hand over, with dust and no video layer', () => {
     const el = mount('waking')
-    const clip = el.querySelector('.chf-clip')
-    expect(frameOf(clip.style.backgroundPosition)).toBe(0)
-    act(() => { vi.advanceTimersByTime(500) })
-    // half a second in, at 36 a second: frame 18, give or take a screen refresh
-    expect(Math.abs(frameOf(clip.style.backgroundPosition) - 0.5 * WAKE_FPS)).toBeLessThanOrEqual(2)
-    act(() => { vi.advanceTimersByTime(8000) })
-    expect(frameOf(clip.style.backgroundPosition)).toBe(WAKE_FRAMES - 1)
-  })
-
-  it('shows the portrait that fits each moment, and never the sleeping one at the end', () => {
-    vi.useFakeTimers()
-    const el = mount('waking')
-    const on = cls => el.querySelector('.chf-' + cls).classList.contains('on')
-    // The first frame is drawn at once: neither portrait is up, the clip is.
-    expect(on('sleep')).toBe(false)
-    expect(on('wake')).toBe(false)
-    act(() => { vi.advanceTimersByTime(600) })
-    expect(on('sleep')).toBe(false)
-    expect(on('wake')).toBe(false)
-    expect(el.querySelector('.chf-clip')).not.toBeNull()
-    act(() => { vi.advanceTimersByTime(2000) })
-    // On the last frame the awake portrait takes over and the clip goes.
+    expect(el.querySelector('.chf-waking')).not.toBeNull()
+    expect(el.querySelector('.chf-sleep')).not.toBeNull()
+    expect(el.querySelector('.chf-wake')).not.toBeNull()
+    // Neither is switched on by a class: the animation decides which one shows, moment by moment.
+    expect(el.querySelector('.chf-img.on')).toBeNull()
+    expect(el.querySelectorAll('.chf-burst .dust').length).toBeGreaterThan(3)
     expect(el.querySelector('.chf-clip')).toBeNull()
-    expect(on('wake')).toBe(true)
-    expect(on('sleep')).toBe(false)
+    expect(el.querySelector('canvas')).toBeNull()
+    expect(mount('idle').querySelector('.chf-burst')).toBeNull()
   })
 
-  it('is as long as the frames at their rate', () => {
-    expect(WAKE_SECONDS).toBe(WAKE_FRAMES / WAKE_FPS)
-    expect(WAKE_SECONDS).toBeCloseTo(2.03, 2)
+  it('the keyframes last as long as the wake-up, squash before the rise and overshoot after it', () => {
+    expect(WAKE_SECONDS).toBe(1.4)
+    expect(css).toContain('.chf-waking .chf-sleep{animation:chf-wk-stir ' + WAKE_SECONDS + 's')
+    expect(css).toContain('.chf-waking .chf-wake{animation:chf-wk-rise ' + WAKE_SECONDS + 's')
+    const rise = css.slice(css.indexOf('@keyframes chf-wk-rise{'), css.indexOf('@keyframes chf-wk-halo{'))
+    expect(rise).toMatch(/scale\(\.95,1\.09\)/)       // taller than himself for a moment
+    expect(rise).toMatch(/100%\{opacity:1;transform:scale\(1,1\)\}/)
+    const stir = css.slice(css.indexOf('@keyframes chf-wk-stir{'), css.indexOf('@keyframes chf-wk-rise{'))
+    expect(stir).toMatch(/scale\(1\.08,\.84\)/)       // low and wide before he goes
+    expect(stir).toMatch(/100%\{opacity:0/)           // the sleeping drawing is gone at the end
   })
 })

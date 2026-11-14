@@ -95,9 +95,31 @@ export const medalSheet = m => useUI.getState().openSheet(close => <MedalDetail 
 
 let showCelebration = null
 
-/** The burst: the medal spins in, light sweeps it, confetti falls, and what it means is said. */
+/** Celebrates `list` (medals) now, one after the other. Nothing when the celebration is not mounted. */
+export const celebrate = list => showCelebration?.(list)
+
+/*
+ * How a medal is celebrated grows with its tier, and none of it has to be answered: it plays and
+ * leaves by itself, a tap sends it away sooner, and a tap on the medal opens what it is.
+ *   bronze, silver   a small banner slides in at the top (silver with a glint)
+ *   gold             the banner, and a short fall of confetti
+ *   platinum         the medal takes the middle of the screen, with rays and confetti
+ *   olympian         the same, larger: a flash, a shockwave, two wheels of rays, a golden rain
+ * `stay` is how long it stays, in milliseconds; `confetti` how many pieces fall.
+ */
+export const CELEBRATION = {
+  bronze: { kind: 'banner', stay: 3200, confetti: 0, sound: false },
+  silver: { kind: 'banner', stay: 3800, confetti: 0, sound: false },
+  gold: { kind: 'banner', stay: 4600, confetti: 22, sound: true },
+  platinum: { kind: 'stage', stay: 5200, confetti: 44, sound: true },
+  olympian: { kind: 'stage', stay: 7000, confetti: 84, sound: true },
+}
+export const celebrationOf = m => CELEBRATION[m?.tier] || CELEBRATION.bronze
+
+const CONFETTI = ['#f2b51c', '#ffe08a', '#ffffff', '#ff9f0a', '#c98c0a']
+
+/** The celebration of the medals just earned, one after the other (see CELEBRATION). */
 export function MedalCelebration() {
-  const nav = useNavigate()
   const [queue, setQueue] = useState([])
   const sound = useStore(s => s.S.sound)
   useEffect(() => {
@@ -107,24 +129,51 @@ export function MedalCelebration() {
     return () => { showCelebration = null }
   }, [])
   const m = queue[0]
-  useEffect(() => { if (m) triumph(sound) }, [m?.id])
-  const confetti = useMemo(() => Array.from({ length: 36 }, (_, i) => ({
-    left: Math.random() * 100, delay: Math.random() * 0.6, dur: 1.8 + Math.random() * 1.6, rot: Math.random() * 360,
-    color: ['#f2b51c', '#ffe08a', '#ffffff', '#ff9f0a', '#c98c0a'][i % 5],
-  })), [m?.id])
-  if (!m) return null
-  const more = queue.length - 1
+  const how = celebrationOf(m)
   const next = () => setQueue(q => q.slice(1))
-  return <div className="mdl-burst" role="dialog" aria-modal="true" aria-label={t('New medal!')} onClick={next}>
-    <div className="mdl-confetti" aria-hidden="true">{confetti.map((c, i) => <i key={i} style={{ left: c.left + '%', animationDelay: c.delay + 's', animationDuration: c.dur + 's', background: c.color, transform: `rotate(${c.rot}deg)` }} />)}</div>
-    <div className="mdl-burst-card" onClick={e => e.stopPropagation()}>
-      <div className="mdl-burst-k">{t('New medal!')}</div>
-      <div className="mdl-burst-medal"><MedalBadge m={m} size={150} glow /></div>
+  useEffect(() => {
+    if (!m) return
+    if (how.sound) triumph(sound)
+    const tm = setTimeout(next, how.stay)
+    return () => clearTimeout(tm)
+  }, [m?.id])   // eslint-disable-line react-hooks/exhaustive-deps
+  const confetti = useMemo(() => Array.from({ length: how.confetti }, (_, i) => ({
+    left: Math.random() * 100, delay: Math.random() * (how.kind === 'stage' ? 1.2 : 0.5), dur: 1.8 + Math.random() * 1.8, rot: Math.random() * 360,
+    color: CONFETTI[i % CONFETTI.length],
+  })), [m?.id])   // eslint-disable-line react-hooks/exhaustive-deps
+  if (!m) return null
+  const open = e => { e.stopPropagation(); setQueue([]); medalSheet(m) }
+  const fall = how.confetti > 0 && <div className="mdl-confetti" aria-hidden="true">{confetti.map((c, i) => <i key={i} style={{ left: c.left + '%', animationDelay: c.delay + 's', animationDuration: c.dur + 's', background: c.color, transform: `rotate(${c.rot}deg)` }} />)}</div>
+  const more = queue.length - 1
+
+  if (how.kind === 'banner') return <div className={'mdl-cele mdl-cele-banner tier-' + m.tier} key={m.id} role="status" aria-live="polite" style={{ '--stay': how.stay + 'ms' }}>
+    {fall}
+    <button type="button" className="mdl-banner" onClick={open}>
+      <MedalBadge m={m} size={52} glow />
+      <span className="mdl-banner-t">
+        <span className="mdl-burst-k">{t('New medal!')}{more > 0 ? ' +' + more : ''}</span>
+        <b>{m.title}</b>
+        <span className="mdl-banner-s">{tierName(m.tier)}{m.fun ? ' · ' + m.fun : ''}</span>
+      </span>
+      <span className="mdl-banner-x" role="button" aria-label={t('Close')} onClick={e => { e.stopPropagation(); next() }}><Icon name="xmark" /></span>
+    </button>
+  </div>
+
+  return <div className={'mdl-cele mdl-cele-stage tier-' + m.tier} key={m.id} role="status" aria-live="polite" style={{ '--stay': how.stay + 'ms' }} onClick={next}>
+    <div className="mdl-stage-glow" aria-hidden="true" />
+    {m.tier === 'olympian' && <div className="mdl-stage-flash" aria-hidden="true" />}
+    {fall}
+    <div className="mdl-stage">
+      <div className="mdl-stage-medal" onClick={open}>
+        <span className="mdl-rays" aria-hidden="true" />
+        {m.tier === 'olympian' && <span className="mdl-rays two" aria-hidden="true" />}
+        {m.tier === 'olympian' && <span className="mdl-shock" aria-hidden="true" />}
+        <MedalBadge m={m} size={m.tier === 'olympian' ? 172 : 148} glow />
+      </div>
+      <div className="mdl-burst-k">{t('New medal!')}{more > 0 ? ' +' + more : ''}</div>
       <div className="mdl-tier">{tierName(m.tier)}</div>
       <h2>{m.title}</h2>
-      {m.fun ? <p className="mdl-fun big">{m.fun}</p> : <p className="muted">{m.desc}</p>}
-      <Button variant="primary" onClick={next}>{more > 0 ? t('Next medal ({0} more)', more) : t('Keep going')}</Button>
-      <button className="plan-textbtn" style={{ marginTop: 10 }} onClick={() => { setQueue([]); nav('/medals') }}>{t('See all my medals')}</button>
+      {m.fun ? <p className="mdl-fun big">{m.fun}</p> : <p className="mdl-stage-d">{m.desc}</p>}
     </div>
   </div>
 }

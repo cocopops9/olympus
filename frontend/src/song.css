@@ -58,7 +58,13 @@
 .mus-m b,.mus-m small{max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .mus-m b{font-size:15px}
 .mus-m small{color:var(--label-2);font-size:12.5px}
-.mus-phone{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.mus-phone{display:flex;align-items:center;gap:12px;width:100%;margin:4px 0 12px;padding:11px 12px;border:0;border-radius:16px;text-align:start;font:inherit;cursor:pointer;
+  background:var(--acc-soft);color:var(--label)}
+.mus-phone b{display:block;font-size:15.5px}
+.mus-phone small{display:block;color:var(--label-2);font-size:13px;margin-top:1px}
+.mus-phone-i{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:var(--acc);color:var(--on-acc);font-size:18px;flex:none}
+.mus-sec{margin:0 2px 6px;text-transform:uppercase;letter-spacing:.06em;font-size:11.5px;font-weight:700}
+.song-more{display:block;width:100%;margin-top:12px;text-align:center}
 .mus-credit{text-align:center;margin:8px 0 0}
 .mus-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
 .mus-head h3{margin:0}

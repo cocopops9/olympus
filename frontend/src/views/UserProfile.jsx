@@ -83,7 +83,10 @@ export default function UserProfile() {
         <div className="prof-actions">
           {user.blockedByMe
             ? <Button size="sm" onClick={() => toggleBlock(user, u => { setUser(u); load() })}>{t('Unblock')}</Button>
-            : <FollowButton user={user} size={undefined} onChange={followed} />}
+            : <>
+              <FollowButton user={user} size={undefined} onChange={followed} />
+              {!user.me && <Button icon="chat" onClick={() => nav('/chats/' + user.id)}>{t('Message')}</Button>}
+            </>}
         </div>
       </div>
       {user.blockedByMe ? <div className="feed-note">

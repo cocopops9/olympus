@@ -14,7 +14,7 @@ import { t } from '../lib/i18n.js'
 import { tourDue, withGuideLevel, withTourSeen, withToursReset } from '../lib/guide.js'
 import { backTrap } from '../lib/back.js'
 import { speak, stopSpeaking, preloadVoice, warmVoice } from '../lib/voice.js'
-import { GUIDE, SCREEN_TOURS, askCalliope, askErrorText, greeting, introStep, starterQuestions, tourFor, voiceOn, whereStep, withVoice } from '../lib/calliope.js'
+import { GUIDE, SCREEN_TOURS, setGuideOpener, calledByName, askCalliope, askErrorText, greeting, introStep, starterQuestions, tourFor, voiceOn, whereStep, withVoice } from '../lib/calliope.js'
 import { MicButton } from './Voice.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
@@ -256,7 +256,7 @@ function Tour({ tour }) {
       <div className="cal-bubble">
         <div className="cal-bubble-h">
           {top && <CalliopeFace size={28} className={voice.talking ? 'talking' : ''} />}
-          <b>Calliope</b>
+          <b>{t('Calliope')}</b>
           <VoiceToggle voice={voice} />
           <span className="cal-gap" />
           {steps && !last && <button type="button" className="cal-skip" onClick={end}>{t('Skip the tour')}</button>}
@@ -323,7 +323,7 @@ function AskSheet({ close, question }) {
   return <div className="cal-ask">
     <div className="cal-ask-h">
       <CalliopeFace size={46} className={voice.talking ? 'talking' : ''} />
-      <div className="grow"><b>Calliope</b><div className="small muted">{t('Your guide to the app')}</div></div>
+      <div className="grow"><b>{t('Calliope')}</b><div className="small muted">{t('Your guide to the app')}</div></div>
       <VoiceToggle voice={voice} />
     </div>
     <div className="cal-ask-log" data-nodrag>
@@ -342,7 +342,7 @@ function AskSheet({ close, question }) {
     <form className="cal-in" onSubmit={e => { e.preventDefault(); send() }}>
       <textarea rows={1} value={draft} onChange={e => setDraft(e.target.value)} placeholder={t('Ask about the app…')} maxLength={500}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} aria-label={t('Ask about the app…')} />
-      <MicButton onText={setDraft} onFinal={text => send(text)} disabled={busy} />
+      <MicButton guide={false} onText={setDraft} onFinal={text => send(calledByName(text) ?? text)} disabled={busy} />
       <button type="submit" className="cal-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
     </form>
     <button type="button" className="cal-again" onClick={tour}><Icon name="sparkles" /> {t('Show me around again')}</button>
@@ -364,9 +364,5 @@ export function calliopeSheet(question) {
   useUI.getState().openSheet(close => <AskSheet close={close} question={typeof question === 'string' ? question : ''} />)
 }
 
-/** The button that opens her: her face, at the top of Home. */
-export function CalliopeButton() {
-  return <button type="button" className="iconbtn cal-help" onClick={() => calliopeSheet()} aria-label={t('Ask Calliope, your guide')} title={t('Ask Calliope, your guide')}>
-    <CalliopeFace size={30} />
-  </button>
-}
+// Whoever says her name into a microphone of the app is asking her (lib/calliope.js calledByName).
+setGuideOpener(calliopeSheet)

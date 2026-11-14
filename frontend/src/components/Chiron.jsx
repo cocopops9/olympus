@@ -98,7 +98,7 @@ function ChironSheet({ close }) {
     <div className="chs-h">
       <ChironFace awake size={58} />
       <div className="grow">
-        <div className="chs-n">Chiron</div>
+        <div className="chs-n">{t('Chiron')}</div>
         <div className="chs-s">{t('Your coach between sets')}</div>
       </div>
       <button className="btn ghost sm chs-voice" onClick={() => startVoiceMode({ closeSheet: close })} title={t('Voice mode')}><Icon name="mic" />{t('Voice mode')}</button>
@@ -303,12 +303,12 @@ function ChironVoice({ tips, unit, online }) {
   }
   const keyboard = () => { halt(); setPose('idle'); setPaused(true); chironSheet() }
   const status = pose === 'listening' ? t('I am listening…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
-  return <div className="chv" role="group" aria-label="Chiron">
+  return <div className="chv" role="group" aria-label={t('Chiron')}>
     <button className="chv-fig" onClick={toggleMic} aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}>
       <ChironFigure state={pose} mouth={mouth} size={140} />
     </button>
     <div className="chv-side">
-      <div className="chv-n"><b>Chiron</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
+      <div className="chv-n"><b>{t('Chiron')}</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
       {heard && pose !== 'speaking' && <p className="chv-heard">“{heard}”</p>}
       {said && <p className="chv-said">{said.length > 220 ? said.slice(0, 219) + '…' : said}</p>}
       <div className="chv-ctl">
@@ -400,10 +400,10 @@ export function WorkoutChiron() {
   const pose = waking ? 'waking' : awake ? 'idle' : 'asleep'
   return <div className="chs-wrap">
     <button className={'chiron-stage whdr-chiron ' + (settling ? 'settling' : pose) + (tap ? ' tapped stir' + Math.min(tap.taps, 2) : '')} onClick={press}
-      aria-label={awake ? 'Chiron' : t('Chiron is asleep. Tap him three times to wake him.')} title="Chiron">
+      aria-label={awake ? t('Chiron') : t('Chiron is asleep. Tap him three times to wake him.')} title={t('Chiron')}>
       <ChironFigure state={pose} size={150} className="chs-fig" />
       <span className="chs-bubble">
-        <b>Chiron</b>
+        <b>{t('Chiron')}</b>
         <span>{awake || waking ? t('Your coach between sets') : t('Chiron is asleep. Tap him three times to wake him.')}</span>
       </span>
       {tap && !awake && <span className="chiron-taps" aria-hidden="true">{Array.from({ length: WAKE_TAPS }, (_, i) => <i key={i} className={i < WAKE_TAPS - left ? 'on' : ''} />)}</span>}

@@ -150,7 +150,7 @@ export function SongSheet({ file, decoded, close, onPicked }) {
  * A song of the catalogue, before it is picked: the preview is 30 seconds, and the person chooses
  * which part of it goes with the post (all of it to start with).
  */
-export function TrimSheet({ track, close, onPicked }) {
+export function TrimSheet({ track, close, onPicked, fromPhone }) {
   const [max, setMax] = useState(30)
   const [range, setRange] = useState({ start: 0, end: 30 })
   const [listening, setListening] = useState(false)
@@ -198,6 +198,8 @@ export function TrimSheet({ track, close, onPicked }) {
       <Button icon={listening ? 'pause' : 'play'} onClick={listen}>{listening ? t('Stop') : t('Listen')}</Button>
       <Button variant="primary" icon="check" onClick={use}>{t('Use this song')}</Button>
     </div>
+    {/* The catalogue only has the preview: the whole song, or a longer part, comes from the phone. */}
+    {fromPhone && <button className="plan-textbtn song-more" onClick={() => { stop(); close(); fromPhone() }}>{t('More than 30 seconds? Pick the song from your phone')}</button>}
   </div>
 }
 
@@ -235,12 +237,20 @@ function MusicSheet({ close, onPicked, fromPhone }) {
   // A tap on a song asks which part of its preview to share, then hands it over.
   const pick = tr => {
     a.current?.pause(); setPreview(null); close()
-    useUI.getState().openSheet(done => <TrimSheet track={tr} close={done} onPicked={onPicked} />)
+    useUI.getState().openSheet(done => <TrimSheet track={tr} close={done} onPicked={onPicked} fromPhone={fromPhone} />)
   }
   let regionName = country.toUpperCase()
   try { regionName = new Intl.DisplayNames([navigator.language || 'en'], { type: 'region' }).of(country.toUpperCase()) || regionName } catch { /* old WebView */ }
   return <div className="mus">
     <h3>{t('Add a song')}</h3>
+    {/* The two ways in, the one with no limit first: a file from the phone can be shared whole
+        or in any part; the catalogue has every song, but only its 30-second preview. */}
+    <button className="mus-phone" onClick={() => { a.current?.pause(); close(); fromPhone() }}>
+      <span className="mus-phone-i" aria-hidden="true"><Icon name="music" /></span>
+      <span className="grow"><b>{t('A song from your phone')}</b><small>{t('The whole song, or any part of it you choose')}</small></span>
+      <Icon name="chevronRight" className="dim" />
+    </button>
+    <div className="mus-sec small muted">{t('From the catalogue: 30-second previews')}</div>
     <SearchField value={q} placeholder={t('Search songs and artists')} onChange={e => setQ(e.target.value)} onClear={() => setQ('')} />
     {!q.trim() && <div className="mus-head"><Icon name="flame" /><b>{t('Top songs')}</b><small className="muted">{regionName}</small></div>}
     <div className="mus-list">
@@ -259,7 +269,6 @@ function MusicSheet({ close, onPicked, fromPhone }) {
               <button className="iconbtn sm" onClick={() => pick(tr)} aria-label={t('Use this song')}><Icon name="plus" /></button>
             </div>)}
     </div>
-    <button className="btn ghost mus-phone" onClick={() => { a.current?.pause(); close(); fromPhone() }}><Icon name="music" />{t('A song from your phone')}</button>
     <p className="small muted mus-credit">{t('Songs from the catalogue can be shared only as their 30-second preview. For any part of a song, up to the whole of it, pick it from your phone.')}</p>
     <p className="small muted mus-credit">{t('Charts from Apple Music, previews from Apple Music and Deezer.')}</p>
   </div>

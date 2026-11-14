@@ -1,3 +1,8 @@
+**Retired.** The wake-up is no longer a generated video: it is animated by hand in CSS from the two
+real drawings (`frontend/src/chiron-figure.css`, `chf-wk-stir` and `chf-wk-rise`), because the
+frames a video model made between them looked generated. What follows is kept for reference only;
+`chiron-wake.webp` is no longer in the app.
+
 # Chiron's wake-up
 
 **Current version (video):** `chiron-wake.webp` is now 65 frames of 384 px, 9 by 8, 32 a second

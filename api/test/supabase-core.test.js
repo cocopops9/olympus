@@ -247,6 +247,104 @@ test('invites, usage statistics, feedback and the owner dashboard', async () => 
   assert.equal((await call('GET', '/api/data', { token: friend.token })).status, 200, 'lifted, the profile is back');
 });
 
+test('messages between two profiles: sent, read, taken back, stopped by a block, gone with the account', async () => {
+  const s = server();
+  const ana = await signup(s, 'Ana');
+  const ben = await signup(s, 'Ben', PW + ' b');
+  const cleo = await signup(s, 'Cleo', PW + ' c');
+  const A = ana.user.id, B = ben.user.id;
+
+  assert.equal((await s.call('GET', '/api/chat')).status, 401, 'signed in only');
+  assert.equal((await s.call('POST', '/api/chat/send', { token: ana.token, body: { id: A, text: 'me' } })).body.code, 'chat-self');
+  assert.equal((await s.call('POST', '/api/chat/send', { token: ana.token, body: { id: 'nobody', text: 'hi' } })).status, 404);
+  assert.equal((await s.call('POST', '/api/chat/send', { token: ana.token, body: { id: B, text: '   ' } })).body.code, 'empty');
+
+  const sent = await s.call('POST', '/api/chat/send', { token: ana.token, body: { id: B, text: 'Gym at six?' } });
+  assert.equal(sent.status, 200, JSON.stringify(sent.body));
+  assert.deepEqual([sent.body.message.mine, sent.body.message.text], [true, 'Gym at six?']);
+  assert.equal((await s.call('GET', '/api/chat/unread', { token: ben.token })).body.unread, 1);
+  const inbox = (await s.call('GET', '/api/chat', { token: ben.token })).body.chats;
+  assert.deepEqual(inbox.map(c => [c.id, c.user.name, c.text, c.mine, c.unread]), [[A, 'Ana', 'Gym at six?', false, 1]]);
+
+  // Ben opens it: he sees it as hers, marks it read, and she is told it was seen.
+  const open = (await s.call('GET', '/api/chat/thread?id=' + A, { token: ben.token })).body;
+  assert.equal(open.user.name, 'Ana');
+  assert.deepEqual(open.messages.map(m => [m.mine, m.text]), [[false, 'Gym at six?']]);
+  await s.call('POST', '/api/chat/read', { token: ben.token, body: { id: A } });
+  assert.equal((await s.call('GET', '/api/chat/unread', { token: ben.token })).body.unread, 0);
+  assert.equal((await s.call('GET', '/api/chat/thread?id=' + B, { token: ana.token })).body.seen, sent.body.message.id);
+
+  // Nobody else can open the conversation: Cleo's thread with Ana is her own, and empty.
+  assert.deepEqual((await s.call('GET', '/api/chat/thread?id=' + A, { token: cleo.token })).body.messages, []);
+
+  // Only the writer takes a message back.
+  const reply = (await s.call('POST', '/api/chat/send', { token: ben.token, body: { id: A, text: 'I am in' } })).body.message;
+  assert.equal((await s.call('POST', '/api/chat/delete', { token: ana.token, body: { id: B, message: reply.id } })).status, 404);
+  assert.equal((await s.call('POST', '/api/chat/delete', { token: ben.token, body: { id: A, message: reply.id } })).status, 200);
+  assert.deepEqual((await s.call('GET', '/api/chat/thread?id=' + B, { token: ana.token })).body.messages.map(m => m.text), ['Gym at six?']);
+
+  // A block stops messages both ways.
+  await s.call('POST', '/api/social/block', { token: ben.token, body: { id: A } });
+  assert.equal((await s.call('POST', '/api/chat/send', { token: ana.token, body: { id: B, text: 'Hello?' } })).status, 404, 'she cannot reach him');
+  assert.equal((await s.call('POST', '/api/chat/send', { token: ben.token, body: { id: A, text: 'Hello?' } })).body.code, 'blocked');
+  await s.call('POST', '/api/social/unblock', { token: ben.token, body: { id: A } });
+
+  // The owner is told how many conversations someone has, and nothing of what they say.
+  const person = await s.call('GET', '/api/owner/person?id=' + B, { token: ana.token });
+  assert.equal(person.body.conversations, 1);
+  assert.ok(!JSON.stringify(person.body).includes('Gym at six'));
+  assert.ok(!JSON.stringify((await s.call('GET', '/api/owner/export?format=json', { token: ana.token })).body).includes('Gym at six'));
+
+  // An account that is deleted takes its conversations with it.
+  assert.equal((await s.call('POST', '/api/account/delete', { token: ben.token, body: { password: PW + ' b' } })).status, 200);
+  assert.deepEqual((await s.call('GET', '/api/chat', { token: ana.token })).body.chats, []);
+  assert.equal(await s.store.read('chat:' + [A, B].sort().join('|')), null);
+});
+
+test('the owner looks at one profile and at the posts, within what people were told', async () => {
+  const s = server();
+  const boss = await signup(s, 'Boss');
+  const ann = await signup(s, 'Ann', PW + ' a');
+  const pri = await signup(s, 'Pri', PW + ' p');
+  const t = s.clock.t;
+  // Ann shares statistics and trains; her training document holds what must never be shown.
+  await s.call('POST', '/api/telemetry', { token: ann.token, body: { consent: true, platform: 'android', version: '1.0', events: [
+    { t: t - 60000, type: 'event', name: 'workout.start' }, { t: t - 50000, type: 'event', name: 'workout.finish' }, { t: t - 40000, type: 'event', name: 'routine.create' },
+  ] } });
+  await s.store.update(['state:' + ann.user.id], ({ set }) => set('state:' + ann.user.id, { rev: 1, state: { workouts: [{ d: '2026-10-24', name: 'Secret Leg Day', entries: [] }] } }));
+  await s.call('POST', '/api/social/posts', { token: ann.token, body: { text: 'Public words' } });
+  await s.call('POST', '/api/social/profile', { token: pri.token, body: { private: true } });
+  await s.call('POST', '/api/social/posts', { token: pri.token, body: { text: 'For my followers only' } });
+
+  assert.equal((await s.call('GET', '/api/owner/posts', { token: ann.token })).status, 403, 'only the founder');
+  const board = (await s.call('GET', '/api/owner/dashboard', { token: boss.token })).body;
+  assert.equal(board.community.posts, 2);
+  assert.equal(board.community.privateProfiles, 1);
+  assert.equal(board.people.find(p => p.name === 'Ann').posts, 1);
+
+  const one = (await s.call('GET', '/api/owner/person?id=' + ann.user.id, { token: boss.token })).body;
+  assert.deepEqual([one.training.finished, one.training.started, one.training.routines], [1, 1, 1]);
+  assert.equal(one.training.weeks[7], 1);
+  assert.equal(one.social.latest[0].text, 'Public words');
+  assert.equal(one.conversations, 0);
+  assert.deepEqual(Object.keys(one.coachesToday).sort(), ['athena', 'calliope', 'chiron', 'hercules']);
+  assert.ok(!JSON.stringify(one).includes('Secret Leg Day'), 'the training document is never read');
+
+  // Pri shares nothing and is private: an account, counts, and no more.
+  const two = (await s.call('GET', '/api/owner/person?id=' + pri.user.id, { token: boss.token })).body;
+  assert.equal(two.training, null);
+  assert.equal(two.social.posts, 1);
+  assert.deepEqual(two.social.latest, []);
+
+  const posts = (await s.call('GET', '/api/owner/posts', { token: boss.token })).body;
+  assert.deepEqual(posts.posts.map(p => [p.name, p.text]), [['Ann', 'Public words']]);
+  assert.equal(posts.hidden, 1);
+  // The owner removes a post; someone else cannot.
+  assert.notEqual((await s.call('POST', '/api/social/posts/delete', { token: pri.token, body: { id: posts.posts[0].id } })).status, 200);
+  assert.equal((await s.call('POST', '/api/social/posts/delete', { token: boss.token, body: { id: posts.posts[0].id } })).status, 200);
+  assert.deepEqual((await s.call('GET', '/api/owner/posts', { token: boss.token })).body.posts, []);
+});
+
 test('accounts: usernames, a required e-mail, the reset code by e-mail, Google sign-in', async () => {
   const mails = [];
   const tokens = {

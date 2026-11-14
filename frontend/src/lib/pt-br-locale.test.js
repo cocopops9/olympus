@@ -41,7 +41,7 @@ describe('Brazilian Portuguese locale', () => {
     // has to be taught is a number nobody reads. What the numbers stood for is asserted above.
     // If the hash fails, review the changed keys and wording before accepting a new one. From
     // frontend/: node scripts/pt-br-inheritance-fingerprint.mjs --list
-    expect(fingerprint, 'pt-PT inheritance changed; review the inherited pt-BR wording').toBe('3c51c2b26848c995179a9cd9a23d959f8fd3779afb1fa6ed89842e54e309a001')
+    expect(fingerprint, 'pt-PT inheritance changed; review the inherited pt-BR wording').toBe('75d67511f65dca078eeec3bbb203c9253a3e0f92d6b47cd4cca7b0bbc01c748a')
   })
 
   // pt-PT labelled Unpair 'Desfazer': Undo, in Portuguese (it is pt-BR's Undo), on the button that

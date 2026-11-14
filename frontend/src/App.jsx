@@ -47,6 +47,7 @@ import Feed from './views/Feed.jsx'
 import Profile from './views/Profile.jsx'
 import UserProfile from './views/UserProfile.jsx'
 import Notifications from './views/Notifications.jsx'
+import Chats, { ChatThread } from './views/Chats.jsx'
 import PostView from './views/PostView.jsx'
 import { startSocialPolling, stopSocialPolling } from './store/useSocial.js'
 import { socialReady } from './lib/social.js'
@@ -292,6 +293,8 @@ function Shell() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/u/:id" element={<UserProfile />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/chats" element={<Chats />} />
+              <Route path="/chats/:id" element={<ChatThread />} />
               <Route path="/post/:id" element={<PostView />} />
               {/* Gym check-in — switched off in Settings, the route falls through to the
                   catch-all redirect below. */}

@@ -13,7 +13,7 @@ import { PostCard, PersonRow, composeSheet, POSTED_EVENT, Avatar, Name, FollowBu
 import { MOBILE } from '../lib/mobile.js'
 import { DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
-import { CalliopeButton, useScreenTour } from '../components/Calliope.jsx'
+import { useScreenTour } from '../components/Calliope.jsx'
 import '../social.css'
 
 function NoServer() {
@@ -124,6 +124,7 @@ export default function Feed() {
   const ready = socialReady(user) && linked
   const waiting = socialReady(user) && !linked
   const news = useSocial(s => s.unread + s.requests)
+  const mail = useSocial(s => s.messages)
   const [tab, setTab] = useState('following')
   // How many people this profile follows: none yet, and the suggestions open the feed.
   const [follows, setFollows] = useState(null)
@@ -199,8 +200,8 @@ export default function Feed() {
     <div className="hdr">
       <div><h1>Olympus</h1><div className="sub">{ready ? t('Your feed') : t('Train, share, follow')}</div></div>
       <div className="hdr-actions">
-        {/* Calliope, the guide: how anything in the app works (components/Calliope.jsx). */}
-        <CalliopeButton />
+        {ready && <button className="iconbtn" onClick={() => nav('/chats')} aria-label={mail ? t('Messages') + ', ' + t('{0} unread', mail) : t('Messages')}>
+          <Icon name="chat" />{mail > 0 && <span className="icon-badge" aria-hidden="true">{mail > 9 ? '9+' : mail}</span>}</button>}
         {ready && <button className="iconbtn" onClick={() => nav('/notifications')} aria-label={news ? t('Notifications') + ', ' + t('New notifications') : t('Notifications')}>
           <Icon name="bell" />{news > 0 && <span className="icon-badge" aria-hidden="true">{news > 9 ? '9+' : news}</span>}</button>}
         {ready && <button className="iconbtn" onClick={() => setSearching(v => !v)} aria-label={t('Search people')}><Icon name="magnifier" /></button>}

@@ -8,6 +8,7 @@
 //   'social'      the social layer        (api/social.js's document)
 //   'secret'      the key that signs sessions
 //   'hercules', 'athena', 'chiron', 'calliope'   today's count of messages to each coach and to the guide, per profile (hercules.js)
+//   'chat:<a>|<b>', 'chats:<uid>'   a conversation between two profiles, and each profile's list of them (chat.js)
 //   'speech:<digest>', 'speech-index'   the guide's fixed lines, read once and kept (voice.js synthesizeCached)
 //   'tel:<uid>'   the usage statistics a profile shares, and 'feedback' (insights.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
@@ -23,11 +24,12 @@ import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { countryOf, topSongs, searchSongs, deezerPreview } from './music.js';
+import { createChat, ChatError } from './chat.js';
 import { transcribe, synthesizeCached, keptIndex, canSynthesize, speakers, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
-import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv } from './insights.js';
+import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
@@ -301,6 +303,16 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     return result;
   }
 
+  // Messages between two profiles (chat.js). The other profile is looked up through the social
+  // layer first, so a block stops messages both ways and a profile that is gone cannot be written to.
+  const chat = createChat({ kv: store, now });
+  const chatRoute = fn => async (req, q) => {
+    const { user: me } = await signedIn(req);
+    try { return { body: await fn(me, req, q) }; }
+    catch (e) { if (e instanceof ChatError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
+  };
+  const chatPeer = (me, id) => withSocial(s => s.messageable(me, text(id)));
+
   // The guide's fixed lines, read once and kept (voice.js synthesizeCached): one document a line,
   // and an index of when each was last heard, which decides what makes room when it is full. A
   // line heard again is not stamped more than once a day: reads stay reads.
@@ -449,6 +461,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         if (!(await verifyPassword(text(body.password), user.pw.h))) return { status: 401, body: { error: 'your current password is not right', code: 'current-wrong' } };
       } else if (text(body.confirm) !== 'DELETE') return { status: 400, body: { error: 'type DELETE to confirm', code: 'confirm' } };
       await withSocial(s => s.removeUser(user.id));
+      try { await chat.removeUser(user.id); } catch (e) { console.error('chat: could not remove', e?.message || e); }
       await store.update(['db', 'state:' + user.id, 'tel:' + user.id], ({ get, set }) => {
         set('tel:' + user.id, null);
         const db = get('db');
@@ -507,13 +520,39 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     // The owner's dashboard (insights.js): only the founder, the profile that made this server.
     'GET /api/owner/dashboard': async (req, q) => {
       const { users, tel, feedback } = await ownerData(req);
-      return { status: 200, body: dashboard({ users, tel, feedback, now: now(), days: Math.min(365, Math.max(7, Number(q.get('days')) || 30)) }) };
+      const days = Math.min(365, Math.max(7, Number(q.get('days')) || 30));
+      const social = await store.read('social');
+      const body = dashboard({ users, tel, feedback, now: now(), days });
+      const posted = {};
+      for (const p of social?.posts || []) posted[p.uid] = (posted[p.uid] || 0) + 1;
+      return { status: 200, body: { ...body, people: body.people.map(p => ({ ...p, posts: posted[p.id] || 0 })), community: communityTotals(social, { now: now(), days }) } };
     },
+    // One profile: its usage (insights.js personDetail), its part in the community, how many
+    // conversations it has (never what they say) and today's questions to the coaches. How often
+    // it trains comes from the usage statistics, for a profile that shares them: the training
+    // document itself is never read here, as people are told when they agree to share.
     'GET /api/owner/person': async (req, q) => {
       const { users, tel } = await ownerData(req);
       const u = users.find(x => x.id === q.get('id'));
       if (!u) return { status: 404, body: { error: 'no such profile', code: 'not-found' } };
-      return { status: 200, body: personDetail(u, tel[u.id]) };
+      const [social, chats, ...asked] = await Promise.all([
+        store.read('social'), chat.countsOf(u.id), ...Object.keys(coaches).map(id => store.read(id)),
+      ]);
+      const today = dayOf(now());
+      const coachesToday = Object.fromEntries(Object.keys(coaches).map((id, i) => [id, asked[i]?.day === today ? Number(asked[i]?.used?.[u.id]) || 0 : 0]));
+      return { status: 200, body: {
+        ...personDetail(u, tel[u.id]),
+        social: socialSummary(social, u.id),
+        training: tel[u.id] ? trainingActivity(tel[u.id], { now: now() }) : null,
+        conversations: chats.conversations,
+        coachesToday,
+      } };
+    },
+    // The public profiles' latest posts, for the owner to look over; a post is removed with
+    // POST /api/social/posts/delete, which an administrator may use on any post.
+    'GET /api/owner/posts': async (req, q) => {
+      const { users } = await ownerData(req);
+      return { status: 200, body: moderationPosts(await store.read('social'), users, { before: Number(q.get('before')) || Infinity }) };
     },
     // Olympus: the owner bans a profile, or lifts the ban. A banned profile cannot sign in, its
     // sessions stop working (signedIn refuses a disabled account) and it disappears from the
@@ -638,6 +677,24 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/social/requests/answer': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { users: await withSocial(s => s.answerRequest(me, text(b.id), b.accept === true)) } }; },
     'POST /api/social/block': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { user: await withSocial(s => s.block(me, text(b.id), b.block !== false)) } }; },
     'GET /api/social/blocked': async req => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.blockedList(me)) } }; },
+    // Messages between two profiles (chat.js).
+    'GET /api/chat': chatRoute(async me => {
+      const list = await chat.list(me.id);
+      const cards = await withSocial(s => s.cards(me, list.map(c => c.id)));
+      return { chats: list.filter(c => cards[c.id]).map(c => ({ ...c, user: cards[c.id] })) };
+    }),
+    'GET /api/chat/unread': chatRoute(async me => ({ unread: await chat.unread(me.id) })),
+    'GET /api/chat/thread': chatRoute(async (me, req, q) => {
+      const user = await chatPeer(me, q.get('id'));
+      return { user, ...(await chat.thread(me.id, user.id, { before: q.get('before') })) };
+    }),
+    'POST /api/chat/send': chatRoute(async (me, req) => {
+      const b = await readJson(req);
+      const user = await chatPeer(me, b.id);
+      return { message: await chat.send(me.id, user.id, b.text) };
+    }),
+    'POST /api/chat/read': chatRoute(async (me, req) => { const b = await readJson(req); await chat.read(me.id, text(b.id)); return { ok: true }; }),
+    'POST /api/chat/delete': chatRoute(async (me, req) => { const b = await readJson(req); await chat.remove(me.id, text(b.id), b.message); return { ok: true }; }),
     'GET /api/social/notifications': async req => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.notifications(me)) }; },
     'POST /api/social/notifications/read': async req => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.markRead(me)) }; },
     'POST /api/social/photos': async req => {

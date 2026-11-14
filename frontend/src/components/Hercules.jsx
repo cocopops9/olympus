@@ -31,6 +31,7 @@ import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js
 import CoachActions from './CoachActions.jsx'
 import { splitActions } from '../lib/coach-actions.js'
 import { MicButton } from './Voice.jsx'
+import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -44,7 +45,8 @@ export const COACHES = {
 }
 // A coach of your own (lib/own-coach.js): its name and portrait, read from this device.
 const ownOf = id => (isOwn(id) ? ownCoach(useStore.getState().user?.id, id) : null)
-export const coachName = id => (id === BOTH ? 'Hercules & Athena' : isOwn(id) ? ownOf(id)?.name || 'Coach' : (COACHES[id] || COACHES.hercules).name)
+// Chiron's name follows the language (Chirone, Quirón…); Hercules and Athena are kept as they are.
+export const coachName = id => (id === BOTH ? 'Hercules & Athena' : isOwn(id) ? ownOf(id)?.name || 'Coach' : id === 'chiron' ? t('Chiron') : (COACHES[id] || COACHES.hercules).name)
 export const coachPortrait = id => (isOwn(id) ? avatarUrl(ownOf(id)?.avatar) : (COACHES[id] || COACHES.hercules).portrait)
 
 // The status of each coach is asked once per profile and session, and again after each answer.
@@ -66,7 +68,7 @@ export const resetGreetingForTests = () => { greetedFor = null; cached = { uid: 
 // the open eye, the colour of the skin around it. A coach of your own has no lids, only breath.
 const LIDS = {
   hercules: { skin: '#fcf3e3', eyes: [[88, 104.6, 8.6, 4], [54, 106.3, 5.4, 2.8]] },
-  athena: { skin: '#fbf4e4', eyes: [[90.5, 129.6, 10.6, 4.2]] },  // the other eye is behind the cheek guard
+  athena: { skin: '#fbf4e4', eyes: [[90.5, 129.6, 10.6, 4.2], [120.5, 137.2, 4.8, 2.6]] },  // both eyes: one lid alone reads as a wink
 }
 
 /**
@@ -183,7 +185,7 @@ export function GoalsLine() {
 /** The coaches as pills, to talk to another one, and + to set up one of your own. */
 // Who answers the next message: Hercules or Athena (the same conversation either way), or a
 // coach of your own (its own conversations).
-function Switch({ coach, ons, pick, own, onAdd }) {
+function Switch({ coach, ons, pick, own, onAdd, onGuide }) {
   const team = COACH_IDS.filter(id => ons[id])
   const ids = [...team, ...own.map(c => c.id)]
   return <div className="hc-switch" role="tablist" aria-label={t('Who answers')}>
@@ -191,6 +193,8 @@ function Switch({ coach, ons, pick, own, onAdd }) {
       onClick={() => id !== coach && pick(id)}>
       <Avatar size="xs" badge={false} coach={id} />{id === BOTH ? t('Both') : coachName(id)}
     </button>)}
+    {/* Calliope, the guide: not a coach, but this is where people look for someone to ask. */}
+    <button className="hc-pill hc-guide" onClick={onGuide} title={t('Your guide: how anything in the app works')}><CalliopeFace size={22} />{t('Calliope')}</button>
     <button className="hc-pill hc-add" onClick={onAdd} aria-label={t('Add your own AI coach')} title={t('Add your own AI coach')}><Icon name="plus" /></button>
   </div>
 }
@@ -399,7 +403,7 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
       <button className="iconbtn" onClick={expand} aria-label={t('Full screen')}><Icon name="expand" /></button>
       <button className="iconbtn" onClick={close} aria-label={t('Close')}><Icon name="xmark" /></button>
     </div>
-    <Switch coach={coach} ons={ons} pick={pick} own={own} onAdd={addOwn} />
+    <Switch coach={coach} ons={ons} pick={pick} own={own} onAdd={addOwn} onGuide={() => { close(); calliopeSheet() }} />
     {menu
       ? <Menu data={data} busy={busy} open={open} start={start} remove={remove} />
       : <div className="hc-list" data-nodrag>

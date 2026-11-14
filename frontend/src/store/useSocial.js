@@ -3,21 +3,24 @@
 // front, and at once when it comes back to the front; App starts and stops it with the session.
 import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
-import { fetchNotifications } from '../lib/social.js'
+import { fetchNotifications, fetchChatUnread } from '../lib/social.js'
 
 export const useSocial = create(set => ({
   unread: 0,
   requests: 0,
+  // Messages waiting unread, over every conversation (views/Chats.jsx).
+  messages: 0,
   // The answer is also handed back, so the notifications screen can use it directly.
   async refresh() {
     try {
       const n = await fetchNotifications()
       set({ unread: n.unread || 0, requests: n.requests || 0 })
+      fetchChatUnread().then(messages => set({ messages }))
       return n
     } catch { return null }
   },
   set: counts => set(counts),
-  reset: () => set({ unread: 0, requests: 0 }),
+  reset: () => set({ unread: 0, requests: 0, messages: 0 }),
 }))
 
 const EVERY_MS = 60000

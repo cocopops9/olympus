@@ -64,26 +64,67 @@
 .mdl-fun{font-weight:700;color:#e9b52b}
 .mdl-fun.big{font-size:18px;margin:6px 0 16px}
 
-/* The celebration. */
-.mdl-burst{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:20px;
-  background:radial-gradient(circle at 50% 40%,rgba(242,181,28,.28),rgba(0,0,0,.86) 60%);animation:mdl-fade .3s ease both;overflow:hidden}
-.mdl-burst-card{position:relative;width:100%;max-width:360px;text-align:center;padding:26px 22px 20px;border-radius:28px;
-  background:linear-gradient(180deg,#1d1a12,#0f0d09);border:1px solid rgba(242,181,28,.45);box-shadow:0 30px 80px rgba(0,0,0,.6);
-  animation:mdl-pop .5s cubic-bezier(.2,1.5,.4,1) both;color:#f4efe3}
-.mdl-burst-card .muted{color:#a59c88}
-.mdl-burst-card h2{margin:4px 0 6px;font-size:24px}
-.mdl-burst-card .btn{width:100%}
-.mdl-burst-k{font-size:13px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#f2b51c}
-.mdl-burst-medal{margin:14px 0 2px;display:flex;justify-content:center;animation:mdl-spin 1.1s cubic-bezier(.2,1.3,.4,1) .15s both}
+/* The celebration (components/Medals.jsx CELEBRATION): it grows with the tier, plays and leaves by
+   itself. Nothing in it stops the app underneath except the stage of the two highest tiers. */
+.mdl-cele{position:fixed;inset:0;z-index:2000;pointer-events:none;overflow:hidden}
+.mdl-burst-k{font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#f2b51c}
 @keyframes mdl-fade{from{opacity:0}}
-@keyframes mdl-pop{from{opacity:0;transform:scale(.7) translateY(30px)}}
-@keyframes mdl-spin{from{opacity:0;transform:perspective(600px) rotateY(540deg) scale(.3)}to{opacity:1;transform:none}}
 .mdl-confetti{position:absolute;inset:0;pointer-events:none}
 .mdl-confetti i{position:absolute;top:-20px;width:9px;height:15px;border-radius:2px;opacity:.95;animation:mdl-fall linear both}
 @keyframes mdl-fall{to{top:110%;transform:translateX(40px) rotate(720deg)}}
+
+/* Bronze, silver, gold: a banner at the top. It slides in, stays, and slides away. */
+.mdl-banner{pointer-events:auto;position:absolute;top:calc(var(--sat,0px) + 10px);left:12px;right:12px;max-width:440px;margin:0 auto;
+  display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border-radius:20px;text-align:start;font:inherit;color:#f4efe3;cursor:pointer;
+  background:linear-gradient(180deg,#1f1b12,#12100b);border:1px solid rgba(242,181,28,.45);box-shadow:0 14px 40px rgba(0,0,0,.55);
+  animation:mdl-banner-in .5s cubic-bezier(.2,1.3,.4,1) both,mdl-banner-out .4s ease-in calc(var(--stay) - 420ms) both}
+.mdl-banner-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mdl-banner-t b{font-size:16px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdl-banner-s{font-size:12.5px;color:#b9ae96;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mdl-banner-x{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;color:#a59c88;font-size:14px;flex:none}
+.mdl-banner .mdl{animation:mdl-coin .9s cubic-bezier(.2,1.3,.4,1) .1s both}
+.tier-bronze .mdl-banner{border-color:rgba(205,127,50,.5)}
+.tier-silver .mdl-banner{border-color:rgba(210,215,225,.55)}
+/* Silver and gold: a glint runs across the banner. */
+.tier-silver .mdl-banner::after,.tier-gold .mdl-banner::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);background-size:250% 100%;animation:mdl-glint 1.3s ease-out .5s both}
+.tier-gold .mdl-banner{box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px rgba(242,181,28,.35),0 0 34px rgba(242,181,28,.28)}
+@keyframes mdl-banner-in{from{opacity:0;transform:translateY(-120%) scale(.94)}}
+@keyframes mdl-banner-out{to{opacity:0;transform:translateY(-120%)}}
+@keyframes mdl-coin{from{transform:perspective(400px) rotateY(360deg) scale(.4)}}
+@keyframes mdl-glint{from{background-position:120% 0}to{background-position:-60% 0}}
+
+/* Platinum and Olympian: the medal takes the middle of the screen. A tap anywhere sends it away. */
+.mdl-cele-stage{pointer-events:auto;display:grid;place-items:center;padding:24px;
+  animation:mdl-fade .35s ease both,mdl-stage-out .5s ease-in calc(var(--stay) - 520ms) both}
+.mdl-stage-glow{position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(242,181,28,.30),rgba(0,0,0,.80) 62%)}
+.tier-olympian .mdl-stage-glow{background:radial-gradient(circle at 50% 42%,rgba(255,214,92,.42),rgba(0,0,0,.90) 66%)}
+.mdl-stage-flash{position:absolute;inset:0;background:#fff7d6;animation:mdl-flash .7s ease-out both}
+.mdl-stage{position:relative;text-align:center;color:#f4efe3;max-width:340px}
+.mdl-stage h2{margin:4px 0 6px;font-size:26px;animation:mdl-rise .5s ease-out .75s both}
+.mdl-stage .mdl-burst-k{animation:mdl-rise .5s ease-out .55s both}
+.mdl-stage .mdl-tier{animation:mdl-rise .5s ease-out .65s both}
+.mdl-stage .mdl-fun,.mdl-stage-d{animation:mdl-rise .5s ease-out .9s both}
+.mdl-stage-d{color:#b9ae96;margin:4px 0 0}
+.mdl-stage-medal{position:relative;display:inline-grid;place-items:center;margin-bottom:30px;cursor:pointer;animation:mdl-spin 1.1s cubic-bezier(.2,1.3,.4,1) .1s both}
+.tier-olympian .mdl-stage-medal{animation:mdl-slam 1.25s cubic-bezier(.2,1.35,.35,1) .15s both}
+.mdl-stage-medal .mdl{position:relative}
+/* Rays behind the medal: a wheel of light that turns; the Olympian has a second one, the other way. */
+.mdl-rays{position:absolute;width:330%;aspect-ratio:1;border-radius:50%;pointer-events:none;opacity:.55;
+  background:repeating-conic-gradient(from 0deg,rgba(255,214,92,.55) 0 7deg,transparent 7deg 20deg);
+  -webkit-mask:radial-gradient(circle,#000 18%,transparent 68%);mask:radial-gradient(circle,#000 18%,transparent 68%);animation:mdl-turn 16s linear infinite}
+.mdl-rays.two{width:420%;opacity:.3;animation:mdl-turn 24s linear infinite reverse}
+.mdl-shock{position:absolute;width:100%;aspect-ratio:1;border-radius:50%;border:3px solid rgba(255,224,138,.9);pointer-events:none;animation:mdl-shock 1.3s ease-out .55s both}
+@keyframes mdl-spin{from{opacity:0;transform:perspective(600px) rotateY(540deg) scale(.3)}to{opacity:1;transform:none}}
+@keyframes mdl-slam{0%{opacity:0;transform:perspective(700px) translateY(-70vh) rotateY(900deg) scale(1.6)}60%{opacity:1;transform:perspective(700px) translateY(0) rotateY(0) scale(.86)}78%{transform:scale(1.08)}100%{transform:none}}
+@keyframes mdl-turn{to{transform:rotate(360deg)}}
+@keyframes mdl-shock{from{opacity:.95;transform:scale(.6)}to{opacity:0;transform:scale(4.2)}}
+@keyframes mdl-flash{0%{opacity:0}18%{opacity:.85}100%{opacity:0}}
+@keyframes mdl-rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes mdl-stage-out{to{opacity:0}}
 @media (prefers-reduced-motion:reduce){
-  .mdl-burst,.mdl-burst-card,.mdl-burst-medal{animation:none}
-  .mdl-confetti{display:none}
+  .mdl-banner,.mdl-banner .mdl,.mdl-cele-stage,.mdl-stage-medal,.tier-olympian .mdl-stage-medal,.mdl-stage h2,.mdl-stage .mdl-burst-k,.mdl-stage .mdl-tier,.mdl-stage .mdl-fun,.mdl-stage-d{animation:none}
+  .mdl-confetti,.mdl-rays,.mdl-shock,.mdl-stage-flash,.mdl-banner::after{display:none}
   .mdl.glow .mdl-disc::after{animation:none;display:none}
 }
 

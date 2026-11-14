@@ -6,7 +6,6 @@
 .cal-face img{display:block;width:100%;height:100%;object-fit:cover}
 .cal-face.talking{animation:cal-nod 1.1s ease-in-out infinite}
 @keyframes cal-nod{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
-.iconbtn.cal-help{padding:0}
 
 /* The figure: the drawing, and the open mouth laid over it (a box of its own, in percent of the
    figure: scripts keep these numbers with the drawing, frontend/src/assets/calliope-mouth.webp). */

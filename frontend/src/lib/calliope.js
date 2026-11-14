@@ -42,7 +42,7 @@ export const SCREEN_TOURS = {
       { id: 'feed', target: '[data-tour="feed-tabs"]', need: true, text: t('Home is your feed: your friends’ workouts next to yours. Follow people you know and train together, even from far away.') },
       { id: 'profile', target: '#tabbar > button:last-child', text: t('Profile has your week, your charts and your settings. Stats starts simple; switch to Detailed whenever you want every number.') },
       { id: 'coach', target: '.hc-fab', need: true, text: t('The round face on the screen is your AI coach. Ask it about training, technique or food. Drag it aside if it is in the way.') },
-      { id: 'me', target: '.cal-help', need: true, text: t('And I am always here. Tap my face at the top of Home whenever you are not sure how something works, and ask me.') },
+      { id: 'me', target: '.hc-fab', text: whereText() },
     ],
   },
   workoutStart: {
@@ -114,11 +114,15 @@ export function tourFor(id, { has = onScreen } = {}) {
   return tour.steps().filter(s => !s.need || !s.target || has(s.target))
 }
 
+// Where to find her afterwards: she has no button of her own on the screens. Her name, said into
+// any microphone of the app, calls her; she is listed next to the coaches, and in Settings.
+const whereText = () => t('I am always here. Say “{0}” into any microphone in the app and ask your question, or find me next to your coaches and in Settings.', t('Calliope'))
+
 /** What she says to a newcomer, before showing the first screen: how she will help from now on. */
 export const introStep = () => ({ id: 'intro', text: t('From now on, the first time you open each part of the app, I’ll show you how it works. Let’s start here.') })
 
 /** What she says to someone who knows apps like this: only where she is. */
-export const whereStep = () => ({ id: 'where', target: '.cal-help', text: t('And I am always here. Tap my face at the top of Home whenever you are not sure how something works, and ask me.') })
+export const whereStep = () => ({ id: 'where', target: '.hc-fab', text: whereText() })
 
 /** What she says first, before the question of how much help the person wants. */
 export const greeting = () => t('Welcome to Olympus! I am Calliope, your guide. One question first: how much help would you like?')
@@ -165,6 +169,63 @@ export function guideContext(S, path = '') {
   lines.push(routines ? `Routines: ${routines}.` : 'No routine yet.')
   if (S?.unit) lines.push('Weight unit: ' + S.unit + '.')
   return lines.join(' ')
+}
+
+/*
+ * Called by name. A sentence dictated into any microphone of the app that starts with her name
+ * ("Calliope, how do I add a friend?") is a question for her, whoever the microphone belongs to.
+ * Dictation spells a Greek name its own way, so the first word is compared loosely with her name
+ * in every language of the app. The app does not listen in the background: there is no wake word
+ * outside a microphone the person has opened.
+ */
+const HER_NAMES = ['calliope', 'kalliope', 'caliope', 'calliopi', 'kaliope', 'каллиопа', 'калліопа', 'كاليوبي', 'कैलिओपी', 'ক্যালিওপি', 'คัลลิโอพี', '칼리오페', '卡利俄佩']
+const GREETINGS = ['hey', 'hi', 'ok', 'okay', 'ehi', 'ciao', 'hola', 'oye', 'salut', 'hallo', 'ola', 'привет', 'привіт']
+const plain = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+function distance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0]
+    row[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const keep = row[j]
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1))
+      prev = keep
+    }
+  }
+  return row[b.length]
+}
+const isHerName = word => {
+  const w = plain(word).replace(/[^\p{L}]/gu, '')
+  if (w.length < 3) return false
+  return HER_NAMES.some(n => w === n || (n.length >= 7 && w.length >= 6 && distance(w, n) <= 2))
+}
+
+/**
+ * The question in `said` when it is addressed to her by name, '' when it is only her name, and
+ * null when it is not for her.
+ */
+export function calledByName(said) {
+  const text = String(said || '').trim()
+  if (!text) return null
+  // Scripts written without spaces: her name at the very start.
+  const cjk = ['卡利俄佩', '칼리오페', 'คัลลิโอพี'].find(n => text.startsWith(n))
+  if (cjk) return text.slice(cjk.length).replace(/^[\s,，、.。:：!！?？]+/, '').trim()
+  const words = text.split(/\s+/)
+  let at = 0
+  if (words.length > 1 && GREETINGS.includes(plain(words[0]).replace(/[^\p{L}]/gu, ''))) at = 1
+  if (!isHerName(words[at])) return null
+  return words.slice(at + 1).join(' ').replace(/^[\s,.:;!?]+/, '').trim()
+}
+
+// The sheet that asks her is a component (components/Calliope.jsx); it says here how to open it,
+// so the microphone (components/Voice.jsx) can call her without importing the screen.
+let opener = null
+export const setGuideOpener = fn => { opener = fn }
+/** Opens her with `question` (asked at once when there is one). False when she is not on screen yet. */
+export function openGuide(question = '') {
+  if (!opener) return false
+  opener(question)
+  return true
 }
 
 /** Questions offered as chips before the person has asked anything. */

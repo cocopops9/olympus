@@ -260,6 +260,96 @@ export function personDetail(user, doc) {
   }
 }
 
+/*
+ * What one profile does, beyond the screens and features, for the owner's dashboard.
+ *
+ * It keeps what the app tells people. Someone who shares usage statistics was told they never
+ * include their workouts, measurements, messages or notes: so how much someone trains is read
+ * from the statistics themselves (how often "finished a workout" was used, and on which days),
+ * and the training document is never opened. A private profile was told only the followers it
+ * accepted see its posts: so its posts are counted and not shown. Messages between people are
+ * never read: only how many conversations there are.
+ */
+
+/** How often someone trains, from the usage statistics alone: { finished, started, ..., weeks, days }. */
+export function trainingActivity(doc, { now = Date.now(), latest = 14 } = {}) {
+  const days = Object.entries(doc?.days || {}).sort((a, b) => a[0].localeCompare(b[0]))
+  const count = name => days.reduce((n, [, x]) => n + (Number(x?.ev?.[name]) || 0), 0)
+  const trained = days.map(([day, x]) => ({ day, finished: Number(x?.ev?.['workout.finish']) || 0 })).filter(x => x.finished)
+  // Workouts finished in each of the last eight weeks, the oldest first: how regular the training is.
+  const weeks = Array.from({ length: 8 }, (_, i) => {
+    const from = dayKey(now - (8 - i) * 7 * 86400000), to = dayKey(now - (7 - i) * 7 * 86400000)
+    return trained.filter(x => x.day > from && x.day <= to).reduce((n, x) => n + x.finished, 0)
+  })
+  return {
+    finished: count('workout.finish'), started: count('workout.start'), discarded: count('workout.discard'),
+    fromRoutine: count('routine.start'), routines: count('routine.create'), exercises: count('exercise.create'),
+    first: trained.length ? trained[0].day : null, last: trained.length ? trained[trained.length - 1].day : null,
+    weeks, days: trained.slice(-latest).reverse(),
+  }
+}
+
+const postOutline = p => ({
+  id: p.id, ts: p.ts, text: String(p.text || '').slice(0, 280),
+  photos: Array.isArray(p.photos) ? p.photos.length : 0, video: !!p.video, song: p.song?.title ? String(p.song.title).slice(0, 80) : null,
+  workout: p.workout ? String(p.workout.name || '').slice(0, 60) || true : null,
+  likes: Array.isArray(p.likes) ? p.likes.length : 0, comments: Array.isArray(p.comments) ? p.comments.length : 0,
+})
+
+/** A profile's part in the community, from the social document: counts and its latest posts. */
+export function socialSummary(social, uid, { latest = 20 } = {}) {
+  const posts = (social?.posts || []).filter(p => p.uid === uid).sort((a, b) => b.ts - a.ts)
+  const follows = social?.follows || {}
+  let comments = 0, likes = 0
+  for (const p of social?.posts || []) {
+    comments += (p.comments || []).filter(c => c.uid === uid).length
+    if ((p.likes || []).includes(uid)) likes++
+  }
+  return {
+    posts: posts.length,
+    followers: Object.keys(follows).filter(k => (follows[k] || []).includes(uid)).length,
+    following: (follows[uid] || []).length,
+    private: social?.profiles?.[uid]?.private === true,
+    bio: String(social?.profiles?.[uid]?.bio || '').slice(0, 200),
+    commentsWritten: comments, likesGiven: likes,
+    blocked: (social?.blocks?.[uid] || []).length,
+    // A private profile's posts are for the followers it accepted: counted above, not shown.
+    latest: social?.profiles?.[uid]?.private === true ? [] : posts.slice(0, latest).map(postOutline),
+  }
+}
+
+/** The community in numbers, over everything and over the last `days`. */
+export function communityTotals(social, { now = Date.now(), days = 30 } = {}) {
+  const since = now - days * 86400000
+  const posts = social?.posts || []
+  const recent = posts.filter(p => p.ts >= since)
+  const count = (list, f) => list.reduce((n, p) => n + f(p), 0)
+  return {
+    posts: posts.length, postsPeriod: recent.length,
+    workoutPosts: recent.filter(p => p.workout).length,
+    comments: count(posts, p => (p.comments || []).length), commentsPeriod: count(posts, p => (p.comments || []).filter(c => c.ts >= since).length),
+    likes: count(posts, p => (p.likes || []).length),
+    follows: Object.values(social?.follows || {}).reduce((n, l) => n + (l || []).length, 0),
+    posters: new Set(recent.map(p => p.uid)).size,
+    privateProfiles: Object.values(social?.profiles || {}).filter(x => x?.private === true).length,
+  }
+}
+
+/**
+ * The latest posts of the public profiles, for the owner to look over: `limit` of them before
+ * time `before`. `hidden` is how many posts private profiles have, which are not listed.
+ */
+export function moderationPosts(social, users, { before = Infinity, limit = 40 } = {}) {
+  const names = new Map(users.map(u => [u.id, u.name]))
+  const isPrivate = uid => social?.profiles?.[uid]?.private === true
+  const all = (social?.posts || []).filter(p => names.has(p.uid))
+  const list = all.filter(p => p.ts < before && !isPrivate(p.uid)).sort((a, b) => b.ts - a.ts)
+  return {
+    posts: list.slice(0, limit).map(p => ({ ...postOutline(p), uid: p.uid, name: names.get(p.uid) })),
+    more: list.length > limit, hidden: all.filter(p => isPrivate(p.uid)).length,
+  }
+}
+
 const csvCell = v => { const s = v == null ? '' : String(v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s }
 /** `rows` (objects) as CSV with the columns `cols`. */
 export const toCsv = (rows, cols) => [cols.join(','), ...rows.map(r => cols.map(c => csvCell(r[c])).join(','))].join('\n') + '\n'

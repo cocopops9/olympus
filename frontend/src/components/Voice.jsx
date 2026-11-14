@@ -7,6 +7,7 @@ import { t } from '../lib/i18n.js'
 import { canListen, listen } from '../lib/voice.js'
 import Icon from './Icon.jsx'
 import '../voice.css'
+import { calledByName, openGuide } from '../lib/calliope.js'
 
 /** Whether this device can dictate; null while it is being asked. */
 export function useCanListen() {
@@ -21,7 +22,9 @@ export function useCanListen() {
  * listening after an answer has been read. With `onStopVoice` (voice mode), the button is voice
  * mode's own: it shows the microphone as on and a tap ends voice mode.
  */
-export function MicButton({ onText, onFinal, onSilence, disabled, control, onStopVoice }) {
+// A sentence that starts with the guide's name is hers, whoever the microphone belongs to
+// (lib/calliope.js calledByName); `guide={false}` leaves it to the caller (her own sheet).
+export function MicButton({ onText, onFinal, onSilence, disabled, control, onStopVoice, guide = true }) {
   const can = useCanListen()
   const [on, setOn] = useState(false)
   const stopRef = useRef(null)
@@ -36,7 +39,10 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
         onEnd: error => {
           stopRef.current = null; setOn(false)
           if (error) useUI.getState().toast(t('The microphone stopped: {0}', error))
-          if (last.trim()) onFinal?.(last.trim()); else onSilence?.()
+          const said = last.trim()
+          const forGuide = guide && said ? calledByName(said) : null
+          if (forGuide !== null && openGuide(forGuide)) onText?.('')
+          else if (said) onFinal?.(said); else onSilence?.()
         },
       })
     } catch (e) {

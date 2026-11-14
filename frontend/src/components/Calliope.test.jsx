@@ -12,7 +12,8 @@ vi.mock('../lib/api.js', async orig => ({ ...(await orig()), api }))
 
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { CalliopeButton, CalliopeFigure, calliopeSheet } from './Calliope.jsx'
+import { CalliopeFigure, calliopeSheet } from './Calliope.jsx'
+import { calledByName, openGuide } from '../lib/calliope.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 const clone = v => JSON.parse(JSON.stringify(v))
@@ -42,14 +43,27 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); host.remove() })
 
 describe('ask Calliope', () => {
-  it('her button at the top of Home opens her, with questions to start from', async () => {
-    show(<><CalliopeButton /><Sheet /></>)
-    act(() => host.querySelector('.cal-help').click())
+  it('opens with questions to start from, and says nothing before she is asked', async () => {
+    show(<Sheet />)
+    act(() => { openGuide('') })
     await flush()
     expect(host.querySelector('.cal-ask')).not.toBe(null)
+    expect(host.querySelector('.cal-help')).toBe(null)   // she has no button of her own
     expect(host.querySelectorAll('.cal-chips .chip').length).toBe(4)
     expect(bubbles().length).toBe(1)
-    expect(voice.speak).not.toHaveBeenCalled()   // she does not talk before she is asked
+    expect(voice.speak).not.toHaveBeenCalled()
+  })
+
+  it('called by name with a question, she opens and answers it', async () => {
+    api.mockResolvedValue({ reply: 'Tap the + on Home.', left: 29 })
+    show(<Sheet />)
+    const question = calledByName('Calliope, how do I start a workout?')
+    expect(question).toBe('how do I start a workout?')
+    await act(async () => { openGuide(question) })
+    await flush()
+    expect(bubbles()).toContain('how do I start a workout?')
+    expect(api).toHaveBeenCalledWith('/api/calliope', expect.objectContaining({ method: 'POST' }))
+    expect(bubbles().at(-1)).toContain('Tap the + on Home.')
   })
 
   it('answers a question in her bubble and aloud, and offers the way to the screen she names', async () => {
