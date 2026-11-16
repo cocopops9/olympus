@@ -27,4 +27,23 @@ describe('updates by build number', () => {
     vi.stubGlobal('fetch', vi.fn(async () => release('no number here')))
     expect((await checkForUpdate()).hasUpdate).toBe(false)
   })
+
+  it('asks GitHub again after a while, and at once when asked to, so an app kept alive for days still learns of a new build', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      const mine = Number(String(__APP_VERSION__).split('+')[1]) || 0
+      let build = mine
+      const fetch = vi.fn(async () => release(`Build ${build}`))
+      vi.stubGlobal('fetch', fetch)
+      expect((await checkForUpdate()).hasUpdate).toBe(false)
+      build = mine + 1
+      expect((await checkForUpdate()).hasUpdate).toBe(false)   // kept for a while
+      expect(fetch).toHaveBeenCalledTimes(1)
+      expect((await checkForUpdate({ fresh: true })).hasUpdate).toBe(true)
+      build = mine + 2
+      vi.setSystemTime(Date.now() + 11 * 60 * 1000)
+      expect((await checkForUpdate()).build).toBe(mine + 2)
+      expect(fetch).toHaveBeenCalledTimes(3)
+    } finally { vi.useRealTimers() }
+  })
 })

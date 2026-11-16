@@ -214,7 +214,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     if (checking) return
     setChecking(true)
     try {
-      const info = await checkForUpdate()
+      const info = await checkForUpdate({ fresh: true })
       setUpdateInfo(info)
       if (!info.hasUpdate) toast(t('You have the latest version.'))
     } catch {

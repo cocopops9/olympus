@@ -49,14 +49,23 @@ function compareSemver(a, b) {
  *   - apkUrl: direct download URL of the first .apk asset, or null
  *   - hashUrl: direct download URL of the .apk.sha256 hash file, or null
  */
-// One request per app session: Settings is opened often, GitHub does not need to hear
-// about it every time. The promise is cached, a failure is not.
+// The answer is kept for a while: Settings is opened often, and GitHub does not need to hear
+// about it every time. Only for a while, though: Android keeps the app alive in the background
+// for days, and an answer kept for the whole life of the process said "no update" long after a
+// new build was out. A failure is not kept; `fresh` (the Check for updates button) asks again.
+export const UPDATE_CHECK_TTL_MS = 10 * 60 * 1000
 let cached = null
 export function resetUpdateCheck() { cached = null }
-export async function checkForUpdate() {
-  if (!cached) cached = fetchLatest().catch(e => { cached = null; throw e })
-  return cached
+export async function checkForUpdate({ fresh = false } = {}) {
+  if (fresh || !cached || Date.now() - cached.at > UPDATE_CHECK_TTL_MS) {
+    const entry = { at: Date.now(), promise: fetchLatest().catch(e => { if (cached === entry) cached = null; throw e }) }
+    cached = entry
+  }
+  return cached.promise
 }
+/** The build this app was built as (the "+57" of __APP_VERSION__), 0 when it does not say. */
+export const runningBuild = () => Number(String(__APP_VERSION__).split('+')[1]) || 0
+
 /** The build number a release states ("Build 57"), or null. */
 export function buildOf(text) {
   const m = /\bbuild\s+#?(\d+)\b/i.exec(String(text || ''))
@@ -75,7 +84,7 @@ async function fetchLatest() {
   // __APP_VERSION__ ("1.4.1+57"). A newer build is the update, whatever the version says.
   const remoteBuild = buildOf(latest.body) ?? buildOf(latest.name)
   if (latest.tag_name === 'android' || remoteBuild != null) {
-    const mine = Number(String(__APP_VERSION__).split('+')[1]) || 0
+    const mine = runningBuild()
     const apk0 = assets0.find(a => /\.apk$/i.test(a.name))
     const hash0 = assets0.find(a => /\.apk\.sha256$/i.test(a.name))
     return {

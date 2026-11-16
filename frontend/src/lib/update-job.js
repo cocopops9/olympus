@@ -8,7 +8,7 @@
 // where the download is.
 import { create } from 'zustand'
 import { t } from './i18n.js'
-import { withTimeout } from './update.js'
+import { withTimeout, runningBuild } from './update.js'
 
 const FILE = 'olympus-update.apk'
 const KEY = 'olympus.updateJob'
@@ -122,6 +122,9 @@ export const dismissUpdate = () => useUpdateJob.setState({ phase: 'idle', error:
 export function resumeUpdate() {
   const old = saved()
   if (!old?.id || job) return false
+  // A download for this build or an older one: it was installed (Android replaced the app before
+  // the job could be forgotten), and following it again would only hide the next update.
+  if (old.build != null && old.build <= runningBuild()) { save(null); return false }
   job = old
   useUpdateJob.setState({ phase: 'downloading', pct: null, error: null, build: old.build ?? null })
   follow()

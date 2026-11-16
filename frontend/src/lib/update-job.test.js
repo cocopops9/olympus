@@ -88,4 +88,14 @@ describe('background update', () => {
     expect(useUpdateJob.getState().phase).toBe('failed')
     expect(updateRunning()).toBe(false)
   })
+
+  it('forgets a download for the build already running: it was installed, and must not hide the next update', () => {
+    const mine = Number(String(__APP_VERSION__).split('+')[1]) || 0
+    localStorage.setItem('olympus.updateJob', JSON.stringify({ id: '7', hash: HASH, build: mine }))
+    expect(resumeUpdate()).toBe(false)
+    expect(localStorage.getItem('olympus.updateJob')).toBe(null)
+    expect(updateRunning()).toBe(false)
+    localStorage.setItem('olympus.updateJob', JSON.stringify({ id: '8', hash: HASH, build: mine + 1 }))
+    expect(resumeUpdate()).toBe(true)
+  })
 })
