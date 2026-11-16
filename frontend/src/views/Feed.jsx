@@ -5,7 +5,9 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useSocial, useWhenVisible } from '../store/useSocial.js'
-import { t, tn } from '../lib/i18n.js'
+import { t, tn, dateLocale } from '../lib/i18n.js'
+import { todayISO } from '../lib/format.js'
+import { effectiveRoutines } from '../lib/history.js'
 import { socialReady, fetchFeed, fetchDiscover, searchUsers, socialErrorText, fetchSuggested, fetchProfile } from '../lib/social.js'
 import { Button, Segmented, SearchField } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
@@ -201,7 +203,7 @@ export default function Feed() {
       <div><h1>Olympus</h1><div className="sub">{ready ? t('Your feed') : t('Train, share, follow')}</div></div>
       <div className="hdr-actions">
         {ready && <button className="iconbtn" onClick={() => nav('/chats')} aria-label={mail ? t('Messages') + ', ' + t('{0} unread', mail) : t('Messages')}>
-          <Icon name="chat" />{mail > 0 && <span className="icon-badge" aria-hidden="true">{mail > 9 ? '9+' : mail}</span>}</button>}
+          <Icon name="message" />{mail > 0 && <span className="icon-badge" aria-hidden="true">{mail > 9 ? '9+' : mail}</span>}</button>}
         {ready && <button className="iconbtn" onClick={() => nav('/notifications')} aria-label={news ? t('Notifications') + ', ' + t('New notifications') : t('Notifications')}>
           <Icon name="bell" />{news > 0 && <span className="icon-badge" aria-hidden="true">{news > 9 ? '9+' : news}</span>}</button>}
         {ready && <button className="iconbtn" onClick={() => setSearching(v => !v)} aria-label={t('Search people')}><Icon name="magnifier" /></button>}
@@ -229,8 +231,35 @@ export default function Feed() {
             {tab === 'following' && <><Button variant="primary" icon="magnifier" onClick={() => setSearching(true)}>{t('Find people')}</Button><div style={{ height: 8 }} /></>}
             <Button icon="share" onClick={() => composeSheet({ onPosted: posted })}>{t('Share a workout')}</Button>
           </div>}
-      <div style={{ height: 6 }} />
-      <Button variant="ghost" icon="calendar" onClick={() => nav('/today')}>{t('Today’s training')}</Button>
+      <TodayCard />
     </>}
   </div>
+}
+
+/**
+ * The way from the feed to today's training: a card with the date on a gold tile and what today
+ * holds (the session in progress, the routine planned, done, or a rest day).
+ */
+function TodayCard() {
+  const nav = useNavigate()
+  const S = useStore(s => s.S)
+  const day = todayISO()
+  const routines = effectiveRoutines(S, day)
+  const done = S.workouts.some(w => w.d === day)
+  const now = new Date()
+  const what = S.active ? t('Workout in progress')
+    : done ? t('Done today')
+      : routines.length ? routines.map(r => r.name).join(' + ')
+        : t('Rest day')
+  return <button className={'today-card' + (S.active ? ' live' : done ? ' done' : '')} onClick={() => nav('/today')}>
+    <span className="today-card-d" aria-hidden="true">
+      <small>{now.toLocaleDateString(dateLocale(), { weekday: 'short' })}</small>
+      <b>{now.getDate()}</b>
+    </span>
+    <span className="today-card-m">
+      <b>{t('Today’s training')}</b>
+      <span>{what}</span>
+    </span>
+    <span className="today-card-go"><Icon name={S.active ? 'play' : done ? 'checkCircle' : 'chevronRight'} /></span>
+  </button>
 }

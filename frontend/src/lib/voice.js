@@ -71,11 +71,21 @@ export const endsSentence = text => /\S+\s+\S+\s+\S+/.test(String(text || '').tr
 // listens again right after the answer) starts recording at once: opening it again took long
 // enough on Android to lose the first words. The phone's noise suppression is off: it mangles
 // speech more than the gym's noise troubles Whisper.
+//
+// While the microphone is open, Android keeps the phone's audio in "call" mode, and music playing
+// meanwhile sounds thin and odd: so it is closed as soon as voice mode stops listening
+// (releaseMic), and never kept by a request that was still opening it when voice mode closed.
 let held = null   // { stream, timer }
+let micEpoch = 0  // counts releaseMic(): a microphone that opens after one is closed at once
 async function micStream() {
   if (held && held.stream.getTracks().every(x => x.readyState === 'live')) { clearTimeout(held.timer); return held.stream }
   held = null
+  const epoch = micEpoch
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 } })
+  if (epoch !== micEpoch) {
+    stream.getTracks().forEach(x => x.stop())
+    throw Object.assign(new Error('closed'), { name: 'AbortError' })
+  }
   held = { stream, timer: null }
   return stream
 }
@@ -86,11 +96,15 @@ function micLater(stream) {
 }
 /** Closes the microphone now (voice mode over). */
 export function releaseMic() {
+  micEpoch++
   if (!held) return
   clearTimeout(held.timer)
   held.stream.getTracks().forEach(x => x.stop())
   held = null
 }
+
+// The app in the background never keeps the microphone (nor the phone in call mode).
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') releaseMic() })
 
 async function recordAndWrite({ onText, onEnd, onReady, lang }) {
   let stream
@@ -361,6 +375,7 @@ async function speakOnServer(say, lang, who, run, onStart, keep) {
 }
 
 let nativeVoiceList = null
+let nativeBusy = false   // the phone's own voice is reading something
 let webUtterance = null
 /** Reads `text` aloud as `who` (VOICES); resolves when it is done (or stopped). */
 export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep = false } = {}) {
@@ -370,6 +385,13 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
   const say = speakable(text)
   if (!say) return
   const run = ++speakRun
+  // One voice at a time: what was being read stops now, not when its sentence ends. Without this,
+  // skipping through Calliope's tour quickly kept the last line going over the new one while the
+  // new one's sound was still on its way from the server.
+  playing?.stop()
+  stopLocal()
+  if (!MOBILE && canSpeak()) window.speechSynthesis.cancel()
+  if (MOBILE && nativeBusy) nativeTTS().then(({ p }) => p.stop()).catch(() => {})
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
   // A man's offline voice on the phone (lib/local-voice.js): first for Chiron and Hercules, with no
@@ -396,7 +418,9 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
       // No man's voice installed for the language: the default one (a woman's on most phones) read
       // lower, so Chiron and Hercules still sound like men.
       const pitch = kind?.male && voice < 0 ? 0.78 : 1
-      await TTS.speak({ text: say, lang, rate: pace, pitch, ...(voice >= 0 ? { voice } : {}) })
+      if (run !== speakRun) return
+      nativeBusy = true
+      try { await TTS.speak({ text: say, lang, rate: pace, pitch, ...(voice >= 0 ? { voice } : {}) }) } finally { if (run === speakRun) nativeBusy = false }
     } catch { /* no voice installed */ }
     return
   }

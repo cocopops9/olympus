@@ -61,7 +61,7 @@ export const LIMITS = Object.freeze({
   songTitle: 80,
 });
 
-const EMPTY = () => ({ v: 2, follows: {}, posts: [], profiles: {}, requests: {}, blocks: {}, notes: {}, photos: {} });
+const EMPTY = () => ({ v: 2, follows: {}, posts: [], profiles: {}, requests: {}, blocks: {}, mutes: {}, notes: {}, photos: {} });
 
 const str = (v, max) => (typeof v === 'string' ? v.replace(/\u0000/g, '').trim().slice(0, max) : '');
 const num = (v, min, max) => {
@@ -204,7 +204,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('not an object');
       const base = EMPTY();
       // Version 1 documents had only follows, posts and profiles: the rest starts empty.
-      for (const k of ['follows', 'profiles', 'requests', 'blocks', 'notes', 'photos']) {
+      for (const k of ['follows', 'profiles', 'requests', 'blocks', 'mutes', 'notes', 'photos']) {
         base[k] = v[k] && typeof v[k] === 'object' && !Array.isArray(v[k]) ? v[k] : {};
       }
       base.posts = Array.isArray(v.posts) ? v.posts : [];
@@ -227,6 +227,9 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
   const isPrivate = uid => prof(uid).private === true;
   const blocked = (a, b) => (doc.blocks[a] || []).includes(b);
   const blockedEither = (a, b) => blocked(a, b) || blocked(b, a);
+  // Muted: their posts stay out of your feed and Discover, and nothing else changes. They are not
+  // told, you still follow each other, and their profile still shows their posts when you open it.
+  const muted = (a, b) => (doc.mutes?.[a] || []).includes(b);
   const requested = (from, to) => (doc.requests[to] || []).includes(from);
   const follows = (a, b) => followsOf(a).includes(b);
   // Whether `viewer` may read `author`'s posts.
@@ -270,6 +273,7 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       requested: !!viewer && requested(viewer.id, u.id),
       followsMe: !!viewer && follows(u.id, viewer.id),
       blockedByMe: !!viewer && blocked(viewer.id, u.id),
+      mutedByMe: !!viewer && viewer.id !== u.id && muted(viewer.id, u.id),
       canSeePosts: !!viewer && canSee(viewer.id, u.id),
       me,
       ...(me ? { pushSocial: prof(u.id).pushSocial !== false } : {}),
@@ -595,11 +599,28 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
 
     feed(viewer, opts) {
       const mine = new Set([viewer.id, ...followsOf(viewer.id)]);
-      return page(p => mine.has(p.uid), viewer, opts);
+      return page(p => mine.has(p.uid) && !muted(viewer.id, p.uid), viewer, opts);
     },
 
     discover(viewer, opts) {
-      return page(() => true, viewer, opts);
+      return page(p => !muted(viewer.id, p.uid), viewer, opts);
+    },
+
+    /** Mutes (or, with on = false, unmutes) profile `id` for `viewer`; answers the profile. */
+    mute(viewer, id, on = true) {
+      if (id === viewer.id) throw new SocialError(400, 'you cannot mute yourself', 'self');
+      const u = userById(id);
+      if (!u || blocked(u.id, viewer.id)) throw new SocialError(404, 'profile not found', 'no-profile');
+      if (!doc.mutes) doc.mutes = {};
+      const list = new Set(doc.mutes[viewer.id] || []);
+      if (on) list.add(u.id); else list.delete(u.id);
+      if (list.size) doc.mutes[viewer.id] = [...list]; else delete doc.mutes[viewer.id];
+      save();
+      return publicUser(u, viewer);
+    },
+
+    mutedList(viewer) {
+      return (doc.mutes?.[viewer.id] || []).map(userById).filter(Boolean).map(u => ({ id: u.id, name: u.name }));
     },
 
     post(viewer, id) {
@@ -851,7 +872,8 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         doc.follows[k] = doc.follows[k].filter(x => x !== uid);
         if (!doc.follows[k].length) delete doc.follows[k];
       }
-      for (const map of [doc.requests, doc.blocks]) {
+      if (!doc.mutes) doc.mutes = {};
+      for (const map of [doc.requests, doc.blocks, doc.mutes]) {
         delete map[uid];
         for (const k of Object.keys(map)) { map[k] = map[k].filter(x => x !== uid); if (!map[k].length) delete map[k]; }
       }

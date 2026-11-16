@@ -736,3 +736,26 @@ test('the author changes a post: text, photos kept, added and removed, the worko
   assert.throws(() => s.editPost(BEN, { id: p.id, text: 'mine now' }), e => e.status === 403);
   assert.throws(() => s.editPost(ANNA, { id: p.id, photos: ['nope'] }), e => e.code === 'bad-photos');
 });
+
+test('muting keeps someone out of your feed and Discover, and changes nothing else', t => {
+  const { s, pushes } = store(t, [ANNA, BEN]);
+  s.follow(ANNA, BEN.id);
+  const b = s.createPost(BEN, { text: 'bench PR' });
+  const a = s.createPost(ANNA, { text: 'leg day' });
+  const before = pushes.length;
+  const u = s.mute(ANNA, BEN.id);
+  assert.equal(u.mutedByMe, true);
+  assert.equal(u.isFollowing, true, 'still following');
+  assert.equal(pushes.length, before, 'they are not told');
+  assert.deepEqual(s.feed(ANNA).posts.map(p => p.id), [a.id]);
+  assert.deepEqual(s.discover(ANNA).posts.map(p => p.id), [a.id]);
+  assert.deepEqual(s.discover(BEN).posts.map(p => p.id), [a.id, b.id], 'Ben sees everything as before');
+  assert.equal(s.post(ANNA, b.id).id, b.id, 'the post itself still opens');
+  assert.deepEqual(s.mutedList(ANNA), [{ id: BEN.id, name: BEN.name }]);
+  assert.throws(() => s.mute(ANNA, ANNA.id), e => e.code === 'self');
+  assert.equal(s.mute(ANNA, BEN.id, false).mutedByMe, false);
+  assert.deepEqual(s.feed(ANNA).posts.map(p => p.id), [a.id, b.id]);
+  s.mute(ANNA, BEN.id);
+  s.removeUser(BEN.id);
+  assert.deepEqual(s.mutedList(ANNA), []);
+});

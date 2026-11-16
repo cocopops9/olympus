@@ -47,6 +47,9 @@ export const fetchRequests = () => api('/api/social/requests').then(r => r.users
 export const answerRequest = (id, accept) => post('/api/social/requests/answer', { id, accept }).then(r => r.users || [])
 export const setBlock = (id, block) => post('/api/social/block', { id, block }).then(r => r.user)
 export const fetchBlocked = () => api('/api/social/blocked').then(r => r.users || [])
+// Muting: their posts leave your feed and Discover; they are not told (api/social.js mute).
+export const setMute = (id, mute) => post('/api/social/mute', { id, mute }).then(r => r.user)
+export const fetchMuted = () => api('/api/social/muted').then(r => r.users || [])
 export const fetchNotifications = () => api('/api/social/notifications')
 
 // Messages between two profiles (api/chat.js). A server from before them answers 404, which reads
@@ -54,7 +57,10 @@ export const fetchNotifications = () => api('/api/social/notifications')
 export const fetchChats = () => api('/api/chat')
 export const fetchChatUnread = () => api('/api/chat/unread').then(r => r?.unread | 0, () => 0)
 export const fetchThread = (id, before) => api('/api/chat/thread?id=' + encodeURIComponent(id) + (before ? '&before=' + before : ''))
-export const sendMessage = (id, text) => api('/api/chat/send', { method: 'POST', body: JSON.stringify({ id, text }) })
+// `attachment`: { kind: 'image' | 'audio' | 'file', data (a data URL or base64), name?, secs? }.
+export const sendMessage = (id, text, attachment = null) => api('/api/chat/send', { method: 'POST', body: JSON.stringify({ id, text, ...(attachment ? { attachment } : {}) }), ...(attachment ? { timeout: 60000 } : {}) })
+// A message's photo, voice message or file (only the two people can fetch it): 3.5 MB at most.
+export const chatMedia = (id, message) => apiBlob('/api/chat/media?id=' + encodeURIComponent(id) + '&m=' + message, { expectSize: 3.6 * 1024 * 1024 })
 export const markChatRead = id => api('/api/chat/read', { method: 'POST', body: JSON.stringify({ id }) })
 export const deleteMessage = (id, message) => api('/api/chat/delete', { method: 'POST', body: JSON.stringify({ id, message }) })
 
@@ -63,6 +69,9 @@ export function chatErrorText(e, t) {
   const code = e?.data?.code || e?.code
   if (code === 'chat-limit') return t('You are sending messages too fast. Wait a little.')
   if (code === 'too-long') return t('That message is too long.')
+  if (code === 'file-too-large') return t('That file is too large to send.')
+  if (code === 'bad-type') return t('That file cannot be sent as a photo or voice message.')
+  if (code === 'no-files') return t('This server cannot keep files yet.')
   if (code === 'blocked') return t('You blocked this person. Unblock them to write.')
   if (code === 'no-profile') return t('This person cannot be reached.')
   if (e?.status === 404) return t('Messages are not available on this server yet.')

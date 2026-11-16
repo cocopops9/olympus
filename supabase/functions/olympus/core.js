@@ -305,7 +305,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
 
   // Messages between two profiles (chat.js). The other profile is looked up through the social
   // layer first, so a block stops messages both ways and a profile that is gone cannot be written to.
-  const chat = createChat({ kv: store, now });
+  // Attachments are kept with the posts' photos (store.js photos), under 'chat-' + an id.
+  const chat = createChat({ kv: store, now, files: photos });
   const chatRoute = fn => async (req, q) => {
     const { user: me } = await signedIn(req);
     try { return { body: await fn(me, req, q) }; }
@@ -677,6 +678,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/social/requests/answer': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { users: await withSocial(s => s.answerRequest(me, text(b.id), b.accept === true)) } }; },
     'POST /api/social/block': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { user: await withSocial(s => s.block(me, text(b.id), b.block !== false)) } }; },
     'GET /api/social/blocked': async req => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.blockedList(me)) } }; },
+    'POST /api/social/mute': async req => { const { user: me } = await signedIn(req); const b = await readJson(req); return { body: { user: await withSocial(s => s.mute(me, text(b.id), b.mute !== false)) } }; },
+    'GET /api/social/muted': async req => { const { user: me } = await signedIn(req); return { body: { users: await withSocial(s => s.mutedList(me)) } }; },
     // Messages between two profiles (chat.js).
     'GET /api/chat': chatRoute(async me => {
       const list = await chat.list(me.id);
@@ -691,8 +694,21 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'POST /api/chat/send': chatRoute(async (me, req) => {
       const b = await readJson(req);
       const user = await chatPeer(me, b.id);
-      return { message: await chat.send(me.id, user.id, b.text) };
+      return { message: await chat.send(me.id, user.id, b.text, b.attachment || null) };
     }),
+    // The bytes of a message's photo, voice message or file: only for the two people who wrote.
+    'GET /api/chat/media': async (req, q) => {
+      const { user: me } = await signedIn(req);
+      try {
+        const user = await chatPeer(me, q.get('id'));
+        const f = await chat.media(me.id, user.id, q.get('m'));
+        const download = f.kind === 'file' && f.type !== 'application/pdf';
+        return { status: 200, raw: f.bytes, headers: {
+          'Content-Type': download ? 'application/octet-stream' : f.type, 'Cache-Control': 'private, max-age=604800', 'X-Content-Type-Options': 'nosniff',
+          ...(f.name ? { 'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(f.name)}` } : {}),
+        } };
+      } catch (e) { if (e instanceof ChatError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
+    },
     'POST /api/chat/read': chatRoute(async (me, req) => { const b = await readJson(req); await chat.read(me.id, text(b.id)); return { ok: true }; }),
     'POST /api/chat/delete': chatRoute(async (me, req) => { const b = await readJson(req); await chat.remove(me.id, text(b.id), b.message); return { ok: true }; }),
     'GET /api/social/notifications': async req => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.notifications(me)) }; },

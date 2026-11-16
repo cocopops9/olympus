@@ -85,6 +85,8 @@ describe('Profile with a server profile', () => {
     const counts = [...host.querySelectorAll('.prof-counts button')].map(b => b.textContent)
     expect(counts).toEqual(['1Workouts', '3Followers', '2Following', '1Posts'])
     expect([...host.querySelectorAll('.seg button')].map(b => b.textContent)).toContain('Posts')
-    expect(host.querySelector('.avatar').textContent).toBe('AR')
+    // No picture of their own: one of the gods' portraits, the same for this profile everywhere.
+    expect(host.querySelector('.avatar img')).toBeTruthy()
+    expect(host.querySelector('.avatar').textContent).toBe('')
   })
 })

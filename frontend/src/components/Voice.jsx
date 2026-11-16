@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { canListen, listen } from '../lib/voice.js'
+import { canListen, listen, releaseMic } from '../lib/voice.js'
 import Icon from './Icon.jsx'
 import '../voice.css'
 import { calledByName, openGuide } from '../lib/calliope.js'
@@ -38,6 +38,9 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
         onText: text => { if (text) { last = text; onText?.(text) } },
         onEnd: error => {
           stopRef.current = null; setOn(false)
+          // One sentence dictated: the microphone closes at once. A voice conversation (`control`)
+          // listens again right away and keeps it until it is over.
+          if (!control) releaseMic()
           if (error) useUI.getState().toast(t('The microphone stopped: {0}', error))
           const said = last.trim()
           const forGuide = guide && said ? calledByName(said) : null
@@ -51,10 +54,10 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
     }
   }
   const stop = opts => { stopRef.current?.(opts) }
-  useEffect(() => () => stopRef.current?.({ cancel: true }), [])
+  useEffect(() => () => { stopRef.current?.({ cancel: true }); releaseMic() }, [])
   if (control) control.current = { start, stop, get on() { return !!stopRef.current } }
   if (!can) return null
-  if (onStopVoice) return <button type="button" className={'mic voice' + (on ? ' on' : '')} onClick={() => { stopRef.current?.({ cancel: true }); onStopVoice() }}
+  if (onStopVoice) return <button type="button" className={'mic voice' + (on ? ' on' : '')} onClick={() => { stopRef.current?.({ cancel: true }); releaseMic(); onStopVoice() }}
     aria-label={t('Stop voice mode')} title={t('Stop voice mode')}>
     <Icon name="mic" />
   </button>

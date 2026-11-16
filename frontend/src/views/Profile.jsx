@@ -60,7 +60,7 @@ function OverviewTab({ S }) {
     <div className="ov-week">
       <div className="ov-week-h">
         <h3>{t('This week')}</h3>
-        <span className="ov-streak"><Icon name="flame" />{t('{0} week streak', streakWeeks(S))}</span>
+        <span className={'ov-streak' + (streakWeeks(S) ? '' : ' cold')}><Icon name="flame" />{t('{0} week streak', streakWeeks(S))}</span>
       </div>
       <div className="ov-days">
         {wk.days.map(d => <div key={d.iso} className={'ov-day' + (d.trained ? ' on' : '') + (d.today ? ' now' : '') + (d.future ? ' later' : '')}>

@@ -9,7 +9,7 @@ import { t } from '../lib/i18n.js'
 import { videoBlob } from '../lib/social.js'
 import { openVideo, prepareVideo, uploadVideo, defaultVideoRange, MAX_VIDEO_SEC, MIN_VIDEO_SEC } from '../lib/video.js'
 import { RangeTrim, RangeLabel, clock } from './Song.jsx'
-import { Button } from './ui.jsx'
+import { Button, MediaTile } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../video.css'
 
@@ -90,7 +90,7 @@ function ChosenVideo({ value, onRemove }) {
  * The video of a post being written. `value` is { id, secs, url } or null; `onChange` gets the
  * same. `disabled` while the post has photos (a post has photos or a video).
  */
-export function VideoField({ value, onChange, disabled, size }) {
+export function VideoField({ value, onChange, disabled, size, tile = false }) {
   const input = useRef(null)
   const [reading, setReading] = useState(false)
   const remove = () => { if (value?.url) URL.revokeObjectURL(value.url); onChange(null) }
@@ -110,8 +110,10 @@ export function VideoField({ value, onChange, disabled, size }) {
     <input ref={input} type="file" accept="video/*" style={{ display: 'none' }} onChange={pick} data-testid="video-file" />
     {value?.id
       ? (value.url ? <ChosenVideo value={value} onRemove={remove} /> : <PostedVideo video={value} onRemove={remove} />)
-      : <Button size={size} icon="video" disabled={disabled || reading} onClick={() => input.current?.click()}>
-        {reading ? t('Reading the video…') : t('Add a video')}</Button>}
+      : tile
+        ? <MediaTile icon="video" tint="red" label={t('Video')} busy={reading} disabled={disabled || reading} aria-label={t('Add a video')} onClick={() => input.current?.click()} />
+        : <Button size={size} icon="video" disabled={disabled || reading} onClick={() => input.current?.click()}>
+          {reading ? t('Reading the video…') : t('Add a video')}</Button>}
   </>
 }
 

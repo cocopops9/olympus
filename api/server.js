@@ -182,7 +182,17 @@ const SOCIAL = createSocial({
 const CHAT_FILE = path.join(DATA, 'chats.json');
 const chatDocs = new Map();
 try { for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(CHAT_FILE, 'utf8')))) chatDocs.set(k, v); } catch { /* none yet */ }
-const CHATS = createChat({ kv: memoryKv(chatDocs, docs => atomicWrite(CHAT_FILE, JSON.stringify(Object.fromEntries(docs)), 0o600)) });
+// Their photos, voice messages and files: one file each in DATA_DIR/chat-files.
+const CHAT_FILES = path.join(DATA, 'chat-files');
+const chatFile = name => path.join(CHAT_FILES, String(name).replace(/[^A-Za-z0-9_-]/g, ''));
+const CHATS = createChat({
+  kv: memoryKv(chatDocs, docs => atomicWrite(CHAT_FILE, JSON.stringify(Object.fromEntries(docs)), 0o600)),
+  files: {
+    put: async (name, bytes) => { fs.mkdirSync(CHAT_FILES, { recursive: true, mode: 0o700 }); atomicWrite(chatFile(name), Buffer.from(bytes), 0o600); },
+    get: async name => { try { return fs.readFileSync(chatFile(name)); } catch { return null; } },
+    del: async name => { try { fs.unlinkSync(chatFile(name)); } catch { /* gone */ } },
+  },
+});
 const chatRoute = fn => async (req, res) => {
   const me = socialUser(req, res); if (!me) return;
   try { json(res, 200, await fn(me, req, qs(req))); }
@@ -2678,6 +2688,16 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, { users: SOCIAL.blockedList(me) });
   },
+  // Muting: their posts leave your feed and Discover; they are not told (social.js mute).
+  'POST /api/social/mute': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    json(res, 200, { user: SOCIAL.mute(me, text(body.id), body.mute !== false) });
+  },
+  'GET /api/social/muted': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    json(res, 200, { users: SOCIAL.mutedList(me) });
+  },
   // Messages between two profiles (chat.js). The other profile is looked up through the social
   // layer first: a block stops messages both ways.
   'GET /api/chat': chatRoute(async me => {
@@ -2693,8 +2713,27 @@ const routes = {
   'POST /api/chat/send': chatRoute(async (me, req) => {
     const b = await readBody(req);
     const user = SOCIAL.messageable(me, String(b.id || ''));
-    return { message: await CHATS.send(me.id, user.id, b.text) };
+    return { message: await CHATS.send(me.id, user.id, b.text, b.attachment || null) };
   }),
+  // The bytes of a message's photo, voice message or file: only for the two people who wrote.
+  'GET /api/chat/media': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const q = qs(req);
+    try {
+      const user = SOCIAL.messageable(me, String(q.get('id') || ''));
+      const f = await CHATS.media(me.id, user.id, q.get('m'));
+      const download = f.kind === 'file' && f.type !== 'application/pdf';
+      res.writeHead(200, {
+        'Content-Type': download ? 'application/octet-stream' : f.type, 'Content-Length': f.bytes.length, 'Cache-Control': 'private, max-age=604800', 'X-Content-Type-Options': 'nosniff',
+        ...(f.name ? { 'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(f.name)}` } : {}),
+      });
+      res.end(Buffer.from(f.bytes));
+    } catch (e) {
+      if (e instanceof ChatError) return json(res, e.status, { error: e.message, code: e.code });
+      if (e?.status) return json(res, e.status, { error: e.message, code: e.code });
+      throw e;
+    }
+  },
   'POST /api/chat/read': chatRoute(async (me, req) => { const b = await readBody(req); await CHATS.read(me.id, String(b.id || '')); return { ok: true }; }),
   'POST /api/chat/delete': chatRoute(async (me, req) => { const b = await readBody(req); await CHATS.remove(me.id, String(b.id || ''), b.message); return { ok: true }; }),
   'GET /api/social/notifications': async (req, res) => {

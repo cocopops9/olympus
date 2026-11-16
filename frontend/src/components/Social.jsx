@@ -14,10 +14,10 @@ import { speedUnitOf } from '../lib/speed.js'
 import {
   initialsOf, hueOf, workoutPostSummary, createPost, deletePost, setLike, addComment,
   deleteComment, setFollow, saveProfile, fetchConnections, socialErrorText, followLabel,
-  uploadPhoto, photoBlob, fetchBlocked, setBlock, removeFollower, avatarUrl,
+  uploadPhoto, photoBlob, fetchBlocked, setBlock, fetchMuted, setMute, removeFollower, avatarUrl,
 } from '../lib/social.js'
 import { preparePhoto, prepareAvatar } from '../lib/social-photo.js'
-import { Button, TextArea, TextField, SelectRow, Section, Row, Switch } from './ui.jsx'
+import { Button, MediaTile, TextArea, TextField, SelectRow, Section, Row, Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { AccountSection } from './AccountEdit.jsx'
 import { SongBar, SongField } from './Song.jsx'
@@ -53,7 +53,7 @@ export const summaryOf = (w, S) => workoutPostSummary(w, { unit: S.unit, nameOf:
 // the moment a photo is loading.
 export function Avatar({ user, size }) {
   const id = user?.avatar || null
-  const god = id && String(id).startsWith('god:') ? godAvatarUrl(id) : !id ? godAvatarUrl('god:' + godFor(user?.id ?? user?.name)) : null
+  const god = id && String(id).startsWith('god:') ? godAvatarUrl(id) : !id ? godFor(user?.id ?? user?.name).url : null
   const [url, setUrl] = useState(null)
   useEffect(() => {
     let live = true
@@ -127,7 +127,7 @@ export function avatarSheet(me, onSaved) {
   useUI.getState().openSheet(close => <>
     <h3>{t('Profile picture')}</h3>
     <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 14px' }}><Avatar user={me} size="xl" /></div>
-    <div className="oc-l" style={{ fontSize: 13, fontWeight: 650, color: 'var(--label-2)', margin: '0 2px 8px' }}>{t('A god of Olympus')}</div>
+    <div className="oc-l" style={{ fontSize: 13, fontWeight: 650, color: 'var(--label-2)', margin: '0 2px 8px' }}>{t('Gods and heroes')}</div>
     <div className="av-gods">
       {GOD_AVATARS.map(g => <button key={g.id} className={'av-god' + (cur === 'god:' + g.id ? ' on' : '')} aria-label={g.name} title={g.name}
         onClick={() => { close(); save('god:' + g.id, t('Profile picture updated')) }}><img src={g.url} alt="" /></button>)}
@@ -374,7 +374,8 @@ export function FollowButton({ user, onChange, size = 'sm' }) {
     setBusy(true)
     try { onChange?.(await setFollow(user.id, !on)) } catch (err) { fail(err) } finally { setBusy(false) }
   }
-  return <Button size={size} variant={on ? 'plain' : 'primary'} disabled={busy} onClick={toggle}>{followLabel(user, t)}</Button>
+  return <Button size={size} variant={on ? 'plain' : 'primary'} className={'follow-btn' + (on ? ' on' : '')} icon={user.isFollowing ? 'personCheck' : user.requested ? 'clock' : 'personPlus'}
+    disabled={busy} onClick={toggle}>{followLabel(user, t)}</Button>
 }
 
 export function PersonRow({ user, onChange, onOpen, action }) {
@@ -469,17 +470,15 @@ function Composer({ close, workout, onPosted }) {
     </div>}
     <div style={{ height: 10 }} />
     <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
-    <div className="cmp-pick">
-      <Button icon="camera" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => camRef.current?.click()}>{t('Take a photo')}</Button>
-      <Button icon="image" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => fileRef.current?.click()}>
-        {photos.length ? t('Add another photo') : t('Add photos')}
-      </Button>
+    {video?.id && <div className="cmp-video"><VideoField value={video} onChange={setVideo} /></div>}
+    {song?.id && <div className="cmp-song"><SongField value={song} onChange={setSong} /></div>}
+    <div className="media-tiles">
+      <MediaTile icon="camera" tint="blue" label={t('Camera')} aria-label={t('Take a photo')} disabled={photos.length >= MAX_PHOTOS || !!video?.id} onClick={() => camRef.current?.click()} />
+      <MediaTile icon="image" tint="green" label={t('Photos')} aria-label={photos.length ? t('Add another photo') : t('Add photos')} disabled={photos.length >= MAX_PHOTOS || !!video?.id} onClick={() => fileRef.current?.click()} />
+      {!video?.id && <VideoField tile value={video} onChange={setVideo} disabled={photos.length > 0} />}
+      {!song?.id && <SongField tile value={song} onChange={setSong} />}
     </div>
-    <div style={{ height: 8 }} />
-    <div className="cmp-video"><VideoField value={video} onChange={setVideo} disabled={photos.length > 0} /></div>
-    <div style={{ height: 8 }} />
-    <div className="cmp-song"><SongField value={song} onChange={setSong} /></div>
-    <div style={{ height: 8 }} />
+    <div style={{ height: 10 }} />
     {recent.length > 0 || workout
       ? <SelectRow icon="dumbbell" title={t('Attach a workout')} value={pick} options={options} onChange={setPick} sheetTitle={t('Attach a workout')} />
       : <p className="small muted">{t('Finish a workout to attach it to a post.')}</p>}
@@ -588,19 +587,17 @@ export function PostEditor({ w, initial = null, onSaved }) {
       </div>)}
     </div>}
     <PhotoInputs fileRef={fileRef} camRef={camRef} onFiles={addPhotos} />
-    <div className="pe-video"><VideoField value={video} disabled={photos.length > 0}
-      onChange={v => { setSaved(false); setDirty(true); setVideoTouched(true); setVideoState(v) }} /></div>
-    <div className="pe-song"><SongField value={song} onChange={v => { setSaved(false); setDirty(true); setSongTouched(true); setSongState(v) }} /></div>
-    <div className="pe-a">
-      <Button size="sm" icon="camera" className="pe-cam" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => camRef.current?.click()}
-        aria-label={t('Take a photo')} title={t('Take a photo')} />
-      <Button size="sm" icon="image" disabled={photos.length >= MAX_PHOTOS || !!video} onClick={() => fileRef.current?.click()}>
-        {photos.length ? t('Add another photo') : t('Add photos')}
-      </Button>
-      <Button size="sm" variant="primary" icon={saved ? 'check' : undefined} disabled={uploading || saved} onClick={save}>
-        {uploading ? t('Uploading photos…') : saved ? t('Post saved') : t('Save post')}
-      </Button>
+    {video?.id && <div className="pe-video"><VideoField value={video} onChange={v => { setSaved(false); setDirty(true); setVideoTouched(true); setVideoState(v) }} /></div>}
+    {song?.id && <div className="pe-song"><SongField value={song} onChange={v => { setSaved(false); setDirty(true); setSongTouched(true); setSongState(v) }} /></div>}
+    <div className="media-tiles">
+      <MediaTile icon="camera" tint="blue" label={t('Camera')} aria-label={t('Take a photo')} disabled={photos.length >= MAX_PHOTOS || !!video?.id} onClick={() => camRef.current?.click()} />
+      <MediaTile icon="image" tint="green" label={t('Photos')} aria-label={photos.length ? t('Add another photo') : t('Add photos')} disabled={photos.length >= MAX_PHOTOS || !!video?.id} onClick={() => fileRef.current?.click()} />
+      {!video?.id && <VideoField tile value={video} disabled={photos.length > 0} onChange={v => { setSaved(false); setDirty(true); setVideoTouched(true); setVideoState(v) }} />}
+      {!song?.id && <SongField tile value={song} onChange={v => { setSaved(false); setDirty(true); setSongTouched(true); setSongState(v) }} />}
     </div>
+    <Button variant="primary" icon={saved ? 'check' : undefined} disabled={uploading || saved} onClick={save}>
+      {uploading ? t('Uploading photos…') : saved ? t('Post saved') : t('Save post')}
+    </Button>
   </div>
 }
 
@@ -659,6 +656,7 @@ function ProfileEditor({ close, me, onSaved }) {
       <Row icon="bell" iconTint="var(--red)" title={t('Push notifications for likes, comments and follows')}>
         <Switch checked={push} onChange={setPush} aria-label={t('Push notifications for likes, comments and follows')} />
       </Row>
+      <Row icon="bellSlash" iconTint="var(--grey)" title={t('Muted people')} accessory="chevron" onClick={() => mutedSheet()} />
       <Row icon="xmark" iconTint="var(--grey)" title={t('Blocked people')} accessory="chevron" onClick={() => blockedSheet()} />
     </Section>
     <Button variant="primary" disabled={busy} onClick={save}>{t('Save')}</Button>
@@ -687,6 +685,31 @@ function Blocked() {
   </>
 }
 export const blockedSheet = () => useUI.getState().openSheet(() => <Blocked />)
+
+function Muted() {
+  const [users, setUsers] = useState(null)
+  useEffect(() => { fetchMuted().then(setUsers, e => { fail(e); setUsers([]) }) }, [])
+  const unmute = async u => {
+    try { await setMute(u.id, false); setUsers(list => list.filter(x => x.id !== u.id)); toast(t('{0} is unmuted', u.name)) } catch (e) { fail(e) }
+  }
+  return <>
+    <h3>{t('Muted people')}</h3>
+    <p className="small muted">{t('Their posts stay out of your feed and Discover. They are not told, and you can still open their profile.')}</p>
+    {users === null ? <div className="empty">{t('Loading…')}</div>
+      : users.length ? users.map(u => <div key={u.id} className="person">
+        <Avatar user={u} />
+        <div className="person-m"><div className="person-n"><Name user={u} /></div></div>
+        <Button size="sm" onClick={() => unmute(u)}>{t('Unmute')}</Button>
+      </div>) : <div className="empty">{t('You have not muted anyone.')}</div>}
+  </>
+}
+export const mutedSheet = () => useUI.getState().openSheet(() => <Muted />)
+
+/** Mute or unmute `user`'s posts; `onDone` gets the profile as it now is. */
+export function toggleMute(user, onDone) {
+  const on = !user.mutedByMe
+  setMute(user.id, on).then(u => { onDone?.(u); toast(on ? t('You will not see posts by {0} in your feed.', user.name) : t('{0} is unmuted', user.name)) }, fail)
+}
 
 /** Block or unblock `user`, asking first for a block; `onDone` gets the profile as it now is. */
 export function toggleBlock(user, onDone) {

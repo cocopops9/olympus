@@ -126,3 +126,69 @@ test('over the server: only signed in, never to someone who blocked you, and the
   assert.deepEqual((await call('GET', '/api/chat', null, ada.token)).body.chats, []);
   assert.deepEqual((await call('GET', '/api/chat', null, bea.token)).body.chats, []);
 });
+
+// A tiny JPEG, PNG and WebM by their first bytes: enough for the checks, which read the header.
+const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(60, 7)]);
+const webm = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(60, 3)]);
+const pdf = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(60, 1)]);
+const memFiles = () => { const m = new Map(); return { m, put: async (k, b, y) => { m.set(k, { b, y }); }, get: async k => m.get(k)?.b || null, del: async k => { m.delete(k); } }; };
+
+test('a message can carry a photo, a voice message or a file, checked by what its bytes are', async () => {
+  const files = memFiles();
+  const chat = createChat({ kv: memoryKv(), now: clock(), files });
+  const photo = await chat.send('ada', 'bea', '', { kind: 'image', data: 'data:image/jpeg;base64,' + jpeg.toString('base64') });
+  assert.deepEqual(photo.attachment, { kind: 'image', type: 'image/jpeg', size: jpeg.length });
+  assert.equal(photo.text, '');
+  const voice = await chat.send('ada', 'bea', '', { kind: 'audio', data: webm.toString('base64'), secs: 12.4 });
+  assert.deepEqual(voice.attachment, { kind: 'audio', type: 'audio/webm', size: webm.length, secs: 12 });
+  const doc = await chat.send('bea', 'ada', 'the plan', { kind: 'file', data: pdf.toString('base64'), name: '../../My plan?.pdf' });
+  assert.equal(doc.attachment.name, '.._.._My plan_.pdf');
+  assert.equal(doc.attachment.type, 'application/pdf');
+  assert.equal(files.m.size, 3);
+  // the list says what the latest is, for the app to word it
+  assert.equal((await chat.list('ada'))[0].kind, 'file');
+  // both of them get the bytes; the store holds them under the message's own id
+  const got = await chat.media('bea', 'ada', photo.id);
+  assert.deepEqual([Buffer.from(got.bytes).equals(jpeg), got.type, got.kind], [true, 'image/jpeg', 'image']);
+  assert.equal((await chat.media('ada', 'bea', voice.id)).type, 'audio/webm');
+  // someone else's conversation with Ada has no such message
+  await assert.rejects(chat.media('cal', 'ada', photo.id), e => e.code === 'no-file');
+  // what is not what it says is refused
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'image', data: webm.toString('base64') }), e => e.code === 'bad-type');
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'audio', data: pdf.toString('base64') }), e => e.code === 'bad-type');
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'video', data: jpeg.toString('base64') }), e => e.code === 'bad-attachment');
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'image', data: Buffer.concat([jpeg, Buffer.alloc(CHAT.imageBytes)]).toString('base64') }), e => e.code === 'file-too-large');
+  // taken back: the file goes with the message
+  await chat.remove('ada', 'bea', photo.id);
+  assert.equal(files.m.size, 2);
+  // an account deleted: its conversations' files go too
+  await chat.removeUser('ada');
+  assert.equal(files.m.size, 0);
+});
+
+test('a server without a place for files says so, and texts still work', async () => {
+  const chat = createChat({ kv: memoryKv(), now: clock() });
+  await assert.rejects(chat.send('ada', 'bea', 'hi', { kind: 'image', data: jpeg.toString('base64') }), e => e.code === 'no-files');
+  assert.equal((await chat.send('ada', 'bea', 'hi')).text, 'hi');
+});
+
+test('over the server: a photo is fetched by the two people only', async () => {
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env: {} });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, type: res.headers.get('content-type'), bytes: Buffer.from(await res.arrayBuffer()) };
+  };
+  const sign = async name => JSON.parse((await call('POST', '/api/app/signup', { name, email: name + '@example.com', password: 'correct horse battery staple' })).bytes);
+  const ada = await sign('ada_lifts'); const bea = await sign('bea_runs'); const cal = await sign('cal_rows');
+  const sent = JSON.parse((await call('POST', '/api/chat/send', { id: bea.user.id, attachment: { kind: 'image', data: jpeg.toString('base64') } }, ada.token)).bytes).message;
+  const got = await call('GET', `/api/chat/media?id=${ada.user.id}&m=${sent.id}`, null, bea.token);
+  assert.equal(got.status, 200);
+  assert.equal(got.type, 'image/jpeg');
+  assert.ok(got.bytes.equals(jpeg));
+  assert.equal((await call('GET', `/api/chat/media?id=${ada.user.id}&m=${sent.id}`, null, cal.token)).status, 404);
+  assert.equal((await call('GET', `/api/chat/media?id=${ada.user.id}&m=${sent.id}`)).status, 401);
+  const file = JSON.parse((await call('POST', '/api/chat/send', { id: bea.user.id, attachment: { kind: 'file', data: Buffer.from('plain words here').toString('base64'), name: 'notes.txt' } }, ada.token)).bytes).message;
+  const res = await app.handle(new Request(`https://x.test/functions/v1/olympus/api/chat/media?id=${ada.user.id}&m=${file.id}`, { headers: { Authorization: 'Bearer ' + bea.token } }));
+  assert.equal(res.headers.get('content-type'), 'application/octet-stream');
+  assert.match(res.headers.get('content-disposition'), /^attachment; filename\*=UTF-8''notes\.txt$/);
+});

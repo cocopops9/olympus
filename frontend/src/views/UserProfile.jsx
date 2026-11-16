@@ -10,7 +10,7 @@ import { t } from '../lib/i18n.js'
 import { socialReady, fetchProfile, socialErrorText } from '../lib/social.js'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
-import { Avatar, Name, PostCard, FollowButton, connectionsSheet, toggleBlock } from '../components/Social.jsx'
+import { Avatar, Name, PostCard, FollowButton, connectionsSheet, toggleBlock, toggleMute } from '../components/Social.jsx'
 import '../social.css'
 
 export default function UserProfile() {
@@ -56,6 +56,12 @@ export default function UserProfile() {
   const followed = u => { const opens = u.canSeePosts && !user.canSeePosts; setUser(u); if (opens) load() }
   const menu = () => useUI.getState().openSheet(close => <>
     <h3>{user.name}</h3>
+    {!user.blockedByMe && <>
+      <Button icon={user.mutedByMe ? 'bell' : 'bellSlash'} onClick={() => { close(); toggleMute(user, setUser) }}>
+        {user.mutedByMe ? t('Unmute their posts') : t('Mute their posts')}
+      </Button>
+      <p className="small muted" style={{ margin: '6px 4px 12px' }}>{user.mutedByMe ? t('Their posts are hidden from your feed and Discover.') : t('Their posts leave your feed and Discover. They are not told, and you still follow each other.')}</p>
+    </>}
     <Button variant={user.blockedByMe ? 'plain' : 'danger'} icon={user.blockedByMe ? 'checkCircle' : 'xmark'}
       onClick={() => { close(); toggleBlock(user, u => { setUser(u); if (!u.blockedByMe) load(); else setPosts([]) }) }}>
       {user.blockedByMe ? t('Unblock') : t('Block')}
@@ -75,6 +81,7 @@ export default function UserProfile() {
         <div className="prof-n"><Name user={user} />{user.private && <Icon name="lock" className="person-lock" aria-label={t('Private profile')} />}</div>
         {user.bio && <p className="prof-bio">{user.bio}</p>}
         {user.followsMe && !user.blockedByMe && <p className="prof-bio small">{t('Follows you')}</p>}
+        {user.mutedByMe && !user.blockedByMe && <p className="prof-bio small prof-muted"><Icon name="bellSlash" /> {t('Muted: their posts are not in your feed')}</p>}
         <div className="prof-counts">
           <button disabled={locked} onClick={() => connectionsSheet(user.id, 'followers')}><span className="v">{user.followers}</span><span className="l">{t('Followers')}</span></button>
           <button disabled={locked} onClick={() => connectionsSheet(user.id, 'following')}><span className="v">{user.following}</span><span className="l">{t('Following')}</span></button>
@@ -85,7 +92,7 @@ export default function UserProfile() {
             ? <Button size="sm" onClick={() => toggleBlock(user, u => { setUser(u); load() })}>{t('Unblock')}</Button>
             : <>
               <FollowButton user={user} size={undefined} onChange={followed} />
-              {!user.me && <Button icon="chat" onClick={() => nav('/chats/' + user.id)}>{t('Message')}</Button>}
+              {!user.me && <Button variant="tinted" className="msg-btn" icon="message" onClick={() => nav('/chats/' + user.id)}>{t('Message')}</Button>}
             </>}
         </div>
       </div>

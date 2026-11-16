@@ -493,6 +493,17 @@ function require_ui() {
 
 /* ============================ buttons ============================ */
 
+/**
+ * A square tile to add something to a post (a photo, a video, a song): a tinted rounded icon and
+ * a short word under it. `tint` is one of green, blue, red, purple, orange.
+ */
+export function MediaTile({ icon, label, tint = 'green', busy = false, ...rest }) {
+  return <button type="button" className={'media-tile t-' + tint} {...rest}>
+    <span className="media-tile-i">{busy ? <i className="spin" /> : <Icon name={icon} />}</span>
+    <span className="media-tile-l">{label}</span>
+  </button>
+}
+
 export function Button({ variant = 'plain', size, icon, trailingIcon, children, className = '', ...rest }) {
   return (
     <button className={`btn ${variant}${size ? ' ' + size : ''} ${className}`} {...rest}>

@@ -7,7 +7,7 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-const mocks = vi.hoisted(() => ({ sent: [], spoken: [], heard: [], listens: 0 }))
+const mocks = vi.hoisted(() => ({ sent: [], spoken: [], heard: [], listens: 0, released: 0 }))
 vi.mock('../lib/hercules.js', async orig => ({
   ...(await orig()),
   herculesStatus: vi.fn(async () => ({ on: true, perDay: 15, left: 15 })),
@@ -20,6 +20,7 @@ vi.mock('../lib/voice.js', async orig => ({
   canSpeak: () => true,
   speak: vi.fn(async text => { mocks.spoken.push(text) }),
   stopSpeaking: vi.fn(async () => {}),
+  releaseMic: vi.fn(() => { mocks.released++ }),
   // Each listen hears the next thing in the list ('' is silence), then stops by itself.
   listen: vi.fn(async ({ onText, onEnd }) => {
     mocks.listens++
@@ -47,7 +48,7 @@ function mount(el) {
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  mocks.sent = []; mocks.spoken = []; mocks.heard = []; mocks.listens = 0
+  mocks.sent = []; mocks.spoken = []; mocks.heard = []; mocks.listens = 0; mocks.released = 0
   localStorage.clear()
   useUI.setState({ sheets: [] })
   useChiron.setState({ awake: false })
@@ -110,6 +111,8 @@ describe('Chiron by voice', () => {
     await wait(1500)
     expect(mocks.listens).toBe(2)
     expect(host.querySelector('.chv-st').textContent).toBe('Tap the microphone to talk to me.')
+    // not listening any more: the microphone is closed, so music on the phone sounds right again
+    expect(mocks.released).toBeGreaterThan(0)
     expect(host.querySelector('.chf').getAttribute('class')).toContain('chf-idle')
     // a tap on the microphone: he listens again
     mocks.heard = ['What should I do next?', '', '']
@@ -125,7 +128,9 @@ describe('Chiron by voice', () => {
     await wait(1500)
     act(() => host.querySelector('.chv-b[aria-label="Ask Chiron about this workout"]').click())
     expect(useUI.getState().sheets).toHaveLength(1)
+    const before = mocks.released
     act(() => host.querySelector('.chv-b[aria-label="Let him sleep"]').click())
     expect(useChiron.getState().awake).toBe(false)
+    expect(mocks.released).toBeGreaterThan(before)
   })
 })

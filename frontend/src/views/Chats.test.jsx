@@ -16,6 +16,11 @@ vi.mock('../lib/social.js', async importOriginal => ({
   markChatRead: (...a) => mocks.read(...a), deleteMessage: (...a) => mocks.del(...a),
   fetchNotifications: async () => ({ unread: 0, requests: 0, items: [] }), fetchChatUnread: async () => ({ unread: 0 }),
 }))
+vi.mock('../lib/social-photo.js', () => ({ preparePhoto: async () => 'data:image/jpeg;base64,/9j/AAAA' }))
+const note = vi.hoisted(() => ({ can: false, stop: null }))
+vi.mock('../lib/voice-note.js', async o => ({ ...(await o()), canRecordNote: () => note.can,
+  startVoiceNote: async () => ({ stop: async () => note.stop, cancel: () => {}, level: () => 0.5, elapsed: () => 3000 }) }))
+vi.mock('../lib/api.js', async o => ({ ...(await o()), apiBlob: async () => new Blob(['x'], { type: 'image/jpeg' }) }))
 import Chats, { ChatThread } from './Chats.jsx'
 
 const ben = { id: 'u_b', name: 'Ben' }
@@ -93,7 +98,7 @@ describe('one conversation', () => {
     await act(async () => { setter.call(box, '  Hello Ben '); box.dispatchEvent(new Event('input', { bubbles: true })) })
     await act(async () => { host.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
     await flush()
-    expect(mocks.send).toHaveBeenCalledWith('u_b', 'Hello Ben')
+    expect(mocks.send).toHaveBeenCalledWith('u_b', 'Hello Ben', null)
     expect(host.querySelector('.chat-m.me .chat-m-t').textContent).toBe('Hello Ben')
     expect(host.querySelector('textarea').value).toBe('')
     expect(mocks.read).not.toHaveBeenCalled()
@@ -125,5 +130,51 @@ describe('one conversation', () => {
     await show(<ChatThread />)
     expect(host.textContent).toContain('You blocked this person. Unblock them to write.')
     expect(host.querySelector('textarea')).toBeNull()
+  })
+
+  it('sends a photo: on screen at once, then the message from the server', async () => {
+    mocks.thread.mockResolvedValue({ user: ben, messages: [], more: false, seen: 0 })
+    let answer
+    mocks.send.mockImplementation(() => new Promise(r => { answer = r }))
+    globalThis.URL.createObjectURL = () => 'blob:local'
+    await show(<ChatThread />)
+    const input = host.querySelector('[data-testid="chat-photo"]')
+    const file = new File(['abc'], 'gym.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] })
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })) })
+    await flush()
+    expect(mocks.send).toHaveBeenCalledWith('u_b', '', { kind: 'image', data: 'data:image/jpeg;base64,/9j/AAAA' })
+    expect(host.querySelector('.chat-m.pending.a-image')).toBeTruthy()
+    expect(host.textContent).toContain('Sending…')
+    await act(async () => { answer({ message: { id: 7, mine: true, text: '', at: Date.now(), attachment: { kind: 'image', type: 'image/jpeg', size: 9 } } }) })
+    await flush()
+    expect(host.querySelector('.chat-m.pending')).toBeNull()
+    expect(host.querySelector('.chat-a-photo img').getAttribute('src')).toBe('blob:local')
+  })
+
+  it('records a voice message with the microphone when nothing is written, and sends it', async () => {
+    note.can = true
+    note.stop = { blob: new Blob(['voice'], { type: 'audio/webm' }), secs: 3 }
+    mocks.thread.mockResolvedValue({ user: ben, messages: [], more: false, seen: 0 })
+    mocks.send.mockResolvedValue({ message: { id: 8, mine: true, text: '', at: Date.now(), attachment: { kind: 'audio', type: 'audio/webm', size: 5, secs: 3 } } })
+    await show(<ChatThread />)
+    await act(async () => host.querySelector('.chat-send.voice').click())
+    await flush()
+    expect(host.querySelector('.chat-rec')).toBeTruthy()
+    await act(async () => host.querySelector('[aria-label="Send voice message"]').click())
+    await flush(); await flush()
+    const [, text, att] = mocks.send.mock.calls[0]
+    expect(text).toBe('')
+    expect(att.kind).toBe('audio')
+    expect(att.secs).toBe(3)
+    expect(att.data.startsWith('data:audio/webm;base64,')).toBe(true)
+    expect(host.querySelector('.chat-a-voice .chat-a-time').textContent).toBe('0:03')
+    note.can = false
+  })
+
+  it('words an attachment in the list in the reader’s language', async () => {
+    mocks.chats.mockResolvedValue({ chats: [{ id: 'u_b', user: ben, at: NOW, text: '', mine: false, unread: 1, kind: 'audio' }] })
+    await show(<Chats />)
+    expect(host.querySelector('.chat-row-t').textContent).toBe('Voice message')
   })
 })

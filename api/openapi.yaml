@@ -3344,6 +3344,40 @@ paths:
                     items: { type: object, properties: { id: { type: string }, name: { type: string } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /api/social/mute:
+    post:
+      tags: [social]
+      operationId: socialMute
+      summary: Mute or unmute a profile
+      description: A muted profile's posts leave the caller's feed and Discover. They are not told, and nothing else changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id], properties: { id: { type: string }, mute: { type: boolean, default: true } } }
+      responses:
+        '200': { description: '`{ user }`, with `mutedByMe`.' }
+        '400': { description: 'Yourself (`self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'No such profile (`no-profile`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/social/muted:
+    get:
+      tags: [social]
+      operationId: socialMuted
+      summary: Muted profiles
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items: { type: object, properties: { id: { type: string }, name: { type: string } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /api/chat:
     get:
       tags: [social]
@@ -3393,25 +3427,51 @@ paths:
       tags: [social]
       operationId: chatSend
       summary: Send a message
-      description: Up to 2000 characters, 240 messages an hour. A block either way stops it.
+      description: >-
+        Up to 2000 characters, 240 messages an hour. A block either way stops it. A message may
+        carry one attachment, and may be an attachment alone: a photo (JPEG, PNG, WebP or GIF, 2.5 MB),
+        a voice message (WebM, Ogg, MP4/AAC, WAV or MP3, 2 MB, 5 minutes) or a file (3.5 MB), 40 an hour.
+        Only the two people of the conversation can fetch it (`GET /api/chat/media`).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [id, text]
+              required: [id]
               properties:
                 id: { type: string, description: The profile to write to. }
                 text: { type: string }
+                attachment:
+                  type: object
+                  required: [kind, data]
+                  properties:
+                    kind: { type: string, enum: [image, audio, file] }
+                    data: { type: string, description: The bytes in base64 (a data URL is accepted). }
+                    name: { type: string, description: A file's name. }
+                    secs: { type: number, description: A voice message's length. }
       responses:
         '200': { description: '`{ message }`, as the sender sees it.' }
         '400': { description: 'Empty (`empty`), or to yourself (`chat-self`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { description: 'You blocked this profile (`blocked`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { description: 'No such profile, or it blocked you (`no-profile`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '413': { description: 'Too long (`too-long`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '429': { description: 'Too many messages this hour (`chat-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '413': { description: 'Too long (`too-long`), or the file too large (`file-too-large`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '415': { description: 'A photo or voice message that is not one (`bad-type`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'Too many messages or files this hour (`chat-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /api/chat/media:
+    get:
+      tags: [social]
+      operationId: chatMedia
+      summary: The photo, voice message or file of a message
+      description: Only for the two people of the conversation. A file other than a PDF comes as a download.
+      parameters:
+        - { name: id, in: query, required: true, schema: { type: string }, description: The other profile. }
+        - { name: m, in: query, required: true, schema: { type: integer }, description: The message. }
+      responses:
+        '200': { description: The bytes. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: 'No such message or file (`no-file`), or no such profile (`no-profile`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /api/chat/read:
     post:
       tags: [social]

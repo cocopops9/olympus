@@ -286,9 +286,10 @@ function ChironVoice({ tips, unit, online }) {
       if (!going()) return
       await say(reply || chat.current.err || t('I could not answer that. Try again.'))
     }
-    if (going()) { setPose('idle'); setPaused(true) }
+    // Not listening any more: the microphone closes now, so music sounds right again.
+    if (going()) { setPose('idle'); setPaused(true); releaseMic() }
   }
-  const halt = () => { loop.current++; stopListening.current?.({ cancel: true }); stopSpeaking().catch(() => {}); clearInterval(mouthTimer.current); setMouth(0) }
+  const halt = () => { loop.current++; stopListening.current?.({ cancel: true }); releaseMic(); stopSpeaking().catch(() => {}); clearInterval(mouthTimer.current); setMouth(0) }
 
   useEffect(() => {
     live.current = true

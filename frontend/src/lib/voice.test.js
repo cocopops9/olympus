@@ -74,3 +74,23 @@ describe('reading in pieces', () => {
     expect(pieces('a'.repeat(500), 240).every(x => x.length <= 240)).toBe(true)
   })
 })
+
+describe('the microphone is never kept by a request that was still opening it', () => {
+  it('closes a microphone that opens after voice mode was closed', async () => {
+    const { vi: v } = await import('vitest')
+    let give
+    const track = { readyState: 'live', stop: v.fn() }
+    const stream = { getTracks: () => [track] }
+    v.stubGlobal('navigator', { mediaDevices: { getUserMedia: () => new Promise(r => { give = r }) } })
+    v.stubGlobal('MediaRecorder', class { static isTypeSupported() { return true } })
+    v.resetModules()
+    const voice = await import('./voice.js')
+    const p = voice.listen({ lang: 'en-US' }).catch(e => e)
+    await new Promise(r => setTimeout(r, 0))
+    voice.releaseMic()          // voice mode closed while Android was still opening the microphone
+    give(stream)
+    await p
+    expect(track.stop).toHaveBeenCalled()
+    v.unstubAllGlobals()
+  })
+})

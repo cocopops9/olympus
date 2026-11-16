@@ -246,7 +246,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>121 endpoints</span>
+    <span>124 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -3045,6 +3045,77 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
 </details>
 
+<details class="ep" id="op-socialMute">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/social/mute</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Mute or unmute a profile</span>
+  </summary>
+  <div class="ep-body">
+<p>A muted profile's posts leave the caller's feed and Discover. They are not told, and nothing else changes.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">mute</span>
+    <span class="p-type">boolean <span class="p-hint">(default true)</span></span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc"><code>{ user }</code>, with <code>mutedByMe</code>.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">400</span>
+    <span class="p-desc">Yourself (<code>self</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such profile (<code>no-profile</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-socialMuted">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/social/muted</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Muted profiles</span>
+  </summary>
+  <div class="ep-body">
+
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ users: object[] }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
+
 <details class="ep" id="op-chatList">
   <summary>
     <span class="m get">GET</span>
@@ -3146,7 +3217,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">Send a message</span>
   </summary>
   <div class="ep-body">
-<p>Up to 2000 characters, 240 messages an hour. A block either way stops it.</p>
+<p>Up to 2000 characters, 240 messages an hour. A block either way stops it. A message may carry one attachment, and may be an attachment alone: a photo (JPEG, PNG, WebP or GIF, 2.5 MB), a voice message (WebM, Ogg, MP4/AAC, WAV or MP3, 2 MB, 5 minutes) or a file (3.5 MB), 40 an hour. Only the two people of the conversation can fetch it (<code>GET /api/chat/media</code>).</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
 <p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
@@ -3156,9 +3227,34 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-desc">The profile to write to.</span>
   </div>
   <div class="prow">
-    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-name">text</span>
     <span class="p-type">string</span>
     <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">attachment</span>
+    <span class="p-type">object</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">attachment.kind<em class="p-req" title="required">required</em></span>
+    <span class="p-type">&quot;image&quot; | &quot;audio&quot; | &quot;file&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">attachment.data<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The bytes in base64 (a data URL is accepted).</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">attachment.name</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">A file's name.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">attachment.secs</span>
+    <span class="p-type">number</span>
+    <span class="p-desc">A voice message's length.</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>
@@ -3185,11 +3281,56 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   </div>
   <div class="prow rrow">
     <span class="r-code s4">413</span>
-    <span class="p-desc">Too long (<code>too-long</code>).</span>
+    <span class="p-desc">Too long (<code>too-long</code>), or the file too large (<code>file-too-large</code>).</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">415</span>
+    <span class="p-desc">A photo or voice message that is not one (<code>bad-type</code>).</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">429</span>
-    <span class="p-desc">Too many messages this hour (<code>chat-limit</code>).</span>
+    <span class="p-desc">Too many messages or files this hour (<code>chat-limit</code>).</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-chatMedia">
+  <summary>
+    <span class="m get">GET</span>
+    <span class="ep-path"><code>/api/chat/media</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The photo, voice message or file of a message</span>
+  </summary>
+  <div class="ep-body">
+<p>Only for the two people of the conversation. A file other than a PDF comes as a download.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+<p class="ep-h">Query parameters</p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">id<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The other profile.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">m<em class="p-req" title="required">required</em></span>
+    <span class="p-type">integer</span>
+    <span class="p-desc">The message.</span>
+  </div>
+</div>
+
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">The bytes.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">404</span>
+    <span class="p-desc">No such message or file (<code>no-file</code>), or no such profile (<code>no-profile</code>).</span>
   </div>
     </div>
   </div>

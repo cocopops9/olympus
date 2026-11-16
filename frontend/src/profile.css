@@ -63,3 +63,15 @@
   50%{--gx:50%;--gy:-4%;--gk:18%}
   75%{--gx:78%;--gy:6%;--gk:34%}}
 @media (prefers-reduced-motion:reduce){.prof-hero.neon::before,.prof-hero.neon::after{animation:none}}
+
+/* The streak's flame: it flickers while the streak is alive. */
+.ov-streak .icn{transform-origin:50% 90%;animation:flame-flicker 1.6s ease-in-out infinite;filter:drop-shadow(0 0 3px color-mix(in srgb,var(--orange) 70%,transparent))}
+.ov-streak.cold .icn{animation:none;filter:none;opacity:.6}
+@keyframes flame-flicker{
+  0%,100%{transform:scale(1,1) rotate(0)}
+  20%{transform:scale(.96,1.08) rotate(-3deg)}
+  40%{transform:scale(1.04,.95) rotate(2deg)}
+  60%{transform:scale(.98,1.1) rotate(-1deg)}
+  80%{transform:scale(1.03,.97) rotate(3deg)}
+}
+@media (prefers-reduced-motion:reduce){.ov-streak .icn{animation:none}}

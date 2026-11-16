@@ -12,7 +12,7 @@ import { photoBlob } from '../lib/social.js'
 import { decodeSong, defaultRange, wholeRange, clampRange, previewRange, uploadSong, titleFromFile, MAX_SONG_SEC, MIN_CLIP_SEC } from '../lib/song.js'
 import { topSongs, searchSongs, songOf, songSource, musicCountry } from '../lib/music.js'
 import { SearchField } from './ui.jsx'
-import { Button } from './ui.jsx'
+import { Button, MediaTile } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../song.css'
 
@@ -278,7 +278,7 @@ function MusicSheet({ close, onPicked, fromPhone }) {
  * "Add a song", or the chosen one with a button to take it off. `value` is { id, title } or null;
  * `onChange(next)` gets the new song (null when taken off).
  */
-export function SongField({ value, onChange, disabled }) {
+export function SongField({ value, onChange, disabled, tile = false }) {
   const input = useRef(null)
   const [reading, setReading] = useState(false)
   const pick = async e => {
@@ -299,8 +299,11 @@ export function SongField({ value, onChange, disabled }) {
         <SongBar song={value} />
         <button className="iconbtn sm" onClick={() => onChange(null)} aria-label={t('Remove song')}><Icon name="xmark" /></button>
       </div>
-      : <Button size="sm" icon="music" disabled={disabled || reading}
-        onClick={() => useUI.getState().openSheet(close => <MusicSheet close={close} onPicked={onChange} fromPhone={() => input.current?.click()} />)}>
-        {reading ? t('Reading the song…') : t('Add a song')}</Button>}
+      : tile
+        ? <MediaTile icon="music" tint="purple" label={t('Song')} busy={reading} disabled={disabled || reading} aria-label={t('Add a song')}
+          onClick={() => useUI.getState().openSheet(close => <MusicSheet close={close} onPicked={onChange} fromPhone={() => input.current?.click()} />)} />
+        : <Button size="sm" icon="music" disabled={disabled || reading}
+          onClick={() => useUI.getState().openSheet(close => <MusicSheet close={close} onPicked={onChange} fromPhone={() => input.current?.click()} />)}>
+          {reading ? t('Reading the song…') : t('Add a song')}</Button>}
   </>
 }

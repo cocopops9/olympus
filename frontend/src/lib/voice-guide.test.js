@@ -39,4 +39,26 @@ describe('the guide’s lines on the server', () => {
     voice.preloadVoice('Welcome to Olympus!', { who: 'calliope', keep: true })
     expect(speakCalls()).toEqual([])
   })
+
+  it('a new line stops the one being read at once, before its own sound has come', async () => {
+    const voice = await fresh({ speak: true, who: ['calliope'], listen: true })
+    const played = []
+    class FakeAudio {
+      constructor(src) { this.src = src; this.paused = false; played.push(this) }
+      play() { setTimeout(() => this.onplaying?.(), 0); return Promise.resolve() }
+      pause() { this.paused = true }
+    }
+    vi.stubGlobal('Audio', FakeAudio)
+    let answer
+    voice.speak('First line of the tour.', { who: 'calliope', lang: 'en-US' })
+    await vi.waitFor(() => expect(played).toHaveLength(1))
+    // The second line's sound is slow to come: the first must not go on meanwhile.
+    api.mockImplementation(() => new Promise(r => { answer = r }))
+    voice.speak('Second line.', { who: 'calliope', lang: 'en-US' })
+    expect(played[0].paused).toBe(true)
+    answer({ audio: 'QUJD', type: 'audio/wav' })
+    await vi.waitFor(() => expect(played).toHaveLength(2))
+    expect(played[1].paused).toBe(false)
+    vi.unstubAllGlobals()
+  })
 })

@@ -189,6 +189,17 @@ const P = {
   fingerprint: <><path d="M5.2 9.2a7.8 7.8 0 0 1 13.6 0" /><path d="M4.8 14.4v-1.2a7.2 7.2 0 0 1 .4-2.4M18.8 9.2a7.6 7.6 0 0 1 .4 2.6v3" /><path d="M8.6 20a9.6 9.6 0 0 1-1.2-4.6v-2.2a4.6 4.6 0 0 1 9.2 0v1.6" /><path d="M12 13v2.6a9.4 9.4 0 0 0 1.6 5" /><path d="M16.6 18.2v.6c0 .6.1 1.2.2 1.6" /></>,
   // how a message sounds (the nudge tone)
   chat: <path d="M5.6 4.8h12.8a2.2 2.2 0 0 1 2.2 2.2v8a2.2 2.2 0 0 1-2.2 2.2H11l-4.4 3.4v-3.4h-1a2.2 2.2 0 0 1-2.2-2.2V7a2.2 2.2 0 0 1 2.2-2.2Z" />,
+  // A rounder speech bubble with three dots: messages between people (the plain chat is the coaches').
+  message: <><path d="M12 3.9c4.7 0 8.4 3.2 8.4 7.3s-3.7 7.3-8.4 7.3c-1 0-2-.1-2.9-.4L4.6 20l1.2-3.6C4.4 15 3.6 13.2 3.6 11.2c0-4.1 3.7-7.3 8.4-7.3Z" /><path d="M8.3 11.3h.01M12 11.3h.01M15.7 11.3h.01" strokeWidth="2.6" /></>,
+  // Follow, and following: a person with a plus, and with a tick.
+  personPlus: <><circle cx="10" cy="8" r="3.7" /><path d="M3.4 20.2a6.6 6.6 0 0 1 12.2-3.5M18.6 13.6v6.4M15.4 16.8h6.4" /></>,
+  personCheck: <><circle cx="10" cy="8" r="3.7" /><path d="M3.4 20.2a6.6 6.6 0 0 1 12.2-3.5M15.3 17.2l2.1 2.1 4-4.3" /></>,
+  paperclip: <path d="m19.3 11.6-7.1 7.1a4.6 4.6 0 0 1-6.5-6.5l7.5-7.5a3.1 3.1 0 0 1 4.4 4.4l-7.4 7.4a1.6 1.6 0 0 1-2.3-2.3l6.7-6.7" />,
+  doc: <><path d="M6.6 3.4h7l4.8 4.8v11a1.4 1.4 0 0 1-1.4 1.4H6.6a1.4 1.4 0 0 1-1.4-1.4V4.8a1.4 1.4 0 0 1 1.4-1.4Z" /><path d="M13.4 3.6v4.8h4.8M8.6 13h6.8M8.6 16.4h4.6" /></>,
+  send: <path d="M4.2 11.7 19.8 4.4l-4.6 15.4-3.4-6.3-7.6-1.8ZM11.8 13.5l8-9.1" />,
+  stopFill: <rect x="6.4" y="6.4" width="11.2" height="11.2" rx="2.4" fill="currentColor" />,
+  playFill: <path d="M8 5.6v12.8a.8.8 0 0 0 1.2.7l10.1-6.4a.8.8 0 0 0 0-1.4L9.2 4.9A.8.8 0 0 0 8 5.6Z" fill="currentColor" />,
+  pauseFill: <><rect x="6.6" y="5" width="3.8" height="14" rx="1.3" fill="currentColor" /><rect x="13.6" y="5" width="3.8" height="14" rx="1.3" fill="currentColor" /></>,
 }
 
 export const ICON_NAMES = Object.keys(P)
