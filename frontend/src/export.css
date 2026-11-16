@@ -1,0 +1,9 @@
+/* Olympus: Export data (components/ExportSheet.jsx). */
+.xp-lead{margin:-2px 0 12px;line-height:1.45}
+.xp-periods{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
+.xp-periods .chip{min-height:38px}
+.xp-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 14px}
+.xp-dates label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--label-2);min-width:0}
+.xp-dates .input{width:100%;min-width:0}
+.xp-format{padding:12px 14px 14px}
+.xp-hint{margin-top:10px;line-height:1.45}

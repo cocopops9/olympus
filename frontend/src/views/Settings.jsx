@@ -10,6 +10,7 @@ import { copyText } from '../lib/clipboard.js'
 import { useUI } from '../store/useUI.js'
 import { guideLevelOf, withGuideLevel, withTipsReset } from '../lib/guide.js'
 import { calliopeSheet, replayGuide } from '../components/Calliope.jsx'
+import { exportSheet } from '../components/ExportSheet.jsx'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
 import { dumbbellsOf } from '../lib/dumbbells.js'
@@ -770,6 +771,9 @@ export default function Settings({ page = null, find = null, via = null }) {
     </>,
 
     data: () => <>
+      <Section title={t('Export')}>
+        <Row icon="chart" iconTint="var(--green)" title={t('Export data')} subtitle={t('Choose the data, the period and the format: CSV, Excel or JSON')} accessory="chevron" onClick={exportSheet} />
+      </Section>
       <Section title={t('Back up')}>
         <Row icon="share" iconTint="var(--blue)" title={t('Export backup (JSON)')} subtitle={hasMedia ? t('Without photos and videos') : undefined} accessory="chevron" onClick={doExport} />
         {hasMedia && <Row icon="share" iconTint="var(--blue)" title={t('Export with photos & videos (.zip)')} accessory="chevron" onClick={doExportZip} />}
