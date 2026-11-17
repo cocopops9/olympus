@@ -154,13 +154,15 @@ describe('Settings — reset everything', () => {
 })
 
 describe('Settings — footer', () => {
-  // Olympus is a fork of openGym: About credits the original project, and offers a "Source code"
-  // link to where this version's source lives (lib/app-info.js SOURCE_URL, the AGPL offer).
-  it('credits openGym on About & updates, and links this version\'s own source', () => {
+  // About says nothing about the upstream project by name, keeps the media credit the licence asks
+  // for, and links where this version's own source lives (lib/app-info.js SOURCE_URL, the AGPL offer).
+  it('names no upstream project on About & updates, keeps the media credit, and links this version\'s own source', () => {
     act(() => root.render(<Settings page="about" />))
-    const upstream = [...host.querySelectorAll('a')].find(a => a.textContent === 'openGym')
-    expect(upstream.getAttribute('href')).toBe('https://github.com/DuarteSantos8/openGym')
+    expect(host.textContent).not.toMatch(/openGym/i)
     const source = [...host.querySelectorAll('a')].find(a => a.textContent === 'Source code')
     expect(source?.getAttribute('href')).toBe('https://github.com/cocopops9/olympus')
+    expect(host.textContent).toContain('Exercise media © Aliaksandr Makatserchyk')
+    const notices = [...host.querySelectorAll('a')].find(a => a.textContent === 'Licences and notices')
+    expect(notices?.getAttribute('href')).toBe('https://github.com/cocopops9/olympus/blob/main/NOTICE.md')
   })
 })

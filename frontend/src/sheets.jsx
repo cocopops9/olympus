@@ -17,8 +17,7 @@ import { buildStarterPlan, starterPlanDays, starterPlanOptions } from './lib/sta
 import Media, { Thumb } from './components/Media.jsx'
 import CustomMediaField from './components/CustomMediaField.jsx'
 import WorkoutMediaSection, { workoutMediaCount } from './components/WorkoutMedia.jsx'
-import { CustomThumb } from './components/CustomMedia.jsx'
-import { useCover } from './lib/workout-cover.js'
+import WorkoutPicture from './components/WorkoutPicture.jsx'
 import { mediaOf, normalizeMediaRef, cleanUrl, workoutMediaOf } from './lib/media-refs.js'
 import { syncMedia } from './lib/media-sync.js'
 import LineChart from './components/LineChart.jsx'
@@ -27,6 +26,7 @@ import { durationSheet } from './components/DurationWheel.jsx'
 import { SG_NAME_MAX } from './lib/superset-meta.js'
 import { REST_MAX, fmtRest } from './lib/duration.js'
 import Icon from './components/Icon.jsx'
+import { SOURCE_URL } from './lib/app-info.js'
 import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
@@ -42,7 +42,7 @@ import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
 import { titleWorkout } from './lib/workout-title.js'
 import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn, holdPost, releasePost } from './lib/auto-post.js'
-import { socialReady, avatarUrl } from './lib/social.js'
+import { socialReady } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { SPORT_MINUTES_PER_SET } from './lib/sports.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
@@ -1068,7 +1068,7 @@ function ExerciseDetail({ ex, close }) {
     {/* The catalogue is community-edited (catalogue/README.md): a wrong muscle, a clumsy step or a
         missing translation is one tap from an issue that already names the exercise. */}
     {!isCustomEx(ex) && !ex.missing && <a className="small dim exfix-link" target="_blank" rel="noopener"
-      href={'https://github.com/DuarteSantos8/openGym/issues/new?template=exercise.yml&exercise=' + encodeURIComponent(ex.id + ', ' + ex.n)}>
+      href={SOURCE_URL + '/issues/new?template=exercise.yml&exercise=' + encodeURIComponent(ex.id + ', ' + ex.n)}>
       <Icon name="pencil" /> {t('Suggest a fix for this exercise')}</a>}
   </>
 }
@@ -1854,7 +1854,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
     <div className="row cfgrow" style={{ marginBottom: mode === 'time' ? 8 : 18 }}>
       {cardio && runs ? null : cardio ? <>
         <Stepper label={t('Intervals')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
-        <Stepper label={t('Minutes')} value={c.min} step={1} decimal={false} onChange={v => setC(x => ({ ...x, min: v }))} />
+        <Stepper label={t('Minutes')} clock value={c.min} step={1} decimal={false} onChange={v => setC(x => ({ ...x, min: v }))} />
         {/* Typed and stepped in the profile's unit, kept in km/h (lib/speed.js). */}
         {!isSport(ex) && <Stepper label={speedUnit === 'mph' ? t('Speed (mph)') : t('Speed (km/h)')} value={toSpeed(c.speed, speedUnit)} step={0.5}
           onChange={v => setC(x => ({ ...x, speed: fromSpeed(v, speedUnit) }))} />}
@@ -2831,8 +2831,7 @@ export function Calendar({ start, close }) {
     cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (note ? ' noted' : '') + (iso === todayISO() ? ' today' : '')}
       title={note ? dayNoteLine(note, t) : undefined} onClick={() => {
       if (!ws) { close(); dayOverrideSheet(iso); return }
-      if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
-      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
+      close(); dayWorkoutsSheet(iso, ws)
     }}><span>{d}</span><i className={dotCls} /></button>)
   }
   return <>
@@ -2850,45 +2849,33 @@ export function Calendar({ start, close }) {
       {Object.keys(st.dayNotes || {}).some(k => k.startsWith(y + '-' + String(mo + 1).padStart(2, '0')) && dayNoteOf(st, k)) &&
         <span><i style={{ background: 'var(--indigo)' }} />{t('Day note')}</span>}
     </div>
-    <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap a trained day for details · tap any other day to plan a session')}</div>
+    <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap a day to see its workouts · tap a day off to plan a session')}</div>
   </>
 }
+// A trained day: every workout done on it, one tap from its details (also when there is only one),
+// and a way on to the day's plan and note. Used by the calendar and the Stats heatmap.
+export function DayWorkouts({ iso, ws, close }) {
+  const st = useStore(s => s.S)
+  return <>
+    <h3>{fmtDate(iso, true)}</h3>
+    <div className="small muted" style={{ marginBottom: 8 }}>{tn('{0} workout', '{0} workouts', ws.length)} · {fmtDur(ws.reduce((a, w) => a + Math.max(0, (w.end || w.start) - w.start), 0))} · {fmtVol(ws.reduce((a, w) => a + (w.vol || 0), 0), st.unit)}</div>
+    <div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { close(); workoutDetailSheet(w) }} />)}</div>
+    <div className="row" style={{ marginTop: 12 }}>
+      <Button variant="secondary" icon="calendar" onClick={() => { close(); dayOverrideSheet(iso) }}>{t('Plan or add a note for this day')}</Button>
+    </div>
+  </>
+}
+export const dayWorkoutsSheet = (iso, ws) => ui().openSheet(close => <DayWorkouts iso={iso} ws={ws} close={close} />)
 export const calendarSheet = start => ui().openSheet(close => <Calendar start={start} close={close} />)
 
 /* shared small workout row (used in lists) */
-// A post's photo, small: the routine's icon until it has loaded, and if it cannot be.
-function CoverThumb({ id, glyph }) {
-  const [url, setUrl] = useState(null)
-  useEffect(() => {
-    let live = true
-    setUrl(null)
-    avatarUrl(id).then(u => { if (live) setUrl(u) }, () => {})
-    return () => { live = false }
-  }, [id])
-  return url
-    ? <span className="lrow-i wrow-photo" style={{ width: 34, height: 34, borderRadius: 8 }}><img src={url} alt="" /></span>
-    : <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
-}
-
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
   const mediaN = workoutMediaCount(w)
-  // Olympus: a workout with a photo shows it, small, where the routine's icon would be: the week
-  // reads at a glance as the sessions it was. A photo comes first; with only a video, a frame of
-  // it (its poster, made when the clip was added) stands in, with a small play mark on it.
-  const media = workoutMediaOf(w)
-  const photo = media.find(m => m && m.kind !== 'video') || media.find(m => m && m.kind === 'video' && m.poster)
-  // Otherwise the first photo of the workout's post in the feed (lib/workout-cover.js).
-  const cover = useCover(w.id)
+  // Olympus: its picture where the routine's icon would be (components/WorkoutPicture.jsx).
   return <div className="item" {...tappable(onClick)}>
-    {photo
-      ? <span className={'lrow-i wrow-photo' + (photo.kind === 'video' ? ' wrow-video' : '')} style={{ width: 34, height: 34, borderRadius: 8 }}>
-        <CustomThumb ex={{ custom: true, media: photo }} />
-        {photo.kind === 'video' && <span className="wrow-play" aria-hidden="true"><Icon name="playFill" /></span>}
-      </span>
-      : cover ? <CoverThumb id={cover} glyph={glyph} />
-      : <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>}
+    <WorkoutPicture w={w} glyph={glyph} />
     <div className="grow"><div className="tt">{w.name}</div>
       <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), tn('{0} set', '{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
     {mediaN > 0 && <span className="wrow-media" title={tn('{0} photo or video', '{0} photos or videos', mediaN)} aria-label={tn('{0} photo or video', '{0} photos or videos', mediaN)}><Icon name="image" />{mediaN}</span>}

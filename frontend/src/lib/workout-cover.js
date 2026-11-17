@@ -1,5 +1,6 @@
 // Olympus: the picture of a workout in the lists (sheets.jsx WorkoutRow). A photo kept with the
-// workout itself comes first; otherwise the first photo of the workout's post in the feed.
+// workout itself comes first; otherwise the first photo of the workout's post in the feed, or, when
+// the post has a video instead, a frame of it.
 //
 // A post's photos live on the server, and once a post is sent the app no longer holds them, so
 // this keeps, on this device, the first photo id of each posted workout: { [workout id]: photo id }.
@@ -10,7 +11,9 @@ import { useSyncExternalStore } from 'react'
 
 const KEY = 'olympus_wcover'
 const MAX = 400
-const ID = /^[A-Za-z0-9_-]{1,64}$/
+// A photo id, or '~' and a video id: the cover is then a frame of that video (lib/video-frame.js).
+const ID = /^~?[A-Za-z0-9_-]{1,64}$/
+export const isVideoCover = c => typeof c === 'string' && c.startsWith('~')
 
 let covers = null
 const listeners = new Set()
@@ -48,7 +51,8 @@ export function learnCovers(posts) {
   let next = null
   for (const p of posts) {
     if (!p?.wid) continue
-    const id = Array.isArray(p.photos) && typeof p.photos[0] === 'string' && ID.test(p.photos[0]) ? p.photos[0] : null
+    const photo = Array.isArray(p.photos) && typeof p.photos[0] === 'string' && ID.test(p.photos[0]) && !isVideoCover(p.photos[0]) ? p.photos[0] : null
+    const id = photo || (typeof p.video?.id === 'string' && ID.test('~' + p.video.id) ? '~' + p.video.id : null)
     if ((cur[p.wid] || null) === id) continue
     next = next || { ...cur }
     if (id) next[p.wid] = id; else delete next[p.wid]

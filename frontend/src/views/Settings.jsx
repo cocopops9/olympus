@@ -39,7 +39,7 @@ import { setRestAccent } from '../lib/rest-alert.js'
 import { CUSTOM, accentKey, adjustedIn, applyAccent, cleanHex, inkOn, isGrey } from '../lib/accent.js'
 import { checkForUpdate, downloadAndInstall, checksumOf, RELEASES_PAGE, UPDATES_ON } from '../lib/update.js'
 import { startUpdate } from '../lib/update-job.js'
-import { SOURCE_URL, UPSTREAM_URL, DEFAULT_SERVER } from '../lib/app-info.js'
+import { SOURCE_URL, DEFAULT_SERVER } from '../lib/app-info.js'
 import { openAccountSheet } from './MobileOnboarding.jsx'
 import { forgetCoach } from '../lib/coach-api.js'
 import { REST_MAX, REST_PAUSE_MIN, REST_PAUSE_MAX, fmtRest, fmtDuration } from '../lib/duration.js'
@@ -49,6 +49,7 @@ import { durationSheet } from '../components/DurationWheel.jsx'
 import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
 import { VoiceSetupRow } from '../components/VoiceSetup.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
+import AccountHero, { useFace } from '../components/AccountHero.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
@@ -852,32 +853,33 @@ export default function Settings({ page = null, find = null, via = null }) {
       <div className="dim small sp-version">
         Olympus v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
         {SOURCE_URL && <><a href={SOURCE_URL} target="_blank" rel="noopener">{t('Source code')}</a><br /></>}
-        {/* Olympus is a fork: the original project stays credited, as its licence expects. */}
-        Based on <a href={UPSTREAM_URL} target="_blank" rel="noopener">openGym</a> by Duarte Santos (AGPL-3.0)<br />
         {/* Attribution the media licence asks for word for word (agreement §8c), so it is not translated */}
         Exercise media © Aliaksandr Makatserchyk, <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a>, gymvisual.com.
-        Media licensed for use in openGym only; see <a href="https://github.com/DuarteSantos8/openGym/blob/main/NOTICE.md" target="_blank" rel="noopener">NOTICE.md</a>
+        {SOURCE_URL && <> <a href={SOURCE_URL + '/blob/main/NOTICE.md'} target="_blank" rel="noopener">{t('Licences and notices')}</a></>}
       </div>
     </>,
 
     account: () => <>
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
-      {user && !DEMO && <ServerSyncSection>
-        {MOBILE && <>
-          {/* Olympus: the Supabase server has the owner's dashboard instead of the Node server's admin pages. */}
-          {user.founder ? <Row icon="chartLine" iconTint="var(--indigo)" title={t('Owner dashboard')} accessory="chevron" onClick={() => nav('/owner')} />
-            : user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-          <AccountIdRow id={user.id} />
-          <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} danger onClick={disconnect} />
-        </>}
-      </ServerSyncSection>}
+      {user && !DEMO && <AccountHero />}
+      {user && !DEMO && <ServerSyncSection />}
+      {/* The phone's account block: its dashboard, its ID, and the way out. */}
+      {user && !DEMO && MOBILE && <Section title={t('Your account')} footer={t('Your account ID names you on the server. Tap it to copy.')}>
+        {/* Olympus: the Supabase server has the owner's dashboard instead of the Node server's admin pages. */}
+        {user.founder ? <Row icon="chartLine" iconTint="var(--indigo)" title={t('Owner dashboard')} accessory="chevron" onClick={() => nav('/owner')} />
+          : user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
+        <AccountIdRow id={user.id} />
+      </Section>}
 
       {user && !DEMO && <Section title={t('Privacy')} footer={TELEMETRY_WHAT()}>
         <Row icon="chartLine" iconTint="var(--teal)" title={t('Share usage statistics')}
           subtitle={t('Helps the developer see what is used. Turning it off deletes what was sent.')}>
           <Switch aria-label={t('Share usage statistics')} checked={S.telemetry === true} onChange={setTelemetry} />
         </Row>
+      </Section>}
+      {user && !DEMO && MOBILE && <Section footer={t('This phone goes back to local-only. Before it does, it checks that your server has every change.')}>
+        <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} subtitle={t('Stop syncing with this server')} danger onClick={disconnect} />
       </Section>}
 
       {/* account (demo and mobile builds have nothing to sign in to) */}
@@ -954,8 +956,6 @@ export default function Settings({ page = null, find = null, via = null }) {
     }} />
 }
 
-const FACE_KEY = 'olympus_settings_face'
-
 function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
   // The router's key for this history entry (what useLocation().key reads), taken once.
   const [key] = useState(() => window.history.state?.key || null)
@@ -971,20 +971,8 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
     : MOBILE ? { title: t('This phone'), sub: t('All data stays on this phone') }
     : { title: t('Guest'), sub: t('Your data lives on this device. Sign in to sync.') }
   const initial = user && !DEMO ? String(user.name || '?').trim().charAt(0).toUpperCase() : null
-  // The profile picture, as everyone else sees it: asked once the account can reach its server,
-  // kept from the last time so it does not blink in on every visit.
-  const [face, setFace] = useState(() => { try { return user ? JSON.parse(localStorage.getItem(FACE_KEY))?.[user.id] ?? null : null } catch { return null } })
-  useEffect(() => {
-    if (!socialReady(user) || DEMO) return
-    let live = true
-    fetchProfile().then(p => {
-      if (!live) return
-      const a = p?.user?.avatar || null
-      setFace(a)
-      try { localStorage.setItem(FACE_KEY, JSON.stringify({ [user.id]: a })) } catch { /* shown, not kept */ }
-    }, () => {})
-    return () => { live = false }
-  }, [user?.id])
+  // The profile picture, as everyone else sees it (components/AccountHero.jsx).
+  const face = useFace(user && !DEMO ? user : null)
   const syncBad = !!(user && sync && sync.status && sync.status !== 'ok')
   return <div className="narrow sp-root">
     <div className="sp-nav">

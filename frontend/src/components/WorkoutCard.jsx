@@ -11,6 +11,7 @@ import { speedUnitOf } from '../lib/speed.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { Medal } from './RecordMedals.jsx'
 import Icon from './Icon.jsx'
+import WorkoutPicture from './WorkoutPicture.jsx'
 import '../history.css'
 
 const SHOWN = 5
@@ -34,12 +35,19 @@ export default function WorkoutCard({ w, onClick }) {
   const dur = workoutDuration(w)
   const vol = volumeOf(w)
   const records = new Set([...(w.prs || []), ...entries.filter(e => e.rec?.length).map(e => e.id)]).size
+  const [y, m, d] = String(w.d || '').split('-').map(Number)
+  const day = y ? new Date(y, m - 1, d) : null
+  const weekday = day ? day.toLocaleDateString(dateLocale(), { weekday: 'short' }) : ''
+  const clock = Number.isFinite(w.start) && w.start > 0
+    ? new Date(w.start).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' }) : ''
   return <div className="wcard" {...tappable(onClick)}>
     <div className="wcard-h">
+      <div className="wcard-tile" aria-hidden="true"><span>{weekday}</span><b>{d || ''}</b></div>
       <div className="grow" style={{ minWidth: 0 }}>
         <div className="wcard-n">{w.name}</div>
-        <div className="wcard-d">{fmtDate(w.d, true)}</div>
+        <div className="wcard-d">{[fmtDate(w.d, true), clock].filter(Boolean).join(' · ')}</div>
       </div>
+      <WorkoutPicture w={w} bare size={48} radius={12} />
       {records > 0 && <span className="wcard-rec"><Medal />{records}</span>}
       <Icon name="chevronRight" className="chev" />
     </div>
@@ -72,7 +80,7 @@ export function MonthHead({ ym, list }) {
   const dur = list.reduce((n, w) => n + (workoutDuration(w) || 0), 0)
   return <div className="wmonth">
     <h3 className="capitalize">{label}</h3>
-    <span className="small muted">{[tn('{0} workout', '{0} workouts', list.length), vol > 0 && fmtNum(Math.round(vol)) + ' ' + (S.unit || 'kg'), dur > 60000 && fmtDur(dur)].filter(Boolean).join(' · ')}</span>
+    <span className="wmonth-st">{[tn('{0} workout', '{0} workouts', list.length), vol > 0 && fmtNum(Math.round(vol)) + ' ' + (S.unit || 'kg'), dur > 60000 && fmtDur(dur)].filter(Boolean).join(' · ')}</span>
   </div>
 }
 

@@ -97,7 +97,8 @@ describe('Server & sync', () => {
     expect(b).toBeTruthy()
     expect(rowByTitle(b, 'gym.example.com').textContent).toContain('Signed in as andi')
     expect(rowByTitle(b, 'All synced').textContent).toContain('Last synced: 5 minutes ago')
-    expect(rowByTitle(b, 'Disconnect')).toBeTruthy()          // the phone's own rows sit in the block
+    expect(rowByTitle(page, 'Disconnect')).toBeTruthy()       // the phone's own rows follow in blocks of their own
+    expect(page.querySelector('.acc-hero .acc-chip').textContent).toBe('All synced')
     expect(rowByTitle(b, 'Pair again')).toBeUndefined()       // nothing to fix
 
     await act(async () => { rowByTitle(b, 'Sync now').click() })

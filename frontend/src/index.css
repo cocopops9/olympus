@@ -2242,3 +2242,35 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 @keyframes updbar-indet{from{margin-inline-start:0}to{margin-inline-start:70%}}
 .updbar-x{flex:none;padding:6px 12px;border-radius:99px;background:var(--surface-3);color:var(--label);font-weight:600;font-size:13px}
 @media (prefers-reduced-motion:reduce){.updbar .upd-bar i.indet{animation:none}}
+
+/* Cardio duration: a value you tap, edited in hours / minutes / seconds (components/ClockValue.jsx) */
+.stp .num.clk-val{cursor:pointer;color:inherit;font-family:inherit;font-variant-numeric:tabular-nums}
+.clk-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 6px}
+.clk-f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.clk-l{font-size:13px;color:var(--label-2);text-align:center}
+.clk-f .num{
+  width:100%;min-width:0;text-align:center;font-size:24px;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;color:var(--label);background:var(--surface-2);
+  border:1.5px solid transparent;border-radius:14px;outline:none;padding:12px 4px;
+}
+.clk-f .num:focus{border-color:var(--acc)}
+
+/* Settings → Account: the header with the picture, the name, the server and how sync stands */
+.acc-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 16px 20px;margin-bottom:22px;
+  border-radius:20px;background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--acc) 22%,transparent),transparent 70%),var(--surface);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--label) 7%,transparent)}
+.acc-av{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:34px;font-weight:700;
+  background:var(--acc-soft);color:var(--acc);
+  box-shadow:0 0 0 3px var(--surface),0 0 0 5px color-mix(in srgb,var(--acc) 80%,transparent),0 10px 24px rgba(0,0,0,.28)}
+.acc-av.acc-face{background:none}
+.acc-av.acc-face .avatar{--av:84px}
+.acc-name{margin-top:10px;font-size:23px;font-weight:700;letter-spacing:-.02em;overflow-wrap:anywhere}
+.acc-host{font-size:14px;color:var(--label-2);max-width:100%;overflow-wrap:anywhere}
+.acc-host svg{display:inline-block;vertical-align:-2px;margin-inline-end:6px;opacity:.7}
+.acc-chip{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:600;
+  background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+.acc-chip i{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.acc-chip.wait{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+.acc-chip.bad{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+.acc-chip.off,.acc-chip.quiet{background:color-mix(in srgb,var(--label) 9%,transparent);color:var(--label-2)}
+.acc-when{font-size:13px;color:var(--label-3)}

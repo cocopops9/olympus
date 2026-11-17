@@ -10,7 +10,7 @@ import { STATS_CARDS, statsCardsOf, statsDetailOf, chaptersOf } from '../lib/sta
 import { statsInsights, PROGRESS_DAYS, GAP_DAYS } from '../lib/stats-insights.js'
 import { InfoButton, helpSheet } from '../components/Guide.jsx'
 import { StatsPickerButton, statsPickerSheet } from '../components/StatsPicker.jsx'
-import { calendarSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
+import { dayWorkoutsSheet, dayOverrideSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
@@ -815,7 +815,7 @@ export default function Stats({ embedded = false } = {}) {
     <div className="card">
       <CardTitle id="activity">{t('Activity')}</CardTitle>
       <Activity S={S}
-        onDay={iso => { const ws = S.workouts.filter(w => workoutDay(w) === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso); else dayOverrideSheet(iso) }} />
+        onDay={iso => { const ws = S.workouts.filter(w => workoutDay(w) === iso); if (ws.length) dayWorkoutsSheet(iso, ws); else dayOverrideSheet(iso) }} />
     </div>
     </>,
     progress: () => <>

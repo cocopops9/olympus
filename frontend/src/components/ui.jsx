@@ -18,6 +18,7 @@ import Icon from './Icon.jsx'
 import { sheetKeyboardInsets } from '../lib/use-sheet-keyboard.js'
 import { NATIVE_KEYBOARD_EVENT } from '../lib/native-keyboard.js'
 import { t } from '../lib/i18n.js'
+import ClockValue from './ClockValue.jsx'
 
 /* ============================ text ============================ */
 
@@ -141,7 +142,7 @@ export function Segmented({ options, value, onChange, className = '', 'data-tour
 // `min` and `max` hold for the buttons at once, but for typing only once the field is left:
 // clamped on every keystroke, a field emptied to type a new number snapped to the minimum, and
 // the digits typed next landed after it (a 48 retyped as 75 saved 175).
-export function Stepper({ value, step = 1, min = 0, max = Infinity, onChange, decimal = true, className = '', label, unit, invalid = false, disabled = false, onStep, ariaLabel }) {
+export function Stepper({ value, step = 1, min = 0, max = Infinity, onChange, decimal = true, className = '', label, unit, invalid = false, disabled = false, onStep, ariaLabel, clock = false }) {
   const clamp = v => Math.min(max, Math.max(min, v))
   const set = v => onChange(clamp(Math.round((v || 0) * 100) / 100))
   // Holding a button repeats the step; the latest value/step live in a ref so
@@ -184,7 +185,9 @@ export function Stepper({ value, step = 1, min = 0, max = Infinity, onChange, de
     <div className={'stp ' + className}>
       <button {...holdProps(-1)} aria-label={ariaLabel ? `Decrease ${ariaLabel}` : t('Decrease')} disabled={disabled}><Icon name="minus" /></button>
       <span className="val" onBlur={() => { const v = +value || 0; if (clamp(v) !== v) onChange(clamp(v)) }}>
-        <NumberField value={value} decimal={decimal} onChange={onChange} disabled={disabled} aria-invalid={invalid ? 'true' : undefined} />
+        {clock
+          ? <ClockValue value={value} onChange={onChange} title={t('Duration')} disabled={disabled} />
+          : <NumberField value={value} decimal={decimal} onChange={onChange} disabled={disabled} aria-invalid={invalid ? 'true' : undefined} />}
         {unit && <i>{unit}</i>}
       </span>
       <button {...holdProps(1)} aria-label={ariaLabel ? `Increase ${ariaLabel}` : t('Increase')} disabled={disabled}><Icon name="plus" /></button>

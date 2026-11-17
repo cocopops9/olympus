@@ -25,6 +25,7 @@ import { t } from './i18n-core.js'
 import { queueNext, pinState, queueLiveOn } from './queue.js'
 import { isPyramid, pyramidLabel, pyramidTargetAt, pyramidWeightAt, PYRAMID_MAX } from './pyramid.js'
 import { isIntervals, intervalRows, intervalMinutes } from './intervals.js'
+import { fmtCardioMin } from './cardio-time.js'
 
 // When a workout happened, as epoch ms: its own recorded start, else noon on its calendar day.
 // Noon rather than midnight because `new Date('2026-09-22')` parses as UTC midnight, which any
@@ -153,8 +154,8 @@ export function setLabel(id, s, cfg, speedUnit) {
   if (!EXPLICIT_MODES.has(cfg?.mode) && mode !== 'reps' && s.r > 0 && !(s.min > 0 || s.speed > 0 || s.sec > 0)) mode = 'reps'
   // A treadmill grade rides along when the set has one (lib/incline.js); a flat set reads as it did.
   // A sport has no speed to give: "90 min", not "90 min @ 0 km/h".
-  if (mode === 'cardio' && isSport(EXIDX[c.id])) return `${s.min || 0} min`
-  if (mode === 'cardio') return `${s.min || 0} min @ ${fmtSpeed(s.speed || 0, speedUnit)}` + (hasIncline(s) ? ' · ' + t('{0}% incline', fmtNum(Number(s.incline))) : '')
+  if (mode === 'cardio' && isSport(EXIDX[c.id])) return fmtCardioMin(s.min || 0)
+  if (mode === 'cardio') return `${fmtCardioMin(s.min || 0)} @ ${fmtSpeed(s.speed || 0, speedUnit)}` + (hasIncline(s) ? ' · ' + t('{0}% incline', fmtNum(Number(s.incline))) : '')
   // A set taken to failure carries its "F" behind the numbers, the mark lifting logs use for it;
   // the history, the text export and the set menu all read it from here.
   const fail = isFailureSet(s) ? ' ' + t('F') : ''
@@ -230,7 +231,7 @@ export function setsRepsOf(cfg) {
   const mode = modeOf(cfg)
   const n = cfg.sets || 1
   if (mode === 'cardio' && isIntervals(cfg)) return t('{0} intervals · {1} min', cfg.intervals.length, fmtNum(intervalMinutes(cfg.intervals)))
-  if (mode === 'cardio') return `${n} × ${cfg.min || 20} min`
+  if (mode === 'cardio') return `${n} × ${fmtCardioMin(cfg.min || 20)}`
   if (mode === 'time') return `${n} × ${fmtSec(cfg.sec || 45)}`
   if (isPyramid(cfg)) return pyramidLabel(cfg.pyramid)
   // Triple progression's set range reads as a range too: "3–5 × 8–12".
@@ -249,13 +250,13 @@ export function exLine(cfg, unit, speedUnit) {
   const load = !cfg.weight ? ''
     : backoff ? ' · ' + (isBw(cfg) ? '+' : '') + backoffWeights(cfg.weight, n, backoff).map(fmtNum).join(' → ') + ' ' + unit
       : ' · ' + (isBw(cfg) ? '+' : '') + fmtNum(cfg.weight) + ' ' + unit
-  if (mode === 'cardio' && isSport(EXIDX[cfg.id])) return `${n} × ${cfg.min || EXIDX[cfg.id].min || 60} min`
+  if (mode === 'cardio' && isSport(EXIDX[cfg.id])) return `${n} × ${fmtCardioMin(cfg.min || EXIDX[cfg.id].min || 60)}`
   // Interval cardio: the segments' count and running minutes, then the speeds it moves between.
   if (mode === 'cardio' && isIntervals(cfg)) {
     const speeds = [...new Set(cfg.intervals.map(iv => iv.speed).filter(v => v > 0))]
     return setsRepsOf(cfg) + (speeds.length ? ' @ ' + speeds.map(v => fmtSpeed(v, speedUnit)).join(' / ') : '')
   }
-  if (mode === 'cardio') return `${n} × ${cfg.min || 20} min @ ${fmtSpeed(cfg.speed || 8, speedUnit)}`
+  if (mode === 'cardio') return `${n} × ${fmtCardioMin(cfg.min || 20)} @ ${fmtSpeed(cfg.speed || 8, speedUnit)}`
   // A timed hold has no rep count to spell a split out of ("8/side" below) — "per side" says it
   // happens twice, once each side (buildWorkSets), rather than trying to divide a duration.
   if (mode === 'time') return `${setsRepsOf(cfg)}${load}${isPerSide(cfg) ? ' · ' + t('per side') : ''}`

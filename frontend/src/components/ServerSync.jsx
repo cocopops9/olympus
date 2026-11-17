@@ -272,8 +272,8 @@ export function ServerSyncSection({ children }) {
     <Row icon="globe" iconTint="var(--blue)" title={sync.server ? hostOf(sync.server) : t('Server address unknown')}
       subtitle={t('Signed in as {0}', user.name)} />
     <Row icon={view.icon} iconTint={TINT[view.tone]} title={view.line} subtitle={sub} className="sync-status" />
-    <Row icon="reset" iconTint="var(--acc)" title={busy ? t('Syncing…') : t('Sync now')} onClick={now} />
-    {MOBILE && <Row icon="key" iconTint="var(--orange)" title={t('Cloudflare Access')} accessory="chevron"
+    <Row icon="reset" iconTint="var(--acc)" title={busy ? t('Syncing…') : t('Sync now')} subtitle={t('Send and receive changes right now')} onClick={now} />
+    {MOBILE && <Row icon="key" iconTint="var(--orange)" title={t('Cloudflare Access')} subtitle={t('Only if your server asks for a service token')} accessory="chevron"
       onClick={() => ui().openSheet(close => <CfAccessSheet close={close} server={sync.server || ''} />)} />}
     {sync.status === 'auth' && (MOBILE
       ? <Row icon="qr" iconTint="var(--indigo)" title={t('Pair again')} subtitle={t('Your changes are kept here, and merged into your account once it is paired again.')} accessory="chevron" onClick={pairAgain} />

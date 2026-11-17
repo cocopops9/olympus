@@ -89,10 +89,10 @@ describe('Settings → Account ID', () => {
     expect(mocks.toast).toHaveBeenCalledWith('Account ID copied')
   })
 
-  it('a paired phone shows it in the Server & sync block', () => {
+  it('a paired phone shows it in its Your account block', () => {
     mocks.MOBILE = true
     const page = mount(<Settings page="account" />)
-    expect(idRow(section(page, 'Server & sync')).querySelector('.acct-id').textContent).toBe(ID)
+    expect(idRow(section(page, 'Your account')).querySelector('.acct-id').textContent).toBe(ID)
   })
 
   it('a clipboard that refuses says nothing, and the id stays on screen', async () => {

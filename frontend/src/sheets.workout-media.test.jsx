@@ -16,6 +16,8 @@ import { _setLangState } from './lib/i18n-core.js'
 import { bindUI } from './components/ui.jsx'
 import { createMediaStore, memoryBackend, _setMediaStore } from './lib/media-store.js'
 import { workoutDetailSheet, WorkoutRow } from './sheets.jsx'
+import { setCover, _resetCovers } from './lib/workout-cover.js'
+import { setFrame, _resetFrames } from './lib/video-frame.js'
 import WorkoutMediaSection, { openWorkoutMediaViewer } from './components/WorkoutMedia.jsx'
 import { WORKOUT_MEDIA_MAX } from './lib/media-refs.js'
 
@@ -61,6 +63,7 @@ beforeEach(() => {
   useUI.setState({ sheets: [], toastMsg: '' })
   useStore.setState({ S: { ...structuredClone(DEF), workouts: [workout()] }, user: null, config: null })
   _setLangState('en', null, null, null)
+  localStorage.clear(); _resetCovers(); _resetFrames()
   document.body.innerHTML = ''
   media = createMediaStore({ ...memoryBackend(), persistent: true, name: 'test' }, { objectURL: { createObjectURL: () => 'blob:t/1', revokeObjectURL() {} } })
   _setMediaStore(media)
@@ -258,6 +261,18 @@ describe('a workout\'s photos and videos', () => {
     const both = render(<WorkoutRow w={workout({ media: [withVideo, refOf(1)] })} onClick={() => {}} />)
     expect(both.querySelector('.wrow-photo')).not.toBeNull()
     expect(both.querySelector('.wrow-video')).toBeNull()
+  })
+
+  it('a workout whose post has a video shows a frame of it where the routine icon was; no frame yet, the icon', () => {
+    const wv = workout({ id: 'wv1' })
+    setCover('wv1', '~vidPost')
+    const before = render(<WorkoutRow w={wv} onClick={() => {}} />)
+    expect(before.querySelector('.wrow-video')).toBeNull()
+    expect(before.querySelector('.lrow-i svg')).not.toBeNull()
+    act(() => setFrame('vidPost', 'data:image/jpeg;base64,AAAA'))
+    const after = render(<WorkoutRow w={wv} onClick={() => {}} />)
+    expect(after.querySelector('.wrow-video img').getAttribute('src')).toBe('data:image/jpeg;base64,AAAA')
+    expect(after.querySelector('.wrow-play')).not.toBeNull()
   })
 
   it('a video with no frame keeps the routine icon', () => {

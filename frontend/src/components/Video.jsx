@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { videoBlob } from '../lib/social.js'
+import { rememberFrame } from '../lib/video-frame.js'
 import { openVideo, prepareVideo, uploadVideo, defaultVideoRange, MAX_VIDEO_SEC, MIN_VIDEO_SEC } from '../lib/video.js'
 import { RangeTrim, RangeLabel, clock } from './Song.jsx'
 import { Button, MediaTile } from './ui.jsx'
@@ -52,6 +53,8 @@ function VideoSheet({ file, opened, close, onPicked }) {
       if (alive.current) setProgress(1)
       const id = await uploadVideo(blob)
       if (!alive.current) return
+      // The workout's lists show a frame of it (lib/video-frame.js), taken now while the phone has the clip.
+      rememberFrame(id, blob)
       onPicked({ id, secs, url: URL.createObjectURL(blob) })
       close()
     } catch (e) { if (alive.current) { toast(videoError(e)); setProgress(null) } }

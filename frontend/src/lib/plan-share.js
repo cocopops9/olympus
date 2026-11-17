@@ -477,7 +477,7 @@ export function planPrintHTML(S, owner, { routineId } = {}) {
   </header>
   ${week}
   ${body}
-  <footer>${esc(t('Made with Olympus'))} · opengym.ch</footer>
+  <footer>${esc(t('Made with Olympus'))}</footer>
 </div></body></html>`
 }
 

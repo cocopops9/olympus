@@ -30,6 +30,7 @@ vi.mock('./social.js', async orig => ({
     return p
   }),
 }))
+import { coverOf } from './workout-cover.js'
 import { queuePost, forgetPost, flushPosts, postState, unpost, repost, setPostDetails, postDetails } from './auto-post.js'
 
 const workout = id => ({ id, name: 'Chest', d: '2026-10-25', start: 1, end: 3600001, entries: [{ id: '0025', sets: [{ w: 60, r: 8, done: true }] }] })
@@ -164,6 +165,17 @@ describe('auto-posting', () => {
     await flushPosts()
     expect(mocks.posts[0]).toMatchObject({ text: 'Squats', photos: [], video: { id: 'v1', secs: 12 } })
     expect(postDetails(st.S, w)).toBe(null)
+  })
+
+  it('a video on the post becomes the workout cover; removing it clears the cover', async () => {
+    const st = setup()
+    const w = st.S.workouts[0]
+    queuePost(st.S, w)
+    await flushPosts()
+    setPostDetails(st.S, w, { text: 'a', video: { id: 'v7', secs: 5 } })
+    expect(coverOf(w.id)).toBe('~v7')
+    setPostDetails(st.S, w, { text: 'a', video: null })
+    expect(coverOf(w.id)).toBe(null)
   })
 
   it('a video taken off an existing post, and one never touched, are told apart', async () => {

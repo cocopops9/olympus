@@ -32,6 +32,7 @@ import { supersetMeta } from '../lib/superset-meta.js'
 import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
+import ClockValue from '../components/ClockValue.jsx'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
@@ -265,7 +266,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // twos there so the number you land on is one you can actually split evenly.
   const repCol = { f: 'r', step: repStep(cfg), dec: false, hd: t('Reps') }
   // A segment of an interval run can be half a minute: its minutes take halves.
-  const col1 = cardio ? { f: 'min', step: runs ? 0.5 : 1, dec: runs, hd: t('Duration (min)') }
+  const col1 = cardio ? { f: 'min', step: runs ? 0.5 : 1, dec: runs, clock: true, hd: t('Duration (min)') }
     : timed ? { f: 'sec', step: 5, dec: false, hd: t('Seconds') }
       : loadCol
   // Speed is stored in km/h and shown in the profile's unit (lib/speed.js): `view` turns the
@@ -312,8 +313,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const cell = (s, i, col, cls) => (
     <div className={'stp ' + cls + (wc.steppers ? '' : ' plain') + (isSuggested(s, col.f) ? ' sug' : '')}>
       {wc.steppers && <button aria-label={t('Decrease')} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>}
-      <span className="val"><NumberField decimal={col.dec} nullable={col.opt} value={viewOf(col, s[col.f]) ?? ''}
-        onChange={v => onField(i, col.f, col.store ? col.store(v) : v)} /></span>
+      <span className="val">{col.clock
+        ? <ClockValue value={s[col.f] || 0} title={t('Duration')} onChange={v => onField(i, col.f, v)} />
+        : <NumberField decimal={col.dec} nullable={col.opt} value={viewOf(col, s[col.f]) ?? ''}
+          onChange={v => onField(i, col.f, col.store ? col.store(v) : v)} />}</span>
       {wc.steppers && <button aria-label={t('Increase')} onClick={() => bump(s, i, col, 1)}><Icon name="plus" /></button>}
     </div>
   )

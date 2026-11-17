@@ -56,4 +56,32 @@ describe('Calendar canonical workout days', () => {
     expect(sessions.textContent).toContain('Legacy A')
     expect(sessions.textContent).toContain('Legacy B')
   })
+
+  it('tapping a day with one workout lists it, and the row opens its details', () => {
+    const day = todayISO()
+    const start = new Date(day + 'T09:00:00').getTime()
+    useStore.setState({ S: {
+      ...original,
+      workouts: [{ id: 'solo', d: day, start, end: start + 30 * 60000, name: 'Solo run', vol: 0, entries: [] }],
+    } })
+    calendarSheet(day)
+    const host = renderTop()
+    act(() => host.querySelector('button.cal-d.has').click())
+    const list = renderTop()
+    expect(list.textContent).toContain('Solo run')
+    expect(list.textContent).toContain('1 workout')
+    expect(list.textContent).toContain('Plan or add a note for this day')
+    act(() => list.querySelector('.item').click())
+    expect(renderTop().textContent).toContain('Delete workout')
+  })
+
+  it('a day off still opens the plan sheet', () => {
+    useStore.setState({ S: { ...original, workouts: [] } })
+    calendarSheet(todayISO())
+    const host = renderTop()
+    expect(host.querySelector('button.cal-d.has')).toBeNull()
+    act(() => host.querySelector('button.cal-d.today').click())
+    expect(useUI.getState().sheets.length).toBe(1)
+    expect(renderTop().textContent).not.toContain('Plan or add a note for this day')
+  })
 })

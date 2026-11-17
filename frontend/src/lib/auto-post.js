@@ -21,7 +21,8 @@ import { exerciseNameFor } from './i18n.js'
 import { speedUnitOf } from './speed.js'
 import { createPost, editPost, deletePost, socialReady, workoutPostSummary } from './social.js'
 import { stampWorkout } from './sync-merge.js'
-import { setCover, learnCovers } from './workout-cover.js'
+import { setCover, coverOf, isVideoCover, learnCovers } from './workout-cover.js'
+import { captureMissing } from './video-frame.js'
 import { fetchProfile } from './social.js'
 
 export const POSTED_EVENT = 'olympus:posted'
@@ -91,7 +92,10 @@ export function setPostDetails(s, w, { title, text = '', photos = [], song, vide
   const kept = clip.video ? [] : [...new Set(photos)].slice(0, 4)
   s.wpostEdit = { ...(s.wpostEdit || {}), [w.id]: { text: String(text || '').trim().slice(0, 1000), photos: kept, ...tune, ...clip } }
   // The list shows the first photo as the workout's picture straight away (lib/workout-cover.js).
-  setCover(w.id, kept[0] || null)
+  // A video's frame is the cover when the post has one; an editor that did not touch the video leaves it be.
+  if (clip.video) setCover(w.id, '~' + clip.video.id)
+  else if (video === undefined && !kept.length) { if (!isVideoCover(coverOf(w.id))) setCover(w.id, null) }
+  else setCover(w.id, kept[0] || null)
   const v = s.wposts?.[w.id]
   if (v === undefined || v === '-') s.wposts = { ...(s.wposts || {}), [w.id]: '' }
 }
@@ -214,7 +218,7 @@ export function startAutoPost() {
     const st = useStore.getState()
     if (learned || !socialReady(st.user) || !st.ready) return
     learned = true
-    fetchProfile().then(p => learnCovers(p?.posts), () => { learned = false })
+    fetchProfile().then(p => { learnCovers(p?.posts); captureMissing(p?.posts) }, () => { learned = false })
   }
   const unlearn = useStore.subscribe(learn)
   learn()

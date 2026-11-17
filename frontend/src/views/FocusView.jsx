@@ -292,7 +292,7 @@ export default function FocusView({
           {mode === 'cardio' ? <>
             {/* An interval run's segment can be half a minute, and is started like a hold: the
                 countdown beeps when the speed is to change (lib/intervals.js). */}
-            <Stepper label={t('Duration (min)')} ariaLabel="duration" value={set.min || 0} step={isIntervals(entry.target) ? 0.5 : 1} decimal={isIntervals(entry.target)} disabled={readOnly}
+            <Stepper label={t('Duration (min)')} ariaLabel="duration" clock value={set.min || 0} step={isIntervals(entry.target) ? 0.5 : 1} decimal={isIntervals(entry.target)} disabled={readOnly}
               onChange={value => onField(setIdx, 'min', value)} />
             {isIntervals(entry.target) && <Button icon="play" aria-label={t('Start set')} disabled={readOnly || busy}
               onClick={() => onStartTimed(setIdx, onProgress)}>{t('Start')}</Button>}
