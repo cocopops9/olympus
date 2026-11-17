@@ -104,6 +104,23 @@ describe('one conversation', () => {
     expect(mocks.read).not.toHaveBeenCalled()
   })
 
+  it('adds emoji from the panel to what is written, and keeps the panel open', async () => {
+    mocks.thread.mockResolvedValue({ user: ben, messages: [], more: false, seen: 0 })
+    await show(<ChatThread />)
+    expect(host.querySelector('.emoji-panel')).toBeNull()
+    await act(async () => { host.querySelector('.chat-tool[aria-label="Emoji"]').click() })
+    expect(host.querySelector('.emoji-panel')).not.toBeNull()
+    const grid = () => [...host.querySelectorAll('.emoji-grid button')]
+    await act(async () => { grid()[0].click() })
+    await act(async () => { grid()[1].click() })
+    expect(host.querySelector('textarea').value).toBe(grid()[0].textContent + grid()[1].textContent)
+    // Another group, then closing the panel.
+    await act(async () => { host.querySelectorAll('.emoji-tabs button')[2].click() })
+    expect(grid()[0].textContent).toBe('🏋️')
+    await act(async () => { host.querySelector('.chat-tool[aria-label="Emoji"]').click() })
+    expect(host.querySelector('.emoji-panel')).toBeNull()
+  })
+
   it('takes a message back only after asking', async () => {
     mocks.thread.mockResolvedValue({ user: ben, messages: [msg(1, true, 'Oops')], more: false, seen: 0 })
     mocks.del.mockResolvedValue({})

@@ -3473,4 +3473,5 @@ export default {
   "You have not muted anyone.": "Вы никого не скрыли.",
   "You will not see posts by {0} in your feed.": "Публикации {0} больше не будут появляться в вашей ленте.",
   "{0} is unmuted": "{0}: публикации снова видны",
+  "Emoji": "Эмодзи",
 }

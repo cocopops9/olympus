@@ -3469,4 +3469,5 @@ export default {
   "You have not muted anyone.": "Non hai silenziato nessuno.",
   "You will not see posts by {0} in your feed.": "Non vedrai più i post di {0} nel tuo feed.",
   "{0} is unmuted": "{0} non è più silenziato",
+  "Emoji": "Emoji",
 }

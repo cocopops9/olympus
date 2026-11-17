@@ -3548,4 +3548,5 @@ export default {
   "You have not muted anyone.": "আপনি কাউকে মিউট করেননি।",
   "You will not see posts by {0} in your feed.": "আপনার ফিডে আর {0}-এর পোস্ট দেখবেন না।",
   "{0} is unmuted": "{0} আনমিউট হয়েছে",
+  "Emoji": "ইমোজি",
 }

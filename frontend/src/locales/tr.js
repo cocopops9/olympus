@@ -3469,4 +3469,5 @@ export default {
   "You have not muted anyone.": "Kimseyi sessize almadın.",
   "You will not see posts by {0} in your feed.": "{0} gönderilerini artık akışında görmeyeceksin.",
   "{0} is unmuted": "{0} artık sessizde değil",
+  "Emoji": "Emoji",
 }

@@ -3469,4 +3469,5 @@ export default {
   "You have not muted anyone.": "你还没有屏蔽任何人。",
   "You will not see posts by {0} in your feed.": "你将不会在动态中看到 {0} 的帖子。",
   "{0} is unmuted": "已取消屏蔽 {0}",
+  "Emoji": "表情",
 }

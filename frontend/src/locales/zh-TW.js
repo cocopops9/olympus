@@ -3462,4 +3462,5 @@ export default {
   "You have not muted anyone.": "你還沒有隱藏任何人。",
   "You will not see posts by {0} in your feed.": "你將不會在動態中看到 {0} 的貼文。",
   "{0} is unmuted": "已取消隱藏 {0}",
+  "Emoji": "表情符號",
 }

@@ -3524,4 +3524,5 @@ export default {
   "You have not muted anyone.": "لم تكتم أحدًا.",
   "You will not see posts by {0} in your feed.": "لن ترى منشورات {0} في موجزك بعد الآن.",
   "{0} is unmuted": "تم إلغاء كتم {0}",
+  "Emoji": "إيموجي",
 }

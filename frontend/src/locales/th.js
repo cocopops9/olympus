@@ -3480,4 +3480,5 @@ export default {
   "You have not muted anyone.": "คุณยังไม่ได้ปิดเสียงใคร",
   "You will not see posts by {0} in your feed.": "คุณจะไม่เห็นโพสต์ของ {0} ในฟีดอีก",
   "{0} is unmuted": "เลิกปิดเสียง {0} แล้ว",
+  "Emoji": "อีโมจิ",
 }

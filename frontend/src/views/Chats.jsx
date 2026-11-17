@@ -10,6 +10,7 @@ import { useSocial } from '../store/useSocial.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { fmtAgo } from '../lib/format.js'
+import EmojiPicker from '../components/EmojiPicker.jsx'
 import { socialReady, fetchChats, fetchThread, sendMessage, markChatRead, deleteMessage, chatErrorText } from '../lib/social.js'
 import { preparePhoto } from '../lib/social-photo.js'
 import { canRecordNote, startVoiceNote, blobToDataUrl, fmtSecs } from '../lib/voice-note.js'
@@ -222,6 +223,16 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }
   const [rec, setRec] = useState(null)   // { note, ms, level }
   const photoIn = useRef(null), camIn = useRef(null), fileIn = useRef(null)
   const note = useRef(null)
+  const area = useRef(null)
+  const [emojis, setEmojis] = useState(false)
+  // An emoji goes where the cursor is, and the cursor stays after it.
+  const addEmoji = e => {
+    const el = area.current
+    const at = el ? [el.selectionStart ?? draft.length, el.selectionEnd ?? draft.length] : [draft.length, draft.length]
+    const next = (draft.slice(0, at[0]) + e + draft.slice(at[1])).slice(0, 2000)
+    setDraft(next)
+    requestAnimationFrame(() => { if (el) { el.focus(); const c = Math.min(next.length, at[0] + e.length); el.setSelectionRange(c, c) } })
+  }
   const canVoice = canRecordNote()
   useEffect(() => () => note.current?.cancel(), [])
   useEffect(() => {
@@ -253,7 +264,8 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }
   </div>)
   const picked = (fn, e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) fn(f) }
   const bars = Array.from({ length: 24 }, (_, i) => 0.25 + 0.75 * Math.abs(Math.sin(i * 1.7 + (rec?.ms || 0) / 160)) * (rec?.level || 0.05))
-  return <form className="chat-in" onSubmit={e => { e.preventDefault(); onSend() }}>
+  return <form className={'chat-in' + (emojis ? ' with-emoji' : '')} onSubmit={e => { e.preventDefault(); onSend() }}>
+    {emojis && !rec && <EmojiPicker onPick={addEmoji} />}
     <input ref={photoIn} type="file" accept="image/*" hidden onChange={e => picked(onPhoto, e)} data-testid="chat-photo" />
     <input ref={camIn} type="file" accept="image/*" capture="environment" hidden onChange={e => picked(onPhoto, e)} />
     <input ref={fileIn} type="file" hidden onChange={e => picked(onFile, e)} data-testid="chat-file" />
@@ -267,7 +279,8 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }
       <button type="button" className="chat-send" onClick={finish} aria-label={t('Send voice message')}><Icon name="send" /></button>
     </> : <>
       <button type="button" className="chat-tool" onClick={attach} aria-label={t('Attach a photo or file')}><Icon name="paperclip" /></button>
-      <textarea rows={1} value={draft} maxLength={2000} placeholder={t('Write a message…')} aria-label={t('Write a message…')}
+      <button type="button" className={'chat-tool' + (emojis ? ' on' : '')} onClick={() => setEmojis(v => !v)} aria-pressed={emojis} aria-label={t('Emoji')}><Icon name="smile" /></button>
+      <textarea ref={area} rows={1} value={draft} maxLength={2000} placeholder={t('Write a message…')} aria-label={t('Write a message…')}
         onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend() } }} />
       {!draft.trim() && canVoice

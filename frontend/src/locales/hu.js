@@ -3472,4 +3472,5 @@ export default {
   "You have not muted anyone.": "Senkit sem némítottál.",
   "You will not see posts by {0} in your feed.": "{0} bejegyzéseit már nem látod a hírfolyamodban.",
   "{0} is unmuted": "{0} némítása feloldva",
+  "Emoji": "Emoji",
 }

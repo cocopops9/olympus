@@ -3469,4 +3469,5 @@ export default {
   "You have not muted anyone.": "숨긴 사람이 없습니다.",
   "You will not see posts by {0} in your feed.": "이제 피드에서 {0}님의 게시물이 보이지 않습니다.",
   "{0} is unmuted": "{0}님 숨기기를 해제했습니다",
+  "Emoji": "이모지",
 }

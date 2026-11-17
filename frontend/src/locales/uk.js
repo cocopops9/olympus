@@ -3466,4 +3466,5 @@ export default {
   "You have not muted anyone.": "Ти нікого не приховав.",
   "You will not see posts by {0} in your feed.": "Дописи {0} більше не з’являтимуться у твоїй стрічці.",
   "{0} is unmuted": "{0}: дописи знову видно",
+  "Emoji": "Емодзі",
 }
