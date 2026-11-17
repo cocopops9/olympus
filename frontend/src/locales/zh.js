@@ -3470,4 +3470,7 @@ export default {
   "You will not see posts by {0} in your feed.": "你将不会在动态中看到 {0} 的帖子。",
   "{0} is unmuted": "已取消屏蔽 {0}",
   "Emoji": "表情",
+  "Last week": "上周",
+  "Compared with the week before": "与前一周相比",
+  "No workouts this week.": "这一周没有训练。",
 }

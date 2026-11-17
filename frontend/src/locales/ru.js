@@ -3474,4 +3474,7 @@ export default {
   "You will not see posts by {0} in your feed.": "Публикации {0} больше не будут появляться в вашей ленте.",
   "{0} is unmuted": "{0}: публикации снова видны",
   "Emoji": "Эмодзи",
+  "Last week": "Прошлая неделя",
+  "Compared with the week before": "По сравнению с предыдущей неделей",
+  "No workouts this week.": "На этой неделе тренировок нет.",
 }

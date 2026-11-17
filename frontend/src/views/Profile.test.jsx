@@ -53,6 +53,27 @@ describe('Profile on a device kept local', () => {
     expect(mocks.profile).not.toHaveBeenCalled()
   })
 
+  it('moves back through the weeks, never past today, and comes back with a tap on the name', async () => {
+    const old = new Date(); old.setDate(old.getDate() - 9)
+    const oldISO = `${old.getFullYear()}-${String(old.getMonth() + 1).padStart(2, '0')}-${String(old.getDate()).padStart(2, '0')}`
+    useStore.setState(s => ({ S: { ...s.S, workouts: [...s.S.workouts, { id: 'w0', name: 'Legs', d: oldISO, start: 0, end: 0, entries: [] }] } }))
+    await render()
+    const prev = () => host.querySelector('button[aria-label="Previous week"]'), next = () => host.querySelector('button[aria-label="Next week"]')
+    expect(next().disabled).toBe(true)
+    expect(host.querySelector('.ov-nav-l b').textContent).toBe('This week')
+    await act(async () => prev().click())
+    expect(host.querySelector('.ov-nav-l b').textContent).toBe('Last week')
+    expect(host.querySelector('.ov-day.now')).toBeNull()
+    expect(next().disabled).toBe(false)
+    const shown = [...host.querySelectorAll('.wrow')].map(n => n.textContent)
+    expect(shown).not.toContain('Push')
+    await act(async () => prev().click())
+    expect(host.querySelector('.ov-nav-l small')).toBeTruthy()
+    await act(async () => host.querySelector('.ov-nav-l').click())
+    expect(host.querySelector('.ov-nav-l b').textContent).toBe('This week')
+    expect(host.querySelector('.wrow').textContent).toBe('Push')
+  })
+
   it('reaches Plan, Exercises, Body & wellbeing and Settings from its Training section', async () => {
     await render()
     for (const [label, to] of [['Plan', '/plan'], ['Exercises', '/library'], ['Today’s training', '/today'], ['Body & wellbeing', '/body']]) {

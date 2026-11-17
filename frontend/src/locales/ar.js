@@ -3525,4 +3525,7 @@ export default {
   "You will not see posts by {0} in your feed.": "لن ترى منشورات {0} في موجزك بعد الآن.",
   "{0} is unmuted": "تم إلغاء كتم {0}",
   "Emoji": "إيموجي",
+  "Last week": "الأسبوع الماضي",
+  "Compared with the week before": "مقارنة بالأسبوع السابق",
+  "No workouts this week.": "لا تمارين في هذا الأسبوع.",
 }

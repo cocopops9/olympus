@@ -14,8 +14,11 @@ function totals(list) {
   }), { count: 0, durMs: 0, vol: 0, sets: 0 })
 }
 
-/** { days: [{ iso, day, trained, today, future }], workouts, totals, before } for the week of `today`. */
-export function weekSummary(S, today) {
+/**
+ * { days: [{ iso, day, trained, today, future }], workouts, totals, before } for the week of `today`.
+ * `now` is the real today, when `today` is a day of another week being looked at.
+ */
+export function weekSummary(S, today, now = today) {
   const start = startOfWeek(today, weekStartOf(S))
   const days = Array.from({ length: 7 }, (_, i) => isoOf(plus(start, i)))
   const prevStart = isoOf(plus(start, -7))
@@ -25,7 +28,7 @@ export function weekSummary(S, today) {
   const prev = (S.workouts || []).filter(w => { const d = workoutDay(w); return d >= prevStart && d < days[0] })
   const trained = new Set(workouts.map(workoutDay))
   return {
-    days: days.map(iso => ({ iso, day: new Date(iso + 'T12:00:00').getDay(), trained: trained.has(iso), today: iso === today, future: iso > today })),
+    days: days.map(iso => ({ iso, day: new Date(iso + 'T12:00:00').getDay(), trained: trained.has(iso), today: iso === now, future: iso > now })),
     workouts,
     totals: totals(workouts),
     before: totals(prev),

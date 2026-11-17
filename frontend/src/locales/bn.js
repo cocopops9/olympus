@@ -3549,4 +3549,7 @@ export default {
   "You will not see posts by {0} in your feed.": "আপনার ফিডে আর {0}-এর পোস্ট দেখবেন না।",
   "{0} is unmuted": "{0} আনমিউট হয়েছে",
   "Emoji": "ইমোজি",
+  "Last week": "গত সপ্তাহ",
+  "Compared with the week before": "আগের সপ্তাহের তুলনায়",
+  "No workouts this week.": "এই সপ্তাহে কোনো ওয়ার্কআউট নেই।",
 }

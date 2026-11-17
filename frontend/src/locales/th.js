@@ -3481,4 +3481,7 @@ export default {
   "You will not see posts by {0} in your feed.": "คุณจะไม่เห็นโพสต์ของ {0} ในฟีดอีก",
   "{0} is unmuted": "เลิกปิดเสียง {0} แล้ว",
   "Emoji": "อีโมจิ",
+  "Last week": "สัปดาห์ที่แล้ว",
+  "Compared with the week before": "เทียบกับสัปดาห์ก่อนหน้า",
+  "No workouts this week.": "ไม่มีการออกกำลังกายในสัปดาห์นี้",
 }

@@ -3470,4 +3470,7 @@ export default {
   "You will not see posts by {0} in your feed.": "{0} gönderilerini artık akışında görmeyeceksin.",
   "{0} is unmuted": "{0} artık sessizde değil",
   "Emoji": "Emoji",
+  "Last week": "Geçen hafta",
+  "Compared with the week before": "Önceki haftayla karşılaştırma",
+  "No workouts this week.": "Bu hafta antrenman yok.",
 }

@@ -3470,4 +3470,7 @@ export default {
   "You will not see posts by {0} in your feed.": "이제 피드에서 {0}님의 게시물이 보이지 않습니다.",
   "{0} is unmuted": "{0}님 숨기기를 해제했습니다",
   "Emoji": "이모지",
+  "Last week": "지난주",
+  "Compared with the week before": "그 전 주와 비교",
+  "No workouts this week.": "이번 주에는 운동이 없습니다.",
 }

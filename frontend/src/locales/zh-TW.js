@@ -3463,4 +3463,7 @@ export default {
   "You will not see posts by {0} in your feed.": "你將不會在動態中看到 {0} 的貼文。",
   "{0} is unmuted": "已取消隱藏 {0}",
   "Emoji": "表情符號",
+  "Last week": "上週",
+  "Compared with the week before": "與前一週相比",
+  "No workouts this week.": "這一週沒有訓練。",
 }

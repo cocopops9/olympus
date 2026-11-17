@@ -3473,4 +3473,7 @@ export default {
   "You will not see posts by {0} in your feed.": "{0} bejegyzéseit már nem látod a hírfolyamodban.",
   "{0} is unmuted": "{0} némítása feloldva",
   "Emoji": "Emoji",
+  "Last week": "Múlt hét",
+  "Compared with the week before": "Az előző héthez képest",
+  "No workouts this week.": "Ezen a héten nem volt edzés.",
 }

@@ -3470,4 +3470,7 @@ export default {
   "You will not see posts by {0} in your feed.": "Deixas de ver as publicações de {0} no teu feed.",
   "{0} is unmuted": "{0} já não está silenciado",
   "Emoji": "Emojis",
+  "Last week": "Semana passada",
+  "Compared with the week before": "Em relação à semana anterior",
+  "No workouts this week.": "Nenhum treino nesta semana.",
 }

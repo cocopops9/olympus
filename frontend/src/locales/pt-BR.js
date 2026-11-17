@@ -1890,6 +1890,9 @@ export const PT_BR_OVERRIDES = {
   "You will not see posts by {0} in your feed.": "Você não verá mais as publicações de {0} no seu feed.",
   "{0} is unmuted": "{0} não está mais silenciado",
   "Emoji": "Emojis",
+  "Last week": "Semana passada",
+  "Compared with the week before": "Em relação à semana anterior",
+  "No workouts this week.": "Nenhum treino nesta semana.",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,

@@ -24,7 +24,8 @@ import { MedalsCard, rememberSocial } from '../components/Medals.jsx'
 import { Avatar as CoachAvatar } from '../components/Hercules.jsx'
 import { weekSummary } from '../lib/week-summary.js'
 import { loadOfWorkouts } from '../lib/muscles.js'
-import { todayISO, fmtNum, fmtDur, fmtVol, DAYS } from '../lib/format.js'
+import { todayISO, fmtNum, fmtDur, fmtVol, DAYS, isoOf, startOfWeek, weekStartOf } from '../lib/format.js'
+import { dateLocale } from '../lib/i18n-core.js'
 import '../profile.css'
 import Stats from './Stats.jsx'
 import '../social.css'
@@ -45,9 +46,30 @@ function Delta({ now, before }) {
   return <span className={'ov-delta ' + (pct > 0 ? 'up' : 'down')}>{pct > 0 ? '+' : ''}{pct}%</span>
 }
 
+// "16 – 22 Nov": the days of a week, in the reader's language.
+function weekRange(days) {
+  const a = new Date(days[0].iso + 'T12:00:00'), b = new Date(days[6].iso + 'T12:00:00')
+  const m = d => d.toLocaleDateString(dateLocale(), { month: 'short' })
+  return a.getMonth() === b.getMonth() ? `${a.getDate()} – ${b.getDate()} ${m(b)}` : `${a.getDate()} ${m(a)} – ${b.getDate()} ${m(b)}`
+}
+
 function OverviewTab({ S }) {
   const nav = useNavigate()
-  const wk = weekSummary(S, todayISO())
+  // 0 is this week; going back one week at a time, never forward past today. A swipe does the same as the arrows.
+  const [off, setOff] = useState(0)
+  const touch = useRef(null)
+  const now = todayISO()
+  const ref = off ? (() => { const d = new Date(startOfWeek(now, weekStartOf(S))); d.setDate(d.getDate() + off * 7 + 3); return isoOf(d) })() : now
+  const wk = weekSummary(S, ref, now)
+  const go = n => setOff(o => Math.min(0, o + n))
+  const onTouchEnd = e => {
+    const a = touch.current, b = e.changedTouches?.[0]
+    touch.current = null
+    if (!a || !b) return
+    const dx = b.clientX - a.x, dy = b.clientY - a.y
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) go(dx > 0 ? -1 : 1)
+  }
+  const label = off === 0 ? t('This week') : off === -1 ? t('Last week') : weekRange(wk.days)
   const { totals: cur, before } = wk
   const load = loadOfWorkouts(wk.workouts)
   const tiles = [
@@ -57,9 +79,16 @@ function OverviewTab({ S }) {
     [t('Sets'), fmtNum(cur.sets), cur.sets, before.sets],
   ]
   return <>
-    <div className="ov-week">
+    <div className="ov-week" onTouchStart={e => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }} onTouchEnd={onTouchEnd}>
+      <div className="ov-nav">
+        <button type="button" className="ov-arrow" onClick={() => go(-1)} aria-label={t('Previous week')}><Icon name="chevronLeft" /></button>
+        <button type="button" className="ov-nav-l" onClick={() => setOff(0)} disabled={off === 0} aria-live="polite">
+          <b>{label}</b>{off < -1 && <small>{weekRange(wk.days)}</small>}
+        </button>
+        <button type="button" className="ov-arrow" onClick={() => go(1)} disabled={off === 0} aria-label={t('Next week')}><Icon name="chevronRight" /></button>
+      </div>
       <div className="ov-week-h">
-        <h3>{t('This week')}</h3>
+        <h3>{off === 0 ? t('This week') : t('Workouts')}</h3>
         <span className={'ov-streak' + (streakWeeks(S) ? '' : ' cold')}><Icon name="flame" />{t('{0} week streak', streakWeeks(S))}</span>
       </div>
       <div className="ov-days">
@@ -72,25 +101,25 @@ function OverviewTab({ S }) {
         {/* Every tile opens the workouts themselves (History), newest first. */}
         {tiles.map(([l, v, n, b]) => <button key={l} className="ov-tile" onClick={() => nav('/history')}><div className="ov-l">{l}</div><div className="ov-v">{v}</div><Delta now={n} before={b} /></button>)}
       </div>
-      {before.count > 0 && <div className="ov-vs small muted">{t('Compared with last week')}</div>}
+      {before.count > 0 && <div className="ov-vs small muted">{off === 0 ? t('Compared with last week') : t('Compared with the week before')}</div>}
     </div>
 
     <MedalsCard />
 
     {wk.workouts.length > 0 && <div className="ov-card">
-      <h3>{t('Muscles this week')}</h3>
+      <h3>{off === 0 ? t('Muscles this week') : t('Muscles')}</h3>
       <BodyMap load={load} body={S.body} />
     </div>}
 
     <div className="row between" style={{ margin: '16px 2px 8px' }}>
-      <h3 style={{ margin: 0 }}>{t('This week’s workouts')}</h3>
+      <h3 style={{ margin: 0 }}>{off === 0 ? t('This week’s workouts') : t('Workouts')}</h3>
       <button className="plan-textbtn" onClick={() => nav('/history')}>{t('All workouts')}</button>
     </div>
     {wk.workouts.length ? <div className="list">{wk.workouts.map(w => <WorkoutRow key={w.id} w={w} onClick={() => workoutDetailSheet(w)} />)}</div>
       : <div className="ov-none">
         <Icon name="dumbbell" />
-        <div>{t('No workouts this week yet.')}</div>
-        <Button size="sm" variant="primary" icon="play" onClick={() => nav('/workout')}>{t('Start a workout')}</Button>
+        <div>{off === 0 ? t('No workouts this week yet.') : t('No workouts this week.')}</div>
+        {off === 0 && <Button size="sm" variant="primary" icon="play" onClick={() => nav('/workout')}>{t('Start a workout')}</Button>}
       </div>}
     <div style={{ height: 10 }} />
     <Button icon="plus" onClick={() => logPastWorkoutSheet()}>{t('Log a past workout')}</Button>
@@ -206,8 +235,10 @@ export default function Profile() {
         {counts.map(([v, l, go]) => <button key={l} onClick={go}><span className="v">{v}</span><span className="l">{l}</span></button>)}
       </div>
       {ready && <div className="prof-actions">
-        <Button size="sm" icon="pencil" onClick={() => profileSheet(me, u => setMe(m => ({ ...m, ...u })))}>{t('Edit profile')}</Button>
-        <Button size="sm" icon="share" onClick={() => composeSheet()}>{t('New post')}</Button>
+        <button type="button" className="prof-act soft" onClick={() => profileSheet(me, u => setMe(m => ({ ...m, ...u })))}>
+          <span className="prof-act-i"><Icon name="pencil" /></span>{t('Edit profile')}</button>
+        <button type="button" className="prof-act bold" onClick={() => composeSheet()}>
+          <span className="prof-act-i"><Icon name="plus" /></span>{t('New post')}</button>
       </div>}
     </div>
 

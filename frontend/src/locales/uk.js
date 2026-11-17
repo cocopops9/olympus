@@ -3467,4 +3467,7 @@ export default {
   "You will not see posts by {0} in your feed.": "Дописи {0} більше не з’являтимуться у твоїй стрічці.",
   "{0} is unmuted": "{0}: дописи знову видно",
   "Emoji": "Емодзі",
+  "Last week": "Минулий тиждень",
+  "Compared with the week before": "Порівняно з попереднім тижнем",
+  "No workouts this week.": "Цього тижня тренувань немає.",
 }
