@@ -985,7 +985,8 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
     }, () => {})
     return () => { live = false }
   }, [user?.id])
-  return <div className="narrow">
+  const syncBad = !!(user && sync && sync.status && sync.status !== 'ok')
+  return <div className="narrow sp-root">
     <div className="sp-nav">
       <button className="sp-back" onClick={home} aria-label={t('Profile')}><Icon name="chevronLeft" /><span>{t('Profile')}</span></button>
     </div>
@@ -1000,10 +1001,10 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
       ))}
     </Section> : <div className="sp-empty">{t('No setting matches “{0}”.', q.trim())}</div>) : <>
       <Section>
-        <button className="lrow tap sp-acct" onClick={() => open('account')}>
+        <button className="lrow tap sp-acct sp-hero" onClick={() => open('account')}>
           {initial && socialReady(user) ? <span className="sp-avatar sp-face"><Avatar user={{ ...user, avatar: face }} /></span>
             : <span className={'sp-avatar' + (initial ? ' on' : '')} aria-hidden="true">{initial || <Icon name="personCircle" />}</span>}
-          <span className="lrow-m"><span className="lrow-t">{acct.title}</span><span className="lrow-s">{acct.sub}</span></span>
+          <span className="lrow-m"><span className="lrow-t">{acct.title}</span><span className={'lrow-s sp-status' + (user && !DEMO ? (syncBad ? ' warn' : ' ok') : '')}>{acct.sub}</span></span>
           <Icon name="chevronRight" className="lrow-c" />
         </button>
       </Section>
@@ -1013,7 +1014,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
             value={preview[id]?.() || null} accessory="chevron" onClick={() => open(id)} className="sp-root-row" />)}
         </Section>
       ))}
-      <div className="dim small sp-version">Olympus v{__APP_VERSION__}</div>
+      <div className="dim small sp-version"><span>Olympus</span> v{__APP_VERSION__}</div>
     </>}
   </div>
 }
