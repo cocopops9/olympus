@@ -66,9 +66,12 @@ export function matchExercise(name, custom = []) {
  * reps (a range as repsMin), weight, a hold's seconds or an activity's minutes, and the item's
  * own rest and ramp sets.
  */
-export function configOf(e, ex) {
+export function configOf(e, ex, now = Date.now()) {
   const id = ex.id
   const own = e.restSec > 0 ? { restSec: Math.round(e.restSec) } : {}
+  // A weight written in the text is the person's own: the next session opens with it, not with
+  // what was lifted last time (lib/session-start.js weightPinned).
+  if (e.weight > 0) own.weightPin = now
   if (isCardio(ex)) {
     const base = id ? defaultConfig(id, 'cardio') : { sets: 1, min: 20, speed: 0 }
     // An interval run: its segments, their speeds and the rests between them (lib/intervals.js).
@@ -102,7 +105,26 @@ function itemOf(e, custom, key) {
     const ex = ownActivity(e.name)
     return { key, said: e.name, line: e.line || 0, ex, sure: true, make: true, raw: e, cfg: configOf(e, ex), ss: '', note: e.note || '' }
   }
-  return { key, said: e.name, line: e.line || 0, ex: m?.ex || null, sure: !!m?.sure, raw: e, cfg: m ? configOf(e, m.ex) : null, ss: String(e.group ?? e.superset ?? '').toUpperCase(), note: e.note || '' }
+  // The coach's own doubt (api/hercules.js): a question for the person, and for "which exercise",
+  // what it could be, each matched to the catalogue. Until it is answered the item is to check.
+  const doubt = String(e.doubt || '').trim()
+  const options = []
+  for (const o of Array.isArray(e.options) ? e.options : []) {
+    const mo = matchExercise(o, custom)
+    if (mo?.ex && !options.some(x => x.id === mo.ex.id)) options.push(mo.ex)
+  }
+  if (m?.ex && options.length && !options.some(x => x.id === m.ex.id)) options.unshift(m.ex)
+  return {
+    key, said: e.name, line: e.line || 0, ex: m?.ex || null, sure: !!m?.sure && !doubt, raw: e, cfg: m ? configOf(e, m.ex) : null,
+    ss: String(e.group ?? e.superset ?? '').toUpperCase(), note: e.note || '',
+    ...(doubt ? { doubt, options: options.slice(0, 3) } : {}),
+  }
+}
+
+/** The item with its doubt answered: the exercise picked (or the one read kept). */
+export function answerDoubt(item, ex = item.ex) {
+  const { doubt, options, ...rest } = item
+  return ex ? { ...pickFor(rest, ex), answered: doubt } : rest
 }
 
 /**
@@ -153,13 +175,14 @@ export function pickFor(item, ex) {
 
 /** How many items have no exercise yet, how many are guesses, how many lines the coach left out. */
 export function draftIssues(draft) {
-  let missing = 0, guesses = 0, left = 0
+  let missing = 0, guesses = 0, left = 0, doubts = 0
   for (const r of draft.sessions) for (const it of r.items) {
     if (it.left) left++
     else if (!it.ex) missing++
+    else if (it.doubt) doubts++
     else if (!it.sure) guesses++
   }
-  return { missing, guesses, left }
+  return { missing, guesses, left, doubts }
 }
 
 /** A routine of the store from a session of the draft (the items with an exercise only). */

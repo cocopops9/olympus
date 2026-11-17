@@ -89,7 +89,7 @@ import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
 import GymPicker from './components/GymPicker.jsx'
-import { lastGym, cleanGym } from './lib/gyms.js'
+import { lastGym, cleanGym, recordHistory } from './lib/gyms.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -1863,7 +1863,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         <Stepper label={t('Seconds')} value={c.sec} step={5} decimal={false} onChange={v => setC(x => ({ ...x, sec: v }))} />
         {/* A bodyweight hold's load is the "Added" row below — showing both put two fields on
             one value. */}
-        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={DEFAULT_TAP_STEP} onChange={v => setC(x => ({ ...x, weight: v }))} />}
+        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={DEFAULT_TAP_STEP} onChange={v => setC(x => ({ ...x, weight: v, weightPin: Date.now() }))} />}
       </> : <>
         {/* Rest-pause always trains as exactly two rows — a warm-up at this rep count, then one
             rest-pause work set — so "Sets" has nothing left to mean and only invites a mismatch. */}
@@ -1872,7 +1872,7 @@ function ExConfig({ ex, existing, onSave, onDelete, onReplace, close, routine, i
         {!ranged && !pyramid && <Stepper label={t('Reps')} value={c.reps} step={perSide ? 2 : 1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />}
         {/* On bodyweight work the weight stepper is the click #32 is about, so it is not here
             until there is a belt to describe — see the added-weight row below. */}
-        {!bw && !pyramid && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={DEFAULT_TAP_STEP} onChange={v => setC(x => ({ ...x, weight: v }))} />}
+        {!bw && !pyramid && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={DEFAULT_TAP_STEP} onChange={v => setC(x => ({ ...x, weight: v, weightPin: Date.now() }))} />}
       </>}
     </div>
     {/* Interval cardio (lib/intervals.js): a row per segment, its minutes, speed and the rest
@@ -3496,7 +3496,11 @@ function StoryButton({ w }) {
     if (how === 'shared' || how === 'saved') { bumpMedal('stories'); if (how === 'saved') toast(t('Image saved: add it to your story.')) }
     else if (how === 'failed') toast(t('Could not share the image.'))
   }
-  return <Button className="story-btn" icon="camera" disabled={busy} onClick={go} style={{ marginBottom: 8 }}>{t('Share to your Instagram story')}</Button>
+  return <button type="button" className="fin-story" disabled={busy} onClick={go}>
+    <span className="fin-story-i" aria-hidden="true"><Icon name="storyRing" /></span>
+    <span className="fin-story-t"><b>{t('Share to your Instagram story')}</b><small>{busy ? t('Preparing the picture…') : t('A picture of this workout, ready for your story')}</small></span>
+    <Icon name="chevronRight" className="fin-story-c" />
+  </button>
 }
 function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
   const st = useStore(s => s.S)
@@ -3540,13 +3544,15 @@ function FinishSummary({ w, prs, e1prs = [], ups = [], close }) {
     {/* The moment for a progress photo or the clip of a set: the workout is already saved, so
         what is added here goes straight onto its record. */}
     <div style={{ textAlign: 'start' }}><WorkoutMediaSection w={w} hint /></div>
-    {(w.entries || []).length > 0 && <StoryButton w={w} />}
-    <Button variant="primary" icon="check" onClick={() => closeThenNav(close, '/home')}>{t('Done!')}</Button>
-    {/* Finished too soon: back into the same workout, clock and all (lib/session-edit.js). */}
-    <Button variant="ghost" icon="play" style={{ marginTop: 6 }} onClick={() => {
-      try { update(state => { resumeCompletedSession(state, w) }); closeThenNav(close, '/workout') }
-      catch (error) { toast(t(error.message)) }
-    }}>{t('Resume workout')}</Button>
+    <div className="fin-actions">
+      {(w.entries || []).length > 0 && <StoryButton w={w} />}
+      <button type="button" className="fin-done" onClick={() => closeThenNav(close, '/home')}><Icon name="check" />{t('Done!')}</button>
+      {/* Finished too soon: back into the same workout, clock and all (lib/session-edit.js). */}
+      <button type="button" className="fin-resume" onClick={() => {
+        try { update(state => { resumeCompletedSession(state, w) }); closeThenNav(close, '/workout') }
+        catch (error) { toast(t(error.message)) }
+      }}><Icon name="play" />{t('Resume workout')}</button>
+    </div>
   </div>
 }
 export function finishWorkout() {
@@ -3604,7 +3610,13 @@ function doFinishWorkout() {
   // A finished workout picked up again (lib/session-edit.js resumeCompletedSession) replaces its
   // saved record; its records are held against the history without that record.
   const resumed = A.resumeOf != null ? A.resumeOf : null
-  const hist = resumed != null ? { ...st, workouts: st.workouts.filter(x => resumedKeyOf(x) !== resumed) } : st
+  // The gym the session was in (lib/gyms.js activeGym): picked in it, else the one it was saved
+  // with when picked up again, else the latest. With records per gym on, the records below are
+  // held against that gym's workouts and the ones with no gym.
+  const sessionGym = typeof A.gym === 'string' ? cleanGym(A.gym)
+    : resumed != null ? cleanGym(st.workouts.find(x => resumedKeyOf(x) === resumed)?.gym) : lastGym(st)
+  const histAll = resumed != null ? { ...st, workouts: st.workouts.filter(x => resumedKeyOf(x) !== resumed) } : st
+  const hist = recordHistory(histAll, sessionGym)
   const prs = []
   const e1prs = []
   // A workout logged into the past is held against the history before it, the way an edit of a
@@ -3631,9 +3643,7 @@ function doFinishWorkout() {
   titleWorkout(w)
   // Olympus: the gym of the latest workout comes along as the default (lib/gyms.js); the finish
   // summary can change it. A workout picked up again keeps the gym it was saved with.
-  const before = resumed != null ? st.workouts.find(x => resumedKeyOf(x) === resumed) : null
-  const gym = before ? cleanGym(before.gym) : lastGym(st)
-  if (gym) w.gym = gym
+  if (sessionGym) w.gym = sessionGym; else delete w.gym
   let shown = w
   update(s => {
     if (past) {
@@ -3680,7 +3690,7 @@ function doFinishWorkout() {
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
   // A main lift that moved up a strength level with this workout (lib/strength-level.js).
   let ups = []
-  try { ups = past ? [] : levelUps(hist, S()) } catch { ups = [] }
+  try { ups = past ? [] : levelUps(histAll, S()) } catch { ups = [] }
   // Locked against a stray tap on the backdrop; the system back is Done.
   ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} ups={ups} close={close} />,
     { kind: 'center', locked: true, onBack: close => closeThenNav(close, '/home') })

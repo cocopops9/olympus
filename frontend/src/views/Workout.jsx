@@ -19,6 +19,8 @@ import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
 import { newRecords, recordsOf } from '../lib/records.js'
 import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
+import { activeGym, recordHistory } from '../lib/gyms.js'
+import { GymIcon, gymChooserSheet } from '../components/Gyms.jsx'
 import { pinState } from '../lib/queue.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
 import { api, beacon } from '../lib/api.js'
@@ -935,6 +937,7 @@ function ActiveWorkout() {
   const { startRest: liveRest, stopRest, stopWork, work, timer } = useUI()
   const A = S.active
   const editing = !!A.editingWorkoutId
+  const sessionGym = activeGym(S)
   // A past workout has no rest to time — the sets were done days ago. The work timer for
   // timed sets stays, since counting a hold is how its duration gets entered.
   const startRest = (A.backfill || editing) ? () => {} : liveRest
@@ -1461,10 +1464,6 @@ function ActiveWorkout() {
         { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
         noProgSwitchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A), onClick: toggleSessionNoProg },
       ] },
-      !editing && !A.backfill && { title: t('AI coach'), items: [
-        { icon: 'sparkles', label: t('Coach during workouts'), sub: t('Hercules and Athena in the header, knowing this workout'),
-          on: S.coachInWorkout !== false, onClick: () => update(s => { s.coachInWorkout = s.coachInWorkout === false }) },
-      ] },
       { items: [
         !editing && { icon: 'trash', label: t('Discard workout'), danger: true, onClick: discardWorkout },
       ] },
@@ -1668,14 +1667,51 @@ function ActiveWorkout() {
     if (!e) return
     if (!checked) {
       if (!e.rec?.length) return
-      const still = new Set(recordsOf(st, e))
+      const still = new Set(recordsOf(recordHistory(st, activeGym(st)), e))
       if (e.rec.every(k => still.has(k))) return
       update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = (en.rec || []).filter(k => still.has(k)) })
       return
     }
-    const fresh = newRecords(st, e)
+    const fresh = newRecords(recordHistory(st, activeGym(st)), e)
     if (!fresh.length) return
     update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = [...new Set([...(en.rec || []), ...fresh])] })
+    triumph(st.sound)
+    vibrate([30, 50, 30, 50, 80])
+    useUI.getState().toast(t('New record: {0}', fresh.map(recordLabel).join(', ')))
+  }
+  // A ticked set whose weight or reps are changed afterwards is judged again: the tick is not the
+  // only moment a record is decided. Raised to 80 kg after ticking 70 kg, the medal comes; lowered
+  // back, it goes. Waits until the typing stops (an "86" passes through "8" on the way), and
+  // celebrates only a kind not celebrated yet this session, so it never plays twice.
+  const recordSigs = useRef(new Map())
+  const recordTimer = useRef(null)
+  useEffect(() => {
+    if (!A || editing) return
+    const sigOf = e => JSON.stringify((e.sets || []).filter(x => x && x.done).map(x => [x.w, x.r, x.sec, x.min, x.sides?.L?.r, x.sides?.R?.r]))
+    const changed = []
+    A.entries.forEach((e, idx) => {
+      const key = e.uid || e.id + ':' + idx
+      const sig = sigOf(e)
+      const before = recordSigs.current.get(key)
+      recordSigs.current.set(key, sig)
+      if (before !== undefined && before !== sig) changed.push(idx)
+    })
+    if (!changed.length) return
+    clearTimeout(recordTimer.current)
+    recordTimer.current = setTimeout(() => changed.forEach(reviewRecords), 700)
+  })
+  useEffect(() => () => clearTimeout(recordTimer.current), [])
+  const reviewRecords = idx => {
+    const st = useStore.getState().S
+    const e = st.active?.entries?.[idx]
+    if (!e) return
+    const now = recordsOf(recordHistory(st, activeGym(st)), e)
+    const had = Array.isArray(e.rec) ? e.rec : []
+    const fresh = now.filter(k => !had.includes(k))
+    const kept = had.filter(k => now.includes(k))
+    if (!fresh.length && kept.length === had.length) return
+    update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = [...kept, ...fresh] })
+    if (!fresh.length) return
     triumph(st.sound)
     vibrate([30, 50, 30, 50, 80])
     useUI.getState().toast(t('New record: {0}', fresh.map(recordLabel).join(', ')))
@@ -2002,7 +2038,13 @@ function ActiveWorkout() {
       {editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
         : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
-      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) + ' · ' : ''}{t('{0} sets', done + '/' + total)}</div></div>
+      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) + ' · ' : ''}{t('{0} sets', done + '/' + total)}</div>
+        {/* The gym of this session (components/Gyms.jsx): the latest one by default, one tap to change. */}
+        {!editing && <button type="button" className="whdr-gym" aria-label={t('Gym') + ': ' + (sessionGym || t('No gym'))}
+          onClick={() => gymChooserSheet({ current: sessionGym, onPick: g => update(s => { if (s.active) s.active.gym = g }) })}>
+          <GymIcon name={sessionGym} size={20} /><span>{sessionGym || t('Choose the gym')}</span><Icon name="chevronDown" />
+        </button>}
+      </div>
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
         onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>

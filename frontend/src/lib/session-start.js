@@ -20,6 +20,20 @@ import { dbLoadFor, historyAs, ownedWeightsFor } from './dumbbells.js'
 export const startsFromLast = st => st?.startFrom === 'last'
 
 /**
+ * Whether the weight written in `cfg` holds for the next session: it was typed by the person
+ * (cfg.weightPin, when) and the exercise has not been trained since.
+ */
+export function weightPinned(st, cfg) {
+  const at = Number(cfg?.weightPin) || 0
+  if (!at || !(Number(cfg.weight) > 0)) return false
+  for (const w of st?.workouts || []) {
+    const when = Number(w?.end) || Number(w?.start) || 0
+    if (when > at && (w.entries || []).some(e => e?.id === cfg.id && (e.sets || []).some(x => x?.done))) return false
+  }
+  return true
+}
+
+/**
  * One planned exercise, built the way a session builds it: the prescription, the rows it opens
  * with and the target it is judged against. The session start, a mid-session edit of the
  * exercise, and an exercise added to or swapped into a planned session all build through here,
@@ -33,8 +47,11 @@ export function buildPlannedEntry(stored, cfg, routine, { noProg = false } = {})
   // 20, not at 40 a hand. Only a switch between the two explicit meanings converts anything.
   const meaning = dbLoadFor(stored, cfg)
   const st = historyAs(stored, cfg.id, meaning)
-  // `plan` is kept on the entry purely so the workout can explain the number it chose.
-  const plan = noProg ? { policy: 'off', kind: 'off' } : nextPrescription(st, cfg, routine)
+  // `plan` is kept on the entry purely so the workout can explain the number it chose. A weight
+  // the person wrote into the routine themselves (cfg.weightPin, lib/plan-text.js: "bench 3 x 86
+  // kg") is what the next session opens with, whatever was lifted before: history and the policy
+  // take over again only once the exercise has been trained after it was written.
+  const plan = noProg || weightPinned(stored, cfg) ? { policy: 'off', kind: 'off' } : nextPrescription(st, cfg, routine)
   // The warm-up ramp and the prescription snap to the exercise's own increment (1.25 kg
   // plates exist), not the unit default; a timed exercise's `inc` is seconds, so it keeps the
   // default for its optional load.

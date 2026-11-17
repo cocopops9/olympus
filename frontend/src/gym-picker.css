@@ -17,3 +17,31 @@
 .gym-btn{flex:0 0 auto;margin-inline-start:auto}
 .gym-btn + .gym-btn{margin-inline-start:0}
 .gym-btn:disabled{opacity:.35}
+
+/* Gyms with a picture (components/Gyms.jsx) */
+.gym-ic{flex:none;display:inline-grid;place-items:center;border-radius:50%;object-fit:cover;background:var(--surface-2);
+  box-shadow:0 0 0 1.5px color-mix(in srgb,var(--acc) 55%,transparent)}
+.gym-ic-none{color:var(--text-2);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--label) 18%,transparent)}
+.gym-li{display:flex;align-items:center;gap:12px}
+.gym-li.on .tt{color:var(--acc);font-weight:650}
+.gym-li-k{color:var(--acc)}
+.gym-li-e{flex:none}
+.gym-ed-top{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
+.gym-ed-top .field{flex:1;min-width:0}
+.gym-ed-prev{width:72px;height:72px}
+.gym-ed-l{margin:6px 2px 8px}
+.gym-ed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;justify-items:center}
+.gym-ed-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;border:0;background:none;border-radius:50%;cursor:pointer;color:inherit;font:inherit}
+.gym-ed-opt img{width:56px;height:56px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px transparent;transition:box-shadow .15s}
+.gym-ed-opt.on img,.gym-ed-opt.on .gym-ed-cam{box-shadow:0 0 0 3px var(--acc)}
+.gym-ed-photo{border-radius:16px}
+.gym-ed-photo small{font-size:11px;color:var(--text-2)}
+.gym-ed-cam{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:22px;color:var(--acc);
+  background:color-mix(in srgb,var(--acc) 12%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--acc) 40%,transparent)}
+/* the gym of the session, in the workout header under its name */
+.whdr-gym{display:inline-flex;align-items:center;gap:6px;max-width:100%;margin-top:3px;padding:2px 10px 2px 2px;border:0;border-radius:999px;cursor:pointer;
+  font:inherit;font-size:12.5px;font-weight:600;color:var(--label-2);background:color-mix(in srgb,var(--label) 8%,transparent)}
+.whdr-gym span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whdr-gym .icn{font-size:12px;opacity:.7}
+.whdr-gym .gym-ic{width:20px;height:20px;box-shadow:none}
+.whdr-gym .gym-ic-none{font-size:12px}

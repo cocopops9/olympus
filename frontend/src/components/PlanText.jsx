@@ -11,7 +11,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { socialReady } from '../lib/social.js'
 import { herculesStatus, COACH_IDS } from '../lib/hercules.js'
-import { askPlanText, draftOf, pickFor, draftIssues, takenDays, savePlan, planSnapshot, routineOf, draftUsable, sameNamed, scheduleKind, replacedWeek, PLAN_TEXT_MAX } from '../lib/plan-text.js'
+import { askPlanText, draftOf, pickFor, answerDoubt, draftIssues, takenDays, savePlan, planSnapshot, routineOf, draftUsable, sameNamed, scheduleKind, replacedWeek, PLAN_TEXT_MAX } from '../lib/plan-text.js'
 import { exLine } from '../lib/history.js'
 import { speedUnitOf } from '../lib/speed.js'
 import { fmtRest } from '../lib/duration.js'
@@ -32,7 +32,21 @@ const keepText = v => { try { if (v) localStorage.setItem(DRAFT_KEY, v); else lo
 // label in front or the sets after the colon.
 const searchOf = it => (it.left ? it.said.split(':')[0].replace(/^[A-Z]\d*\s+/, '').trim() : it.said)
 
-function Item({ it, S, by, onPick, onDrop }) {
+// The coach was not sure: its question, the exercises it could be, and "as read". The item
+// cannot be saved until one is picked: asking is the point (better a tap than a wrong exercise).
+function Doubt({ it, by, onAnswer, onPick }) {
+  return <div className="pt-doubt" role="group" aria-label={t('{0} asks', coachName(by))}>
+    <div className="pt-doubt-q"><Icon name="help" /><span><b>{coachName(by)}:</b> {it.doubt}</span></div>
+    <div className="pt-doubt-a">
+      {(it.options || []).map(ex => <button key={ex.id || ex.n} type="button" className={'chip nocap' + (it.ex?.id === ex.id ? ' on' : '')}
+        onClick={() => onAnswer(ex)}><span className="capitalize">{exerciseNameFor(ex)}</span></button>)}
+      {!(it.options || []).length && it.ex && <button type="button" className="chip nocap on" onClick={() => onAnswer(it.ex)}>{t('Yes, as read')}</button>}
+      <button type="button" className="chip nocap" onClick={onPick}>{t('Something else…')}</button>
+    </div>
+  </div>
+}
+
+function Item({ it, S, by, onPick, onDrop, onAnswer }) {
   const name = it.ex ? (it.make ? it.ex.n : exerciseNameFor(it.ex)) : it.said
   const extra = it.ex && it.cfg ? [
     it.cfg.restSec > 0 ? t('{0} rest', fmtRest(it.cfg.restSec)) : '',
@@ -51,6 +65,7 @@ function Item({ it, S, by, onPick, onDrop }) {
     </button>
     {!it.ex || !it.sure ? <Icon name="warning" className="pt-warn" /> : null}
     <button type="button" className="iconbtn pt-drop" onClick={onDrop} aria-label={t('Remove {0}', name)}><Icon name="xmark" /></button>
+    {it.doubt && <Doubt it={it} by={by} onAnswer={onAnswer} onPick={onPick} />}
   </div>
 }
 
@@ -117,15 +132,16 @@ function PlanText({ close }) {
   const editItem = (rk, ik, fn) => editSession(rk, r => ({ ...r, items: r.items.map(it => (it.key === ik ? fn(it) : it)) }))
   // The picker opens on a search for what was written; with a rough match, its muscle comes first.
   const pick = (rk, it) => {
-    const picker = exercisePicker(ex => { editItem(rk, it.key, cur => pickFor(cur, ex)); picker.close() },
+    const picker = exercisePicker(ex => { editItem(rk, it.key, cur => (cur.doubt ? answerDoubt(cur, ex) : pickFor(cur, ex))); picker.close() },
       { title: it.ex ? t('Change exercise') : t('Choose an exercise'), like: it.ex && !it.sure ? it.ex.id : undefined, query: it.ex && !it.sure ? undefined : searchOf(it) })
   }
   const drop = (rk, ik) => editSession(rk, r => ({ ...r, items: r.items.filter(it => it.key !== ik) }))
   const toggleDay = (rk, d) => editSession(rk, r => ({ ...r, days: r.days.includes(d) ? r.days.filter(x => x !== d) : [...r.days, d].sort() }))
 
   if (draft) {
-    const { missing, guesses, left } = draftIssues(draft)
-    const usable = draftUsable(draft)
+    const { missing, guesses, left, doubts } = draftIssues(draft)
+    // A question of the coach still open holds the plan back: the answer decides what is saved.
+    const usable = draftUsable(draft) && !doubts
     const kind = scheduleKind(draft)
     const same = sameNamed(S, draft)
     const isPlan = draft.kind === 'plan'
@@ -183,6 +199,7 @@ function PlanText({ close }) {
       {isPlan && <TextField className="pt-rname" value={draft.name} maxLength={40} aria-label={t('Name')}
         onChange={e => { const v = e.target.value; setDraft(d => ({ ...d, name: v })) }} />}
       {draft.comment && <p className="pt-comment">{draft.comment}</p>}
+      {doubts > 0 && <p className="pt-note pt-note-q"><Icon name="help" />{tn('{1} has {0} question for you before saving.', '{1} has {0} questions for you before saving.', doubts, coachName(by))}</p>}
       {(missing > 0 || guesses > 0 || left > 0) && <p className="pt-note"><Icon name="warning" />
         {[left ? t('Lines left out: {0}', left) : null, missing ? t('Not found: {0}', missing) : null, guesses ? t('To check: {0}', guesses) : null].filter(Boolean).join(' · ')}
         {'. '}{t('Tap one to choose the right exercise.')}</p>}
@@ -194,7 +211,8 @@ function PlanText({ close }) {
             onChange={e => { const v = e.target.value; editSession(r.key, x => ({ ...x, name: v })) }} />
           {isPlan && !draft.dated && <Days days={r.days} order={order} onToggle={d => toggleDay(r.key, d)} />}
           {r.note && <p className="small muted pt-snote">{r.note}</p>}
-          {r.items.map(it => <Item key={it.key} it={it} S={S} by={by} onPick={() => pick(r.key, it)} onDrop={() => drop(r.key, it.key)} />)}
+          {r.items.map(it => <Item key={it.key} it={it} S={S} by={by} onPick={() => pick(r.key, it)} onDrop={() => drop(r.key, it.key)}
+            onAnswer={ex => editItem(r.key, it.key, cur => answerDoubt(cur, ex))} />)}
           {!r.items.length && <p className="small muted">{t('No exercises left.')}</p>}
         </section>)}
       {same.length > 0 && <div className="pt-sched"><span className="grow">{t('Update the routines with the same name')}

@@ -18,7 +18,7 @@
 .pt-days{display:flex;gap:4px;margin:0 0 8px}
 .pt-day{flex:1;min-width:0;padding:6px 0;border:1px solid var(--sep);border-radius:9px;background:none;color:var(--label-2);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .pt-day.on{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
-.pt-item{display:flex;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--sep)}
+.pt-item{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--sep)}
 .pt-item:first-of-type{border-top:0}
 .pt-item-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0;border:0;background:none;color:var(--label);font:inherit;text-align:start;cursor:pointer}
 .pt-item-n{font-weight:600;font-size:15px}
@@ -39,3 +39,11 @@
 .pt-drop{flex:none;width:30px;height:30px}
 .pt-sched{display:flex;align-items:center;gap:10px;margin:12px 2px 0;font-size:15px}
 .pt-sched > .grow{flex:1;min-width:0}
+
+/* The coach's question on an item it was not sure of (components/PlanText.jsx Doubt) */
+.pt-doubt{flex-basis:100%;margin:6px 0 2px;padding:10px 12px;border-radius:14px;
+  background:color-mix(in srgb,var(--acc) 10%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 30%,transparent)}
+.pt-doubt-q{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4}
+.pt-doubt-q .icn{flex:none;color:var(--acc);margin-top:2px}
+.pt-doubt-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pt-note-q .icn{color:var(--acc)}

@@ -39,3 +39,56 @@ describe('gyms', () => {
     expect(s.workouts.map(x => x.gym)).toEqual(['Home', 'Gym B'])
   })
 })
+
+import { activeGym, recordHistory, gymMeta, saveGym, GYM_ICONS } from './gyms.js'
+
+describe('gyms with a picture, the session\'s gym, and records per gym', () => {
+  test('a gym added before any workout is offered, after the ones used', () => {
+    const s = { workouts: [w('a', 'Home', 1e12)] }
+    saveGym(s, '  New  place ', { icon: 'forge' }, 9)
+    expect(gymsOf(s)).toEqual(['Home', 'New place'])
+    expect(gymMeta(s, 'New place')).toEqual({ icon: 'forge', photo: null })
+    // no picture chosen: a drawing picked by the name, the same one every time
+    expect(GYM_ICONS).toContain(gymMeta(s, 'Home').icon)
+    expect(gymMeta(s, 'Home').icon).toBe(gymMeta(s, 'Home').icon)
+  })
+
+  test('a photo is kept only when it is a small image data URL', () => {
+    const s = {}
+    saveGym(s, 'A', { photo: 'data:image/jpeg;base64,AAAA' })
+    expect(gymMeta(s, 'A').photo).toBe('data:image/jpeg;base64,AAAA')
+    saveGym(s, 'B', { photo: 'javascript:alert(1)' })
+    expect(gymMeta(s, 'B').photo).toBe(null)
+    saveGym(s, 'A', { photo: null })
+    expect(gymMeta(s, 'A').photo).toBe(null)
+  })
+
+  test('renaming carries the picture; deleting drops it and the session\'s pick', () => {
+    const s = { workouts: [w('a', 'Home', 1e12)], active: { gym: 'Home' } }
+    saveGym(s, 'Home', { icon: 'stadium' })
+    renameGym(s, 'Home', 'Casa', 3)
+    expect(gymMeta(s, 'Casa').icon).toBe('stadium')
+    expect(s.gyms.Home).toBeUndefined()
+    expect(s.active.gym).toBe('Casa')
+    deleteGym(s, 'Casa', 4)
+    expect(s.gyms.Casa).toBeUndefined()
+    expect(s.active.gym).toBe('')
+  })
+
+  test('the session\'s gym: picked, "no gym" picked, or the latest by default', () => {
+    const base = { workouts: [w('a', 'Home', 1e12)] }
+    expect(activeGym({ ...base, active: {} })).toBe('Home')
+    expect(activeGym({ ...base, active: { gym: 'McFit' } })).toBe('McFit')
+    expect(activeGym({ ...base, active: { gym: '' } })).toBe('')
+    expect(activeGym({ ...base, active: null })).toBe('')
+  })
+
+  test('records per gym: the same gym and the workouts with no gym count; off, everything counts', () => {
+    const S = { workouts: [w('a', 'Home', 1e12), w('b', 'McFit', 2e12), w('c', null, 3e12)] }
+    expect(recordHistory(S, 'Home')).toBe(S)
+    const on = { ...S, recordsByGym: true }
+    expect(recordHistory(on, 'Home').workouts.map(x => x.id)).toEqual(['a', 'c'])
+    expect(recordHistory(on, 'McFit').workouts.map(x => x.id)).toEqual(['b', 'c'])
+    expect(recordHistory(on, '')).toBe(on)
+  })
+})

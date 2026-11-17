@@ -192,3 +192,16 @@ test('an interval run comes back as its segments, and a set to failure as a flag
   assert.equal(raise.toFailure, true);
   assert.deepEqual(raise.intervals, []);
 });
+
+test('a doubt of the coach comes through as a short question with up to three exercises it could be', () => {
+  const p = parsePlanText(JSON.stringify({ kind: 'workout', sessions: [{ name: 'A', items: [
+    { line: 1, name: 'lever chest press', sets: 3, reps: 3, weight: 86, doubt: 'The machine or with dumbbells?', options: ['lever chest press', 'dumbbell bench press', 'barbell bench press', 'cable fly'] },
+    { line: 2, name: 'barbell curl', sets: 3, reps: 10 },
+  ] }] }));
+  const [a, b] = p.sessions[0].items;
+  assert.equal(a.doubt, 'The machine or with dumbbells?');
+  assert.deepEqual(a.options, ['lever chest press', 'dumbbell bench press', 'barbell bench press']);
+  assert.equal(a.weight, 86);
+  assert.equal(b.doubt, '');
+  assert.deepEqual(b.options, []);
+});

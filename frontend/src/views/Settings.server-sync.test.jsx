@@ -91,14 +91,14 @@ const buttonByText = (el, text) => [...el.querySelectorAll('button')].find(b => 
 const openSheet = (i = -1) => mount(mocks.sheets.at(i).render(() => {}))
 
 describe('Server & sync', () => {
-  it('a paired phone in step: server, account, "All synced" with the time, and Sync now reporting back', async () => {
+  it('a paired phone in step: the account named on top, no server address, "All synced" with the time, and Sync now reporting back', async () => {
     const page = mount(<Settings page="account" />)
     const b = block(page)
     expect(b).toBeTruthy()
-    expect(rowByTitle(b, 'gym.example.com').textContent).toContain('Signed in as andi')
+    expect(page.querySelector('.acc-hero .acc-name').textContent).toBe('andi')
+    expect(page.textContent).not.toContain('gym.example.com')
     expect(rowByTitle(b, 'All synced').textContent).toContain('Last synced: 5 minutes ago')
     expect(rowByTitle(page, 'Disconnect')).toBeTruthy()       // the phone's own rows follow in blocks of their own
-    expect(page.querySelector('.acc-hero .acc-chip').textContent).toBe('All synced')
     expect(rowByTitle(b, 'Pair again')).toBeUndefined()       // nothing to fix
 
     await act(async () => { rowByTitle(b, 'Sync now').click() })
@@ -125,12 +125,11 @@ describe('Server & sync', () => {
   })
 
   // A v1.3.8 phone that lost its pairing, upgraded: both rows said "This phone is not connected to a
-  // server." (Android QA, v1.3.9). The status row says it; the server row says there is no address.
-  it('a phone an earlier version unpaired says it is not connected once, and that its address is unknown', () => {
+  // server." (Android QA, v1.3.9). The status row says it, once.
+  it('a phone an earlier version unpaired says it is not connected once', () => {
     mocks.sync = sync('auth', { auth: true, pending: true, server: null, lastError: { status: 0, code: 'not-paired' } })
     const page = mount(<Settings page="account" />)
     const b = block(page)
-    expect(rowByTitle(b, 'Server address unknown').textContent).toContain('Signed in as andi')
     expect([...b.querySelectorAll('.lrow-t')].filter(el => el.textContent === 'This phone is not connected to a server.')).toHaveLength(1)
     expect(rowByTitle(b, 'Pair again')).toBeTruthy()
   })

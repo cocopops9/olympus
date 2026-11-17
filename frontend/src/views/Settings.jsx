@@ -50,6 +50,7 @@ import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
 import { VoiceSetupRow } from '../components/VoiceSetup.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
 import AccountHero, { useFace } from '../components/AccountHero.jsx'
+import { GymsManager } from '../components/Gyms.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
@@ -513,6 +514,16 @@ export default function Settings({ page = null, find = null, via = null }) {
             onChange={v => update(s => { s.gifSize = v })} />
         </Row>
       </Section>
+      {/* Gyms (components/Gyms.jsx): their pictures, and whether a record is a record everywhere or
+          in the gym it was set in. A workout with no gym counts for every gym. */}
+      <Section title={t('Gyms')} footer={t('Machines differ from gym to gym. With records per gym, a workout is held against the ones in the same gym; a workout with no gym on it counts for every gym.')}>
+        <Row icon="trophy" iconTint="var(--orange)" title={t('Records per gym')}
+          subtitle={S.recordsByGym ? t('Each gym keeps its own records') : t('One set of records for all gyms')}>
+          <Switch aria-label={t('Records per gym')} checked={!!S.recordsByGym} onChange={v => update(s => { s.recordsByGym = v })} />
+        </Row>
+      </Section>
+      <GymsManager />
+      <div style={{ height: 18 }} />
       <Section>
         <Row icon="wrench" iconTint="var(--grey)" title={t('Fine-tuning')} subtitle={t('Buttons, timed sets')} accessory="chevron" onClick={() => open('advanced')} />
       </Section>

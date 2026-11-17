@@ -90,10 +90,10 @@ describe('Chiron', () => {
     expect(mocks.spoken).toEqual([])
   })
 
-  it('is not there when the coach is off for workouts, or for a past workout', () => {
+  it('stays even for someone who once switched the old coach toggle off, but not for a past workout', () => {
     useStore.setState(st => ({ S: { ...st.S, coachInWorkout: false } }))
-    expect(mount(<WorkoutChiron />).querySelector('.whdr-chiron')).toBeNull()
-    useStore.setState(st => ({ S: { ...st.S, coachInWorkout: true, active: { ...st.S.active, backfill: true } } }))
+    expect(mount(<WorkoutChiron />).querySelector('.whdr-chiron')).not.toBeNull()
+    useStore.setState(st => ({ S: { ...st.S, active: { ...st.S.active, backfill: true } } }))
     expect(mount(<WorkoutChiron />).querySelector('.whdr-chiron')).toBeNull()
   })
 })

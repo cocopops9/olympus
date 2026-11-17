@@ -479,14 +479,13 @@ export const herculesSheet = ({ ask, coach, chat } = {}) => {
 
 /**
  * The coach in the workout header (Olympus): between sets Hercules or Athena is one tap away, and
- * knows the workout as it stands (lib/coach-profile.js liveWorkoutLines). Hidden for a past
- * workout being logged or edited, and when switched off in the workout's ⋯ menu
- * (S.coachInWorkout). The free daily messages are the same as anywhere else.
+ * knows the workout as it stands (lib/coach-profile.js liveWorkoutLines). Hidden only for a past
+ * workout being logged or edited. The free daily messages are the same as anywhere else.
  */
 export function WorkoutCoachButton() {
   const user = useStore(s => s.user)
   const ready = useStore(s => s.ready)
-  const allowed = useStore(s => s.S.coachInWorkout !== false && !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
+  const allowed = useStore(s => !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
   const can = socialReady(user) && ready
   const [ons, setOns] = useState(() => Object.fromEntries(COACH_IDS.map(id => [id, !!statusOf(user?.id, id)?.on])))
   useEffect(() => {

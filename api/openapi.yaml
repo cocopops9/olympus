@@ -1221,6 +1221,11 @@ paths:
         Since version 47 an item also carries `toFailure` (its last set taken to failure) and,
         for interval cardio, `intervals`: every segment in order, [{ minutes, speed (km/h),
         restSec (the pause after it, 0 to go straight on) }], `sets` then being their count.
+
+        Since version 51 an item also carries `doubt`: a short question to the person, in their
+        language, when the coach was not sure of the item (which exercise, a number, a rest), ""
+        otherwise; and `options`: up to 3 exercise names it could be when the doubt is which
+        exercise. The app holds the plan until each doubt is answered.
       requestBody:
         required: true
         content:

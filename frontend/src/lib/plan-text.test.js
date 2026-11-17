@@ -154,7 +154,7 @@ describe('a dated plan', () => {
     // the line left out sits in B, after the chest press and before the class
     expect(b.items.map(it => it.line)).toEqual([7, 8, 9, 11])
     expect(b.items[2]).toMatchObject({ ex: null, left: true, said: 'B1 Seated cable row, V grip: 3 × 8 to 12 at 1 RIR, rest 65 s, 86 kg.' })
-    expect(draftIssues(d)).toEqual({ missing: 0, guesses: 0, left: 1 })
+    expect(draftIssues(d)).toEqual({ missing: 0, guesses: 0, left: 1, doubts: 0 })
     expect(rest.rest).toBe(true)
     // a left-out line picked by hand becomes an item like any other
     expect(pickFor(b.items[2], EXIDX['0861'])).toMatchObject({ left: false, sure: true })

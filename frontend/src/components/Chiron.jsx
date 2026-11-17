@@ -335,7 +335,7 @@ export const WAKE_VOICE_MS = Math.round(WAKE_SECONDS * 1000) + 300
  * switched off for the workout (Settings), and while logging or editing a past workout.
  */
 export function WorkoutChiron() {
-  const on = useStore(s => s.S.coachInWorkout !== false && !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
+  const on = useStore(s => !!s.S.active && !s.S.active.backfill && !s.S.active.editingWorkoutId)
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const sheetOpen = useUI(s => !!openId && s.sheets.some(x => x.id === openId))

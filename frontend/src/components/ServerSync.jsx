@@ -238,8 +238,9 @@ export function OwedSheet({ kind, count: count0, media: media0 = 0, exportBackup
 /* ---------------------------------------------------------------- Settings ------------------- */
 const TINT = { ok: 'var(--green)', wait: 'var(--orange)', off: 'var(--grey)', bad: 'var(--red)', quiet: 'var(--grey)' }
 
-// Settings → "Server & sync", for a device signed in or paired: which server, which account, how
-// things stand, since when, what is still waiting, and "Sync now". `children` are the account's
+// Settings → "Server & sync", for a device signed in or paired: how things stand, since when, what
+// is still waiting, and "Sync now". The server's address is not shown: it says nothing a person
+// needs, and the account is named in the header above (components/AccountHero.jsx). `children` are the account's
 // own rows (the phone's Admin and Disconnect), which belong in the same block.
 export function ServerSyncSection({ children }) {
   const user = useStore(s => s.user)
@@ -267,10 +268,6 @@ export function ServerSyncSection({ children }) {
     try { await syncNowWithToast() } finally { setBusy(false) }
   }
   return <Section title={t('Server & sync')}>
-    {/* No address: a phone an earlier version unpaired. The status row below already says it is
-        not connected; this row only says which server, and there is none to name. */}
-    <Row icon="globe" iconTint="var(--blue)" title={sync.server ? hostOf(sync.server) : t('Server address unknown')}
-      subtitle={t('Signed in as {0}', user.name)} />
     <Row icon={view.icon} iconTint={TINT[view.tone]} title={view.line} subtitle={sub} className="sync-status" />
     <Row icon="reset" iconTint="var(--acc)" title={busy ? t('Syncing…') : t('Sync now')} subtitle={t('Send and receive changes right now')} onClick={now} />
     {MOBILE && <Row icon="key" iconTint="var(--orange)" title={t('Cloudflare Access')} subtitle={t('Only if your server asks for a service token')} accessory="chevron"

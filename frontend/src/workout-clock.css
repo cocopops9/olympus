@@ -25,17 +25,20 @@
 
 /* Olympus: the workout's time and volume, big, under its name (views/Workout.jsx WorkoutStats). */
 .wstats{display:flex;align-items:stretch;gap:10px;margin:-4px 0 10px}
-.wstat{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:16px;
+.wstat{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:16px;
   background:var(--surface);border:0;color:inherit;font:inherit;text-align:start}
-.wstat-v{font-size:26px;font-weight:700;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wstat-l{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.wstat-v{font-size:24px;font-weight:700;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wstat-v.long{font-size:19px}
+.wstat-l{font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .wstat-b{display:flex;flex-direction:column;min-width:0}
-.wstat.time{cursor:pointer;position:relative;flex-grow:1.5}
+/* The time takes only the room its digits need, so the volume beside it has the rest: up to six
+   digits show whole. The pause button sits at the card's end, centred. */
+.wstat.time{cursor:pointer;position:relative;flex:0 0 auto;padding-inline-end:42px}
+.wstat.vol{flex:1 1 0}
 .wstat.time.paused .wstat-v{color:var(--acc)}
-/* the pause button sits at the bottom corner, on the label's line, so the time keeps the width */
-.wstat .wclock-pp{position:absolute;inset-inline-end:8px;bottom:7px;width:26px;height:26px;font-size:13px!important;border:0;cursor:pointer}
+.wstat .wclock-pp{position:absolute;inset-inline-end:8px;top:50%;margin-top:-14px;width:28px;height:28px;font-size:13px!important;border:0;cursor:pointer}
 .wstat .atlas{flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}
-@media (max-width:359px){.wstat.time{flex-grow:1.5}.wstat .kronos,.wstat .atlas{width:38px!important;height:38px!important}.wstat-v{font-size:20px}.wstat{padding:8px 10px;gap:8px}}
+@media (max-width:359px){.wstat .kronos,.wstat .atlas{width:34px!important;height:34px!important}.wstat-v{font-size:20px}.wstat-v.long{font-size:16px}.wstat{padding:8px;gap:6px}.wstat.time{padding-inline-end:38px}}
 /* Kronos (Kronos.jsx): the medallion, and his hourglass on top of it. Every 5 s he turns the glass
    over: a small lift, half a turn with a little overshoot, and it settles. Paused, it stays. */
 .kronos{position:relative;display:block;flex:none;border-radius:50%;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}

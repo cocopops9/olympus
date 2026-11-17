@@ -11,6 +11,7 @@ import { sameWorkout } from '../lib/workout-date.js'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../gym-picker.css'
+import { GymIcon } from './Gyms.jsx'
 
 const NONE = ''
 const update = fn => useStore.getState().update(fn)
@@ -87,6 +88,7 @@ export default function GymPicker({ w }) {
     <div className="gym-h"><Icon name="pin" /><span>{t('Gym')}</span><span className="dim small">{t('optional')}</span></div>
     {!gyms.length && <p className="small dim gym-why">{t('Machines can be set up differently in each gym: with a gym on your workouts, progress can be seen per gym.')}</p>}
     <div className="gym-row">
+      <GymIcon name={cur} size={34} />
       {gyms.length >= 2 ? <label className="gym-select">
         <select aria-label={t('Gym')} value={cur} onChange={e => set(e.target.value)}>
           <option value={NONE}>{t('No gym')}</option>
