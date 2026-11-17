@@ -27,7 +27,7 @@ import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
 // The portraits a profile can take without uploading anything (frontend lib/god-avatars.js).
-export const GOD_AVATARS = ['apollo', 'artemis', 'hermes', 'ares', 'poseidon', 'hephaestus', 'nike', 'demeter'];
+export const GOD_AVATARS = ['apollo', 'achilles', 'artemis', 'hermes', 'poseidon', 'ares', 'perseus', 'nike', 'atalanta', 'hippolyta', 'hephaestus', 'demeter'];
 
 // The reactions a post can get: a heart (the plain like, also what older apps send) or one of
 // these. One per person and post; picking another changes it.
@@ -248,8 +248,8 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
   const authorOf = uid => {
     const u = userById(uid);
     if (!u) return null;
-    const avatar = prof(uid).avatar;
-    return { id: u.id, name: u.name, ...(avatar ? { avatar } : {}), ...(u.founder ? { founder: true } : {}) };
+    const { avatar, portrait } = prof(uid);
+    return { id: u.id, name: u.name, ...(avatar ? { avatar } : portrait ? { portrait } : {}), ...(u.founder ? { founder: true } : {}) };
   };
 
   // A profile as `viewer` sees it. Null when the viewer may not know it exists: it blocked them.
@@ -261,6 +261,8 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
       name: u.name,
       bio: prof(u.id).bio || '',
       avatar: prof(u.id).avatar || null,
+      // The portrait a profile with no picture of its own shows (setProfile), a god's id.
+      ...(!prof(u.id).avatar && prof(u.id).portrait ? { portrait: prof(u.id).portrait } : {}),
       // The app's founder, shown with a badge and a golden name. Set on the user record by the
       // server (the first profile of a new server), never by a request, and never handed on.
       ...(u.founder ? { founder: true } : {}),
@@ -483,6 +485,13 @@ export function createSocial({ dataDir = '.', write, users, now = () => Date.now
         }
         if (cur.avatar && !String(cur.avatar).startsWith('god:')) dropPhotos([cur.avatar]);
         if (id) cur.avatar = id; else delete cur.avatar;
+      }
+      // The portrait shown while there is no picture: the app picks one of the gods for the
+      // profile (from the sex its owner gave, if any) and sends its id; null clears it.
+      if (body.portrait !== undefined) {
+        const id = body.portrait || null;
+        if (id !== null && !(typeof id === 'string' && GOD_AVATARS.includes(id))) throw new SocialError(400, 'unknown portrait', 'bad-photos');
+        if (id) cur.portrait = id; else delete cur.portrait;
       }
       if (body.private !== undefined) {
         const was = cur.private === true;

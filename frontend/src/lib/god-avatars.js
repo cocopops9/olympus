@@ -13,6 +13,8 @@ import poseidon from '../assets/gods/poseidon.webp'
 import ares from '../assets/gods/ares.webp'
 import perseus from '../assets/gods/perseus.webp'
 import nike from '../assets/gods/nike.webp'
+import atalanta from '../assets/gods/atalanta.webp'
+import hippolyta from '../assets/gods/hippolyta.webp'
 const INK = '#1a1200'
 const GOLD = '#d9a21b'
 const LIGHT = '#f7d466'
@@ -28,11 +30,13 @@ const SVGS = {
 
 const toUrl = svg => 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
 
-/** [{ id, name, url }], in the order they are offered. */
+/** [{ id, name, url, sex }], in the order they are offered. `sex` is who the portrait shows. */
 export const GOD_AVATARS = [
-  ['apollo', 'Apollo', apollo], ['achilles', 'Achilles', achilles], ['artemis', 'Artemis', artemis], ['hermes', 'Hermes', hermes],
-  ['poseidon', 'Poseidon', poseidon], ['ares', 'Ares', ares], ['perseus', 'Perseus', perseus], ['nike', 'Nike', nike],
-].map(([id, name, url]) => ({ id, name, url }))
+  ['apollo', 'Apollo', apollo, 'male'], ['achilles', 'Achilles', achilles, 'male'], ['artemis', 'Artemis', artemis, 'female'],
+  ['atalanta', 'Atalanta', atalanta, 'female'], ['hermes', 'Hermes', hermes, 'male'], ['poseidon', 'Poseidon', poseidon, 'male'],
+  ['hippolyta', 'Hippolyta', hippolyta, 'female'], ['ares', 'Ares', ares, 'male'], ['perseus', 'Perseus', perseus, 'male'],
+  ['nike', 'Nike', nike, 'female'],
+].map(([id, name, url, sex]) => ({ id, name, url, sex }))
 // Picked before the portraits came, and still shown.
 const RETIRED = Object.fromEntries(['hephaestus', 'demeter'].map(id => [id, toUrl(wrap(SVGS[id]))]))
 
@@ -44,13 +48,22 @@ export function avatarUrl(value) {
 }
 
 /**
- * The portrait of a profile that has not picked a picture: one of the gods, chosen from its id
- * so it is the same one on every screen and every device (a simple string hash; it only has to
- * spread profiles evenly over the eight).
+ * The portrait of a profile that has not picked a picture: one of the gods and heroes, chosen
+ * from its id so it is the same one on every screen and every device (a simple string hash; it
+ * only has to spread profiles evenly). With `sex` ('male' or 'female') the choice is among the
+ * portraits of that sex; without it, among all of them.
  */
-export function godFor(seed) {
+export function godFor(seed, sex = null) {
   const s = String(seed ?? '')
   let h = 2166136261
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
-  return GOD_AVATARS[(h >>> 0) % GOD_AVATARS.length]
+  const pool = sex === 'male' || sex === 'female' ? GOD_AVATARS.filter(g => g.sex === sex) : GOD_AVATARS
+  return pool[(h >>> 0) % pool.length]
 }
+
+/**
+ * The sex a profile gave, for choosing its default portrait: 'female'; 'male' once something
+ * else in About you shows it was answered (the setting starts as 'male' for everyone, so on its
+ * own it says nothing); otherwise null, and the portrait is chosen among all of them.
+ */
+export const portraitSexOf = S => (S?.body === 'female' ? 'female' : S?.body === 'male' && S?.birth ? 'male' : null)

@@ -544,8 +544,23 @@ test('a god of Olympus as the profile picture: named, not uploaded, and replacin
   assert.ok(!fs.existsSync(path.join(dir, 'social-photos', photo + '.jpg')), 'the photo it replaced is gone');
   assert.equal(s.profile(BEN, ANNA.id).user.avatar, 'god:hermes');
   assert.throws(() => s.setProfile(ANNA, { avatar: 'god:zeus' }), /unknown portrait/);
+  assert.equal(s.setProfile(ANNA, { avatar: 'god:atalanta' }).avatar, 'god:atalanta');
+  assert.equal(s.setProfile(ANNA, { avatar: 'god:perseus' }).avatar, 'god:perseus');
   assert.equal(s.setProfile(ANNA, { avatar: 'god:ares' }).avatar, 'god:ares');
   assert.equal(s.setProfile(ANNA, { avatar: null }).avatar, null);
+});
+
+test('the portrait shown without a picture: named by the app, seen by others, and gone once a picture is set', t => {
+  const { s } = store(t, [ANNA, BEN]);
+  assert.equal(s.profile(BEN, ANNA.id).user.portrait, undefined);
+  assert.equal(s.setProfile(ANNA, { portrait: 'hippolyta' }).portrait, 'hippolyta');
+  assert.equal(s.profile(BEN, ANNA.id).user.portrait, 'hippolyta');
+  assert.throws(() => s.setProfile(ANNA, { portrait: 'zeus' }), /unknown portrait/);
+  s.setProfile(ANNA, { avatar: 'god:ares' });
+  assert.equal(s.profile(BEN, ANNA.id).user.portrait, undefined, 'a picture of its own wins');
+  s.setProfile(ANNA, { avatar: null });
+  assert.equal(s.profile(BEN, ANNA.id).user.portrait, 'hippolyta');
+  assert.equal(s.setProfile(ANNA, { portrait: null }).portrait, undefined);
 });
 
 test('the founder mark comes from the user record and shows wherever the name does', t => {

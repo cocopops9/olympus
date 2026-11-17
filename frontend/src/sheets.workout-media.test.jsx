@@ -247,4 +247,22 @@ describe('a workout\'s photos and videos', () => {
     expect(row.querySelector('.wrow-media').textContent).toBe('2')
     expect(row.querySelector('.wrow-media').getAttribute('aria-label')).toBe('2 photos or videos')
   })
+
+  it('a workout with only a video shows a frame of it, with a play mark', () => {
+    const poster = { hash: 'e'.repeat(64), mime: 'image/webp', size: 900, width: 320, height: 240 }
+    const withVideo = { ...refOf(2, 'video'), poster }
+    const row = render(<WorkoutRow w={workout({ media: [withVideo] })} onClick={() => {}} />)
+    expect(row.querySelector('.wrow-video')).not.toBeNull()
+    expect(row.querySelector('.wrow-play')).not.toBeNull()
+    // A photo still comes first when there is one.
+    const both = render(<WorkoutRow w={workout({ media: [withVideo, refOf(1)] })} onClick={() => {}} />)
+    expect(both.querySelector('.wrow-photo')).not.toBeNull()
+    expect(both.querySelector('.wrow-video')).toBeNull()
+  })
+
+  it('a video with no frame keeps the routine icon', () => {
+    const { poster, ...noFrame } = refOf(2, 'video')
+    const row = render(<WorkoutRow w={workout({ media: [noFrame] })} onClick={() => {}} />)
+    expect(row.querySelector('.wrow-photo')).toBeNull()
+  })
 })

@@ -2875,13 +2875,18 @@ export function WorkoutRow({ w, onClick }) {
   const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
   const mediaN = workoutMediaCount(w)
   // Olympus: a workout with a photo shows it, small, where the routine's icon would be: the week
-  // reads at a glance as the sessions it was. Only a photo (a video shows its icon as before).
-  const photo = workoutMediaOf(w).find(m => m && m.kind !== 'video')
+  // reads at a glance as the sessions it was. A photo comes first; with only a video, a frame of
+  // it (its poster, made when the clip was added) stands in, with a small play mark on it.
+  const media = workoutMediaOf(w)
+  const photo = media.find(m => m && m.kind !== 'video') || media.find(m => m && m.kind === 'video' && m.poster)
   // Otherwise the first photo of the workout's post in the feed (lib/workout-cover.js).
   const cover = useCover(w.id)
   return <div className="item" {...tappable(onClick)}>
     {photo
-      ? <span className="lrow-i wrow-photo" style={{ width: 34, height: 34, borderRadius: 8 }}><CustomThumb ex={{ custom: true, media: photo }} /></span>
+      ? <span className={'lrow-i wrow-photo' + (photo.kind === 'video' ? ' wrow-video' : '')} style={{ width: 34, height: 34, borderRadius: 8 }}>
+        <CustomThumb ex={{ custom: true, media: photo }} />
+        {photo.kind === 'video' && <span className="wrow-play" aria-hidden="true"><Icon name="playFill" /></span>}
+      </span>
       : cover ? <CoverThumb id={cover} glyph={glyph} />
       : <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>}
     <div className="grow"><div className="tt">{w.name}</div>

@@ -2659,6 +2659,7 @@ const routes = {
     if (typeof body.private === 'boolean') change.private = body.private;
     if (typeof body.pushSocial === 'boolean') change.pushSocial = body.pushSocial;
     if (body.avatar === null || typeof body.avatar === 'string') change.avatar = body.avatar;
+    if (body.portrait === null || typeof body.portrait === 'string') change.portrait = body.portrait;
     json(res, 200, { user: SOCIAL.setProfile(me, change) });
   },
   'GET /api/social/post': async (req, res) => {

@@ -53,7 +53,7 @@ export const summaryOf = (w, S) => workoutPostSummary(w, { unit: S.unit, nameOf:
 // the moment a photo is loading.
 export function Avatar({ user, size }) {
   const id = user?.avatar || null
-  const god = id && String(id).startsWith('god:') ? godAvatarUrl(id) : !id ? godFor(user?.id ?? user?.name).url : null
+  const god = id && String(id).startsWith('god:') ? godAvatarUrl(id) : !id ? (user?.portrait ? godAvatarUrl('god:' + user.portrait) : null) || godFor(user?.id ?? user?.name).url : null
   const [url, setUrl] = useState(null)
   useEffect(() => {
     let live = true

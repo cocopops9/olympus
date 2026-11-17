@@ -2367,7 +2367,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">avatar</span>
     <span class="p-type">string | null</span>
-    <span class="p-desc">Profile picture: the id of a photo the caller uploaded (POST /api/social/photos) and has not posted, or null to remove it. The picture it replaces is deleted.</span>
+    <span class="p-desc">Profile picture: the id of a photo the caller uploaded (POST /api/social/photos) and has not posted, or null to remove it. The picture it replaces is deleted. Also <code>god:&lt;id&gt;</code>, one of the app's portraits of gods and heroes.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">portrait</span>
+    <span class="p-type">string | null</span>
+    <span class="p-desc">The portrait of a god or hero shown while there is no picture of the caller's own (the app chooses it from the sex its owner gave, which the server never sees). Unknown ids are refused; null clears it.</span>
   </div>
 </div>
     <p class="ep-h">Responses</p>
@@ -6604,6 +6609,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-name">avatar</span>
     <span class="p-type">string | null</span>
     <span class="p-desc">Photo id of the profile picture (GET /api/social/photo)</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">portrait</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">Present only when there is no avatar: the portrait (a god or hero id) shown instead.</span>
   </div>
   <div class="prow">
     <span class="p-name">founder</span>

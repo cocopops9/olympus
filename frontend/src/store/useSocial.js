@@ -3,7 +3,9 @@
 // front, and at once when it comes back to the front; App starts and stops it with the session.
 import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
-import { fetchNotifications, fetchChatUnread } from '../lib/social.js'
+import { fetchNotifications, fetchChatUnread, saveProfile } from '../lib/social.js'
+import { syncPortrait } from '../lib/portrait-sync.js'
+import { useStore } from './useStore.js'
 
 export const useSocial = create(set => ({
   unread: 0,
@@ -16,6 +18,9 @@ export const useSocial = create(set => ({
       const n = await fetchNotifications()
       set({ unread: n.unread || 0, requests: n.requests || 0 })
       fetchChatUnread().then(messages => set({ messages }))
+      // The portrait this profile shows without a picture of its own, sent once (and again if its sex changes).
+      const { user, S } = useStore.getState()
+      syncPortrait(user, S, saveProfile)
       return n
     } catch { return null }
   },
