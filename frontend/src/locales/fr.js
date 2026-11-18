@@ -3555,4 +3555,5 @@ export default {
   "Workouts in three different gyms.": "Des séances dans trois salles différentes.",
   "{0} hour of training": "{0} heure d’entraînement",
   "{0} hours of training": "{0} heures d’entraînement",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Le plus de travail d’abord : une série compte 1 quand c’est le muscle principal, {0} quand il ne fait qu’aider.",
 }

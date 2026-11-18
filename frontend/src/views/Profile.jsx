@@ -19,6 +19,7 @@ import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
 import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet, calendarSheet, dayWorkoutsSheet, dayOverrideSheet } from '../sheets.jsx'
 import BodyMap from '../components/BodyMap.jsx'
+import { muscleWeekSheet } from '../components/MuscleWeek.jsx'
 import StrengthLevels from '../components/StrengthLevels.jsx'
 import { MedalsCard, rememberSocial } from '../components/Medals.jsx'
 import { Avatar as CoachAvatar } from '../components/Hercules.jsx'
@@ -114,7 +115,9 @@ function OverviewTab({ S }) {
 
     {wk.workouts.length > 0 && <div className="ov-card">
       <h3>{off === 0 ? t('Muscles this week') : t('Muscles')}</h3>
-      <BodyMap load={load} body={S.body} />
+      {/* A muscle opens the exercises that trained it this week, the biggest share first. */}
+      <BodyMap className="tappable" load={load} body={S.body} onMuscle={slug => muscleWeekSheet(slug, wk.workouts)} />
+      <div className="small dim" style={{ textAlign: 'center', marginTop: 6 }}>{t('Tap a muscle to see its exercises.')}</div>
     </div>}
 
     <div className="row between" style={{ margin: '16px 2px 8px' }}>

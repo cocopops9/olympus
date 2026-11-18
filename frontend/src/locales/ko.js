@@ -3555,4 +3555,5 @@ export default {
   "Workouts in three different gyms.": "서로 다른 체육관 세 곳에서 운동.",
   "{0} hour of training": "{0}시간 운동",
   "{0} hours of training": "{0}시간 운동",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "가장 많이 쓴 순서: 이 근육이 주동근이면 한 세트를 1로, 보조로만 쓰이면 {0}로 셉니다.",
 }

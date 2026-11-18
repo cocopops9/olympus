@@ -2617,4 +2617,5 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Only if your server asks for a service token": "Só se o seu servidor pedir um token de serviço",
   "Stop syncing with this server": "Parar de sincronizar com este servidor",
   "This phone goes back to local-only. Before it does, it checks that your server has every change.": "Este celular volta a ser só local. Antes, ele confere se o servidor tem todas as alterações.",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Mais trabalho primeiro: uma série conta 1 quando este é o músculo principal e {0} quando só ajuda.",
 }

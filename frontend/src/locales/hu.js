@@ -3558,4 +3558,5 @@ export default {
   "Workouts in three different gyms.": "Edzések három különböző teremben.",
   "{0} hour of training": "{0} óra edzés",
   "{0} hours of training": "{0} óra edzés",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "A legtöbb munka elöl: egy sorozat 1-et ér, ahol ez a fő izom, és {0}-et, ahol csak segít.",
 }

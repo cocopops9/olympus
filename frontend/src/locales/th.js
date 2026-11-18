@@ -3566,4 +3566,5 @@ export default {
   "Workouts in three different gyms.": "ฝึกในยิมสามแห่งที่ต่างกัน",
   "{0} hour of training": "ฝึก {0} ชั่วโมง",
   "{0} hours of training": "ฝึก {0} ชั่วโมง",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "งานมากที่สุดก่อน: นับหนึ่งเซ็ตเป็น 1 เมื่อเป็นกล้ามเนื้อหลัก และ {0} เมื่อช่วยเท่านั้น",
 }
