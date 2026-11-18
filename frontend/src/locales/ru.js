@@ -3559,4 +3559,5 @@ export default {
   "Workouts in three different gyms.": "Тренировки в трёх разных залах.",
   "{0} hour of training": "{0} час тренировок",
   "{0} hours of training": { one: "{0} час тренировок", few: "{0} часа тренировок", many: "{0} часов тренировок" },
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Сначала самое нагруженное: подход считается за 1, где это основная мышца, и за {0}, где она лишь помогает.",
 }

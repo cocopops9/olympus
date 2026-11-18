@@ -84,7 +84,7 @@ const BY_BODYPART = {
   cardio: {},
 }
 
-const SECONDARY = 0.4   // a supporting muscle counts this much against a primary
+export const SECONDARY = 0.4   // a supporting muscle counts this much against a primary
 
 const arrayOf = value => Array.isArray(value) ? value : value == null || value === '' ? [] : [value]
 
@@ -259,14 +259,19 @@ export function exerciseMuscleSnapshot(ex) {
 export function loadOf(items) {
   const load = {}
   items.forEach(item => {
-    const { id, sets } = item || {}
+    const { sets } = item || {}
     if (!sets) return
-    const historical = item.ex || item.exercise
-    const source = historical?.muscleWeights ? historical : (EXIDX[id] || historical || item)
-    const m = musclesOf(source)
+    const m = musclesOf(loadSourceOf(item))
     for (const slug in m) load[slug] = (load[slug] || 0) + m[slug] * sets
   })
   return load
+}
+
+// The exercise whose muscle weights an item is counted with: the muscles the entry carried when
+// it was logged, else the catalogue's, else whatever the item itself describes.
+function loadSourceOf(item) {
+  const historical = item.ex || item.exercise
+  return historical?.muscleWeights ? historical : (EXIDX[item.id] || historical || item)
 }
 
 /**
@@ -275,14 +280,47 @@ export function loadOf(items) {
  * question from where the sets went: a muscle can lead on volume and still never be trained
  * near failure.
  */
-export const loadOfWorkouts = (workouts, pick) =>
-  loadOf((workouts || []).flatMap(w =>
+export const loadOfWorkouts = (workouts, pick) => loadOf(workoutLoadItems(workouts, pick))
+
+// One { id, ex, sets } item per logged entry, the unit loadOf counts in.
+function workoutLoadItems(workouts, pick) {
+  return (workouts || []).flatMap(w =>
     (w.entries || []).map(e => {
       const done = (e.sets || []).filter(s => s.done && !isWarmupRow(s) && (!pick || pick(s)))
       // A sport is played for time: its minutes stand in for sets (lib/sports.js).
       const sport = isSportEx(EXIDX[e.id])
       return { id: e.id, ex: e.exercise || e, sets: sport ? setsEquivalent(done.reduce((sum, s) => sum + (Number(s.min) || 0), 0)) : done.length }
-    })))
+    }))
+}
+
+/**
+ * Which exercises of `workouts` trained muscle `slug`, the biggest contribution first: the list
+ * behind a tap on the map. The contribution is the map's own unit, effective sets: the work sets
+ * ticked off times the exercise's weight for the muscle (1 where it is the primary target,
+ * SECONDARY where it only helps, or the exercise's own muscleWeights). So the contributions add
+ * up to exactly the load that shades the muscle (loadOfWorkouts), and `share` is each one's part
+ * of it. The same exercise in several workouts is one row.
+ *
+ * Returns [{ id, ex, sets, weight, load, share }], sorted by load, then sets, then id.
+ */
+export function muscleContributions(workouts, slug) {
+  const byId = new Map()
+  for (const item of workoutLoadItems(workouts)) {
+    if (!item.sets) continue
+    const weight = musclesOf(loadSourceOf(item))[slug] || 0
+    if (!weight) continue
+    const row = byId.get(item.id) || { id: item.id, ex: item.ex, sets: 0, weight: 0, load: 0 }
+    row.sets += item.sets
+    row.load += weight * item.sets
+    row.weight = Math.max(row.weight, weight)
+    byId.set(item.id, row)
+  }
+  const rows = [...byId.values()]
+  const total = rows.reduce((sum, row) => sum + row.load, 0)
+  return rows
+    .map(row => ({ ...row, share: total > 0 ? row.load / total : 0 }))
+    .sort((a, b) => b.load - a.load || b.sets - a.sets || String(a.id).localeCompare(String(b.id)))
+}
 
 /**
  * Workouts in one existing Muscle balance range, with time injected for deterministic tests.

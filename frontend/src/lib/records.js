@@ -52,3 +52,18 @@ export function newRecords(S, entry) {
   const had = new Set(Array.isArray(entry?.rec) ? entry.rec : [])
   return recordsOf(S, entry).filter(k => !had.has(k))
 }
+
+// Keys of a set row that say when or how it was entered, not what was lifted: a change to them
+// alone is no reason to judge the records again.
+const NOT_LIFTED = new Set(['at', 'weightOrigin', 'sug', 'planSec'])
+
+/**
+ * What the ticked rows of `entry` logged, as one string: two entries with the same signature
+ * set the same records. Every number on a done row counts, at any depth (the L and R sides of a
+ * unilateral row, a drop set's drops, a rest-pause burst), so an edit to any of them after the
+ * tick is seen (views/Workout.jsx judges the records again when it changes).
+ */
+export function recordSignature(entry) {
+  const done = (entry?.sets || []).filter(s => s && s.done)
+  return JSON.stringify(done, (k, v) => (NOT_LIFTED.has(k) ? undefined : v))
+}

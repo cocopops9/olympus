@@ -3555,4 +3555,5 @@ export default {
   "Workouts in three different gyms.": "तीन अलग-अलग जिम में वर्कआउट।",
   "{0} hour of training": "{0} घंटा ट्रेनिंग",
   "{0} hours of training": "{0} घंटे ट्रेनिंग",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "सबसे ज़्यादा काम पहले: जहाँ यह मुख्य मांसपेशी है वहाँ एक सेट 1 गिना जाता है, जहाँ यह सिर्फ़ मदद करती है वहाँ {0}।",
 }

@@ -3548,4 +3548,5 @@ export default {
   "Workouts in three different gyms.": "在三家不同的健身房訓練。",
   "{0} hour of training": "訓練 {0} 小時",
   "{0} hours of training": "訓練 {0} 小時",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "貢獻最多的在前：這是主要肌群時一組算 1，只是輔助時算 {0}。",
 }

@@ -196,4 +196,59 @@ describe('a record is judged again when a ticked set changes', () => {
     expect(mocks.S.active.entries[0].rec || []).toEqual([])
     expect(mocks.toast).not.toHaveBeenCalled()
   })
+
+  // The same path the phone takes: the row's own tick, then its own + button.
+  const rows = () => container.querySelectorAll('.setrow')
+  const plus = (row, col) => rows()[row].querySelectorAll('.stp')[col].querySelector('button[aria-label="Increase"]')
+  const tick = row => rows()[row].querySelector('button.chk')
+  const settle = async () => { await rerender(); await act(async () => { vi.advanceTimersByTime(800) }) }
+
+  it('ticked at the old best, then one more kilo on its + button: a record', async () => {
+    const e = exercise('barbell-bench-press', [false])
+    e.sets[0].w = 80
+    await mount([e])
+    mocks.S.workouts = [PAST]
+    await rerender()
+    await tap(tick(0))
+    await settle()
+    expect(mocks.S.active.entries[0].rec || []).toEqual([])
+    await tap(plus(0, 0))
+    await settle()
+    expect(mocks.S.active.entries[0].sets[0].w).toBeGreaterThan(80)
+    expect(mocks.S.active.entries[0].rec).toContain('weight')
+    expect(mocks.toast.mock.calls.some(c => /New record/.test(c[0]))).toBe(true)
+  })
+
+  it('ticked at the old best, then one more rep: a 1RM record, not a weight one', async () => {
+    const e = exercise('barbell-bench-press', [false])
+    e.sets[0].w = 80
+    await mount([e])
+    mocks.S.workouts = [PAST]
+    await rerender()
+    await tap(tick(0))
+    await settle()
+    await tap(plus(0, 1))
+    await settle()
+    expect(mocks.S.active.entries[0].rec).toContain('rm')
+    expect(mocks.S.active.entries[0].rec).not.toContain('weight')
+  })
+
+  it('two exercises changed within the wait are both judged', async () => {
+    const PAST2 = structuredClone(PAST)
+    PAST2.entries.push({ id: 'barbell-curl', target: { mode: 'reps' }, sets: [{ w: 30, r: 8, done: true }] })
+    const a = exercise('barbell-bench-press', [true]); a.sets[0].w = 70
+    const b = exercise('barbell-curl', [true]); b.sets[0].w = 25
+    await mount([a, b])
+    mocks.S.workouts = [PAST2]
+    await rerender()
+    mocks.S = structuredClone(mocks.S)
+    mocks.S.active.entries[0].sets[0].w = 85
+    await rerender()
+    await act(async () => { vi.advanceTimersByTime(300) })
+    mocks.S = structuredClone(mocks.S)
+    mocks.S.active.entries[1].sets[0].w = 35
+    await settle()
+    expect(mocks.S.active.entries[0].rec).toContain('weight')
+    expect(mocks.S.active.entries[1].rec).toContain('weight')
+  })
 })

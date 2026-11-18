@@ -3555,4 +3555,5 @@ export default {
   "Workouts in three different gyms.": "Üç farklı salonda antrenman.",
   "{0} hour of training": "{0} saat antrenman",
   "{0} hours of training": "{0} saat antrenman",
+  "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "En çok iş önce: bir set, bu ana kas olduğunda 1, yalnızca yardım ettiğinde {0} sayılır.",
 }

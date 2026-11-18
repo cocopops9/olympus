@@ -17,7 +17,7 @@ import { fmtNum, fmtPlate, exerciseNameText, fmtDate, fmtDaysAgo, todayISO, exCo
 import { speedUnitOf, toSpeed, fromSpeed, fmtSpeed } from '../lib/speed.js'
 import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from '../lib/incline.js'
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
-import { newRecords, recordsOf } from '../lib/records.js'
+import { newRecords, recordsOf, recordSignature } from '../lib/records.js'
 import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
 import { activeGym, recordHistory } from '../lib/gyms.js'
 import { GymIcon, gymChooserSheet } from '../components/Gyms.jsx'
@@ -1683,22 +1683,32 @@ function ActiveWorkout() {
   // only moment a record is decided. Raised to 80 kg after ticking 70 kg, the medal comes; lowered
   // back, it goes. Waits until the typing stops (an "86" passes through "8" on the way), and
   // celebrates only a kind not celebrated yet this session, so it never plays twice.
+  // The signature is everything logged on the ticked rows (recordSignature): a side's own weight,
+  // a drop's weight and reps count as much as the row's. Exercises changed while the wait runs
+  // are kept, so a second one edited within it is judged too, not dropped by the new timer.
   const recordSigs = useRef(new Map())
+  const recordPending = useRef(new Set())
   const recordTimer = useRef(null)
   useEffect(() => {
     if (!A || editing) return
-    const sigOf = e => JSON.stringify((e.sets || []).filter(x => x && x.done).map(x => [x.w, x.r, x.sec, x.min, x.sides?.L?.r, x.sides?.R?.r]))
-    const changed = []
+    const keyOf = (e, idx) => e.uid || e.id + ':' + idx
+    let changed = false
     A.entries.forEach((e, idx) => {
-      const key = e.uid || e.id + ':' + idx
-      const sig = sigOf(e)
+      const key = keyOf(e, idx)
+      const sig = recordSignature(e)
       const before = recordSigs.current.get(key)
       recordSigs.current.set(key, sig)
-      if (before !== undefined && before !== sig) changed.push(idx)
+      if (before !== undefined && before !== sig) { recordPending.current.add(key); changed = true }
     })
-    if (!changed.length) return
+    if (!changed) return
     clearTimeout(recordTimer.current)
-    recordTimer.current = setTimeout(() => changed.forEach(reviewRecords), 700)
+    recordTimer.current = setTimeout(() => {
+      const keys = recordPending.current
+      recordPending.current = new Set()
+      // By key, not by the index of the moment it changed: an exercise moved meanwhile is still found.
+      const entries = useStore.getState().S.active?.entries || []
+      entries.forEach((e, idx) => { if (keys.has(keyOf(e, idx))) reviewRecords(idx) })
+    }, 700)
   })
   useEffect(() => () => clearTimeout(recordTimer.current), [])
   const reviewRecords = idx => {
