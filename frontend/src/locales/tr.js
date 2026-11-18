@@ -3556,4 +3556,6 @@ export default {
   "{0} hour of training": "{0} saat antrenman",
   "{0} hours of training": "{0} saat antrenman",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "En çok iş önce: bir set, bu ana kas olduğunda 1, yalnızca yardım ettiğinde {0} sayılır.",
+  "Greek aulos": "Yunan aulosu",
+  "An aulos calls you back, in the Greek manner.": "Bir aulos geri çağırıyor, Yunan usulü.",
 }

@@ -3556,4 +3556,6 @@ export default {
   "{0} hour of training": "训练 {0} 小时",
   "{0} hours of training": "训练 {0} 小时",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "贡献最多的在前：这是主要肌群时一组算 1，只是辅助时算 {0}。",
+  "Greek aulos": "希腊管笛（奥洛斯）",
+  "An aulos calls you back, in the Greek manner.": "希腊风格的奥洛斯管笛，叫你回来训练。",
 }

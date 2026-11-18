@@ -202,9 +202,13 @@ describe('Settings — vibrate', () => {
 })
 
 describe('Settings — which sound', () => {
-  it('shows the chime by default and Classic beeps for classicChime, only while sound is on', () => {
+  it('shows the Greek aulos by default, the chime for one who picked it, and Classic beeps for classicChime, only while sound is on', () => {
+    mount()
+    expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Greek aulos')
+    mocks.S.restSound = 'chime'
     mount()
     expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Chime (louder)')
+    delete mocks.S.restSound
     mocks.S.classicChime = true
     mount()
     expect(rowTitled('Sound').querySelector('.lrow-v').textContent).toBe('Classic beeps')
@@ -228,8 +232,8 @@ describe('Settings — which sound', () => {
     // the mocked store does not re-render on its own: render again to read the new tick
     const render = () => act(() => root.render(<RestSoundSheet close={close} />))
     render()
-    expect([...host.querySelectorAll('.lrow-t')].map(e => e.textContent)).toEqual(['Chime (louder)', 'Classic beeps', 'Bell', 'Beep-beep', 'Whistle', 'Soft'])
-    expect(rowTitled('Chime (louder)').querySelector('.lrow-k')).toBeTruthy()
+    expect([...host.querySelectorAll('.lrow-t')].map(e => e.textContent)).toEqual(['Chime (louder)', 'Classic beeps', 'Bell', 'Beep-beep', 'Whistle', 'Soft', 'Greek aulos'])
+    expect(rowTitled('Greek aulos').querySelector('.lrow-k')).toBeTruthy()
 
     act(() => { rowTitled('Bell').click() })
     expect(mocks.S).toMatchObject({ restSound: 'bell', classicChime: false })
@@ -237,7 +241,7 @@ describe('Settings — which sound', () => {
     expect(unlock).toHaveBeenCalled()
     render()
     expect(rowTitled('Bell').querySelector('.lrow-k')).toBeTruthy()
-    expect(rowTitled('Chime (louder)').querySelector('.lrow-k')).toBeNull()
+    expect(rowTitled('Greek aulos').querySelector('.lrow-k')).toBeNull()
     expect(close).not.toHaveBeenCalled()
 
     // Classic keeps the old switch in step, so an app from before #306 plays it too

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 
-const sound = vi.hoisted(() => ({ triumph: vi.fn() }))
+const sound = vi.hoisted(() => ({ medalSound: vi.fn() }))
 vi.mock('../lib/sound.js', async orig => ({ ...(await orig()), ...sound }))
 
 import { DEF, useStore } from '../store/useStore.js'
@@ -20,7 +20,7 @@ const medal = (tier, id = tier) => ({ id, tier, title: 'Medal ' + id, desc: 'Wha
 let root, host
 beforeEach(() => {
   vi.useFakeTimers()
-  sound.triumph.mockClear()
+  sound.medalSound.mockClear()
   useUI.setState({ sheets: [] })
   useStore.setState({ S: { ...JSON.parse(JSON.stringify(DEF)), sound: true } })
   host = document.createElement('div'); document.body.appendChild(host)
@@ -42,21 +42,22 @@ describe('medal celebration', () => {
     expect(celebrationOf({ tier: 'unknown' })).toBe(CELEBRATION.bronze)
   })
 
-  it('bronze is a quiet banner at the top: no confetti, no fanfare, the app stays usable', () => {
+  it('bronze is a quiet banner at the top: no confetti, the app stays usable, and its own sound', () => {
     act(() => celebrate([medal('bronze')]))
     expect(shown().className).toContain('mdl-cele-banner')
     expect(shown().className).toContain('tier-bronze')
     expect(host.querySelector('.mdl-confetti')).toBe(null)
     expect(host.querySelector('.mdl-rays')).toBe(null)
-    expect(sound.triumph).not.toHaveBeenCalled()
+    expect(sound.medalSound).toHaveBeenCalledTimes(1)
+    expect(sound.medalSound).toHaveBeenCalledWith(true, 'bronze')
     expect(host.querySelector('.mdl-banner').textContent).toContain('Medal bronze')
   })
 
-  it('gold adds confetti and the fanfare to the banner', () => {
+  it('gold adds confetti and its sound to the banner', () => {
     act(() => celebrate([medal('gold')]))
     expect(shown().className).toContain('mdl-cele-banner')
     expect(host.querySelectorAll('.mdl-confetti i').length).toBe(CELEBRATION.gold.confetti)
-    expect(sound.triumph).toHaveBeenCalledTimes(1)
+    expect(sound.medalSound).toHaveBeenCalledWith(true, 'gold')
     expect(host.querySelector('.mdl-banner').textContent).toContain('As heavy as a lion')
   })
 
@@ -72,6 +73,15 @@ describe('medal celebration', () => {
     expect(host.querySelector('.mdl-shock')).not.toBe(null)
     expect(host.querySelector('.mdl-stage-flash')).not.toBe(null)
     expect(host.querySelectorAll('.mdl-confetti i').length).toBe(CELEBRATION.olympian.confetti)
+  })
+
+  it('every tier plays the sound of its own tier, and none while Sounds is off', () => {
+    for (const tier of TIERS) {
+      act(() => celebrate([medal(tier)]))
+      expect(sound.medalSound).toHaveBeenLastCalledWith(true, tier)
+      act(() => { vi.advanceTimersByTime(CELEBRATION[tier].stay + 50) })
+    }
+    expect(sound.medalSound).toHaveBeenCalledTimes(TIERS.length)
   })
 
   it('leaves by itself, then shows the next one; a tap sends it away sooner', () => {

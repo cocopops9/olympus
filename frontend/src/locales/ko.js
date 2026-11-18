@@ -3556,4 +3556,6 @@ export default {
   "{0} hour of training": "{0}시간 운동",
   "{0} hours of training": "{0}시간 운동",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "가장 많이 쓴 순서: 이 근육이 주동근이면 한 세트를 1로, 보조로만 쓰이면 {0}로 셉니다.",
+  "Greek aulos": "그리스 아울로스",
+  "An aulos calls you back, in the Greek manner.": "아울로스가 그리스식으로 당신을 다시 부릅니다.",
 }

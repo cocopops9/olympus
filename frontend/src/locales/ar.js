@@ -3611,4 +3611,6 @@ export default {
   "{0} hour of training": "{0} ساعة تمرين",
   "{0} hours of training": "{0} ساعات تمرين",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "الأكثر عملاً أولاً: تُحسب المجموعة 1 حيث تكون هذه العضلة الرئيسية، و{0} حيث تساعد فقط.",
+  "Greek aulos": "مزمار الأولوس اليوناني",
+  "An aulos calls you back, in the Greek manner.": "يناديك الأولوس من جديد على الطريقة اليونانية.",
 }

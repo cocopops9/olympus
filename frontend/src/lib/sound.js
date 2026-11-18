@@ -20,6 +20,7 @@
 // rendering silence for the rest of the page, and under 'playback' keeps the phone's audio
 // session busy. (Suspending does NOT hand the phone back to a paused music app — see 1.)
 import { REST_SOUNDS } from './rest-sounds.js'
+import { MEDAL_SOUNDS, DRUM_RING, medalSoundEnd } from './medal-sounds.js'
 
 let audioCtx = null
 let idleTm = null
@@ -55,7 +56,9 @@ const sleepAfter = endSec => {
 // struck, glassy ring. The browser normalises a periodic wave to a peak of 1, so the gain alone
 // decides how loud it gets. Built once per context; a browser without createPeriodicWave gets
 // the nearest built-in shape. android/.../RestTone.java renders the same harmonics.
-export const TIMBRES = { bright: [1, 0.6, 0.35, 0.2], bell: [1, 0.25, 0.5, 0.1, 0.3] }
+// `aulos` is the Greek double-reed pipe's: a reed in a cylindrical bore sounds the odd harmonics
+// (1st, 3rd, 5th, 7th) and hardly the even ones, which is what makes it nasal and reedy.
+export const TIMBRES = { bright: [1, 0.6, 0.35, 0.2], bell: [1, 0.25, 0.5, 0.1, 0.3], aulos: [1, 0, 0.55, 0, 0.3, 0, 0.15] }
 let waves = {}
 let wavesCtx = null
 const setTimbre = (ctx, o, name) => {
@@ -72,10 +75,10 @@ const setTimbre = (ctx, o, name) => {
 // fades from there at once. `peak`, `hold` (the share of the tone kept at its peak before the
 // fade), `timbre` (one of TIMBRES; `bright: true` is the chime's) and `glide` (a frequency the
 // tone slides to by its end, for the whistle) exist for the end-of-rest sounds below.
-const tone = (freq, dur, when, { peak = 0.35, hold = 0, bright = false, timbre = bright ? 'bright' : null, glide = 0 } = {}) => {
+const tone = (freq, dur, when, { peak = 0.35, hold = 0, bright = false, timbre = bright ? 'bright' : null, glide = 0, out = null } = {}) => {
   const ctx = wake()
   const o = ctx.createOscillator(), g = ctx.createGain()
-  o.connect(g); g.connect(ctx.destination)
+  o.connect(g); g.connect(out || ctx.destination)
   if (timbre && TIMBRES[timbre]) setTimbre(ctx, o, timbre); else o.type = 'sine'
   const t0 = ctx.currentTime + when
   o.frequency.value = freq
@@ -210,19 +213,19 @@ const pluckBuffer = (ctx, freq, dur) => {
   buf.getChannelData(0).set(data)
   return buf
 }
-const pluck = (ctx, freq, when, dur = 1.1, peak = 0.5) => {
+const pluck = (ctx, freq, when, dur = 1.1, peak = 0.5, out = ctx.destination) => {
   const src = ctx.createBufferSource(), g = ctx.createGain()
   src.buffer = pluckBuffer(ctx, freq, dur)
-  src.connect(g); g.connect(ctx.destination)
+  src.connect(g); g.connect(out)
   const t0 = ctx.currentTime + when
   g.gain.setValueAtTime(peak, t0)
   g.gain.exponentialRampToValueAtTime(0.001, t0 + dur)
   src.start(t0); src.stop(t0 + dur + 0.05)
 }
-const horn = (ctx, freq, when, dur, peak = 0.16) => {
+const horn = (ctx, freq, when, dur, peak = 0.16, out = ctx.destination) => {
   const g = ctx.createGain(), lp = ctx.createBiquadFilter()
   lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 0.8
-  lp.connect(g); g.connect(ctx.destination)
+  lp.connect(g); g.connect(out)
   const t0 = ctx.currentTime + when
   const lfo = ctx.createOscillator(), depth = ctx.createGain()
   lfo.frequency.value = 5.5; depth.gain.value = freq * 0.006
@@ -254,4 +257,51 @@ export function triumph(enabled) {
     for (const [f, w, d] of TRIUMPH.salpinx) horn(ctx, f, w, d)
     sleepAfter(1.6)
   } catch (e) { /* a record without its sound is still a record */ }
+}
+
+// A struck skin, for the drum of a medal's sound: a sine that starts a third higher and settles
+// on its pitch in 80 ms (the strike), with its octave above at half the strength, then dies away.
+const drum = (ctx, freq, when, out = ctx.destination, peak = 0.7) => {
+  const g = ctx.createGain()
+  g.connect(out)
+  const t0 = ctx.currentTime + when
+  const parts = [[freq, 1], [freq * 2, 0.5]]
+  for (const [f, share] of parts) {
+    const o = ctx.createOscillator(), og = ctx.createGain()
+    o.type = 'sine'
+    o.frequency.setValueAtTime(f * 1.33, t0)
+    o.frequency.exponentialRampToValueAtTime(f, t0 + 0.08)
+    og.gain.value = share
+    o.connect(og); og.connect(g)
+    o.start(t0); o.stop(t0 + DRUM_RING + 0.05)
+  }
+  g.gain.setValueAtTime(0.001, t0)
+  g.gain.exponentialRampToValueAtTime(peak, t0 + 0.008)
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + DRUM_RING)
+}
+
+// A medal (components/Medals.jsx): the sound of its tier, from lib/medal-sounds.js. Bronze is a
+// plucked string; each tier above adds to it, so the olympian is the grandest. Mixed through one
+// gain so the layers that add up stay under full scale. Gated by the Sounds setting.
+export function medalSound(enabled, tier) {
+  if (!enabled) return
+  const snd = Object.hasOwn(MEDAL_SOUNDS, tier) ? MEDAL_SOUNDS[tier] : MEDAL_SOUNDS.bronze
+  try {
+    const ctx = wake()
+    // The layers go through one compressor and one gain: the compressor keeps the big tiers'
+    // sum of layers from clipping, the gain sets how loud each tier ends up (medal-sounds.js).
+    const out = ctx.createGain()
+    out.gain.value = snd.gain
+    if (typeof ctx.createDynamicsCompressor === 'function') {
+      const comp = ctx.createDynamicsCompressor()
+      comp.threshold.value = -9; comp.knee.value = 6; comp.ratio.value = 12
+      comp.attack.value = 0.003; comp.release.value = 0.25
+      out.connect(comp); comp.connect(ctx.destination)
+    } else out.connect(ctx.destination)
+    for (const [f, w, d, p] of snd.lyre || []) pluck(ctx, f, w, d, p, out)
+    for (const [f, d, w, p] of snd.aulos || []) tone(f, d, w, { peak: p ?? 0.3, hold: 0.6, timbre: 'aulos', out })
+    for (const [f, w, d, p] of snd.horn || []) horn(ctx, f, w, d, p, out)
+    for (const [f, w] of snd.drum || []) drum(ctx, f, w, out)
+    sleepAfter(medalSoundEnd(snd) + 0.1)
+  } catch (e) { /* a medal without its sound is still a medal */ }
 }

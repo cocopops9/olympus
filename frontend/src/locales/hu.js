@@ -3559,4 +3559,6 @@ export default {
   "{0} hour of training": "{0} óra edzés",
   "{0} hours of training": "{0} óra edzés",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "A legtöbb munka elöl: egy sorozat 1-et ér, ahol ez a fő izom, és {0}-et, ahol csak segít.",
+  "Greek aulos": "Görög aulosz",
+  "An aulos calls you back, in the Greek manner.": "Egy aulosz hív vissza, görög módra.",
 }

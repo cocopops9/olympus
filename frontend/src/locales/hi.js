@@ -3556,4 +3556,6 @@ export default {
   "{0} hour of training": "{0} घंटा ट्रेनिंग",
   "{0} hours of training": "{0} घंटे ट्रेनिंग",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "सबसे ज़्यादा काम पहले: जहाँ यह मुख्य मांसपेशी है वहाँ एक सेट 1 गिना जाता है, जहाँ यह सिर्फ़ मदद करती है वहाँ {0}।",
+  "Greek aulos": "यूनानी औलोस",
+  "An aulos calls you back, in the Greek manner.": "यूनानी अंदाज़ में एक औलोस आपको वापस बुलाता है।",
 }
