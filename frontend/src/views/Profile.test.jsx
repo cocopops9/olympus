@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { todayISO } from '../lib/format.js'
 
-const mocks = vi.hoisted(() => ({ nav: vi.fn(), params: new URLSearchParams(), profile: vi.fn(), calendar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ nav: vi.fn(), params: new URLSearchParams(), profile: vi.fn(), calendar: vi.fn(), day: vi.fn(), plan: vi.fn() }))
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.nav,
   useSearchParams: () => [mocks.params, next => { mocks.params = new URLSearchParams(next) }],
@@ -21,6 +21,7 @@ vi.mock('./Home.jsx', () => ({ BodyWeightCard: () => <div data-testid="bw">body 
 vi.mock('../sheets.jsx', () => ({
   WorkoutRow: ({ w }) => <div className="wrow">{w.name}</div>,
   workoutDetailSheet: vi.fn(), logPastWorkoutSheet: vi.fn(), calendarSheet: mocks.calendar,
+  dayWorkoutsSheet: mocks.day, dayOverrideSheet: mocks.plan,
 }))
 import Profile from './Profile.jsx'
 
@@ -51,6 +52,15 @@ describe('Profile on a device kept local', () => {
     act(() => host.querySelector('button[aria-label="Calendar"]').click())
     expect(mocks.calendar).toHaveBeenCalled()
     expect(mocks.profile).not.toHaveBeenCalled()
+  })
+
+  it('a day of the week is a button: a trained day lists its workouts, another day opens its plan', async () => {
+    mocks.day.mockReset(); mocks.plan.mockReset()
+    await render()
+    act(() => host.querySelector('button.ov-day.on.now').click())
+    expect(mocks.day).toHaveBeenCalledWith(todayISO(), [expect.objectContaining({ id: 'w1' })])
+    act(() => host.querySelector('button.ov-day:not(.on)').click())
+    expect(mocks.plan).toHaveBeenCalledTimes(1)
   })
 
   it('moves back through the weeks, never past today, and comes back with a tap on the name', async () => {

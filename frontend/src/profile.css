@@ -9,7 +9,8 @@
 .ov-streak{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--orange)}
 .ov-streak .icn{width:15px;height:15px}
 .ov-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
-.ov-day{display:flex;flex-direction:column;align-items:center;gap:5px}
+.ov-day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ov-day:active .ov-dot{transform:scale(.92)}
 .ov-dot{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;
   background:var(--surface-2);color:var(--label-2);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .ov-day.on .ov-dot{background:var(--acc);color:var(--on-acc);box-shadow:0 0 12px color-mix(in srgb,var(--acc) 45%,transparent)}

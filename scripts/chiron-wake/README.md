@@ -1,10 +1,12 @@
 # Chiron's wake-up
 
 **Current version (video, sharpened):** `chiron-wake.webp` is 65 frames of 384 px, 9 by 8, 32 a
-second (2 s). The video is Wan 2.2 again (Hugging Face Space `mcp-tools/wan-2-2-first-last-frame`,
-seed 526625748, the same movement as before) but run with 16 denoising steps instead of 8 and a
-negative prompt against blur, ghosting and zoom: fewer steps left the frames in the middle of the
-movement soft. Every frame is then restored with `restore.py` (Real-ESRGAN x4plus_anime_6B, to
+second (2 s). The video is Wan 2.2 (Hugging Face Space `mcp-tools/wan-2-2-first-last-frame`,
+seed 777, 16 denoising steps, a negative prompt against blur, ghosting and zoom: 8 steps left the
+frames in the middle of the movement soft). The sleeping portrait is drawn at the same scale as
+the standing one (`chiron-full-asleep.webp` scaled to 0.73 of its old size, feet on the same
+ground line, so the head and the horse's body are the same size in both): at its old size he
+looked closer to the camera asleep than awake, and the video had to zoom out while he rose. Every frame is then restored with `restore.py` (Real-ESRGAN x4plus_anime_6B, to
 960 px) and blended 65 / 35 with the plain upscaled frame, so the outlines come out crisp and the
 painted texture of the portraits (beard, cloth) is kept rather than flattened; `video_sprite.py`
 packs them with `RESTORED=1`. Start and end frames are the two portraits on white (the sleeping

@@ -1,6 +1,9 @@
 package app.olympus.gym;
 
+import android.content.Context;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.os.Build;
 import android.media.AudioFormat;
 import android.media.AudioTrack;
 import java.util.ArrayList;
@@ -47,6 +50,13 @@ import java.util.zip.ZipInputStream;
  *   remove({ lang })                      -> {}
  *   speak({ lang, text, sid, speed })     -> {}  when it has been read; a "start" event when the sound begins
  *   stop()                                -> {}
+ *   audioNormal()                         -> { was }  the phone's audio back out of "call" mode
+ *
+ * audioNormal: while the WebView has the microphone open, Android puts the audio in call mode
+ * (MODE_IN_COMMUNICATION, voice processing on the output). The WebView puts it back by itself
+ * once the microphone is closed, but on some phones only seconds later, and music playing
+ * meanwhile sounds thin, with a heavy echo. The app calls this right after it closes the
+ * microphone (lib/voice.js releaseMic, lib/voice-note.js), so the music sounds right at once.
  */
 @CapacitorPlugin(name = "LocalVoice")
 public class LocalVoicePlugin extends Plugin {
@@ -218,6 +228,23 @@ public class LocalVoicePlugin extends Plugin {
             if (!rest.isEmpty()) out.add(rest);
         }
         return out;
+    }
+
+    @PluginMethod
+    public void audioNormal(PluginCall call) {
+        JSObject out = new JSObject();
+        try {
+            AudioManager am = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+            int was = am.getMode();
+            out.put("was", was);
+            if (Build.VERSION.SDK_INT >= 31) {
+                try { am.clearCommunicationDevice(); } catch (Exception ignored) { }
+            }
+            if (was != AudioManager.MODE_NORMAL) am.setMode(AudioManager.MODE_NORMAL);
+        } catch (Exception e) {
+            out.put("error", String.valueOf(e.getMessage()));
+        }
+        call.resolve(out);
     }
 
     @PluginMethod

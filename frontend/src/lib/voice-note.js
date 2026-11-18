@@ -7,6 +7,8 @@
 //   cancel() -> nothing kept
 //   level()  -> how loud it is now, 0..1, for the bars on screen
 // It stops by itself at VOICE_NOTE.maxSecs, and `onLimit` is told.
+import { audioNormal } from './local-voice.js'
+
 export const VOICE_NOTE = Object.freeze({ maxSecs: 300, minMs: 700, bitrate: 32000 })
 const TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
 
@@ -46,6 +48,7 @@ export async function startVoiceNote({ onLimit } = {}) {
     clearTimeout(limit)
     stream.getTracks().forEach(x => x.stop())
     try { ac?.close() } catch { /* closed */ }
+    audioNormal()   // the phone's audio out of call mode at once (lib/local-voice.js)
   }
   const finished = new Promise(resolve => { rec.onstop = () => { close(); resolve() } })
   const end = () => { if (rec.state !== 'inactive') { try { rec.stop() } catch { close() } } else close() }

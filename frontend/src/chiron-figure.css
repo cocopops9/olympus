@@ -8,7 +8,8 @@
   background:radial-gradient(circle,rgba(247,212,102,.75) 0%,rgba(247,212,102,0) 68%);transition:opacity .8s,transform .8s}
 .chf-ground{position:absolute;left:14%;right:14%;bottom:1%;height:9%;border-radius:50%;pointer-events:none;
   background:radial-gradient(closest-side,rgba(0,0,0,.38),rgba(0,0,0,0));transition:left .9s,right .9s}
-.chf-asleep .chf-ground{left:4%;right:4%}
+/* the sleeping portrait is drawn at the same scale as the standing one: about as long a shadow */
+.chf-asleep .chf-ground{left:14%;right:14%}
 .chf-fx{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 .chf-z,.chf-rings,.chf-dots,.chf-waves{opacity:0;transition:opacity .4s}
 
@@ -64,7 +65,7 @@
 .chf-sparks .sp{opacity:0;transform-box:fill-box;transform-origin:center;transform:translate(var(--x),var(--y)) scale(0);animation:chf-wk-glint .3s ease-out var(--d) both}
 
 @keyframes chf-wk-halo{0%,68%{opacity:0;transform:scale(.7)}88%{opacity:.75;transform:scale(1.15)}100%{opacity:.55;transform:scale(1)}}
-@keyframes chf-wk-ground{0%,55%{left:3%;right:3%}72%{left:8%;right:8%}85%,100%{left:14%;right:14%}}
+@keyframes chf-wk-ground{0%,100%{left:14%;right:14%}}
 @keyframes chf-wk-z{0%{opacity:1;transform:translate(0,0) scale(1)}60%{opacity:.9;transform:translate(-4px,-10px) scale(1.5)}100%{opacity:0;transform:translate(-6px,-14px) scale(2.1)}}
 @keyframes chf-wk-shock{0%{opacity:.8;transform:scale(.3)}100%{opacity:0;transform:scale(1.4)}}
 @keyframes chf-wk-dust{0%{opacity:0;transform:translate(0,0) scale(.3)}25%{opacity:.85}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.6)}}

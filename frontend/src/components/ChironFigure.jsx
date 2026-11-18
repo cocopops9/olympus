@@ -173,7 +173,7 @@ export default function ChironFigure({ state = 'asleep', mouth = 0, size = 150, 
           style={{ '--x': x + 'px', '--y': y + 'px', '--s': s, '--d': d + 's' }} />)}
       </g>}
       <g className="chf-z" fill="#f5c84a" stroke="#1a1200" strokeWidth=".6" fontFamily="Georgia,serif" fontWeight="700">
-        <text className="z1" x="68" y="38" fontSize="9">z</text><text className="z2" x="61" y="29" fontSize="12">z</text><text className="z3" x="52" y="19" fontSize="15">Z</text>
+        <text className="z1" x="63" y="54" fontSize="9">z</text><text className="z2" x="56" y="45" fontSize="12">z</text><text className="z3" x="47" y="35" fontSize="15">Z</text>
       </g>
       <g className="chf-rings" transform="translate(-10 -16)" fill="none" stroke="#f5c84a" strokeWidth="2.6" strokeLinecap="round">
         <path className="r1" d="M84 34c3 4 3 10 0 14" /><path className="r2" d="M90 28c6 7 6 19 0 26" /><path className="r3" d="M96 22c8 10 8 28 0 38" />

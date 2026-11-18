@@ -118,3 +118,17 @@ export const markVoiceAsked = key => { try { localStorage.setItem(askedKey(key),
 
 export const _resetLocalVoices = () => { manifest = null; installed = null; installing.clear() }
 export const _setLocalVoices = (m, inst) => { manifest = m; installed = new Set(inst || []) }
+
+/**
+ * The phone's audio back out of "call" mode once the microphone is closed (LocalVoicePlugin
+ * audioNormal): music playing meanwhile otherwise keeps a heavy echo for a while. Asked a few times
+ * over a second and a half, since the WebView can put the mode back once more while it finishes
+ * closing. Nothing on the web, nor on an app too old to have it.
+ */
+let normalTimers = []
+export function audioNormal() {
+  if (!MOBILE) return
+  normalTimers.forEach(clearTimeout)
+  const ask = () => plugin().then(({ p }) => p.audioNormal()).catch(() => {})
+  normalTimers = [0, 400, 1500].map(ms => setTimeout(ask, ms))
+}

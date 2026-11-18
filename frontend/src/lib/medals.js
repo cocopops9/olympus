@@ -27,6 +27,7 @@ import { e1rmSeries } from './onerm.js'
 import { lastBW } from './history.js'
 import { LIFTS, METRICS, levelOf, levelOfValue, levelStart, valuePoints, ageOn, LEVELS } from './strength-level.js'
 import { goalGroup } from './goal-medals.js'
+import { isWarmupRow } from './workout-model.js'
 
 const LB = 0.45359237
 export const TIERS = ['bronze', 'silver', 'gold', 'platinum', 'olympian']
@@ -282,22 +283,91 @@ export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = f
     at: v => W[v - 1]?.d || null }))
   habit.push(...L({ id: 'prs', group: 'habit', icon: 'trophy', values: [1, 10, 25, 50, 100, 250], best: prs, ahead: 2, tierOf: byIndex(6),
     title: v => tn('{0} personal record', '{0} personal records', v), desc: () => t('New heaviest weights, across all your exercises.') }))
+  // Hours spent training, all workouts together.
+  let mins = 0
+  const minPts = W.map(w => ({ d: w.d, y: (mins += w.end && w.start && w.end > w.start ? Math.min(6 * 60, (w.end - w.start) / 60000) : 0) }))
+  habit.push(...L({ id: 'hours', group: 'habit', icon: 'clock', values: [10, 25, 50, 100, 250, 500, 1000], best: Math.floor(mins / 60), ahead: 2, tierOf: byIndex(7),
+    title: v => tn('{0} hour of training', '{0} hours of training', v), desc: () => t('All the time of your workouts, added up.'),
+    at: v => firstAt(minPts)(v * 60) }))
   groups.push({ key: 'habit', title: t('Consistency'), medals: habit })
 
-  // ---- Special
+  // ---- Special: one-off feats and days to remember. Each is worked out from the workouts (and the
+  // birth date, the body weight, the gyms); a medal that counts something shows how far along it is.
   const hour = w => new Date(w.start || 0).getHours()
-  const early = W.find(w => w.start && hour(w) < 7)
-  const late = W.find(w => w.start && hour(w) >= 22)
-  const long = W.find(w => w.end && w.start && w.end - w.start >= 2 * 3600000)
+  const mdOf = w => String(w.d).slice(5)
+  const dayMs = iso => Date.parse(iso + 'T12:00:00')
+  const workSets = w => (w.entries || []).flatMap(e => (e.sets || []).filter(x => x && x.done && !isWarmupRow(x)))
+  const first = f => W.find(f) || null
+  const nth = (f, k) => { let c = 0; for (const w of W) if (f(w) && ++c >= k) return w; return null }
+  const countOf = f => W.reduce((c, w) => c + (f(w) ? 1 : 0), 0)
+  const early = w => w.start && hour(w) < 7
+  const long = w => w.end && w.start && w.end - w.start >= 2 * 3600000
   const days = new Map()
   for (const w of W) { const k = weekKey(w.d, ws); const dow = new Date(w.d + 'T12:00:00').getDay(); days.set(k, (days.get(k) || 0) | (dow === 6 ? 1 : dow === 0 ? 2 : 0)) }
-  const weekend = W.find(w => days.get(weekKey(w.d, ws)) === 3)
+  // Days in a row with a workout, the longest run, and the day it was reached.
+  const dates = [...new Set(W.map(w => w.d))].sort()
+  let runDays = 0, bestRun = 0, runAt = null
+  dates.forEach((d, i) => {
+    runDays = i && Math.round((dayMs(d) - dayMs(dates[i - 1])) / 86400000) === 1 ? runDays + 1 : 1
+    if (runDays > bestRun) bestRun = runDays
+    if (runDays >= 7 && !runAt) runAt = d
+  })
+  // The first workout after a month or more without one.
+  const comeback = W.find((w, i) => i > 0 && dayMs(w.d) - dayMs(W[i - 1].d) >= 30 * 86400000) || null
+  // Two workouts on the same day.
+  const twice = W.find((w, i) => W.findIndex(o => o.d === w.d) < i) || null
+  // Months in a row with a workout, the longest run.
+  const monthsDone = [...new Set(W.map(w => monthOf(w.d)))].sort()
+  let mRun = 0, mBest = 0, mAt = null
+  monthsDone.forEach((m, i) => {
+    const prev = monthsDone[i - 1]
+    const next = prev ? (() => { const [y, mo] = prev.split('-').map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, '0')}` })() : null
+    mRun = prev && next === m ? mRun + 1 : 1
+    if (mRun > mBest) mBest = mRun
+    if (mRun >= 12 && !mAt) mAt = m + '-01'
+  })
+  // Every exercise ever done, in order, and the day the 25th and the 75th were first done.
+  const seen = new Map()
+  for (const w of W) for (const e of w.entries || []) if (e?.id && workSets({ entries: [e] }).length && !seen.has(e.id)) seen.set(e.id, w.d)
+  const seenAt = k => [...seen.values()][k - 1] || null
+  // Sets in one week, the most.
+  const weekSets = new Map()
+  for (const w of W) { const k = weekKey(w.d, ws); weekSets.set(k, (weekSets.get(k) || 0) + workSets(w).length) }
+  const sets100 = [...weekSets.entries()].sort().find(([, n]) => n >= 100)
+  const gymsSeen = new Map()
+  for (const w of W) { const g = String(w.gym || '').trim(); if (g && !gymsSeen.has(g)) gymsSeen.set(g, w.d) }
+  const birth = String(S?.birth || '').slice(5, 10)
+  const heavy = bw > 0 ? first(w => workSets(w).some(x => (Number(x.w) || 0) >= 2 * bw && (Number(x.r) || 0) >= 1)) : null
+  const fri13 = w => w.d.slice(8) === '13' && new Date(w.d + 'T12:00:00').getDay() === 5
+  const one = (k, icon, tier, w, title, desc, { progress, show = true } = {}) =>
+    (show || all || w ? { id: 'special:' + k, group: 'special', icon, earned: !!w, at: w?.d || (typeof w === 'string' ? w : null), progress: w ? 1 : Math.max(0, Math.min(1, progress || 0)), tier, title, desc, fun: '' } : null)
   const special = [
-    ['early', 'sunrise', early, t('Early bird'), t('A workout started before 7 in the morning.')],
-    ['late', 'moon', late, t('Night owl'), t('A workout started after 10 at night.')],
-    ['weekend', 'star', weekend, t('Weekend warrior'), t('Trained on both Saturday and Sunday of the same weekend.')],
-    ['long', 'hourglass', long, t('Marathon session'), t('One workout of two hours or more.')],
-  ].map(([k, icon, w, title, desc]) => ({ id: 'special:' + k, group: 'special', icon, earned: !!w, at: w?.d || null, progress: w ? 1 : 0, tier: 'gold', title, desc, fun: '' }))
+    one('early', 'sunrise', 'silver', first(early), t('Early bird'), t('A workout started before 7 in the morning.')),
+    one('dawn', 'sunrise', 'platinum', nth(early, 10), t('Dawn patrol'), t('Ten workouts started before 7 in the morning.'), { progress: countOf(early) / 10 }),
+    one('late', 'moon', 'silver', first(w => w.start && hour(w) >= 22), t('Night owl'), t('A workout started after 10 at night.')),
+    one('weekend', 'star', 'gold', first(w => days.get(weekKey(w.d, ws)) === 3), t('Weekend warrior'), t('Trained on both Saturday and Sunday of the same weekend.')),
+    one('long', 'hourglass', 'gold', first(long), t('Marathon session'), t('One workout of two hours or more.')),
+    one('quick', 'stopwatch', 'silver', first(w => w.end && w.start && w.end - w.start <= 30 * 60000 && workSets(w).length >= 12), t('In and out'), t('Twelve sets or more in a workout of half an hour or less.')),
+    one('twice', 'repeat', 'silver', twice, t('Twice in a day'), t('Two workouts on the same day.')),
+    { ...one('seven', 'flame', 'platinum', runAt, t('Seven days straight'), t('A workout every day for seven days in a row.'), { progress: bestRun / 7 }), at: runAt },
+    one('comeback', 'undo', 'silver', comeback, t('The comeback'), t('Back to training after a month or more away.')),
+    { ...one('year', 'calendar', 'olympian', mAt, t('A year without a month off'), t('Twelve calendar months in a row, each with at least one workout.'), { progress: mBest / 12 }), at: mAt },
+    one('records', 'trophy', 'gold', first(w => (w.prs || []).length >= 5), t('Record day'), t('Five personal records or more in one workout.')),
+    one('labours', 'list', 'gold', first(w => new Set((w.entries || []).filter(e => workSets({ entries: [e] }).length).map(e => e.id)).size >= 12), t('Twelve labours'), t('Twelve different exercises in one workout, as many as the labours of Hercules.')),
+    { ...one('explorer', 'magnifier', 'silver', seenAt(25), t('Explorer'), t('Twenty-five different exercises tried.'), { progress: seen.size / 25 }), at: seenAt(25) },
+    { ...one('odyssey', 'magnifier', 'platinum', seenAt(75), t('Odyssey'), t('Seventy-five different exercises tried.'), { progress: seen.size / 75 }), at: seenAt(75) },
+    { ...one('sets100', 'checkCircle', 'gold', sets100 ? sets100[0] : null, t('A hundred sets'), t('A hundred working sets in one week.'), { progress: Math.max(0, ...weekSets.values()) / 100 }), at: sets100 ? sets100[0] : null },
+    { ...one('traveller', 'pin', 'silver', [...gymsSeen.values()][2] || null, t('Traveller'), t('Workouts in three different gyms.'), { progress: gymsSeen.size / 3 }), at: [...gymsSeen.values()][2] || null },
+    one('atlas', 'arm', 'olympian', heavy, t('Atlas holds the sky'), t('A set with twice your body weight on the bar.'), { show: bw > 0 }),
+    one('birthday', 'crown', 'gold', birth ? first(w => mdOf(w) === birth) : null, t('Birthday gains'), t('A workout on your birthday.'), { show: !!birth }),
+    one('newyear', 'sparkles', 'gold', first(w => mdOf(w) === '01-01'), t('New year, first rep'), t('A workout on the first of January.')),
+    one('valentine', 'heart', 'silver', first(w => mdOf(w) === '02-14'), t('Love the iron'), t('A workout on Valentine’s Day.')),
+    one('leap', 'rocket', 'olympian', first(w => mdOf(w) === '02-29'), t('Leap day'), t('A workout on the 29th of February, once in four years.')),
+    one('solstice', 'sun', 'silver', first(w => mdOf(w) === '06-21'), t('The longest day'), t('A workout on the summer solstice, the 21st of June.')),
+    one('halloween', 'moon', 'silver', first(w => mdOf(w) === '10-31'), t('Ghost lifter'), t('A workout on Halloween.')),
+    one('friday13', 'bolt', 'gold', first(fri13), t('Not superstitious'), t('A workout on a Friday the 13th.')),
+    one('christmas', 'star', 'gold', first(w => mdOf(w) === '12-25'), t('Holiday spirit'), t('A workout on Christmas Day.')),
+  ].filter(Boolean).map(m => (m.earned && !m.at ? { ...m, at: null } : m))
   groups.push({ key: 'special', title: t('Special'), medals: special })
 
   return groups

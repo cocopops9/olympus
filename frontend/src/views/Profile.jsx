@@ -17,14 +17,14 @@ import ThemeToggle from '../components/ThemeToggle.jsx'
 import { Avatar, Name, avatarSheet, PostCard, profileSheet, connectionsSheet, composeSheet, POSTED_EVENT } from '../components/Social.jsx'
 import { useSocial } from '../store/useSocial.js'
 import { useConnectionTrouble } from '../components/SyncBanner.jsx'
-import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet, calendarSheet } from '../sheets.jsx'
+import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet, calendarSheet, dayWorkoutsSheet, dayOverrideSheet } from '../sheets.jsx'
 import BodyMap from '../components/BodyMap.jsx'
 import StrengthLevels from '../components/StrengthLevels.jsx'
 import { MedalsCard, rememberSocial } from '../components/Medals.jsx'
 import { Avatar as CoachAvatar } from '../components/Hercules.jsx'
 import { weekSummary } from '../lib/week-summary.js'
 import { loadOfWorkouts } from '../lib/muscles.js'
-import { todayISO, fmtNum, fmtDur, fmtVol, DAYS, isoOf, startOfWeek, weekStartOf } from '../lib/format.js'
+import { todayISO, fmtDate, fmtNum, fmtDur, fmtVol, DAYS, isoOf, startOfWeek, weekStartOf } from '../lib/format.js'
 import { dateLocale } from '../lib/i18n-core.js'
 import '../profile.css'
 import Stats from './Stats.jsx'
@@ -92,10 +92,16 @@ function OverviewTab({ S }) {
         <span className={'ov-streak' + (streakWeeks(S) ? '' : ' cold')}><Icon name="flame" />{t('{0} week streak', streakWeeks(S))}</span>
       </div>
       <div className="ov-days">
-        {wk.days.map(d => <div key={d.iso} className={'ov-day' + (d.trained ? ' on' : '') + (d.today ? ' now' : '') + (d.future ? ' later' : '')}>
+        {/* A day is a button, as in the calendar: a trained day lists its workouts, any other day
+            opens its plan and note (sheets.jsx dayWorkoutsSheet, dayOverrideSheet). */}
+        {wk.days.map(d => <button type="button" key={d.iso} className={'ov-day' + (d.trained ? ' on' : '') + (d.today ? ' now' : '') + (d.future ? ' later' : '')}
+          aria-label={fmtDate(d.iso, true)} onClick={() => {
+            const ws = (S.workouts || []).filter(w => w.d === d.iso).sort((a, b) => (a.start || 0) - (b.start || 0))
+            if (ws.length) dayWorkoutsSheet(d.iso, ws); else dayOverrideSheet(d.iso)
+          }}>
           <span className="ov-dot">{d.trained ? <Icon name="check" /> : new Date(d.iso + 'T12:00:00').getDate()}</span>
           <span className="ov-dn">{t(DAYS[d.day])}</span>
-        </div>)}
+        </button>)}
       </div>
       <div className="ov-tiles">
         {/* Every tile opens the workouts themselves (History), newest first. */}

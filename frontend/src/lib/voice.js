@@ -6,7 +6,7 @@
 // own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
-import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey } from './local-voice.js'
+import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal } from './local-voice.js'
 import { api } from './api.js'
 import { clipOf } from './wav.js'
 
@@ -90,7 +90,7 @@ async function micStream() {
   return stream
 }
 function micLater(stream) {
-  if (!held || held.stream !== stream) { stream.getTracks().forEach(x => x.stop()); return }
+  if (!held || held.stream !== stream) { stream.getTracks().forEach(x => x.stop()); audioNormal(); return }
   clearTimeout(held.timer)
   held.timer = setTimeout(releaseMic, 15000)
 }
@@ -101,6 +101,7 @@ export function releaseMic() {
   clearTimeout(held.timer)
   held.stream.getTracks().forEach(x => x.stop())
   held = null
+  audioNormal()
 }
 
 // The app in the background never keeps the microphone (nor the phone in call mode).
