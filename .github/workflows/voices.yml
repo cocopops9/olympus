@@ -5,7 +5,7 @@
 # language on the first start (frontend/src/lib/local-voice.js) and reads aloud on the phone with
 # it (LocalVoicePlugin.java): no quota, no connection.
 #
-# Run by hand (workflow_dispatch) or by a change to this file. The first voice listed that exists
+# Run by hand (workflow_dispatch) or by a change to this file or to .github/voices/. The first voice listed that exists
 # for a language is the one taken.
 name: Offline voices
 
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/voices.yml']
+    paths: ['.github/workflows/voices.yml', '.github/voices/**']
 
 permissions:
   contents: write
@@ -26,6 +26,10 @@ jobs:
   voices:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/voices
+
       - name: Fetch and repack the voices
         run: |
           set -u
@@ -82,12 +86,25 @@ jobs:
             done
             [ $done_one = 0 ] && echo "::warning::no voice found for $lang"
           done < list.txt
+          # The natural voices (Kokoro-82M v1.0, Apache-2.0): one model for the languages it speaks
+          # well, with a voice of its own for each coach (.github/voices/kokoro-voices.json). The
+          # app prefers it to the Piper voice above wherever it has the language.
+          python3 -m venv work/venv
+          work/venv/bin/pip install --quiet onnx==1.23.2 numpy==2.5.3
+          curl -fsSL -o work/kokoro.tar.bz2 "$base/kokoro-int8-multi-lang-v1_0.tar.bz2"
+          tar xjf work/kokoro.tar.bz2 -C work
+          work/venv/bin/python -I .github/voices/kokoro-pack.py work/kokoro-int8-multi-lang-v1_0 .github/voices/kokoro-voices.json work
+          mv work/voice-kokoro.zip out/voice-kokoro.zip
           python3 - <<'PY'
-          import json, re
+          import json, hashlib, os
           body = open('out/entries.txt').read().strip().rstrip(',')
           voices = json.loads(body + '\n}')
-          json.dump({'version': 1, 'voices': voices}, open('out/voices.json', 'w'), indent=1)
-          print(json.dumps(voices, indent=1))
+          kokoro = json.load(open('work/kokoro.json'))
+          z = 'out/' + kokoro['file']
+          kokoro['bytes'] = os.path.getsize(z)
+          kokoro['sha256'] = hashlib.sha256(open(z, 'rb').read()).hexdigest()
+          json.dump({'version': 1, 'voices': voices, 'kokoro': kokoro}, open('out/voices.json', 'w'), indent=1)
+          print(json.dumps({'voices': voices, 'kokoro': kokoro}, indent=1))
           PY
           ls -la out
 

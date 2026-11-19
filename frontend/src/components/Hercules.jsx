@@ -31,6 +31,8 @@ import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js
 import CoachActions from './CoachActions.jsx'
 import { splitActions } from '../lib/coach-actions.js'
 import { MicButton } from './Voice.jsx'
+import { VoiceModeButton, VoiceMode } from './VoiceMode.jsx'
+import { DemoAfter } from './ExerciseDemo.jsx'
 import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
@@ -258,11 +260,13 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   // Your own coach has no daily limit: your provider decides.
   const leftOf = id => statusOf(uid, id)?.left ?? null
   const left = own ? null : coach === BOTH ? null : status ? status.left : null
-  const send = async text => {
+  // `all`: every answer to this message ({ content, coach }), for voice mode, which reads each one
+  // (both coaches answer in turn); otherwise the last answer's text.
+  const send = async (text, { all = false } = {}) => {
     const msg = String(text ?? draft).trim()
-    if (!msg || busy) return
+    if (!msg || busy) return all ? [] : undefined
     const who = coach === BOTH ? COACH_IDS.filter(id => leftOf(id) !== 0) : [coach]
-    if (!who.length || (coach !== BOTH && left === 0)) { setErr(errorText({ data: { code: 'hercules-limit' } }, name)); return }
+    if (!who.length || (coach !== BOTH && left === 0)) { setErr(errorText({ data: { code: 'hercules-limit' } }, name)); return all ? [] : undefined }
     track('coach.ask')
     // The conversation as saved now: another view of the same coach (Chiron's voice and his
     // sheet, the chat sheet and the full screen) may have added to it since this one was read.
@@ -270,6 +274,7 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     latest.current = { ...fresh, current: latest.current.current }
     const base = latest.current.chats.find(x => x.id === latest.current.current)?.messages || list
     let msgs = [...base, { role: 'user', content: msg, ts: Date.now() }]
+    const asked = msgs.length
     const sent = putChat(latest.current, latest.current.current, msgs)
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)
     onSent?.()
@@ -293,6 +298,7 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
       setWriting(null)
       input.current?.focus()
     }
+    if (all) return msgs.slice(asked).filter(m => m.role === 'assistant').map(m => ({ content: m.content, coach: authorOf(m) }))
     // The last answer, for a caller that speaks it (Chiron's voice mode); null when none came.
     const lastMsg = msgs[msgs.length - 1]
     return lastMsg?.role === 'assistant' ? lastMsg.content : null
@@ -373,6 +379,8 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
   const c = useCoachChat({ coach, ask, chatId })
   const { name, data, list, draft, setDraft, busy, err, left, input, send, remove, suggestions } = c
   const [menu, setMenu] = useState(false)
+  // Voice mode (components/VoiceMode.jsx): talking with the coach, full screen, hands free.
+  const [voice, setVoice] = useState(false)
   const end = useRef(null)
   const start = () => { c.start(); setMenu(false) }
   const open = id => { c.open(id); setMenu(false) }
@@ -430,6 +438,7 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
             <div className="hc-m him">
               {!same && m.coach && <div className="hc-by">{coachName(by)}{m.model && <span>{m.model}</span>}</div>}
               <Reply m={m} onApplied={k => c.markApplied(i, k)} />
+              <DemoAfter list={list} i={i} />
             </div>
           </div>
         })}
@@ -445,8 +454,11 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
         onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
       <MicButton disabled={busy} onText={setDraft} onFinal={setDraft} />
-      <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
+      {draft.trim()
+        ? <button type="submit" className="hc-send" disabled={busy} aria-label={t('Send')}><Icon name="arrowUp" /></button>
+        : <VoiceModeButton onClick={() => setVoice(true)} disabled={busy} />}
     </form>}
+    {voice && <VoiceMode chat={c} coach={coach} close={() => setVoice(false)} />}
     <div className="hc-note">{t('{0} is an AI and can be wrong. For pain or health problems, see a doctor.', name)}</div>
   </div>
 }

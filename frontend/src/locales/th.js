@@ -3567,4 +3567,13 @@ export default {
   "{0} hour of training": "ฝึก {0} ชั่วโมง",
   "{0} hours of training": "ฝึก {0} ชั่วโมง",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "งานมากที่สุดก่อน: นับหนึ่งเซ็ตเป็น 1 เมื่อเป็นกล้ามเนื้อหลัก และ {0} เมื่อช่วยเท่านั้น",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "ติดตั้งเสียงธรรมชาติของโค้ชสำหรับ {0} ไหม ไครอน, Hercules, Athena และคัลลิโอพีจะมีเสียงของตัวเอง ใช้งานได้แบบออฟไลน์ ไม่จำกัดต่อวัน ({1} MB)",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "กำลังดาวน์โหลดเสียงธรรมชาติของโค้ชสำหรับ {0} ใช้งานได้แบบออฟไลน์ ไม่จำกัดต่อวัน ({1} MB)",
+  "Until then, the phone’s own voice is used.": "ระหว่างนี้จะใช้เสียงของโทรศัพท์",
+  "Opening the microphone…": "กำลังเปิดไมโครโฟน…",
+  "{0} is speaking. Tap to interrupt.": "{0} กำลังพูด แตะเพื่อขัดจังหวะ",
+  "Paused. Tap the microphone to talk.": "หยุดชั่วคราว แตะไมโครโฟนเพื่อพูด",
+  "End voice mode": "ปิดโหมดเสียง",
+  "Talk": "พูด",
+  "Writing out what you said…": "กำลังถอดสิ่งที่คุณพูด…",
 }

@@ -3611,4 +3611,13 @@ export default {
   "{0} hour of training": "{0} ساعة تمرين",
   "{0} hours of training": "{0} ساعات تمرين",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "الأكثر عملاً أولاً: تُحسب المجموعة 1 حيث تكون هذه العضلة الرئيسية، و{0} حيث تساعد فقط.",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "هل تريد تثبيت الأصوات الطبيعية للمدربين للغة {0}؟ سيحصل كل من خيرون وHercules وAthena وكاليوبي على صوت خاص به. تعمل دون اتصال وبلا حد يومي ({1} ميغابايت).",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "جارٍ تنزيل الأصوات الطبيعية للمدربين للغة {0}. تعمل دون اتصال وبلا حد يومي ({1} ميغابايت).",
+  "Until then, the phone’s own voice is used.": "حتى ذلك الحين، يُستخدم صوت الهاتف.",
+  "Opening the microphone…": "جارٍ فتح الميكروفون…",
+  "{0} is speaking. Tap to interrupt.": "{0} يتحدث. اضغط للمقاطعة.",
+  "Paused. Tap the microphone to talk.": "متوقف مؤقتًا. اضغط على الميكروفون للتحدث.",
+  "End voice mode": "إنهاء الوضع الصوتي",
+  "Talk": "تحدث",
+  "Writing out what you said…": "جارٍ كتابة ما قلته…",
 }

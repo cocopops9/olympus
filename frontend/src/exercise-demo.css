@@ -1,0 +1,7 @@
+/* Olympus: an exercise's animation beside a coach's answer (components/ExerciseDemo.jsx). */
+.exdemo{margin:8px 0 2px;border-radius:14px;overflow:hidden;background:#fff;max-width:320px;border:var(--hair, 1px) solid var(--sep)}
+.exdemo .exmedia{margin:0;border-radius:0}
+.exdemo.compact .exmedia img,.exdemo.compact .exmedia video{height:190px;width:100%;object-fit:contain;display:block}
+.exdemo .exmedia .gifhint{display:none}
+.exdemo figcaption{font-size:12px;font-weight:600;padding:6px 10px;color:#1c1c1e;background:#f2f2f7;text-transform:capitalize}
+.chv .exdemo{max-width:240px}.chv .exdemo.compact .exmedia img,.chv .exdemo.compact .exmedia video{height:140px}

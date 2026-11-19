@@ -3556,4 +3556,13 @@ export default {
   "{0} hour of training": "{0} घंटा ट्रेनिंग",
   "{0} hours of training": "{0} घंटे ट्रेनिंग",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "सबसे ज़्यादा काम पहले: जहाँ यह मुख्य मांसपेशी है वहाँ एक सेट 1 गिना जाता है, जहाँ यह सिर्फ़ मदद करती है वहाँ {0}।",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "{0} के लिए कोचों की स्वाभाविक आवाज़ें इंस्टॉल करें? काइरॉन, Hercules, Athena और कैलिओपी, हर एक को अपनी आवाज़ मिलेगी। ये ऑफ़लाइन, बिना दैनिक सीमा के काम करती हैं ({1} MB)।",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "{0} के लिए कोचों की स्वाभाविक आवाज़ें डाउनलोड हो रही हैं। ये ऑफ़लाइन, बिना दैनिक सीमा के काम करती हैं ({1} MB)।",
+  "Until then, the phone’s own voice is used.": "तब तक फ़ोन की अपनी आवाज़ इस्तेमाल होती है।",
+  "Opening the microphone…": "माइक्रोफ़ोन खुल रहा है…",
+  "{0} is speaking. Tap to interrupt.": "{0} बोल रहे हैं। रोकने के लिए टैप करें।",
+  "Paused. Tap the microphone to talk.": "रुका हुआ। बोलने के लिए माइक्रोफ़ोन टैप करें।",
+  "End voice mode": "वॉइस मोड बंद करें",
+  "Talk": "बोलें",
+  "Writing out what you said…": "आपने जो कहा, उसे लिखा जा रहा है…",
 }

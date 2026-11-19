@@ -2,6 +2,9 @@
 // voice for the app's language (the phone's, unless one was picked) downloads by itself, with its
 // progress on screen; later, a language picked in Settings is offered its own voice. A voice
 // already there, or a language without one, asks nothing. The phone's own voice stays the backup.
+// Where the natural voices speak the language (lib/local-voice.js setupKey), they are the voice set
+// up: one download gives all four coaches a voice; a phone that has the older Piper voice is offered
+// them once, and its Piper voice for the language is removed when they are in.
 import { useEffect, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t, getLang } from '../lib/i18n.js'
@@ -10,7 +13,7 @@ import { Button, Row } from './ui.jsx'
 import Icon from './Icon.jsx'
 import {
   localVoicesOn, refreshLocalVoices, voiceKey, availableVoice, hasLocalVoice, installingVoice,
-  installLocalVoice, voiceAsked, markVoiceAsked, onLocalVoices,
+  installLocalVoice, voiceAsked, markVoiceAsked, onLocalVoices, setupKey, removeLocalVoice, KOKORO,
 } from '../lib/local-voice.js'
 
 const FIRST = 'olympus_voice_setup_done'
@@ -21,6 +24,7 @@ const langName = () => LANGS[getLang()] || getLang()
 
 function VoiceSetupSheet({ close, voiceKeyOf, auto }) {
   const key = voiceKeyOf
+  const natural = key === KOKORO
   const v = availableVoice(key)
   const [state, setState] = useState(auto ? 'loading' : 'ask')   // ask | loading | done | failed
   const [got, setGot] = useState(0)
@@ -28,7 +32,12 @@ function VoiceSetupSheet({ close, voiceKeyOf, auto }) {
   const start = () => {
     setState('loading')
     installLocalVoice(key, (r, tt) => { setGot(r); if (tt) setTotal(tt) })
-      .then(() => { setState('done'); useUI.getState().toast(t('The coach’s voice is ready.')); setTimeout(close, 900) })
+      .then(() => {
+        setState('done'); useUI.getState().toast(t('The coach’s voice is ready.')); setTimeout(close, 900)
+        // The natural voices read this language now: its Piper voice is only space taken.
+        const old = voiceKey()
+        if (natural && old && hasLocalVoice(old)) removeLocalVoice(old).catch(() => {})
+      })
       .catch(() => setState('failed'))
   }
   useEffect(() => { if (auto) start() }, [])
@@ -36,9 +45,13 @@ function VoiceSetupSheet({ close, voiceKeyOf, auto }) {
   return <div className="vsetup">
     <div className="vsetup-i"><Icon name="mic" /></div>
     <h3>{t('The coach’s voice')}</h3>
-    <p className="muted small">{state === 'ask'
-      ? t('Install the voice Chiron and Hercules use for {0}? It works offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes))
-      : t('Downloading the voice Chiron and Hercules use for {0}. It works offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes))}</p>
+    <p className="muted small">{natural
+      ? (state === 'ask'
+        ? t('Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes))
+        : t('Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes)))
+      : state === 'ask'
+        ? t('Install the voice Chiron and Hercules use for {0}? It works offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes))
+        : t('Downloading the voice Chiron and Hercules use for {0}. It works offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes))}</p>
     {(state === 'loading' || state === 'done') && <>
       <div className="vsetup-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{ width: (state === 'done' ? 100 : pct) + '%' }} /></div>
       <div className="small dim vsetup-n">{state === 'done' ? t('Done') : t('{0} of {1} MB', mb(got), mb(total))}</div>
@@ -56,12 +69,12 @@ function VoiceSetupSheet({ close, voiceKeyOf, auto }) {
       <div style={{ height: 8 }} />
       <Button variant="ghost" onClick={close}>{t('Not now')}</Button>
     </>}
-    <p className="small dim vsetup-foot">{t('Until then, and for Athena, the phone’s own voice is used.')}</p>
+    <p className="small dim vsetup-foot">{natural ? t('Until then, the phone’s own voice is used.') : t('Until then, and for Athena, the phone’s own voice is used.')}</p>
   </div>
 }
 
 export function openVoiceSetup({ auto = false } = {}) {
-  const key = voiceKey()
+  const key = setupKey()
   if (!availableVoice(key) || hasLocalVoice(key)) return false
   markVoiceAsked(key)
   markFirst()
@@ -79,7 +92,7 @@ export function useVoiceSetup({ ready, blocked, lang }) {
     let live = true
     refreshLocalVoices().then(() => {
       if (!live) return
-      const key = voiceKey()
+      const key = setupKey()
       if (!availableVoice(key) || hasLocalVoice(key) || installingVoice(key) || voiceAsked(key)) return
       openVoiceSetup({ auto: !firstDone() })
     })
@@ -91,7 +104,7 @@ export function useVoiceSetup({ ready, blocked, lang }) {
 export function VoiceSetupRow() {
   const [, bump] = useState(0)
   useEffect(() => { if (localVoicesOn()) refreshLocalVoices(); return onLocalVoices(() => bump(n => n + 1)) }, [])
-  const key = voiceKey()
+  const key = setupKey()
   if (!localVoicesOn() || !availableVoice(key)) return null
   const have = hasLocalVoice(key)
   return <Row icon="mic" iconTint="var(--orange)" title={t('Coach’s voice')}

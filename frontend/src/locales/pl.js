@@ -3556,4 +3556,13 @@ export default {
   "{0} hour of training": "{0} godzina treningu",
   "{0} hours of training": { one: "{0} godzina treningu", few: "{0} godziny treningu", many: "{0} godzin treningu" },
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Najwięcej pracy najpierw: seria liczy się jako 1, gdy to główny mięsień, i {0}, gdy tylko pomaga.",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "Zainstalować naturalne głosy trenerów dla języka {0}? Chiron, Hercules, Athena i Kalliope dostaną każdy własny głos. Działają offline, bez dziennego limitu ({1} MB).",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "Pobieranie naturalnych głosów trenerów dla języka {0}. Działają offline, bez dziennego limitu ({1} MB).",
+  "Until then, the phone’s own voice is used.": "Do tego czasu używany jest głos telefonu.",
+  "Opening the microphone…": "Otwieram mikrofon…",
+  "{0} is speaking. Tap to interrupt.": "{0} mówi. Dotknij, aby przerwać.",
+  "Paused. Tap the microphone to talk.": "Wstrzymano. Dotknij mikrofonu, aby mówić.",
+  "End voice mode": "Zakończ tryb głosowy",
+  "Talk": "Mów",
+  "Writing out what you said…": "Zapisuję, co powiedziałeś…",
 }

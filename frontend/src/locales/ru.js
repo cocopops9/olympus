@@ -3560,4 +3560,13 @@ export default {
   "{0} hour of training": "{0} час тренировок",
   "{0} hours of training": { one: "{0} час тренировок", few: "{0} часа тренировок", many: "{0} часов тренировок" },
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Сначала самое нагруженное: подход считается за 1, где это основная мышца, и за {0}, где она лишь помогает.",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "Установить естественные голоса тренеров для языка {0}? У Хирона, Hercules, Athena и Каллиопы будет свой голос у каждого. Они работают офлайн, без дневного лимита ({1} МБ).",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "Загружаются естественные голоса тренеров для языка {0}. Они работают офлайн, без дневного лимита ({1} МБ).",
+  "Until then, the phone’s own voice is used.": "До тех пор используется голос телефона.",
+  "Opening the microphone…": "Открываю микрофон…",
+  "{0} is speaking. Tap to interrupt.": "{0} говорит. Нажмите, чтобы прервать.",
+  "Paused. Tap the microphone to talk.": "Пауза. Нажмите на микрофон, чтобы говорить.",
+  "End voice mode": "Выйти из голосового режима",
+  "Talk": "Говорить",
+  "Writing out what you said…": "Записываю сказанное…",
 }

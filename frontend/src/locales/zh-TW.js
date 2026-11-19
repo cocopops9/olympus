@@ -3549,4 +3549,13 @@ export default {
   "{0} hour of training": "訓練 {0} 小時",
   "{0} hours of training": "訓練 {0} 小時",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "貢獻最多的在前：這是主要肌群時一組算 1，只是輔助時算 {0}。",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "要為{0}安裝教練們的自然語音嗎？凱隆、Hercules、Athena 和卡利俄佩將各有自己的聲音。可離線使用，沒有每日限制（{1} MB）。",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "正在為{0}下載教練們的自然語音。可離線使用，沒有每日限制（{1} MB）。",
+  "Until then, the phone’s own voice is used.": "在此之前，使用手機內建的語音。",
+  "Opening the microphone…": "正在開啟麥克風…",
+  "{0} is speaking. Tap to interrupt.": "{0}正在說話。輕觸即可打斷。",
+  "Paused. Tap the microphone to talk.": "已暫停。輕觸麥克風開始說話。",
+  "End voice mode": "結束語音模式",
+  "Talk": "說話",
+  "Writing out what you said…": "正在轉寫你說的話…",
 }

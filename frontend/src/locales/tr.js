@@ -3556,4 +3556,13 @@ export default {
   "{0} hour of training": "{0} saat antrenman",
   "{0} hours of training": "{0} saat antrenman",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "En çok iş önce: bir set, bu ana kas olduğunda 1, yalnızca yardım ettiğinde {0} sayılır.",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "{0} için koçların doğal sesleri yüklensin mi? Kheiron, Hercules, Athena ve Kalliope'nin her birinin kendi sesi olacak. Çevrimdışı ve günlük sınır olmadan çalışır ({1} MB).",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "{0} için koçların doğal sesleri indiriliyor. Çevrimdışı ve günlük sınır olmadan çalışır ({1} MB).",
+  "Until then, the phone’s own voice is used.": "O zamana kadar telefonun kendi sesi kullanılır.",
+  "Opening the microphone…": "Mikrofon açılıyor…",
+  "{0} is speaking. Tap to interrupt.": "{0} konuşuyor. Bölmek için dokun.",
+  "Paused. Tap the microphone to talk.": "Duraklatıldı. Konuşmak için mikrofona dokun.",
+  "End voice mode": "Sesli modu kapat",
+  "Talk": "Konuş",
+  "Writing out what you said…": "Söylediklerin yazıya dökülüyor…",
 }

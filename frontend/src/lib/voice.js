@@ -6,7 +6,7 @@
 // own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
-import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal } from './local-voice.js'
+import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal, kokoroVoice, KOKORO } from './local-voice.js'
 import { api } from './api.js'
 import { clipOf } from './wav.js'
 
@@ -395,6 +395,13 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
   if (MOBILE && nativeBusy) nativeTTS().then(({ p }) => p.stop()).catch(() => {})
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
+  // The natural voices on the phone (lib/local-voice.js, Kokoro): first for all four, each with a
+  // voice of its own, no quota and no connection. A failure falls through to the voices below.
+  const natural = kind && localVoicesOn() ? kokoroVoice(who, lang) : null
+  if (natural) {
+    try { await speakLocal(say, { key: KOKORO, sid: natural.sid, speed: (rate ?? 1) * natural.speed, voiceLang: natural.voiceLang, onStart: begin }); return } catch { /* the next voice */ }
+    if (run !== speakRun) return
+  }
   // A man's offline voice on the phone (lib/local-voice.js): first for Chiron and Hercules, with no
   // quota and no wait.
   const key = voiceKey()

@@ -3559,4 +3559,13 @@ export default {
   "{0} hour of training": "{0} óra edzés",
   "{0} hours of training": "{0} óra edzés",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "A legtöbb munka elöl: egy sorozat 1-et ér, ahol ez a fő izom, és {0}-et, ahol csak segít.",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "Telepíted az edzők természetes hangjait ({0})? Kheirón, Hercules, Athena és Kalliopé mind saját hangot kap. Offline működnek, napi korlát nélkül ({1} MB).",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "Az edzők természetes hangjai töltődnek le ({0}). Offline működnek, napi korlát nélkül ({1} MB).",
+  "Until then, the phone’s own voice is used.": "Addig a telefon saját hangja szól.",
+  "Opening the microphone…": "Mikrofon megnyitása…",
+  "{0} is speaking. Tap to interrupt.": "{0} beszél. Koppints a megszakításhoz.",
+  "Paused. Tap the microphone to talk.": "Szünetel. Koppints a mikrofonra a beszédhez.",
+  "End voice mode": "Hangmód befejezése",
+  "Talk": "Beszéd",
+  "Writing out what you said…": "Leírom, amit mondtál…",
 }

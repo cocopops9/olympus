@@ -3556,4 +3556,13 @@ export default {
   "{0} hour of training": "{0}시간 운동",
   "{0} hours of training": "{0}시간 운동",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "가장 많이 쓴 순서: 이 근육이 주동근이면 한 세트를 1로, 보조로만 쓰이면 {0}로 셉니다.",
+  "Install the natural voices of the coaches for {0}? Chiron, Hercules, Athena and Calliope each get a voice of their own. They work offline, with no daily limit ({1} MB).": "{0}용 코치들의 자연스러운 목소리를 설치할까요? 케이론, Hercules, Athena, 칼리오페가 각자 자신만의 목소리를 갖게 됩니다. 오프라인에서 하루 제한 없이 작동해요 ({1} MB).",
+  "Downloading the natural voices of the coaches for {0}. They work offline, with no daily limit ({1} MB).": "{0}용 코치들의 자연스러운 목소리를 내려받는 중이에요. 오프라인에서 하루 제한 없이 작동해요 ({1} MB).",
+  "Until then, the phone’s own voice is used.": "그때까지는 휴대폰의 기본 목소리를 사용해요.",
+  "Opening the microphone…": "마이크를 여는 중…",
+  "{0} is speaking. Tap to interrupt.": "{0}이(가) 말하는 중이에요. 탭하면 끊을 수 있어요.",
+  "Paused. Tap the microphone to talk.": "일시정지됨. 말하려면 마이크를 탭하세요.",
+  "End voice mode": "음성 모드 종료",
+  "Talk": "말하기",
+  "Writing out what you said…": "말씀하신 내용을 받아쓰는 중…",
 }
