@@ -29,9 +29,11 @@ import '../hercules.css'
 import { coachGoalsSheet } from './CoachGoals.jsx'
 import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js'
 import CoachActions from './CoachActions.jsx'
-import { splitActions } from '../lib/coach-actions.js'
-import { MicButton } from './Voice.jsx'
+import { splitActions, isShown } from '../lib/coach-actions.js'
+import { MicButton, VoiceModeButton } from './Voice.jsx'
+import { canSpeak } from '../lib/voice.js'
 import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
+import ExerciseDemo from './ExerciseDemo.jsx'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -161,9 +163,12 @@ function Menu({ data, busy, open, start, remove }) {
 /** A coach's message: its text, and the changes it proposes as cards (lib/coach-actions.js). */
 export function Reply({ m, onApplied }) {
   const { text, actions } = splitActions(m.content)
+  // Olympus: a demonstration is shown with the words; the rest are cards to apply.
+  const shown = actions.filter(isShown)
   return <>
     {text && <Rich text={text} />}
-    <CoachActions actions={actions} applied={m.applied || []} onApplied={onApplied} />
+    {shown.map((a, i) => <ExerciseDemo key={a.id + ':' + i} id={a.id} />)}
+    <CoachActions actions={actions.filter(a => !isShown(a))} applied={m.applied || []} onApplied={onApplied} />
   </>
 }
 
@@ -445,6 +450,8 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
         onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
       <MicButton disabled={busy} onText={setDraft} onFinal={setDraft} />
+      {/* Olympus: voice mode, a spoken conversation, in the full-screen coach (views/CoachAI.jsx). */}
+      {!draft.trim() && canSpeak() && <VoiceModeButton disabled={busy} onStart={() => { try { localStorage.setItem('olympus_voice_mode', '1') } catch { /* a convenience */ } expand() }} />}
       <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
     </form>}
     <div className="hc-note">{t('{0} is an AI and can be wrong. For pain or health problems, see a doctor.', name)}</div>

@@ -19,6 +19,7 @@ import com.k2fsa.sherpa.onnx.OfflineTts;
 import com.k2fsa.sherpa.onnx.OfflineTtsConfig;
 import com.k2fsa.sherpa.onnx.OfflineTtsModelConfig;
 import com.k2fsa.sherpa.onnx.OfflineTtsVitsModelConfig;
+import com.k2fsa.sherpa.onnx.OfflineTtsKokoroModelConfig;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -73,7 +74,8 @@ public class LocalVoicePlugin extends Plugin {
     }
 
     private static boolean safeLang(String lang) {
-        return lang != null && lang.matches("[A-Za-z]{2,3}(-[A-Za-z]{2,4})?");
+        // A language's Piper voice ("it", "pt-BR"), or the one Kokoro pack shared by its languages.
+        return lang != null && (lang.equals("kokoro") || lang.matches("[A-Za-z]{2,3}(-[A-Za-z]{2,4})?"));
     }
 
     private boolean installed(String lang) {
@@ -144,6 +146,7 @@ public class LocalVoicePlugin extends Plugin {
                 if (!new File(tmp, "model.onnx").isFile()) throw new Exception("the voice has no model");
                 synchronized (engines) {
                     OfflineTts old = engines.remove(lang);
+                    dropVariants(lang);
                     if (old != null) old.release();
                 }
                 File dest = new File(root(), lang);
@@ -166,6 +169,7 @@ public class LocalVoicePlugin extends Plugin {
         synchronized (engines) {
             OfflineTts old = engines.remove(lang);
             if (old != null) old.release();
+            dropVariants(lang);
         }
         deleteAll(new File(root(), lang));
         call.resolve();
@@ -177,23 +181,33 @@ public class LocalVoicePlugin extends Plugin {
         String text = call.getString("text", "");
         int sid = call.getInt("sid", 0);
         float speed = call.getFloat("speed", 1.0f);
+        // Olympus: `pitch` (0.8 to 1.2) plays the voice lower or higher: it is played at that share
+        // of its rate, and made faster or slower by as much, so its pace stays the one asked for.
+        // Two coaches reading with the same model sound like two people. `accent`: the espeak-ng
+        // language a Kokoro voice reads with ("es", "fr-fr", "it", "hi", "pt-br"); empty for the
+        // English and Chinese ones, which read with their own lexicons.
+        float pitch = Math.max(0.8f, Math.min(1.2f, call.getFloat("pitch", 1.0f)));
+        String accent = call.getString("accent", "");
+        if (accent == null || !accent.matches("[a-z-]{0,8}")) accent = "";
         if (!safeLang(lang) || !installed(lang)) { call.reject("no voice for " + lang, "no-voice"); return; }
+        final String acc = accent;
+        final float genSpeed = speed / pitch;
         if (text.trim().isEmpty()) { call.resolve(); return; }
         final int me = ++run;
         stopPlaying();
         work.execute(() -> {
             try {
-                OfflineTts tts = engine(lang);
+                OfflineTts tts = engine(lang, acc);
                 // One sentence at a time: the first is heard while the next is made.
                 List<String> parts = pieces(text);
                 boolean started = false;
                 for (String part : parts) {
                     if (me != run) break;
                     if (part.trim().isEmpty()) continue;
-                    GeneratedAudio audio = tts.generate(part, sid, speed);
+                    GeneratedAudio audio = tts.generate(part, sid, genSpeed);
                     if (me != run) break;
                     if (!started) { started = true; notifyListeners("start", new JSObject()); }
-                    play(audio.getSamples(), audio.getSampleRate(), me);
+                    play(audio.getSamples(), Math.round(audio.getSampleRate() * pitch), me);
                 }
                 call.resolve();
             } catch (Throwable e) {
@@ -254,23 +268,45 @@ public class LocalVoicePlugin extends Plugin {
         call.resolve();
     }
 
-    private OfflineTts engine(String lang) {
+    // A Kokoro pack (voices.bin beside the model) or a Piper voice. A Kokoro engine is made per
+    // espeak-ng language it reads with, since that is part of its configuration.
+    private OfflineTts engine(String lang, String accent) {
+        File d = new File(root(), lang);
+        boolean kokoro = new File(d, "voices.bin").isFile();
+        String key = kokoro ? lang + "|" + accent : lang;
         synchronized (engines) {
-            OfflineTts tts = engines.get(lang);
+            OfflineTts tts = engines.get(key);
             if (tts != null) return tts;
-            File d = new File(root(), lang);
-            OfflineTtsVitsModelConfig vits = new OfflineTtsVitsModelConfig();
-            vits.setModel(new File(d, "model.onnx").getAbsolutePath());
-            vits.setTokens(new File(d, "tokens.txt").getAbsolutePath());
-            vits.setDataDir(new File(d, "espeak-ng-data").getAbsolutePath());
             OfflineTtsModelConfig model = new OfflineTtsModelConfig();
-            model.setVits(vits);
+            if (kokoro) {
+                OfflineTtsKokoroModelConfig k = new OfflineTtsKokoroModelConfig();
+                k.setModel(new File(d, "model.onnx").getAbsolutePath());
+                k.setVoices(new File(d, "voices.bin").getAbsolutePath());
+                k.setTokens(new File(d, "tokens.txt").getAbsolutePath());
+                k.setDataDir(new File(d, "espeak-ng-data").getAbsolutePath());
+                List<String> lex = new ArrayList<>();
+                for (String f : new String[] { "lexicon-us-en.txt", "lexicon-zh.txt" }) {
+                    File lf = new File(d, f);
+                    if (lf.isFile()) lex.add(lf.getAbsolutePath());
+                }
+                if (!lex.isEmpty()) k.setLexicon(String.join(",", lex));
+                File dict = new File(d, "dict");
+                if (dict.isDirectory()) k.setDictDir(dict.getAbsolutePath());
+                if (!accent.isEmpty()) k.setLang(accent);
+                model.setKokoro(k);
+            } else {
+                OfflineTtsVitsModelConfig vits = new OfflineTtsVitsModelConfig();
+                vits.setModel(new File(d, "model.onnx").getAbsolutePath());
+                vits.setTokens(new File(d, "tokens.txt").getAbsolutePath());
+                vits.setDataDir(new File(d, "espeak-ng-data").getAbsolutePath());
+                model.setVits(vits);
+            }
             model.setNumThreads(2);
             model.setProvider("cpu");
             OfflineTtsConfig config = new OfflineTtsConfig();
             config.setModel(model);
             tts = new OfflineTts(null, config);
-            engines.put(lang, tts);
+            engines.put(key, tts);
             return tts;
         }
     }
@@ -303,6 +339,17 @@ public class LocalVoicePlugin extends Plugin {
         try { track.stop(); } catch (Exception ignored) { }
         track.release();
         if (playing == track) playing = null;
+    }
+
+    // The Kokoro engines of a pack, one per accent, when the pack is replaced or removed.
+    private void dropVariants(String lang) {
+        synchronized (engines) {
+            engines.keySet().removeIf(k -> {
+                if (!k.startsWith(lang + "|")) return false;
+                try { engines.get(k).release(); } catch (Exception ignored) { }
+                return true;
+            });
+        }
     }
 
     private void stopPlaying() {

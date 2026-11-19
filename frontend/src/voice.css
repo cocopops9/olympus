@@ -9,3 +9,8 @@
 /* voice mode's own microphone: on while voice mode lasts, a tap ends it */
 .mic.voice{background:var(--acc);color:var(--on-acc)}
 .mic.voice.on{background:var(--red);color:#fff}
+/* Olympus: the microphone as a stop button while it listens, and the voice-mode button. */
+.mic.on .mic-stop{display:block;width:13px;height:13px;border-radius:3px;background:currentColor}
+.voice-go{flex:none;width:38px;height:38px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;
+  background:var(--acc);color:var(--on-acc,#000);font-size:19px;cursor:pointer}
+.voice-go:disabled{opacity:.4}

@@ -3560,4 +3560,15 @@ export default {
   "{0} hour of training": "{0} час тренировок",
   "{0} hours of training": { one: "{0} час тренировок", few: "{0} часа тренировок", many: "{0} часов тренировок" },
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Сначала самое нагруженное: подход считается за 1, где это основная мышца, и за {0}, где она лишь помогает.",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena и Calliope могут говорить на языке «{0}» более естественными голосами, у каждого свой. Они работают офлайн, без дневного лимита ({1} МБ, лучше по Wi-Fi).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "У каждого тренера свой голос. Нажмите, чтобы послушать.",
+  "Hear the voices": "Послушать голоса",
+  "Hello, I am {0}. Ask me anything about your training.": "Привет, я {0}. Спрашивай что угодно о своих тренировках.",
+  "How to do {0}": "Как выполнять: {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "Установлены: работают офлайн. Нажмите, чтобы удалить ({0} МБ).",
+  "More natural voices": "Более естественные голоса",
+  "Natural voices": "Естественные голоса",
+  "Not installed ({0} MB).": "Не установлены ({0} МБ).",
+  "Remove the natural voices?": "Удалить естественные голоса?",
 }

@@ -3556,4 +3556,15 @@ export default {
   "{0} hour of training": "{0}시간 운동",
   "{0} hours of training": "{0}시간 운동",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "가장 많이 쓴 순서: 이 근육이 주동근이면 한 세트를 1로, 보조로만 쓰이면 {0}로 셉니다.",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena, Calliope가 {0}로 더 자연스러운 목소리로 말할 수 있어요. 각자 자기 목소리로요. 오프라인으로, 하루 제한 없이 작동해요({1} MB, Wi-Fi 권장).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "코치마다 자기 목소리가 있어요. 탭해서 들어 보세요.",
+  "Hear the voices": "목소리 들어 보기",
+  "Hello, I am {0}. Ask me anything about your training.": "안녕하세요, {0}예요. 운동에 대해 뭐든 물어보세요.",
+  "How to do {0}": "{0} 하는 법",
+  "Installed: works offline. Tap to remove ({0} MB).": "설치됨: 오프라인으로 작동해요. 탭해서 삭제({0} MB).",
+  "More natural voices": "더 자연스러운 목소리",
+  "Natural voices": "자연스러운 목소리",
+  "Not installed ({0} MB).": "설치 안 됨({0} MB).",
+  "Remove the natural voices?": "자연스러운 목소리를 삭제할까요?",
 }

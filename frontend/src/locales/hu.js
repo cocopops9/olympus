@@ -3559,4 +3559,15 @@ export default {
   "{0} hour of training": "{0} óra edzés",
   "{0} hours of training": "{0} óra edzés",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "A legtöbb munka elöl: egy sorozat 1-et ér, ahol ez a fő izom, és {0}-et, ahol csak segít.",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena és Calliope természetesebb hangon beszélhet ezen a nyelven: {0}, mindegyik a sajátján. Offline működnek, napi korlát nélkül ({1} MB, Wi-Fi ajánlott).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "Minden edzőnek saját hangja van. Koppints a meghallgatáshoz.",
+  "Hear the voices": "Hangok meghallgatása",
+  "Hello, I am {0}. Ask me anything about your training.": "Szia, {0} vagyok. Kérdezz bármit az edzésedről.",
+  "How to do {0}": "Így csináld: {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "Telepítve: offline működik. Koppints az eltávolításhoz ({0} MB).",
+  "More natural voices": "Természetesebb hangok",
+  "Natural voices": "Természetes hangok",
+  "Not installed ({0} MB).": "Nincs telepítve ({0} MB).",
+  "Remove the natural voices?": "Eltávolítod a természetes hangokat?",
 }

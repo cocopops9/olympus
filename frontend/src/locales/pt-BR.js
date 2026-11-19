@@ -1964,6 +1964,17 @@ export const PT_BR_OVERRIDES = {
   "Workouts in three different gyms.": "Treinos em três academias diferentes.",
   "{0} hour of training": "{0} hora de treino",
   "{0} hours of training": "{0} horas de treino",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena e Calliope podem falar {0} com vozes mais naturais, cada um com a sua. Funcionam offline, sem limite diário ({1} MB, de preferência no Wi-Fi).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "Cada coach tem a própria voz. Toque para ouvir.",
+  "Hear the voices": "Ouvir as vozes",
+  "Hello, I am {0}. Ask me anything about your training.": "Oi, eu sou {0}. Pergunte qualquer coisa sobre o seu treino.",
+  "How to do {0}": "Como fazer: {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "Instaladas: funcionam offline. Toque para remover ({0} MB).",
+  "More natural voices": "Vozes mais naturais",
+  "Natural voices": "Vozes naturais",
+  "Not installed ({0} MB).": "Não instaladas ({0} MB).",
+  "Remove the natural voices?": "Remover as vozes naturais?",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,

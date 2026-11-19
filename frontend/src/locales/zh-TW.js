@@ -3549,4 +3549,15 @@ export default {
   "{0} hour of training": "訓練 {0} 小時",
   "{0} hours of training": "訓練 {0} 小時",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "貢獻最多的在前：這是主要肌群時一組算 1，只是輔助時算 {0}。",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron、Hercules、Athena 和 Calliope 可以用更自然的聲音說{0}，每人一個專屬聲音。離線可用，沒有每日限制（{1} MB，建議使用 Wi-Fi）。",
+  "Each coach speaks with a voice of their own. Tap to listen.": "每位教練都有自己的聲音。點一下即可收聽。",
+  "Hear the voices": "試聽聲音",
+  "Hello, I am {0}. Ask me anything about your training.": "你好，我是 {0}。關於訓練，儘管問我。",
+  "How to do {0}": "{0} 的做法",
+  "Installed: works offline. Tap to remove ({0} MB).": "已安裝：離線可用。點一下刪除（{0} MB）。",
+  "More natural voices": "更自然的聲音",
+  "Natural voices": "自然聲音",
+  "Not installed ({0} MB).": "未安裝（{0} MB）。",
+  "Remove the natural voices?": "要刪除自然聲音嗎？",
 }

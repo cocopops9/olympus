@@ -3556,4 +3556,15 @@ export default {
   "{0} hour of training": "{0} saat antrenman",
   "{0} hours of training": "{0} saat antrenman",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "En çok iş önce: bir set, bu ana kas olduğunda 1, yalnızca yardım ettiğinde {0} sayılır.",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena ve Calliope {0} dilinde daha doğal seslerle konuşabilir, her birinin kendi sesi var. Çevrimdışı ve günlük sınır olmadan çalışır ({1} MB, Wi-Fi önerilir).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "Her koçun kendi sesi var. Dinlemek için dokun.",
+  "Hear the voices": "Sesleri dinle",
+  "Hello, I am {0}. Ask me anything about your training.": "Merhaba, ben {0}. Antrenmanınla ilgili her şeyi sorabilirsin.",
+  "How to do {0}": "Nasıl yapılır: {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "Yüklü: çevrimdışı çalışır. Kaldırmak için dokun ({0} MB).",
+  "More natural voices": "Daha doğal sesler",
+  "Natural voices": "Doğal sesler",
+  "Not installed ({0} MB).": "Yüklü değil ({0} MB).",
+  "Remove the natural voices?": "Doğal sesler kaldırılsın mı?",
 }

@@ -3556,4 +3556,15 @@ export default {
   "{0} hour of training": "{0} heure d’entraînement",
   "{0} hours of training": "{0} heures d’entraînement",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Le plus de travail d’abord : une série compte 1 quand c’est le muscle principal, {0} quand il ne fait qu’aider.",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena et Calliope peuvent parler {0} avec des voix plus naturelles, chacun la sienne. Elles marchent hors connexion, sans limite par jour ({1} Mo, Wi-Fi conseillé).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "Chaque coach a sa propre voix. Touchez pour écouter.",
+  "Hear the voices": "Écouter les voix",
+  "Hello, I am {0}. Ask me anything about your training.": "Bonjour, je suis {0}. Demandez-moi tout sur votre entraînement.",
+  "How to do {0}": "Comment faire : {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "Installées : elles marchent hors connexion. Touchez pour les retirer ({0} Mo).",
+  "More natural voices": "Des voix plus naturelles",
+  "Natural voices": "Voix naturelles",
+  "Not installed ({0} MB).": "Non installées ({0} Mo).",
+  "Remove the natural voices?": "Retirer les voix naturelles ?",
 }

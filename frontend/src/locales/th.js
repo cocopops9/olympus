@@ -3567,4 +3567,15 @@ export default {
   "{0} hour of training": "ฝึก {0} ชั่วโมง",
   "{0} hours of training": "ฝึก {0} ชั่วโมง",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "งานมากที่สุดก่อน: นับหนึ่งเซ็ตเป็น 1 เมื่อเป็นกล้ามเนื้อหลัก และ {0} เมื่อช่วยเท่านั้น",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena และ Calliope พูดภาษา{0}ด้วยเสียงที่เป็นธรรมชาติกว่าได้ แต่ละคนมีเสียงของตัวเอง ใช้งานแบบออฟไลน์ได้และไม่จำกัดต่อวัน ({1} MB แนะนำ Wi-Fi)",
+  "Each coach speaks with a voice of their own. Tap to listen.": "โค้ชแต่ละคนมีเสียงของตัวเอง แตะเพื่อฟัง",
+  "Hear the voices": "ฟังเสียง",
+  "Hello, I am {0}. Ask me anything about your training.": "สวัสดี ฉันคือ {0} ถามอะไรเกี่ยวกับการฝึกของคุณก็ได้",
+  "How to do {0}": "วิธีทำ {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "ติดตั้งแล้ว: ใช้ออฟไลน์ได้ แตะเพื่อลบ ({0} MB)",
+  "More natural voices": "เสียงที่เป็นธรรมชาติกว่า",
+  "Natural voices": "เสียงธรรมชาติ",
+  "Not installed ({0} MB).": "ยังไม่ได้ติดตั้ง ({0} MB)",
+  "Remove the natural voices?": "ลบเสียงธรรมชาติไหม?",
 }

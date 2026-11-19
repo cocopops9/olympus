@@ -82,6 +82,29 @@ jobs:
             done
             [ $done_one = 0 ] && echo "::warning::no voice found for $lang"
           done < list.txt
+          # Olympus: Kokoro (hexgrad/Kokoro-82M v1.0, Apache-2.0), the more natural voices, one pack
+          # for the languages it speaks (English, Spanish, French, Italian, Hindi, Brazilian
+          # Portuguese, Mandarin), int8 as sherpa-onnx publishes it. The app reads it with a speaker
+          # id per coach and language (frontend/src/lib/voice-cast.js).
+          kok=kokoro-int8-multi-lang-v1_0
+          if curl -fsSL -o "work/$kok.tar.bz2" "$base/$kok.tar.bz2"; then
+            rm -rf work/k && mkdir -p work/k && tar xjf "work/$kok.tar.bz2" -C work/k
+            dir=$(ls -d work/k/*/ | head -1)
+            model=$(ls "$dir"*.onnx | head -1)
+            rm -rf work/p && mkdir -p work/p
+            cp "$model" work/p/model.onnx
+            for f in voices.bin tokens.txt lexicon-us-en.txt lexicon-zh.txt; do [ -f "$dir$f" ] && cp "$dir$f" work/p/; done
+            cp -r "$dir/espeak-ng-data" work/p/espeak-ng-data
+            [ -d "$dir/dict" ] && cp -r "$dir/dict" work/p/dict
+            if [ -f work/p/voices.bin ] && [ -f work/p/tokens.txt ]; then
+              (cd work/p && zip -qr9 ../../out/voice-kokoro.zip .)
+              bytes=$(stat -c %s out/voice-kokoro.zip)
+              sum=$(sha256sum out/voice-kokoro.zip | cut -d' ' -f1)
+              echo "  \"kokoro\": {\"file\": \"voice-kokoro.zip\", \"name\": \"$kok\", \"sid\": 0, \"bytes\": $bytes, \"sha256\": \"$sum\"}," >> out/entries.txt
+              echo "kokoro: $kok ($bytes bytes)"
+            else echo "::warning::$kok has no voices or tokens"; fi
+            rm -f "work/$kok.tar.bz2"
+          else echo "::warning::no $kok"; fi
           python3 - <<'PY'
           import json, re
           body = open('out/entries.txt').read().strip().rstrip(',')

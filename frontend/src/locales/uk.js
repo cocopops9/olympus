@@ -3553,4 +3553,15 @@ export default {
   "{0} hour of training": "{0} година тренувань",
   "{0} hours of training": { one: "{0} година тренувань", few: "{0} години тренувань", many: "{0} годин тренувань" },
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Спершу найбільш навантажене: підхід рахується як 1, де це основний м’яз, і як {0}, де він лише допомагає.",
+  // Olympus: natural voices, the voice previews, exercise demonstrations.
+  "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena і Calliope можуть говорити мовою «{0}» природнішими голосами, у кожного свій. Вони працюють офлайн, без денного ліміту ({1} МБ, краще через Wi-Fi).",
+  "Each coach speaks with a voice of their own. Tap to listen.": "Кожен тренер має свій голос. Торкніться, щоб послухати.",
+  "Hear the voices": "Послухати голоси",
+  "Hello, I am {0}. Ask me anything about your training.": "Привіт, я {0}. Питай що завгодно про свої тренування.",
+  "How to do {0}": "Як виконувати: {0}",
+  "Installed: works offline. Tap to remove ({0} MB).": "Встановлено: працюють офлайн. Торкніться, щоб видалити ({0} МБ).",
+  "More natural voices": "Природніші голоси",
+  "Natural voices": "Природні голоси",
+  "Not installed ({0} MB).": "Не встановлено ({0} МБ).",
+  "Remove the natural voices?": "Видалити природні голоси?",
 }

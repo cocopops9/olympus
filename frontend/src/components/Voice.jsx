@@ -31,10 +31,14 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
   const start = async () => {
     if (stopRef.current) return
     let last = ''
+    // Olympus: a stop tapped while the microphone is still opening (the permission prompt, the
+    // first second) used to do nothing, and the microphone then stayed on with no way to close it.
+    // Now it is remembered and the microphone is closed the moment it is open.
+    let stopEarly = null
     try {
       setOn(true)
-      stopRef.current = () => {}   // starting: a second start waits
-      stopRef.current = await listen({
+      stopRef.current = opts => { stopEarly = opts || {} }   // starting: a stop now waits for it
+      const stopper = await listen({
         onText: text => { if (text) { last = text; onText?.(text) } },
         onEnd: error => {
           stopRef.current = null; setOn(false)
@@ -48,6 +52,8 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
           else if (said) onFinal?.(said); else onSilence?.()
         },
       })
+      stopRef.current = stopper
+      if (stopEarly) stopper?.(stopEarly)
     } catch (e) {
       stopRef.current = null; setOn(false)
       useUI.getState().toast(e?.code === 'permission' ? t('Allow the microphone to talk to your coach.') : t('Dictation is not available on this device.'))
@@ -61,8 +67,22 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, onSto
     aria-label={t('Stop voice mode')} title={t('Stop voice mode')}>
     <Icon name="mic" />
   </button>
+  // While it listens the button is a stop button, a square, so it is plain how to close it.
   return <button type="button" className={'mic' + (on ? ' on' : '')} disabled={disabled && !on} onClick={() => (on ? stop() : start())}
     aria-pressed={on} aria-label={on ? t('Stop dictation') : t('Dictate a message')} title={on ? t('Stop dictation') : t('Dictate a message')}>
-    <Icon name="mic" />
+    {on ? <span className="mic-stop" aria-hidden="true" /> : <Icon name="mic" />}
+  </button>
+}
+
+/**
+ * Olympus: voice mode, as in ChatGPT or Claude: a button beside the microphone that starts a spoken
+ * conversation with the coach (it listens, the coach answers aloud, it listens again). Shown only
+ * where the device can dictate.
+ */
+export function VoiceModeButton({ onStart, disabled }) {
+  const can = useCanListen()
+  if (!can) return null
+  return <button type="button" className="voice-go" disabled={disabled} onClick={onStart} aria-label={t('Voice mode')} title={t('Voice mode')}>
+    <Icon name="wave" />
   </button>
 }
