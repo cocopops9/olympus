@@ -182,7 +182,6 @@ test('Chiron coaches in the workout: brief, on Hercules\'s key, 30 messages a da
   assert.equal(c.context, 4 * LIMITS.context);
   assert.match(systemPrompt({ coach: 'chiron', context: 'x'.repeat(30000) + 'END' }), /END/);
   assert.doesNotMatch(p, /create_routine/);
-  assert.match(p, /show_exercise/, 'Chiron can show how an exercise is done');
   // The history he gets is short: a quick question, not a long talk.
   const long = Array.from({ length: 21 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'm' + i }));
   assert.equal(cleanChat(long, c.history).length <= CHIRON_DEFAULTS.history, true);

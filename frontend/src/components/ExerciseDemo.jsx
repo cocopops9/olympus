@@ -1,23 +1,60 @@
-// Olympus: an exercise shown inside a coach's answer (the coach-actions "show_exercise"): the
-// catalogue's own animation of a figure doing it, looping while the coach explains it in words
-// (and aloud, in voice mode).
+// Olympus: an exercise shown while a coach explains it. Asked "how do I do the squat?", Chiron,
+// Hercules and Athena answer in words (and aloud in voice mode) beside the exercise's own
+// animation from the library (lib/exercise-demo.js decides which exercise a question asks about).
+import { useMemo } from 'react'
 import { useStore } from '../store/useStore.js'
-import { EXIDX, gifSrc, imgSrc, isVideoSrc, figureOf } from '../lib/exercises.js'
-import { exerciseNameText } from '../lib/format.js'
-import { t } from '../lib/i18n.js'
+import { CATALOGUE, EXIDX } from '../lib/exercises.js'
+import { exerciseNameFor } from '../lib/i18n.js'
+import { demoExercise } from '../lib/exercise-demo.js'
+import { askedExercise } from '../lib/exercise-ask.js'
+import Media from './Media.jsx'
+import '../exercise-demo.css'
 
-export default function ExerciseDemo({ id }) {
+const nameOf = e => [exerciseNameFor(e), e.n]
+
+// The exercises the person trains (the workout in progress and the recent ones): theirs win a tie.
+function ownIds(S) {
+  const ids = new Set()
+  for (const e of S?.active?.entries || []) if (e?.id) ids.add(e.id)
+  for (const w of (S?.workouts || []).slice(-30)) for (const e of w?.entries || []) if (e?.id) ids.add(e.id)
+  return ids
+}
+
+/** The exercise a question asks to see, or null. `currentId`: the exercise being trained now. */
+export function demoFor(question, S, currentId = null) {
+  if (!question) return null
+  // The plain lift named in the question, ranked like the library search (lib/exercise-ask.js);
+  // what it leaves open ("this one", an exercise it does not find) goes to demoExercise.
+  const named = EXIDX[askedExercise(question, S?.customEx || [])] || null
+  if (named?.gif) return named
+  const current = currentId ? EXIDX[currentId] || null : null
+  const ex = demoExercise(question, { list: CATALOGUE, nameOf, prefer: ownIds(S), current })
+  return ex && ex.gif ? ex : null
+}
+
+/** The exercise asked about in `question`, worked out once per question. */
+export function useDemo(question, currentId = null) {
   const S = useStore(s => s.S)
-  const ex = EXIDX[id] || (S.customEx || []).find(e => e.id === id)
+  // The person's own exercises only break ties: read once per question, not on every set ticked.
+  return useMemo(() => demoFor(question, S, currentId), [question, currentId])
+}
+
+/** The animation with the exercise's name under it. */
+export default function ExerciseDemo({ ex, compact = true }) {
   if (!ex) return null
-  const fig = figureOf(S)
-  const clip = ex.gif || ex.sport ? gifSrc(ex, fig) : null
-  const still = ex.img || ex.sport ? imgSrc(ex, fig) : null
-  const name = exerciseNameText(ex)
-  return <figure className="ex-demo" aria-label={t('How to do {0}', name)}>
-    {clip && isVideoSrc(clip)
-      ? <video src={clip} poster={still || undefined} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
-      : (clip || still) ? <img src={clip || still} alt="" loading="lazy" /> : null}
-    <figcaption className="ex-demo-n">{name}</figcaption>
+  return <figure className={'exdemo' + (compact ? ' compact' : '')}>
+    <Media ex={ex} compact />
+    <figcaption>{exerciseNameFor(ex)}</figcaption>
   </figure>
+}
+
+/**
+ * Under a coach's answer: the exercise the question before it asked to see, if any. `currentId`:
+ * the exercise being trained (Chiron), for "how do I do this one?".
+ */
+export function DemoAfter({ list, i, currentId = null }) {
+  const prev = list[i - 1]
+  const question = prev?.role === 'user' ? prev.content : null
+  const ex = useDemo(question, currentId)
+  return ex ? <ExerciseDemo ex={ex} /> : null
 }

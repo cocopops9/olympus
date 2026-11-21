@@ -1,8 +1,9 @@
 // Olympus: the exercise a question asks how to do ("come si fa lo stacco rumeno?", "how do I do
-// a hip thrust?"), read from the person's own words, so the coach's answer shows its
-// demonstration even when the model forgot to write the show_exercise action
-// (lib/coach-actions.js). The action stays the first source: this is the fallback, and it is
-// deliberately strict, because a wrong animation beside a technique answer is worse than none.
+// a hip thrust?"), read from the person's own words and ranked like the library search, so the
+// coach's answer shows the plain lift rather than one of its variants. Used first by
+// components/ExerciseDemo.jsx demoFor; lib/exercise-demo.js answers what this leaves open
+// ("how do I do this one?" during a workout). Deliberately strict: a wrong animation beside a
+// technique answer is worse than none.
 //
 // How it reads a question:
 //   1. A cue that asks for technique must be there ("how do I", "come si fa", "cómo se hace",
@@ -16,7 +17,6 @@
 //      also matches muscles, equipment and descriptions, which is right for the library and too
 //      loose here: "how do I grow my chest" must not pick a chest press.
 import { exerciseNameFor } from './i18n.js'
-import { splitActions, isShown } from './coach-actions.js'
 import { CATALOGUE, normalizeStr, searchExercises, priorOf } from './exercises.js'
 
 // The cues, accent-free and lower-case (the question is normalised the same way before
@@ -145,13 +145,3 @@ export function askedExercise(question, custom = []) {
   return null
 }
 
-/**
- * The exercise to keep on a coach's answer (`demo` on the message) that came without a
- * show_exercise action, when the question asked how to do one; null otherwise. `already`: a
- * demonstration was shown for this question, by the coach who answered first when both answer,
- * so the second does not repeat it.
- */
-export function demoFor(question, reply, custom = [], already = false) {
-  if (already || splitActions(reply).actions.some(isShown)) return null
-  return askedExercise(question, custom)
-}

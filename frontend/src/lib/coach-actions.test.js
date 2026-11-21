@@ -65,15 +65,3 @@ describe('gyms', () => {
     expect(cleanGym('x'.repeat(80))).toHaveLength(40)
   })
 })
-
-describe('exercise demonstrations (Olympus)', () => {
-  it('a coach can show how an exercise is done; shown with the words, not applied', async () => {
-    const { splitActions, isShown } = await import('./coach-actions.js')
-    const r = splitActions('Keep your shoulder blades back.\n```olympus-action\n{"type": "show_exercise", "name": "barbell bench press"}\n```')
-    expect(r.text).toBe('Keep your shoulder blades back.')
-    expect(r.actions).toHaveLength(1)
-    expect(isShown(r.actions[0])).toBe(true)
-    expect(r.actions[0].id).toBeTruthy()
-    expect(splitActions('```olympus-action\n{"type": "show_exercise", "name": ""}\n```').actions).toEqual([])
-  })
-})

@@ -1,0 +1,32 @@
+/* Olympus: voice mode with the coaches (components/VoiceMode.jsx). Above the sheets (#modal-root
+   is at 100) and under the toasts, so a message about the microphone is still seen. */
+.voice-go{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--acc);color:var(--on-acc);display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer}
+.voice-go:disabled{opacity:.45}
+.vmode{position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;color:#fff;
+  background:radial-gradient(120% 80% at 50% 30%,#2b2a33 0%,#121216 70%);
+  padding:calc(var(--sat) + 8px) 16px calc(var(--sab) + 18px)}
+.vmode-top{display:flex;align-items:center;justify-content:space-between;min-height:44px}
+.vmode-top .iconbtn{color:#fff}
+.vmode-title{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;opacity:.85}
+.vmode-mid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow-y:auto;text-align:center}
+.vmode-orb{position:relative;border:0;background:none;padding:22px;border-radius:50%;cursor:pointer;display:flex}
+.vmode-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--acc);opacity:0;pointer-events:none}
+.vmode.listening .vmode-ring{animation:vmode-pulse 1.6s ease-out infinite}
+.vmode.listening .vmode-ring.two{animation-delay:.8s}
+.vmode.speaking .vmode-ring{opacity:.7;animation:vmode-talk .9s ease-in-out infinite alternate}
+.vmode.speaking .vmode-ring.two{animation-delay:.45s}
+.vmode.writing .vmode-ring,.vmode.thinking .vmode-ring{opacity:.5;border-style:dashed;animation:vmode-spin 3s linear infinite}
+@keyframes vmode-pulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.35);opacity:0}}
+@keyframes vmode-talk{0%{transform:scale(.95)}100%{transform:scale(1.12)}}
+@keyframes vmode-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.vmode-ring{animation:none!important}}
+.vmode-name{font-size:22px;font-weight:700}
+.vmode-status{font-size:14px;opacity:.75;min-height:20px}
+.vmode .exdemo{width:min(320px,100%)}
+.vmode-words{max-width:560px;width:100%}
+.vmode-heard{font-size:16px;opacity:.85;font-style:italic;margin:6px 0}
+.vmode-said{font-size:16px;line-height:1.45;margin:6px 0}
+.vmode-bar{display:flex;justify-content:center;gap:28px;padding-top:12px}
+.vmode-b{width:64px;height:64px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.vmode-b.on{background:var(--acc);color:var(--on-acc)}
+.vmode-b.end{background:var(--red,#ff3b30)}

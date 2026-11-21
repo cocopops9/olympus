@@ -47,7 +47,7 @@ import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmen
 import Icon from '../components/Icon.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
-import { VoiceSetupRow, NaturalVoiceRow, VoicePreviewRow } from '../components/VoiceSetup.jsx'
+import { VoiceSetupRow } from '../components/VoiceSetup.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
 import AccountHero, { useFace } from '../components/AccountHero.jsx'
 import { GymsManager } from '../components/Gyms.jsx'
@@ -669,8 +669,6 @@ export default function Settings({ page = null, find = null, via = null }) {
           }))}
         />
         <VoiceSetupRow />
-        <NaturalVoiceRow />
-        <VoicePreviewRow />
         {ctx.nameLang && <>
           <Row icon="globe" iconTint="var(--purple)" title={t('English exercise names')}
             subtitle={t('Show the English name in parentheses next to the translated one.')}>

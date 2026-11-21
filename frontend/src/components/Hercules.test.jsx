@@ -20,7 +20,7 @@ import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import HerculesButton, { herculesSheet, resetGreetingForTests } from './Hercules.jsx'
 import { chatsOf } from '../lib/coach-memory.js'
-import { saveChats, putChat, loadChats } from '../lib/hercules.js'
+import { saveChats, putChat } from '../lib/hercules.js'
 
 const roots = []
 const flush = () => act(() => new Promise(r => setTimeout(r, 0)))
@@ -119,24 +119,6 @@ describe('Hercules', () => {
     act(() => { setter.call(box, text); box.dispatchEvent(new Event('input', { bubbles: true })) })
     act(() => chat.querySelector('.hc-send').click())
   }
-
-  // Olympus: asked how an exercise is done, the answer shows its animation even when the model
-  // wrote no show_exercise action (lib/exercise-ask.js), and keeps it when the chat is reopened.
-  it('shows the demonstration of the exercise asked about, even without the coach\'s action', async () => {
-    mocks.answer = { reply: 'Shoulders on the bench, drive through the heels.', left: 19, perDay: 20 }
-    herculesSheet()
-    const chat = renderTopSheet()
-    await flush()
-    type(chat, 'How do I do a hip thrust?'); await flush(); await flush()
-    expect(chat.querySelector('.ex-demo')).not.toBeNull()
-    expect(chat.querySelector('.ex-demo-n').textContent.toLowerCase()).toContain('hip thrust')
-    const saved = loadChats(useStore.getState().user.id, 'hercules').chats[0].messages.at(-1)
-    expect(saved.demo).toBe('2072')
-
-    // A question that is not about technique shows none.
-    type(chat, 'How much protein?'); await flush(); await flush()
-    expect(chat.querySelectorAll('.ex-demo')).toHaveLength(1)
-  })
 
   it('keeps several conversations: start a new one, go back to the first, delete one', async () => {
     herculesSheet()

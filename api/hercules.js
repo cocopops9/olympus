@@ -197,7 +197,6 @@ export const ACTIONS_HELP = [
   'The app shows it as a card with an Apply button: nothing changes until they tap it, so never say it is done. The actions:',
   '- create_routine {"name": "Push A", "exercises": [{"name": "barbell bench press", "sets": 4, "reps": 6, "weight": 80}]} (exercise names in English, as in the app; up to 15 exercises; weight in their unit, 0 if unknown)',
   '- add_exercise {"name": "cable fly", "sets": 3, "reps": 12, "weight": 15} (only while a workout is in progress)',
-  '- show_exercise {"name": "barbell bench press"} (when they ask how an exercise is done: the app shows its demonstration video beside your words; then explain the technique in a few short cues: setup, movement, the usual mistake)',
   '- set_next_sets {"weight": 82.5, "reps": 6} (the remaining sets of the current exercise of the workout in progress)',
   '- set_rest {"seconds": 150} (the default rest between sets, 15 to 600)',
   '- set_stats_cards {"cards": ["summary", "progress", "muscles"]} (which statistics their Stats page shows, in order; ids: highlights, summary, activity, progress, muscles, weekly, effort, structural, photos, recent)',
@@ -211,7 +210,6 @@ export const CHIRON_ACTIONS_HELP = [
   '```olympus-action\n{"type": "set_next_sets", "weight": 82.5, "reps": 6}\n```',
   '- set_next_sets {"weight": 82.5, "reps": 6} (the remaining sets of the current exercise)',
   '- add_exercise {"name": "cable fly", "sets": 3, "reps": 12, "weight": 15} (exercise names in English, as in the app)',
-  '- show_exercise {"name": "barbell bench press"} (when they ask how an exercise is done: the app shows its demonstration video beside your words; then explain the technique in a few short cues: setup, movement, the usual mistake)',
   'Nothing changes until they tap it: never say it is done.',
 ].join('\n');
 

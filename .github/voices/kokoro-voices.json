@@ -1,0 +1,41 @@
+{
+  "_comment": "The coaches' natural voices (Kokoro-82M v1.0, Apache-2.0), packed by kokoro-pack.py. Each voice is a Kokoro voice or a weighted mix of a few (the style vectors are averaged), chosen so the four coaches sound like four different people (speaker-embedding cosine at most 0.68 between any two in a language, measured with 3D-Speaker ERes2Net) while staying intelligible (Whisper medium word error at most 3% on a coaching sentence). 'espeak' is the language the words are read with; 'speed' 1 is Kokoro's own pace.",
+  "langs": {
+    "it": {
+      "espeak": "it",
+      "who": {
+        "chiron": { "mix": { "im_nicola": 0.5, "am_onyx": 0.5 }, "speed": 0.9 },
+        "hercules": { "mix": { "im_nicola": 0.4, "am_fenrir": 0.6 }, "speed": 1.0 },
+        "athena": { "mix": { "if_sara": 1.0 }, "speed": 1.0 },
+        "calliope": { "mix": { "if_sara": 0.4, "bf_emma": 0.6 }, "speed": 1.0 }
+      }
+    },
+    "en": {
+      "espeak": "en-us",
+      "who": {
+        "chiron": { "mix": { "am_onyx": 1.0 }, "speed": 0.9 },
+        "hercules": { "mix": { "am_fenrir": 1.0 }, "speed": 1.0 },
+        "athena": { "mix": { "af_heart": 1.0 }, "speed": 1.0 },
+        "calliope": { "mix": { "bf_emma": 1.0 }, "speed": 1.0 }
+      }
+    },
+    "es": {
+      "espeak": "es",
+      "who": {
+        "chiron": { "mix": { "em_alex": 0.4, "am_onyx": 0.6 }, "speed": 0.9 },
+        "hercules": { "mix": { "em_alex": 0.6, "am_fenrir": 0.4 }, "speed": 1.0 },
+        "athena": { "mix": { "ef_dora": 1.0 }, "speed": 1.0 },
+        "calliope": { "mix": { "ef_dora": 0.3, "af_aoede": 0.7 }, "speed": 1.0 }
+      }
+    },
+    "pt-BR": {
+      "espeak": "pt-br",
+      "who": {
+        "chiron": { "mix": { "pm_santa": 0.5, "am_onyx": 0.5 }, "speed": 0.9 },
+        "hercules": { "mix": { "pm_alex": 1.0 }, "speed": 1.0 },
+        "athena": { "mix": { "pf_dora": 1.0 }, "speed": 1.0 },
+        "calliope": { "mix": { "pf_dora": 0.3, "af_aoede": 0.7 }, "speed": 1.0 }
+      }
+    }
+  }
+}

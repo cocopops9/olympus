@@ -91,18 +91,10 @@ export function checkAction(a, custom = []) {
       const goals = str(a.goals, GOALS_MAX)
       return styles.length || phase || goals ? { type: a.type, ...(styles.length ? { styles } : {}), ...(phase ? { phase } : {}), ...(goals ? { goals } : {}) } : null
     }
-    // Olympus: when they ask how an exercise is done, the coach shows its demonstration (the
-    // catalogue's own animation) while explaining it. Shown at once, nothing to apply.
-    case 'show_exercise': {
-      const ex = findExercise(str(a.name, 80), custom)
-      return ex ? { type: a.type, id: ex.id } : null
-    }
     default:
       return null
   }
 }
-/** Shown with the reply (a demonstration), rather than proposed as a card to apply. */
-export const isShown = a => a?.type === 'show_exercise'
 
 const exName = id => (EXIDX[id] ? exerciseNameText(EXIDX[id]) : id)
 const setsText = (e, unit) => (e.min ? t('{0} min', e.min) : `${e.sets} × ${e.reps}${e.weight ? ' · ' + e.weight + ' ' + unit : ''}`)
