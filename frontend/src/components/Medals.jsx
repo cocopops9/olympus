@@ -18,7 +18,7 @@ import { loadNotes } from '../lib/coach-memory.js'
 import { socialReady } from '../lib/social.js'
 import { fetchReferral } from '../lib/referral.js'
 import { shareStory } from '../lib/story-card.js'
-import { triumph } from '../lib/sound.js'
+import { medalSound } from '../lib/sound.js'
 import { MOBILE } from '../lib/mobile.js'
 import { inviteSheet } from './Community.jsx'
 import { coachGoalsSheet } from './CoachGoals.jsx'
@@ -105,14 +105,15 @@ export const celebrate = list => showCelebration?.(list)
  *   gold             the banner, and a short fall of confetti
  *   platinum         the medal takes the middle of the screen, with rays and confetti
  *   olympian         the same, larger: a flash, a shockwave, two wheels of rays, a golden rain
- * `stay` is how long it stays, in milliseconds; `confetti` how many pieces fall.
+ * `stay` is how long it stays, in milliseconds; `confetti` how many pieces fall. Every tier has a
+ * sound of its own in the Greek manner, each grander than the one below (lib/medal-sounds.js).
  */
 export const CELEBRATION = {
-  bronze: { kind: 'banner', stay: 3200, confetti: 0, sound: false },
-  silver: { kind: 'banner', stay: 3800, confetti: 0, sound: false },
-  gold: { kind: 'banner', stay: 4600, confetti: 22, sound: true },
-  platinum: { kind: 'stage', stay: 5200, confetti: 44, sound: true },
-  olympian: { kind: 'stage', stay: 7000, confetti: 84, sound: true },
+  bronze: { kind: 'banner', stay: 3200, confetti: 0 },
+  silver: { kind: 'banner', stay: 3800, confetti: 0 },
+  gold: { kind: 'banner', stay: 4600, confetti: 22 },
+  platinum: { kind: 'stage', stay: 5200, confetti: 44 },
+  olympian: { kind: 'stage', stay: 7000, confetti: 84 },
 }
 export const celebrationOf = m => CELEBRATION[m?.tier] || CELEBRATION.bronze
 
@@ -133,7 +134,7 @@ export function MedalCelebration() {
   const next = () => setQueue(q => q.slice(1))
   useEffect(() => {
     if (!m) return
-    if (how.sound) triumph(sound)
+    medalSound(sound, m.tier)
     const tm = setTimeout(next, how.stay)
     return () => clearTimeout(tm)
   }, [m?.id])   // eslint-disable-line react-hooks/exhaustive-deps

@@ -3646,4 +3646,6 @@ export default {
   "Natural voices": "স্বাভাবিক কণ্ঠ",
   "Not installed ({0} MB).": "ইনস্টল করা নেই ({0} MB)।",
   "Remove the natural voices?": "স্বাভাবিক কণ্ঠগুলো সরাবেন?",
+  "Greek aulos": "গ্রিক অউলোস",
+  "An aulos calls you back, in the Greek manner.": "গ্রিক ধাঁচে একটি অউলোস তোমাকে ডেকে ফিরিয়ে আনে।",
 }

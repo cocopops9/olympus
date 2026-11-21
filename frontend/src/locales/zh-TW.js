@@ -3560,4 +3560,6 @@ export default {
   "Natural voices": "自然聲音",
   "Not installed ({0} MB).": "未安裝（{0} MB）。",
   "Remove the natural voices?": "要刪除自然聲音嗎？",
+  "Greek aulos": "希臘管笛（奧洛斯）",
+  "An aulos calls you back, in the Greek manner.": "希臘風格的奧洛斯管笛，叫你回來訓練。",
 }

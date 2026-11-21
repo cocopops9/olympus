@@ -3567,4 +3567,6 @@ export default {
   "Natural voices": "자연스러운 목소리",
   "Not installed ({0} MB).": "설치 안 됨({0} MB).",
   "Remove the natural voices?": "자연스러운 목소리를 삭제할까요?",
+  "Greek aulos": "그리스 아울로스",
+  "An aulos calls you back, in the Greek manner.": "아울로스가 그리스식으로 당신을 다시 부릅니다.",
 }
