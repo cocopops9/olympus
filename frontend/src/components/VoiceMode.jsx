@@ -39,7 +39,8 @@ const voiceOf = who => (VOICES[who] ? who : 'hercules')
 export function VoiceMode({ chat, coach, close }) {
   const c = useRef(chat)
   c.current = chat
-  // listening | thinking | speaking | paused (and starting, before the microphone is open)
+  // listening | writing (what was said is being written out) | thinking | speaking | paused (and
+  // starting, before the microphone is open)
   const [phase, setPhase] = useState('starting')
   const [heard, setHeard] = useState('')
   const [said, setSaid] = useState({ who: coach === BOTH ? 'hercules' : coach, text: '' })
@@ -72,6 +73,7 @@ export function VoiceMode({ chat, coach, close }) {
     const end = v => { if (!done) { done = true; clearTimeout(guard); stopListening.current = null; resolve(v) } }
     listen({
       onReady: () => setPhase('listening'),
+      onHeard: () => setPhase('writing'),
       onText: text => { if (text) { last = text; setHeard(text) } },
       onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) },
     }).then(stop => { stopListening.current = stop; if (!live.current) stop({ cancel: true }) }, e => end(e?.code === 'permission' ? false : ''))
@@ -142,6 +144,7 @@ export function VoiceMode({ chat, coach, close }) {
   const status = {
     starting: t('Opening the microphone…'),
     listening: t('I am listening…'),
+    writing: t('Writing out what you said…'),
     thinking: t('{0} is thinking…', name),
     speaking: t('{0} is speaking. Tap to interrupt.', name),
     paused: t('Paused. Tap the microphone to talk.'),

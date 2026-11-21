@@ -8,7 +8,7 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 
-const mocks = vi.hoisted(() => ({ sent: [], spoken: [], heard: [], stops: [], released: 0, openMs: 5 }))
+const mocks = vi.hoisted(() => ({ sent: [], spoken: [], heard: [], stops: [], released: 0, openMs: 5, writeMs: 0 }))
 vi.mock('../lib/hercules.js', async orig => ({
   ...(await orig()),
   herculesStatus: vi.fn(async () => ({ on: true, perDay: 15, left: 15 })),
@@ -24,12 +24,13 @@ vi.mock('../lib/voice.js', async orig => ({
   stopSpeaking: vi.fn(async () => {}),
   releaseMic: vi.fn(() => { mocks.released++ }),
   // Opens after `openMs`; hears the next thing in the list ('' is silence) and stops by itself,
-  // unless the list is empty: then it records until it is stopped.
-  listen: vi.fn(({ onText, onEnd, onReady }) => new Promise(resolve => setTimeout(() => {
+  // unless the list is empty: then it records until it is stopped. Something said is written out
+  // for `writeMs` after it is heard.
+  listen: vi.fn(({ onText, onEnd, onReady, onHeard }) => new Promise(resolve => setTimeout(() => {
     onReady?.()
     const text = mocks.heard.shift()
     const stop = vi.fn(opts => { mocks.stops.push(opts || {}); setTimeout(() => onEnd(), 1) })
-    if (text !== undefined) setTimeout(() => { if (text) onText(text, true); onEnd() }, 5)
+    if (text !== undefined) setTimeout(() => { if (text) onHeard?.(); setTimeout(() => { if (text) onText(text, true); onEnd() }, mocks.writeMs) }, 5)
     resolve(stop)
   }, mocks.openMs))),
 }))
@@ -53,7 +54,7 @@ function mount(el) {
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  Object.assign(mocks, { sent: [], spoken: [], heard: [], stops: [], released: 0, openMs: 5 })
+  Object.assign(mocks, { sent: [], spoken: [], heard: [], stops: [], released: 0, openMs: 5, writeMs: 0 })
   localStorage.clear()
   useUI.setState({ sheets: [] })
   useStore.setState({ S: structuredClone(DEF), user: { id: 'u' + Math.random(), name: 'Ada' }, ready: true })
@@ -118,6 +119,16 @@ describe('voice mode', () => {
     await wait(150)
     expect(mocks.spoken.map(([who]) => who)).toEqual(['athena'])
     expect(document.querySelector('.vmode .exdemo figcaption')?.textContent).toMatch(/squat/i)
+  })
+  it('says it is writing out what was said once the person stops, not that it still listens', async () => {
+    mocks.heard = ['How many sets?', '', '']
+    mocks.writeMs = 80
+    mount(<Harness coach="hercules" />)
+    await wait(40)
+    expect(document.querySelector('.vmode').classList.contains('writing')).toBe(true)
+    expect(document.querySelector('.vmode-status').textContent).toBe('Writing out what you said…')
+    await wait(150)
+    expect(mocks.sent.map(([, text]) => text)).toEqual(['How many sets?'])
   })
   it('the cross ends it', async () => {
     let closed = false

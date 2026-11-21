@@ -15,7 +15,7 @@
 .vmode.listening .vmode-ring.two{animation-delay:.8s}
 .vmode.speaking .vmode-ring{opacity:.7;animation:vmode-talk .9s ease-in-out infinite alternate}
 .vmode.speaking .vmode-ring.two{animation-delay:.45s}
-.vmode.thinking .vmode-ring{opacity:.5;border-style:dashed;animation:vmode-spin 3s linear infinite}
+.vmode.writing .vmode-ring,.vmode.thinking .vmode-ring{opacity:.5;border-style:dashed;animation:vmode-spin 3s linear infinite}
 @keyframes vmode-pulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.35);opacity:0}}
 @keyframes vmode-talk{0%{transform:scale(.95)}100%{transform:scale(1.12)}}
 @keyframes vmode-spin{to{transform:rotate(360deg)}}

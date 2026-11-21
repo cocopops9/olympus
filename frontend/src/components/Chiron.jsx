@@ -264,7 +264,9 @@ function ChironVoice({ tips, unit, online }) {
     // A recogniser that never starts or never stops counts as silence after 20 seconds.
     const guard = setTimeout(() => { stopListening.current?.(); end(last.trim()) }, 35000)
     const end = v => { if (!done) { done = true; clearTimeout(guard); stopListening.current = null; resolve(v) } }
-    listen({ onReady: () => setPose('listening'), onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
+    // Once the person stops talking he says he is writing it out: the microphone is no longer
+    // listening, and a new user knows the words were heard.
+    listen({ onReady: () => setPose('listening'), onHeard: () => setPose('writing'), onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
       .then(stop => { stopListening.current = stop; if (!live.current) stop() }, e => end(e?.code === 'permission' ? false : ''))
   })
 
@@ -310,10 +312,10 @@ function ChironVoice({ tips, unit, online }) {
     halt(); run(false)
   }
   const keyboard = () => { halt(); setPose('idle'); setPaused(true); chironSheet() }
-  const status = pose === 'listening' ? t('I am listening…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
+  const status = pose === 'listening' ? t('I am listening…') : pose === 'writing' ? t('Writing out what you said…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
   return <div className="chv" role="group" aria-label={t('Chiron')}>
     <button className="chv-fig" onClick={toggleMic} aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}>
-      <ChironFigure state={pose} mouth={mouth} size={140} />
+      <ChironFigure state={pose === 'writing' ? 'thinking' : pose} mouth={mouth} size={140} />
     </button>
     <div className="chv-side">
       <div className="chv-n"><b>{t('Chiron')}</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>

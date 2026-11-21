@@ -47,6 +47,8 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, guide
       stopRef.current = remember
       const stop = await listen({
         onReady: () => setPhase(p => (p === 'starting' ? 'on' : p)),
+        // Stopped by a pause: written out now, so the button says so (as after a tap on stop).
+        onHeard: () => setPhase(p => (p === 'on' ? 'wait' : p)),
         onText: text => { if (text) { last = text; onText?.(text) } },
         onEnd: error => {
           stopRef.current = null; setPhase('off')

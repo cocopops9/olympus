@@ -58,14 +58,21 @@ export const setVoiceHint = fn => { hintOf = typeof fn === 'function' ? fn : nul
 // nothing more is said the answer is already there when the pause ends. When that early text is a
 // finished sentence (it ends in . ? or !) and the silence has lasted `sentenceMs`, the wait ends
 // there instead of at the long pause. `specMax` caps the early requests of one question.
-export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 1100, sentenceMs: 2000, specMax: 3 }
+//
+// specMs and sentenceMs are set from how people pause: inside a spoken turn most pauses are under
+// half a second, and voice assistants end a turn after about 0.5 to 0.8 s of silence. A first
+// transcription after 0.7 s, and the end of the wait 1 s into the silence when that text is a
+// finished sentence, end a whole question about a second after the last word (it was 2 s or more);
+// a sentence left open still waits for the long pause, so a slow speaker is not cut short.
+export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 700, sentenceMs: 1000, specMax: 3 }
 /** Whether a transcript reads as a finished sentence: at least three words, closed by . ? or ! */
 export const endsSentence = text => /\S+\s+\S+\s+\S+/.test(String(text || '').trim()) && /[.?!…]["')\]]*$/.test(String(text || '').trim())
 
 /**
  * One question, recorded and written out. Speech is told from silence by the loudness of the
  * microphone against the room's own noise, measured in the first moments. The stop it returns
- * sends what was said so far; stop({ cancel: true }) throws it away.
+ * sends what was said so far; stop({ cancel: true }) throws it away. `onHeard()` is called when
+ * the recording ends with something said and is being written out, so the screen can say so.
  */
 // The microphone stays open for a few seconds after a question, so the next one (voice mode
 // listens again right after the answer) starts recording at once: opening it again took long
@@ -107,7 +114,7 @@ export function releaseMic() {
 // The app in the background never keeps the microphone (nor the phone in call mode).
 if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') releaseMic() })
 
-async function recordAndWrite({ onText, onEnd, onReady, lang }) {
+async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
   let stream
   try {
     stream = await micStream()
@@ -180,6 +187,7 @@ async function recordAndWrite({ onText, onEnd, onReady, lang }) {
     const early = spec && spec.at === lastVoice ? spec : null
     const blob = early ? null : clipNow()
     if (!early && !blob) return done('')
+    try { onHeard?.() } catch { /* the caller's own */ }
     try {
       // A failed early request is simply made again, as a normal one.
       const again = () => { const b = clipNow(); return b ? transcribe(b) : '' }
@@ -212,12 +220,13 @@ async function recordAndWrite({ onText, onEnd, onReady, lang }) {
 
 /**
  * Listens once. `onText(text, final)` gets what was understood (on the web as it is said; on the
- * phone once, at the end), `onEnd(error)` when it stops: by itself after a pause, by the returned
+ * phone once, at the end), `onHeard()` once the person has finished and it is being written out,
+ * `onEnd(error)` when it stops: by itself after a pause, by the returned
  * stop(), or with `error` (a short reason, for a message) when the recogniser failed. Rejects with
  * { code: 'permission' | 'unavailable' } when it cannot start.
  */
-export async function listen({ onText, onEnd, onReady, lang = voiceTag() } = {}) {
-  if (useRecorder()) return recordAndWrite({ onText, onEnd, onReady, lang })
+export async function listen({ onText, onEnd, onReady, onHeard, lang = voiceTag() } = {}) {
+  if (useRecorder()) return recordAndWrite({ onText, onEnd, onReady, onHeard, lang })
   const R = WebRecognition()
   if (!R) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
   const rec = new R()
@@ -231,6 +240,7 @@ export async function listen({ onText, onEnd, onReady, lang = voiceTag() } = {})
   }
   return new Promise((resolve, reject) => {
     rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') reject(Object.assign(new Error('permission'), { code: 'permission' })) }
+    rec.onspeechend = () => { if (text) try { onHeard?.() } catch { /* the caller's own */ } }
     rec.onend = () => { onText?.(text, true); onEnd?.() }
     rec.onstart = () => { try { onReady?.() } catch { /* the caller's own */ } resolve(() => rec.stop()) }
     try { rec.start() } catch (e) { reject(Object.assign(e, { code: 'unavailable' })) }
