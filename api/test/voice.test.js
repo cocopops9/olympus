@@ -288,19 +288,3 @@ test('on the server a kept line is stored with the documents and served to the n
   await call('POST', '/api/voice/speak', { ...line, who: 'hercules' }, ada);
   assert.equal(made, 3);
 });
-
-test('the correction runs beside Gemini\'s grace, not after it', async () => {
-  _clearHearResting();
-  const wait = ms => new Promise(r => setTimeout(r, ms));
-  const fetchImpl = async url => {
-    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'how many sets of squat' }) };
-    if (url.includes('/chat/completions')) { await wait(200); return { ok: true, json: async () => ({ choices: [{ message: { content: 'how many sets of squats' } }] }) }; }
-    await wait(2000);
-    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'late' }] } }] }) };
-  };
-  const t0 = Date.now();
-  const out = await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', hearGraceMs: 200, fetchImpl });
-  assert.equal(out, 'how many sets of squats');
-  // One after the other it takes 400 ms or more; side by side about 200.
-  assert.ok(Date.now() - t0 < 350, 'took ' + (Date.now() - t0) + ' ms');
-});

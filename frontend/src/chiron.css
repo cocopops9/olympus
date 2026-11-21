@@ -91,9 +91,6 @@
 .chv-n b{font-size:16px;color:var(--acc)}
 .chv-st{font-size:12.5px;color:var(--text-2,var(--label-2))}
 .chv-st.listening{color:var(--green)}
-.chv-st.writing{color:var(--acc)}
-.chv-st.writing::after{content:'';display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:currentColor;vertical-align:middle;animation:chv-dot 1s ease-in-out infinite}
-@keyframes chv-dot{0%,100%{opacity:.25}50%{opacity:1}}
 .chv-heard{margin:0;font-size:14px;font-style:italic;line-height:1.35;color:var(--label)}
 .chv-said{margin:0;font-size:13px;line-height:1.4;color:var(--label-2);max-height:5.6em;overflow-y:auto}
 .chv-ctl{display:flex;gap:8px}
@@ -103,7 +100,7 @@
 .chv-b.mic.on{background:var(--green);color:#fff;animation:chv-rec 1.4s ease-in-out infinite}
 .chv-b:disabled{opacity:.4}
 @keyframes chv-rec{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 55%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
-@media (prefers-reduced-motion:reduce){.chv-b.mic.on,.chv-st.writing::after{animation:none}}
+@media (prefers-reduced-motion:reduce){.chv-b.mic.on{animation:none}}
 
 /* Chiron standing in the page itself rather than in a card: the figure on a line of floor at
    the left, what he says in a speech bubble beside his head, the voice button under it. */

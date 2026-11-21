@@ -29,11 +29,12 @@ import '../hercules.css'
 import { coachGoalsSheet } from './CoachGoals.jsx'
 import { coachProfileOf, TRAINING_STYLES, PHASES } from '../lib/coach-profile.js'
 import CoachActions from './CoachActions.jsx'
-import { splitActions } from '../lib/coach-actions.js'
-import { MicButton } from './Voice.jsx'
-import { VoiceModeButton, VoiceMode } from './VoiceMode.jsx'
-import { DemoAfter } from './ExerciseDemo.jsx'
+import { splitActions, isShown } from '../lib/coach-actions.js'
+import { MicButton, VoiceModeButton } from './Voice.jsx'
+import { canSpeak } from '../lib/voice.js'
 import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
+import ExerciseDemo from './ExerciseDemo.jsx'
+import { demoFor } from '../lib/exercise-ask.js'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -163,9 +164,14 @@ function Menu({ data, busy, open, start, remove }) {
 /** A coach's message: its text, and the changes it proposes as cards (lib/coach-actions.js). */
 export function Reply({ m, onApplied }) {
   const { text, actions } = splitActions(m.content)
+  // Olympus: a demonstration is shown with the words; the rest are cards to apply. The ones the
+  // coach asked for, or else the one the question asked about (`m.demo`, lib/exercise-ask.js demoFor).
+  const shown = actions.filter(isShown).map(a => a.id)
+  if (!shown.length && m.demo) shown.push(m.demo)
   return <>
     {text && <Rich text={text} />}
-    <CoachActions actions={actions} applied={m.applied || []} onApplied={onApplied} />
+    {shown.map((id, i) => <ExerciseDemo key={id + ':' + i} id={id} />)}
+    <CoachActions actions={actions.filter(a => !isShown(a))} applied={m.applied || []} onApplied={onApplied} />
   </>
 }
 
@@ -260,13 +266,11 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   // Your own coach has no daily limit: your provider decides.
   const leftOf = id => statusOf(uid, id)?.left ?? null
   const left = own ? null : coach === BOTH ? null : status ? status.left : null
-  // `all`: every answer to this message ({ content, coach }), for voice mode, which reads each one
-  // (both coaches answer in turn); otherwise the last answer's text.
-  const send = async (text, { all = false } = {}) => {
+  const send = async text => {
     const msg = String(text ?? draft).trim()
-    if (!msg || busy) return all ? [] : undefined
+    if (!msg || busy) return
     const who = coach === BOTH ? COACH_IDS.filter(id => leftOf(id) !== 0) : [coach]
-    if (!who.length || (coach !== BOTH && left === 0)) { setErr(errorText({ data: { code: 'hercules-limit' } }, name)); return all ? [] : undefined }
+    if (!who.length || (coach !== BOTH && left === 0)) { setErr(errorText({ data: { code: 'hercules-limit' } }, name)); return }
     track('coach.ask')
     // The conversation as saved now: another view of the same coach (Chiron's voice and his
     // sheet, the chat sheet and the full screen) may have added to it since this one was read.
@@ -274,16 +278,19 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     latest.current = { ...fresh, current: latest.current.current }
     const base = latest.current.chats.find(x => x.id === latest.current.current)?.messages || list
     let msgs = [...base, { role: 'user', content: msg, ts: Date.now() }]
-    const asked = msgs.length
     const sent = putChat(latest.current, latest.current.current, msgs)
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)
     onSent?.()
     try {
+      let demoShown = false
       for (const r of who) {
         setWriting(r)
         try {
           const res = own ? await askOwnCoach(ownCoach(uid, coach) || {}, msgs) : await askHercules(msgs, r, { chatId: sent.current })
-          msgs = [...msgs, { role: 'assistant', content: cleanReply(res.reply), ts: Date.now(), ...(own ? {} : { coach: r }), ...(res.model ? { model: String(res.model).slice(0, 40) } : {}) }]
+          const content = cleanReply(res.reply)
+          const demo = demoFor(msg, content, useStore.getState().S.customEx || [], demoShown)
+          demoShown = demoShown || !!demo || splitActions(content).actions.some(isShown)
+          msgs = [...msgs, { role: 'assistant', content, ts: Date.now(), ...(demo ? { demo } : {}), ...(own ? {} : { coach: r }), ...(res.model ? { model: String(res.model).slice(0, 40) } : {}) }]
           commit(putChat(latest.current, sent.current, msgs))
           if (!own) { const st = { ...(statusOf(uid, r) || {}), on: true, left: res.left, perDay: res.perDay }; setCached(uid, r, st); if (r === statusCoach) setStatus(st) }
         } catch (e) {
@@ -298,7 +305,6 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
       setWriting(null)
       input.current?.focus()
     }
-    if (all) return msgs.slice(asked).filter(m => m.role === 'assistant').map(m => ({ content: m.content, coach: authorOf(m) }))
     // The last answer, for a caller that speaks it (Chiron's voice mode); null when none came.
     const lastMsg = msgs[msgs.length - 1]
     return lastMsg?.role === 'assistant' ? lastMsg.content : null
@@ -379,8 +385,6 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
   const c = useCoachChat({ coach, ask, chatId })
   const { name, data, list, draft, setDraft, busy, err, left, input, send, remove, suggestions } = c
   const [menu, setMenu] = useState(false)
-  // Voice mode (components/VoiceMode.jsx): talking with the coach, full screen, hands free.
-  const [voice, setVoice] = useState(false)
   const end = useRef(null)
   const start = () => { c.start(); setMenu(false) }
   const open = id => { c.open(id); setMenu(false) }
@@ -438,7 +442,6 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
             <div className="hc-m him">
               {!same && m.coach && <div className="hc-by">{coachName(by)}{m.model && <span>{m.model}</span>}</div>}
               <Reply m={m} onApplied={k => c.markApplied(i, k)} />
-              <DemoAfter list={list} i={i} />
             </div>
           </div>
         })}
@@ -454,11 +457,10 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
         onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
       <MicButton disabled={busy} onText={setDraft} onFinal={setDraft} />
-      {draft.trim()
-        ? <button type="submit" className="hc-send" disabled={busy} aria-label={t('Send')}><Icon name="arrowUp" /></button>
-        : <VoiceModeButton onClick={() => setVoice(true)} disabled={busy} />}
+      {/* Olympus: voice mode, a spoken conversation, in the full-screen coach (views/CoachAI.jsx). */}
+      {!draft.trim() && canSpeak() && <VoiceModeButton disabled={busy} onStart={() => { try { localStorage.setItem('olympus_voice_mode', '1') } catch { /* a convenience */ } expand() }} />}
+      <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
     </form>}
-    {voice && <VoiceMode chat={c} coach={coach} close={() => setVoice(false)} />}
     <div className="hc-note">{t('{0} is an AI and can be wrong. For pain or health problems, see a doctor.', name)}</div>
   </div>
 }

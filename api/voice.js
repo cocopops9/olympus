@@ -111,16 +111,9 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     // overloaded used to hold every question for 9 s (measured in the server's logs, 2026-11-03).
     // Its answer is used when it is there in time; Whisper's, corrected, when it is not. A model that
     // fails or is late rests (geminiHear), so the clips after it do not wait at all.
-    // Gemini already there: no correction asked. Otherwise the correction starts now, beside that
-    // grace rather than after it, so a question waits for the longer of the two, not for both one
-    // after the other (up to 1.5 s plus a model's answer). The price: a correction asked for
-    // nothing when Gemini answers within the grace.
-    const ready = await within(heard, 0);
-    if (ready != null) return ready;
-    const fixing = mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
     const g = await within(heard, hearGraceMs);
     if (g != null) return g;
-    return await fixing;
+    return await mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
   } finally { clearTimeout(timer); }
 }
 

@@ -17,9 +17,9 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.k2fsa.sherpa.onnx.GeneratedAudio;
 import com.k2fsa.sherpa.onnx.OfflineTts;
 import com.k2fsa.sherpa.onnx.OfflineTtsConfig;
-import com.k2fsa.sherpa.onnx.OfflineTtsKokoroModelConfig;
 import com.k2fsa.sherpa.onnx.OfflineTtsModelConfig;
 import com.k2fsa.sherpa.onnx.OfflineTtsVitsModelConfig;
+import com.k2fsa.sherpa.onnx.OfflineTtsKokoroModelConfig;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,27 +34,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Olympus: the coaches' offline voices (sherpa-onnx). Two kinds, both downloaded once (install),
- * kept in the app's own files (files/voices/<key>/) and read on the phone: no quota, no connection.
- *   - a Piper voice per language (key = the language: model.onnx, tokens.txt, espeak-ng-data/),
- *     a man's voice, a sentence ready in well under a second;
- *   - the natural voices (key "kokoro": the same files plus voices.bin, and lexicon-en.txt for
- *     English): Kokoro-82M, one model for several languages with a voice for each coach. Heavier:
- *     a sentence takes about as long to make as to hear, so the next one is made while one plays.
- * Built and published by .github/workflows/voices.yml; used from frontend/src/lib/local-voice.js.
+ * Olympus: the coaches' offline voices (sherpa-onnx with a Piper voice per language). A voice is
+ * downloaded once (install), kept in the app's own files (files/voices/<lang>/: model.onnx,
+ * tokens.txt, espeak-ng-data/) and read with on the phone: no quota, no connection, a sentence
+ * ready in well under a second. Built and published by .github/workflows/voices.yml; used from
+ * frontend/src/lib/local-voice.js.
  *
  * JS:
  *   get({ url })                          -> { text }  (the voices list, fetched here: no CORS)
  *   list()                                -> { langs: [...] }
  *   install({ lang, url, sha256 })        -> {}  with "progress" events { lang, received, total }
  *   remove({ lang })                      -> {}
- *   speak({ lang, text, sid, speed, voiceLang }) -> {}  when it has been read; a "start" event when the
- *                                         sound begins. voiceLang: the language Kokoro reads in (espeak-ng's code)
+ *   speak({ lang, text, sid, speed })     -> {}  when it has been read; a "start" event when the sound begins
  *   stop()                                -> {}
  *   audioNormal()                         -> { was }  the phone's audio back out of "call" mode
  *
@@ -68,8 +63,6 @@ import java.util.zip.ZipInputStream;
 public class LocalVoicePlugin extends Plugin {
     private final ExecutorService work = Executors.newSingleThreadExecutor();
     private final ExecutorService downloads = Executors.newSingleThreadExecutor();
-    // Plays what `work` has made, in order, while `work` makes the next sentence.
-    private final ExecutorService player = Executors.newSingleThreadExecutor();
     private final Map<String, OfflineTts> engines = new HashMap<>();
     private volatile AudioTrack playing = null;
     private volatile int run = 0;
@@ -80,21 +73,14 @@ public class LocalVoicePlugin extends Plugin {
         return d;
     }
 
-    static final String KOKORO = "kokoro";
-
     private static boolean safeLang(String lang) {
-        return lang != null && (KOKORO.equals(lang) || lang.matches("[A-Za-z]{2,3}(-[A-Za-z]{2,4})?"));
-    }
-
-    // espeak-ng's language codes ("it", "en-us", "pt-br").
-    private static boolean safeVoiceLang(String v) {
-        return v != null && v.matches("[a-z]{2,3}(-[a-z0-9]{2,4})?");
+        // A language's Piper voice ("it", "pt-BR"), or the one Kokoro pack shared by its languages.
+        return lang != null && (lang.equals("kokoro") || lang.matches("[A-Za-z]{2,3}(-[A-Za-z]{2,4})?"));
     }
 
     private boolean installed(String lang) {
         File d = new File(root(), lang);
-        boolean base = new File(d, "model.onnx").isFile() && new File(d, "tokens.txt").isFile() && new File(d, "espeak-ng-data").isDirectory();
-        return base && (!KOKORO.equals(lang) || new File(d, "voices.bin").isFile());
+        return new File(d, "model.onnx").isFile() && new File(d, "tokens.txt").isFile() && new File(d, "espeak-ng-data").isDirectory();
     }
 
     @PluginMethod
@@ -158,7 +144,11 @@ public class LocalVoicePlugin extends Plugin {
                 deleteAll(tmp);
                 unzip(zip, tmp);
                 if (!new File(tmp, "model.onnx").isFile()) throw new Exception("the voice has no model");
-                releaseEngines(lang);
+                synchronized (engines) {
+                    OfflineTts old = engines.remove(lang);
+                    dropVariants(lang);
+                    if (old != null) old.release();
+                }
                 File dest = new File(root(), lang);
                 deleteAll(dest);
                 if (!tmp.renameTo(dest)) throw new Exception("could not keep the voice");
@@ -176,7 +166,11 @@ public class LocalVoicePlugin extends Plugin {
     public void remove(PluginCall call) {
         String lang = call.getString("lang");
         if (!safeLang(lang)) { call.reject("lang is needed"); return; }
-        releaseEngines(lang);
+        synchronized (engines) {
+            OfflineTts old = engines.remove(lang);
+            if (old != null) old.release();
+            dropVariants(lang);
+        }
         deleteAll(new File(root(), lang));
         call.resolve();
     }
@@ -187,35 +181,34 @@ public class LocalVoicePlugin extends Plugin {
         String text = call.getString("text", "");
         int sid = call.getInt("sid", 0);
         float speed = call.getFloat("speed", 1.0f);
-        String voiceLang = call.getString("voiceLang", "");
+        // Olympus: `pitch` (0.8 to 1.2) plays the voice lower or higher: it is played at that share
+        // of its rate, and made faster or slower by as much, so its pace stays the one asked for.
+        // Two coaches reading with the same model sound like two people. `accent`: the espeak-ng
+        // language a Kokoro voice reads with ("es", "fr-fr", "it", "hi", "pt-br"); empty for the
+        // English and Chinese ones, which read with their own lexicons.
+        float pitch = Math.max(0.8f, Math.min(1.2f, call.getFloat("pitch", 1.0f)));
+        String accent = call.getString("accent", "");
+        if (accent == null || !accent.matches("[a-z-]{0,8}")) accent = "";
         if (!safeLang(lang) || !installed(lang)) { call.reject("no voice for " + lang, "no-voice"); return; }
-        if (KOKORO.equals(lang) && !safeVoiceLang(voiceLang)) { call.reject("voiceLang is needed", "no-voice"); return; }
+        final String acc = accent;
+        final float genSpeed = speed / pitch;
         if (text.trim().isEmpty()) { call.resolve(); return; }
         final int me = ++run;
         stopPlaying();
         work.execute(() -> {
             try {
-                OfflineTts tts = engine(lang, voiceLang);
-                // One sentence at a time, each played while the next is made: the player plays them
-                // in order, and only the last one is waited for.
+                OfflineTts tts = engine(lang, acc);
+                // One sentence at a time: the first is heard while the next is made.
                 List<String> parts = pieces(text);
-                Future<?> last = null;
-                final boolean[] started = { false };
+                boolean started = false;
                 for (String part : parts) {
                     if (me != run) break;
                     if (part.trim().isEmpty()) continue;
-                    GeneratedAudio audio = tts.generate(part, sid, speed);
+                    GeneratedAudio audio = tts.generate(part, sid, genSpeed);
                     if (me != run) break;
-                    final float[] samples = audio.getSamples();
-                    final int rate = audio.getSampleRate();
-                    last = player.submit(() -> {
-                        if (me != run) return null;
-                        if (!started[0]) { started[0] = true; notifyListeners("start", new JSObject()); }
-                        play(samples, rate, me);
-                        return null;
-                    });
+                    if (!started) { started = true; notifyListeners("start", new JSObject()); }
+                    play(audio.getSamples(), Math.round(audio.getSampleRate() * pitch), me);
                 }
-                if (last != null) last.get();
                 call.resolve();
             } catch (Throwable e) {
                 call.reject("the voice failed: " + e.getMessage());
@@ -231,22 +224,8 @@ public class LocalVoicePlugin extends Plugin {
                 .replaceAll("\\s+", " ")
                 .trim();
         List<String> out = new ArrayList<>();
-        boolean first = true;
         for (String sentence : clean.split("(?<=[.!?…。！？])\\s+")) {
             String rest = sentence.trim();
-            // The first words are heard sooner when the first piece is short: a long first sentence
-            // is cut at its first comma (the heavier voice makes a piece in about the time it lasts).
-            if (first && rest.length() > 70) {
-                for (int i = 20; i < 70; i++) {
-                    char c = rest.charAt(i);
-                    if (c == ',' || c == ';' || c == ':' || c == '，') {
-                        out.add(rest.substring(0, i + 1).trim());
-                        rest = rest.substring(i + 1).trim();
-                        break;
-                    }
-                }
-            }
-            first = false;
             while (rest.length() > 160) {
                 int cut = -1;
                 for (int i = Math.min(rest.length() - 1, 160); i > 60; i--) {
@@ -289,16 +268,15 @@ public class LocalVoicePlugin extends Plugin {
         call.resolve();
     }
 
-    // Kokoro reads one language per engine (it is told which when it is made): one engine is kept
-    // per key, the one of the language last read, so the model is in memory once.
-    private OfflineTts engine(String lang, String voiceLang) {
-        boolean kokoro = KOKORO.equals(lang);
-        String id = kokoro ? lang + "|" + voiceLang : lang;
+    // A Kokoro pack (voices.bin beside the model) or a Piper voice. A Kokoro engine is made per
+    // espeak-ng language it reads with, since that is part of its configuration.
+    private OfflineTts engine(String lang, String accent) {
+        File d = new File(root(), lang);
+        boolean kokoro = new File(d, "voices.bin").isFile();
+        String key = kokoro ? lang + "|" + accent : lang;
         synchronized (engines) {
-            OfflineTts tts = engines.get(id);
+            OfflineTts tts = engines.get(key);
             if (tts != null) return tts;
-            if (kokoro) releaseEngines(lang);
-            File d = new File(root(), lang);
             OfflineTtsModelConfig model = new OfflineTtsModelConfig();
             if (kokoro) {
                 OfflineTtsKokoroModelConfig k = new OfflineTtsKokoroModelConfig();
@@ -306,38 +284,30 @@ public class LocalVoicePlugin extends Plugin {
                 k.setVoices(new File(d, "voices.bin").getAbsolutePath());
                 k.setTokens(new File(d, "tokens.txt").getAbsolutePath());
                 k.setDataDir(new File(d, "espeak-ng-data").getAbsolutePath());
-                File lexicon = new File(d, "lexicon-en.txt");
-                if (voiceLang.startsWith("en") && lexicon.isFile()) k.setLexicon(lexicon.getAbsolutePath());
-                k.setLang(voiceLang);
+                List<String> lex = new ArrayList<>();
+                for (String f : new String[] { "lexicon-us-en.txt", "lexicon-zh.txt" }) {
+                    File lf = new File(d, f);
+                    if (lf.isFile()) lex.add(lf.getAbsolutePath());
+                }
+                if (!lex.isEmpty()) k.setLexicon(String.join(",", lex));
+                File dict = new File(d, "dict");
+                if (dict.isDirectory()) k.setDictDir(dict.getAbsolutePath());
+                if (!accent.isEmpty()) k.setLang(accent);
                 model.setKokoro(k);
-                // Up to four cores: Kokoro is about forty times the work of a Piper voice.
-                model.setNumThreads(Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors())));
             } else {
                 OfflineTtsVitsModelConfig vits = new OfflineTtsVitsModelConfig();
                 vits.setModel(new File(d, "model.onnx").getAbsolutePath());
                 vits.setTokens(new File(d, "tokens.txt").getAbsolutePath());
                 vits.setDataDir(new File(d, "espeak-ng-data").getAbsolutePath());
                 model.setVits(vits);
-                model.setNumThreads(2);
             }
+            model.setNumThreads(2);
             model.setProvider("cpu");
             OfflineTtsConfig config = new OfflineTtsConfig();
             config.setModel(model);
             tts = new OfflineTts(null, config);
-            engines.put(id, tts);
+            engines.put(key, tts);
             return tts;
-        }
-    }
-
-    // Frees the engines of `lang` (for Kokoro, every language it was made for).
-    private void releaseEngines(String lang) {
-        synchronized (engines) {
-            List<String> gone = new ArrayList<>();
-            for (String id : engines.keySet()) if (id.equals(lang) || id.startsWith(lang + "|")) gone.add(id);
-            for (String id : gone) {
-                OfflineTts old = engines.remove(id);
-                if (old != null) old.release();
-            }
         }
     }
 
@@ -369,6 +339,17 @@ public class LocalVoicePlugin extends Plugin {
         try { track.stop(); } catch (Exception ignored) { }
         track.release();
         if (playing == track) playing = null;
+    }
+
+    // The Kokoro engines of a pack, one per accent, when the pack is replaced or removed.
+    private void dropVariants(String lang) {
+        synchronized (engines) {
+            engines.keySet().removeIf(k -> {
+                if (!k.startsWith(lang + "|")) return false;
+                try { engines.get(k).release(); } catch (Exception ignored) { }
+                return true;
+            });
+        }
     }
 
     private void stopPlaying() {

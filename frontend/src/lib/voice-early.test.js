@@ -106,36 +106,6 @@ describe('early transcription', () => {
   })
 })
 
-describe('the end of a question', () => {
-  const startHeard = async () => {
-    vi.resetModules()
-    const { listen, LISTEN } = await import('./voice.js')
-    const out = { order: [], text: null }
-    await listen({ onHeard: () => out.order.push('heard'), onText: (t, final) => { if (final) out.text = t }, onEnd: () => out.order.push('end'), lang: 'en-US' })
-    return { out, LISTEN }
-  }
-
-  it('says it is being written out once the person stops, before the text comes', async () => {
-    reply = () => ({ text: 'What should I train today?' })
-    const { out, LISTEN } = await startHeard()
-    await run(LISTEN.calibrateMs + 100)
-    level = 0.2
-    await run(600)
-    level = 0
-    // A finished sentence ends about a second after the last word, not two or more.
-    await run(1200)
-    expect(out.order).toEqual(['heard', 'end'])
-    expect(out.text).toBe('What should I train today?')
-    reply = () => ({ text: 'hello' })
-  })
-
-  it('does not say so when nothing was said', async () => {
-    const { out, LISTEN } = await startHeard()
-    await run(LISTEN.nothingMs + 500)
-    expect(out.order).toEqual(['end'])
-  })
-})
-
 describe('endsSentence', () => {
   it('wants three words and a closing mark', async () => {
     const { endsSentence } = await import('./voice.js')

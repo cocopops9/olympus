@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 // The exercise a question asks how to do (lib/exercise-ask.js), read from the person's own words
-// ranked like the library search. Strict by design: no cue asking for technique, or no exercise named by its own name,
+// so a coach's answer shows its demonstration even when the model left out the show_exercise
+// action. Strict by design: no cue asking for technique, or no exercise named by its own name,
 // and nothing is shown.
 import { afterAll, describe, expect, it } from 'vitest'
-import { askedExercise } from './exercise-ask.js'
+import { askedExercise, demoFor } from './exercise-ask.js'
 import { setLang } from './i18n.js'
+import { splitActions } from './coach-actions.js'
 
 afterAll(() => setLang('en'))
 
@@ -51,18 +53,14 @@ describe('askedExercise', () => {
   })
 })
 
-describe('the demonstration beside a coach answer (components/ExerciseDemo.jsx demoFor)', () => {
-  it('shows the plain lift named in the question, with its animation', async () => {
-    const { demoFor } = await import('../components/ExerciseDemo.jsx')
+describe('demoFor (the chat)', () => {
+  const action = '\n```olympus-action\n{"type": "show_exercise", "name": "barbell deadlift"}\n```'
+  it('falls back to the question only when the coach showed nothing, once per question', async () => {
     await setLang('en')
-    const S = { workouts: [] }
-    expect(demoFor('how do i squat', S)?.id).toBe('1197')
-    expect(demoFor('how to deadlift properly', S)?.id).toBe('0032')
-    expect(demoFor('how should I do the leg press?', S)?.id).toBe('0739')
-    expect(demoFor('how do I do pull-ups', S)?.id).toBe('0652')
-    await setLang('it')
-    expect(demoFor('Chirone, come si esegue lo squat bulgaro senza dolore?', S)?.id).toBe('0781')
-    expect(demoFor('come si fa il curl con manubri', S)?.id).toBe('0294')
-    expect(demoFor('come sto andando?', S)).toBe(null)
+    expect(demoFor('how do I do a hip thrust?', 'Drive through the heels.', [], false)).toBe('2072')
+    expect(demoFor('how do I do a hip thrust?', 'Drive through the heels.' + action, [], false)).toBe(null)
+    expect(splitActions('Drive.' + action).actions[0].id).toBe('0032')        // the coach's own choice stays
+    expect(demoFor('how do I do a hip thrust?', 'Agreed with Hercules.', [], true)).toBe(null)
+    expect(demoFor('how am I doing?', 'Well.', [], false)).toBe(null)
   })
 })
