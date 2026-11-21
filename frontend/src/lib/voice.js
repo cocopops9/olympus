@@ -6,7 +6,8 @@
 // own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
-import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal, coachVoices, coachesKey } from './local-voice.js'
+import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, warmLocal, voiceKey, audioNormal, coachVoices, coachesKey } from './local-voice.js'
+import { speechParts } from './speech-text.js'
 import { castVoice, KOKORO, PIPER } from './voice-cast.js'
 import { api } from './api.js'
 import { clipOf } from './wav.js'
@@ -248,6 +249,19 @@ export async function listen({ onText, onEnd, onReady, onHeard, lang = voiceTag(
   })
 }
 
+/**
+ * How long after its sound began a line may take before the one waiting on it gives up and goes on
+ * (Chiron listens again). A browser's own voice can fail to say it has finished, so there the wait
+ * is about the time the words take: 90 ms a character, slower than the 45 to 60 ms measured for
+ * the voices. The phone's voices always say when they have finished, but the offline one is made
+ * while it plays and may pause between sentences on a slow phone (making a sentence can take
+ * longer than saying it), so there the wait is only a safety: three times as long, and 10 s more.
+ */
+export function speechGuardMs(text, { reportsEnd = MOBILE } = {}) {
+  const n = String(text || '').length
+  return reportsEnd ? 10000 + n * 270 : 3000 + n * 90
+}
+
 /** The answer as it should be heard: no Markdown marks, no action blocks, no links. */
 export function speakable(text) {
   return String(text || '')
@@ -390,11 +404,66 @@ async function speakOnServer(say, lang, who, run, onStart, keep) {
 let naturalOffer = null
 export const setNaturalVoiceOffer = fn => { naturalOffer = typeof fn === 'function' ? fn : null }
 
+/**
+ * The phone's offline voices that can read for `who`, best first: { key, sid, accent, model, speed,
+ * pitch, scaled }, `scaled` when the caller's rate applies. Kokoro where it speaks the language and
+ * has a voice of this coach's own (lib/voice-cast.js); a coach's own Piper voice where Kokoro does
+ * not speak it (from the coaches pack, or another speaker of the language's own voice); then, for
+ * Chiron and Hercules, the man's Piper voice of the language. With `offer`, a missing download is
+ * offered (once, components/VoiceSetup.jsx).
+ */
+export function localVoices(who, cast = castVoice(who, getLang(), coachVoices()), { offer = false } = {}) {
+  const kind = VOICES[who]
+  if (!kind || !localVoicesOn()) return []
+  const out = []
+  const ask = () => { if (offer) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } } }
+  if (cast?.engine === KOKORO) {
+    if (!hasLocalVoice(KOKORO)) ask()
+    else out.push({ key: KOKORO, sid: cast.sid, accent: cast.accent, model: '', speed: cast.speed, pitch: cast.pitch, scaled: true })
+  }
+  if (cast?.engine === PIPER) {
+    const pack = cast.model ? coachesKey() : voiceKey()
+    if (cast.model && pack && !hasLocalVoice(pack)) ask()
+    if (pack && hasLocalVoice(pack)) out.push({ key: pack, sid: cast.sid, accent: '', model: cast.model, speed: cast.speed, pitch: cast.pitch, scaled: true })
+  }
+  // A man's offline voice on the phone: then for Chiron and Hercules, with no quota and no wait;
+  // Chiron's lower than Hercules's (voice-cast.js), so the two are told apart.
+  const key = voiceKey()
+  if (kind.male && hasLocalVoice(key)) out.push({ key, sid: null, accent: '', model: '', speed: cast?.speed ?? (who === 'chiron' ? 0.92 : 1), pitch: cast?.pitch ?? 1, scaled: false })
+  return out
+}
+
+/**
+ * Makes the voice `who` will speak with ready before the first line (lib/local-voice.js warmLocal):
+ * reading the model and running it once take seconds on a phone, and came before the first word.
+ * Called when a coach is about to talk: Chiron getting up, voice mode turned on.
+ */
+// With `text`, a line about to be said: its first two pieces are made ahead as well.
+export function warmCoachVoice(who, text = '') {
+  const v = localVoices(who)[0]
+  if (!v) return Promise.resolve(null)
+  const parts = text ? speechParts(speakable(text)).slice(0, 2) : null
+  return warmLocal({ ...v, ...(parts?.length ? { parts } : {}) })
+}
+
 let nativeVoiceList = null
 let nativeBusy = false   // the phone's own voice is reading something
 let webUtterance = null
 /** Reads `text` aloud as `who` (VOICES); resolves when it is done (or stopped). */
-export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep = false } = {}) {
+export function speak(text, opts = {}) {
+  const before = speakRun
+  const job = speakNow(text, opts)
+  // Whose line is being read, so that one coach's stop (stopSpeaking({ who })) leaves another's alone.
+  if (speakRun !== before) {
+    const mine = speakRun
+    speaker = opts.who || null
+    job.finally(() => { if (speakRun === mine) speaker = null }).catch(() => {})
+  }
+  return job
+}
+let speaker = null
+
+async function speakNow(text, { lang = voiceTag(), rate, who, onStart, keep = false } = {}) {
   // onStart: called once, when the sound really begins (the server's voice can take a few seconds).
   let started = false
   const begin = () => { if (!started) { started = true; onStart?.() } }
@@ -410,30 +479,17 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
   if (MOBILE && nativeBusy) nativeTTS().then(({ p }) => p.stop()).catch(() => {})
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
-  // Olympus: the most natural voice first. Kokoro on the phone where it speaks the language and
-  // has a voice of this coach's own (lib/voice-cast.js), free, offline, no quota.
+  // Olympus: the most natural voice first: the phone's offline voices (localVoices), in order.
   const cast = kind ? castVoice(who, getLang(), coachVoices()) : null
-  // The first time a coach speaks in a Kokoro language without the pack: it is offered, once.
-  if (cast?.engine === KOKORO && localVoicesOn() && !hasLocalVoice(KOKORO)) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } }
-  if (cast?.engine === KOKORO && localVoicesOn() && hasLocalVoice(KOKORO)) {
-    try { await speakLocal(say, { key: KOKORO, sid: cast.sid, accent: cast.accent, speed: cast.speed * (rate ?? 1), pitch: cast.pitch, onStart: begin }); return } catch { /* the next voice */ }
-    if (run !== speakRun) return
-  }
-  // Olympus: a coach's own Piper voice, where Kokoro does not speak the language: from the coaches
-  // pack (offered, once, the first time it is missing), or another speaker of the language's own voice.
-  if (cast?.engine === PIPER && localVoicesOn()) {
-    const pack = cast.model ? coachesKey() : voiceKey()
-    if (cast.model && pack && !hasLocalVoice(pack)) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } }
-    if (pack && hasLocalVoice(pack)) {
-      try { await speakLocal(say, { key: pack, model: cast.model, sid: cast.sid, speed: cast.speed * (rate ?? 1), pitch: cast.pitch, onStart: begin }); return } catch { /* the next voice */ }
-      if (run !== speakRun) return
+  const parts = kind ? speechParts(say) : null
+  for (const v of kind ? localVoices(who, cast, { offer: true }) : []) {
+    try {
+      const stats = await speakLocal(say, { ...v, speed: v.speed * (v.scaled ? (rate ?? 1) : 1), parts, onStart: begin })
+      if (stats && typeof console !== 'undefined') console.info('[voice]', who, v.key, JSON.stringify(stats))
+      return
+    } catch (e) {
+      if (typeof console !== 'undefined') console.warn('[voice]', who, v.key, String(e?.message || e))
     }
-  }
-  // A man's offline voice on the phone (lib/local-voice.js): then for Chiron and Hercules, with no
-  // quota and no wait; Chiron's lower than Hercules's (voice-cast.js), so the two are told apart.
-  const key = voiceKey()
-  if (kind?.male && localVoicesOn() && hasLocalVoice(key)) {
-    try { await speakLocal(say, { key, speed: cast?.speed ?? (who === 'chiron' ? 0.92 : 1), pitch: cast?.pitch ?? 1, onStart: begin }); return } catch { /* the next voice */ }
     if (run !== speakRun) return
   }
   if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 6000))])
@@ -484,7 +540,13 @@ export function warmVoice() {
   warming = api('/api/voice').then(r => { serverVoice = !!r?.speak; serverWho = Array.isArray(r?.who) ? r.who : FIRST_SPEAKERS }, () => {}).finally(() => { warming = null })
   return warming
 }
-export async function stopSpeaking() {
+/**
+ * Stops what is being read. With `who`, only a line of theirs: Calliope's tips stop her own voice
+ * when they close, never a coach's answer that started meanwhile.
+ */
+export async function stopSpeaking({ who } = {}) {
+  if (who && speaker !== who) return
+  speaker = null
   speakRun++
   playing?.stop()
   stopLocal()

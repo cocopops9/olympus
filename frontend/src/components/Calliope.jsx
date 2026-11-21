@@ -133,11 +133,11 @@ export function useCalliopeVoice() {
   const update = useStore(s => s.update)
   const [talking, setTalking] = useState(false)
   const run = useRef(0)
-  const hush = useCallback(() => { run.current++; setTalking(false); stopSpeaking() }, [])
+  const hush = useCallback(() => { run.current++; setTalking(false); stopSpeaking({ who: GUIDE }) }, [])
   const say = useCallback((text, { keep = false, force = false } = {}) => {
     const id = ++run.current
     setTalking(false)
-    if ((!force && !voiceOn(useStore.getState().S)) || !text) { stopSpeaking(); return }
+    if ((!force && !voiceOn(useStore.getState().S)) || !text) { stopSpeaking({ who: GUIDE }); return }
     speak(text, { who: GUIDE, keep, onStart: () => { if (run.current === id) setTalking(true) } })
       .catch(() => {})
       .finally(() => { if (run.current === id) setTalking(false) })
@@ -147,7 +147,8 @@ export function useCalliopeVoice() {
     update(s => { s.hints = withVoice(s.hints, !was) })
     if (was) hush()
   }, [update, hush])
-  useEffect(() => () => { run.current++; stopSpeaking() }, [])
+  // Her own voice only: a tip closing while a coach answers leaves the coach talking.
+  useEffect(() => () => { run.current++; stopSpeaking({ who: GUIDE }) }, [])
   return { on, talking, say, hush, toggle }
 }
 
