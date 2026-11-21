@@ -21,7 +21,6 @@ import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice,
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
-import ExerciseDemo, { DemoAfter, demoFor } from './ExerciseDemo.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import ChironFigure, { WAKE_SECONDS } from './ChironFigure.jsx'
@@ -131,10 +130,7 @@ function ChironSheet({ close }) {
     {online ? <>
       {shown.length > 0 && <div className="chs-talk">
         {shown.map((m, i) => <div key={(m.ts || 0) + ':' + i} className={'chs-m ' + (m.role === 'user' ? 'me' : 'him')}>
-          {m.role === 'user' ? m.content : <>
-            <Reply m={m} onApplied={k => c.markApplied(c.list.length - shown.length + i, k)} />
-            <DemoAfter list={c.list} i={c.list.length - shown.length + i} currentId={tips?.id || null} />
-          </>}
+          {m.role === 'user' ? m.content : <Reply m={m} onApplied={k => c.markApplied(c.list.length - shown.length + i, k)} />}
         </div>)}
       </div>}
       {c.busy && <div className="chs-m him chs-think" aria-live="polite"><span /><span /><span /></div>}
@@ -220,8 +216,6 @@ function ChironVoice({ tips, unit, online }) {
   const [heard, setHeard] = useState('')
   const [said, setSaid] = useState('')
   const [paused, setPaused] = useState(false)
-  // Asked how an exercise is done, he shows it while he explains (components/ExerciseDemo.jsx).
-  const [demo, setDemo] = useState(null)
   const live = useRef(true)
   const stopListening = useRef(null)
   const mouthTimer = useRef(null)
@@ -289,7 +283,6 @@ function ChironVoice({ tips, unit, online }) {
       if (!text) { if (++silent >= 2) break; continue }
       silent = 0
       if (isSleepWord(text)) { await say(t('Good work. Call me when you need me.')); if (going()) sleepNow(); return }
-      setDemo(demoFor(text, useStore.getState().S, tips?.id || null))
       setPose('thinking')
       const reply = await chat.current.send(text)
       if (!going()) return
@@ -321,7 +314,6 @@ function ChironVoice({ tips, unit, online }) {
       <div className="chv-n"><b>{t('Chiron')}</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
       {heard && pose !== 'speaking' && <p className="chv-heard">“{heard}”</p>}
       {said && <p className="chv-said">{said.length > 220 ? said.slice(0, 219) + '…' : said}</p>}
-      {demo && <ExerciseDemo ex={demo} />}
       <div className="chv-ctl">
         <button className={'chv-b mic' + (pose === 'listening' ? ' on' : '')} onClick={toggleMic} disabled={!online}
           aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}><Icon name="mic" /></button>

@@ -6,10 +6,6 @@
 // (components/VoiceSetup.jsx), and offers the one for a language picked later.
 //
 // Chiron and Hercules speak with it; Athena, a woman, keeps the server's or the phone's voice.
-//
-// The natural voices (key "kokoro", manifest.kokoro): Kokoro-82M, one model for the languages it
-// speaks well, with a voice of its own for each of the four (Chiron, Hercules, Athena, Calliope).
-// Where it has the language it is the voice the app sets up, in place of the Piper one.
 import { MOBILE } from './mobile.js'
 import { UPDATE_REPO } from './app-info.js'
 import { getLang } from './i18n.js'
@@ -29,7 +25,7 @@ export function voiceKey(lang = getLang()) {
   return l.split('-')[0]
 }
 
-let manifest = null      // { voices: { key: { file, name, sid, bytes, sha256 } }, kokoro? } once read
+let manifest = null      // { voices: { key: { file, name, sid, bytes, sha256 } } } once read
 let installed = null     // Set of keys on this phone
 const listeners = new Set()
 const emit = () => listeners.forEach(f => { try { f() } catch { /* a listener's own problem */ } })
@@ -58,32 +54,8 @@ export async function refreshLocalVoices() {
   return { installed, manifest }
 }
 
-export const KOKORO = 'kokoro'
-const kokoroLangs = () => manifest?.kokoro?.langs || null
-/** The natural voices' entry for the app language `lang`, or null: { espeak, who: { chiron: { sid, speed } } }. */
-export function kokoroLang(lang = getLang()) {
-  const langs = kokoroLangs()
-  if (!langs) return null
-  const l = String(lang || 'en')
-  return langs[l] || (l === 'pt' ? null : langs[l.split('-')[0]]) || null
-}
-/** The voice to set up for a language: the natural voices where they speak it, its Piper voice otherwise. */
-export const setupKey = (lang = getLang()) => (kokoroLang(lang) ? KOKORO : voiceKey(lang))
-
-/**
- * How `who` reads in the app language with the natural voices, or null when they are not on this
- * phone or have no voice for `who` there: { sid, speed, voiceLang } (voiceLang is espeak-ng's code).
- */
-export function kokoroVoice(who, lang = getLang()) {
-  if (!hasLocalVoice(KOKORO)) return null
-  const l = kokoroLang(lang)
-  const v = l?.who?.[who]
-  if (!v || !Number.isInteger(v.sid) || !/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/.test(String(l.espeak || ''))) return null
-  return { sid: v.sid, speed: Number(v.speed) > 0 ? Number(v.speed) : 1, voiceLang: l.espeak }
-}
-
 /** The published voice for `key`, or null. */
-export const availableVoice = key => (key === KOKORO ? manifest?.kokoro || null : (key && manifest?.voices?.[key]) || null)
+export const availableVoice = key => (key && manifest?.voices?.[key]) || null
 /** Whether the voice for `key` is on this phone. */
 export const hasLocalVoice = key => !!(key && installed?.has(key))
 
@@ -122,13 +94,15 @@ export async function removeLocalVoice(key) {
  * Reads `text` with the offline voice of `key`; resolves when it has been heard. `onStart` when the
  * sound begins. Rejects when there is no voice or the engine failed (the caller then uses another).
  */
-export async function speakLocal(text, { key, speed = 1, onStart, sid, voiceLang } = {}) {
+// `sid`, `accent`: a Kokoro speaker and the language it reads with (lib/voice-cast.js); a Piper
+// voice has its own speaker in the manifest. `pitch` plays it lower or higher, the pace kept.
+export async function speakLocal(text, { key, speed = 1, sid = null, accent = '', pitch = 1, onStart } = {}) {
   const v = availableVoice(key)
   const { p } = await plugin()
   let sub = null
   try {
     if (onStart) sub = await p.addListener('start', () => { const f = onStart; onStart = null; f?.() })
-    await p.speak({ lang: key, text, sid: Number.isInteger(sid) ? sid : Number(v?.sid) || 0, speed, ...(voiceLang ? { voiceLang } : {}) })
+    await p.speak({ lang: key, text, sid: sid ?? (Number(v?.sid) || 0), speed, pitch, accent })
   } finally {
     try { await sub?.remove() } catch { /* gone */ }
   }

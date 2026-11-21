@@ -1,6 +1,6 @@
-// Olympus: the microphone of the AI coach chats (lib/voice.js). Tap to dictate, tap the stop square
-// to stop; what is understood fills the message. Voice mode, a spoken conversation, is its own
-// button and screen (components/VoiceMode.jsx).
+// Olympus: the microphone of the AI coach chats (lib/voice.js). Tap to dictate, tap again to stop;
+// what is understood fills the message as it is said. In voice mode (the full-screen coach) the
+// message goes by itself when you stop talking, and the answer is read aloud.
 import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
@@ -17,41 +17,36 @@ export function useCanListen() {
 }
 
 /**
- * The mic button: dictation into the text box. `onText(text)` while talking, `onFinal(text)` once
- * it stops, `onSilence()` when it stopped with nothing heard. `control` (a ref) gets { start, stop }
- * so a caller can start listening by itself (Chiron's sheet).
- *
- * While it records, the microphone becomes a stop square: a tap ends the recording, sends what was
- * said to be written out, and closes the microphone at once. A tap while it is still opening (the
- * permission prompt, a slow phone) cancels it as soon as it is open: before, that tap did nothing
- * and the microphone stayed on with no way to stop it but waiting for a pause.
+ * The mic button. `onText(text)` while talking, `onFinal(text)` once it stops, `onSilence()` when
+ * it stopped with nothing heard. `control` (a ref) gets { start, stop } so voice mode can start
+ * listening after an answer has been read. With `onStopVoice` (voice mode), the button is voice
+ * mode's own: it shows the microphone as on and a tap ends voice mode. `onHeard(on)` says when what
+ * was said is being written out (true) and when that is over (false).
  */
 // A sentence that starts with the guide's name is hers, whoever the microphone belongs to
 // (lib/calliope.js calledByName); `guide={false}` leaves it to the caller (her own sheet).
-export function MicButton({ onText, onFinal, onSilence, disabled, control, guide = true }) {
+export function MicButton({ onText, onFinal, onSilence, disabled, control, onStopVoice, onHeard, guide = true }) {
   const can = useCanListen()
-  // off | starting (opening the microphone) | on (recording) | wait (being written out)
-  const [phase, setPhase] = useState('off')
+  const [on, setOn] = useState(false)
+  // The person has stopped and what they said is being written out: no longer listening.
+  const [writing, setWriting] = useState(false)
+  const write = v => { setWriting(v); onHeard?.(v) }
   const stopRef = useRef(null)
-  const pending = useRef(null)   // a stop asked for while the microphone was still opening
   const start = async () => {
     if (stopRef.current) return
     let last = ''
-    pending.current = null
+    // Olympus: a stop tapped while the microphone is still opening (the permission prompt, the
+    // first second) used to do nothing, and the microphone then stayed on with no way to close it.
+    // Now it is remembered and the microphone is closed the moment it is open.
+    let stopEarly = null
     try {
-      setPhase('starting')
-      // Starting: a stop is remembered, and done once the microphone is open (closing it under the
-      // opening would end in an error).
-      const remember = opts => { pending.current = opts || { cancel: true } }
-      remember.placeholder = true
-      stopRef.current = remember
-      const stop = await listen({
-        onReady: () => setPhase(p => (p === 'starting' ? 'on' : p)),
-        // Stopped by a pause: written out now, so the button says so (as after a tap on stop).
-        onHeard: () => setPhase(p => (p === 'on' ? 'wait' : p)),
+      setOn(true)
+      stopRef.current = opts => { stopEarly = opts || {} }   // starting: a stop now waits for it
+      const stopper = await listen({
+        onHeard: () => write(true),
         onText: text => { if (text) { last = text; onText?.(text) } },
         onEnd: error => {
-          stopRef.current = null; setPhase('off')
+          stopRef.current = null; setOn(false); write(false)
           // One sentence dictated: the microphone closes at once. A voice conversation (`control`)
           // listens again right away and keeps it until it is over.
           if (!control) releaseMic()
@@ -62,30 +57,41 @@ export function MicButton({ onText, onFinal, onSilence, disabled, control, guide
           else if (said) onFinal?.(said); else onSilence?.()
         },
       })
-      if (!stopRef.current) return   // it already ended
-      stopRef.current = stop
-      if (pending.current) { const opts = pending.current; pending.current = null; stopNow(opts) }
+      stopRef.current = stopper
+      if (stopEarly) stopper?.(stopEarly)
     } catch (e) {
-      stopRef.current = null; setPhase('off')
+      stopRef.current = null; setOn(false)
       useUI.getState().toast(e?.code === 'permission' ? t('Allow the microphone to talk to your coach.') : t('Dictation is not available on this device.'))
     }
   }
-  const stopNow = opts => {
-    const stop = stopRef.current
-    if (!stop) return
-    if (stop.placeholder) { stop(opts); return }
-    if (!opts?.cancel) setPhase(p => (p === 'off' ? p : 'wait'))
-    stop(opts)
-    if (!control) releaseMic()
-  }
-  const stop = opts => stopNow(opts)
+  const stop = opts => { if (stopRef.current && !opts?.cancel) write(true); stopRef.current?.(opts) }
   useEffect(() => () => { stopRef.current?.({ cancel: true }); releaseMic() }, [])
   if (control) control.current = { start, stop, get on() { return !!stopRef.current } }
   if (!can) return null
-  const on = phase === 'on' || phase === 'starting'
-  const label = phase === 'wait' ? t('Writing out what you said…') : on ? t('Stop dictation') : t('Dictate a message')
-  return <button type="button" className={'mic' + (on ? ' on' : '') + (phase === 'wait' ? ' wait' : '')} disabled={(disabled && !on) || phase === 'wait'}
-    onClick={() => (on ? stop() : start())} aria-pressed={on} aria-label={label} title={label}>
-    <Icon name={on ? 'stopFill' : 'mic'} />
+  if (onStopVoice) return <button type="button" className={'mic voice' + (on && !writing ? ' on' : '') + (writing ? ' wait' : '')} onClick={() => { stopRef.current?.({ cancel: true }); releaseMic(); onStopVoice() }}
+    aria-label={t('Stop voice mode')} title={t('Stop voice mode')}>
+    <Icon name="mic" />
+  </button>
+  // While it listens the button is a stop button, a square, so it is plain how to close it.
+  // Once the person has stopped, it says it is writing out what they said (and takes no tap).
+  if (writing) return <button type="button" className="mic wait" disabled aria-label={t('Writing out what you said…')} title={t('Writing out what you said…')}>
+    <Icon name="mic" />
+  </button>
+  return <button type="button" className={'mic' + (on ? ' on' : '')} disabled={disabled && !on} onClick={() => (on ? stop() : start())}
+    aria-pressed={on} aria-label={on ? t('Stop dictation') : t('Dictate a message')} title={on ? t('Stop dictation') : t('Dictate a message')}>
+    {on ? <span className="mic-stop" aria-hidden="true" /> : <Icon name="mic" />}
+  </button>
+}
+
+/**
+ * Olympus: voice mode, as in ChatGPT or Claude: a button beside the microphone that starts a spoken
+ * conversation with the coach (it listens, the coach answers aloud, it listens again). Shown only
+ * where the device can dictate.
+ */
+export function VoiceModeButton({ onStart, disabled }) {
+  const can = useCanListen()
+  if (!can) return null
+  return <button type="button" className="voice-go" disabled={disabled} onClick={onStart} aria-label={t('Voice mode')} title={t('Voice mode')}>
+    <Icon name="wave" />
   </button>
 }

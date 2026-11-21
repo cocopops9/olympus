@@ -6,7 +6,8 @@
 // own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
-import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal, kokoroVoice, KOKORO } from './local-voice.js'
+import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal } from './local-voice.js'
+import { castVoice, KOKORO } from './voice-cast.js'
 import { api } from './api.js'
 import { clipOf } from './wav.js'
 
@@ -385,6 +386,10 @@ async function speakOnServer(say, lang, who, run, onStart, keep) {
   return true
 }
 
+// Olympus: how the natural voices are offered (components/VoiceSetup.jsx registers it).
+let naturalOffer = null
+export const setNaturalVoiceOffer = fn => { naturalOffer = typeof fn === 'function' ? fn : null }
+
 let nativeVoiceList = null
 let nativeBusy = false   // the phone's own voice is reading something
 let webUtterance = null
@@ -405,18 +410,20 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
   if (MOBILE && nativeBusy) nativeTTS().then(({ p }) => p.stop()).catch(() => {})
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
-  // The natural voices on the phone (lib/local-voice.js, Kokoro): first for all four, each with a
-  // voice of its own, no quota and no connection. A failure falls through to the voices below.
-  const natural = kind && localVoicesOn() ? kokoroVoice(who, lang) : null
-  if (natural) {
-    try { await speakLocal(say, { key: KOKORO, sid: natural.sid, speed: (rate ?? 1) * natural.speed, voiceLang: natural.voiceLang, onStart: begin }); return } catch { /* the next voice */ }
+  // Olympus: the most natural voice first. Kokoro on the phone where it speaks the language and
+  // has a voice of this coach's own (lib/voice-cast.js), free, offline, no quota.
+  const cast = kind ? castVoice(who, getLang()) : null
+  // The first time a coach speaks in a Kokoro language without the pack: it is offered, once.
+  if (cast?.engine === KOKORO && localVoicesOn() && !hasLocalVoice(KOKORO)) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } }
+  if (cast?.engine === KOKORO && localVoicesOn() && hasLocalVoice(KOKORO)) {
+    try { await speakLocal(say, { key: KOKORO, sid: cast.sid, accent: cast.accent, speed: cast.speed * (rate ?? 1), pitch: cast.pitch, onStart: begin }); return } catch { /* the next voice */ }
     if (run !== speakRun) return
   }
-  // A man's offline voice on the phone (lib/local-voice.js): first for Chiron and Hercules, with no
-  // quota and no wait.
+  // A man's offline voice on the phone (lib/local-voice.js): then for Chiron and Hercules, with no
+  // quota and no wait; Chiron's lower than Hercules's (voice-cast.js), so the two are told apart.
   const key = voiceKey()
   if (kind?.male && localVoicesOn() && hasLocalVoice(key)) {
-    try { await speakLocal(say, { key, speed: who === 'chiron' ? 0.92 : 1, onStart: begin }); return } catch { /* the next voice */ }
+    try { await speakLocal(say, { key, speed: cast?.speed ?? (who === 'chiron' ? 0.92 : 1), pitch: cast?.pitch ?? 1, onStart: begin }); return } catch { /* the next voice */ }
     if (run !== speakRun) return
   }
   if (kind && serverVoice === null && warming) await Promise.race([warming, new Promise(r => setTimeout(r, 6000))])
@@ -435,7 +442,8 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
       begin()
       // No man's voice installed for the language: the default one (a woman's on most phones) read
       // lower, so Chiron and Hercules still sound like men.
-      const pitch = kind?.male && voice < 0 ? 0.78 : 1
+      // Two coaches on the phone's voices are kept apart by how high they are read (voice-cast.js).
+      const pitch = (kind?.male && voice < 0 ? 0.78 : 1) * (cast?.engine === 'before' ? cast.pitch : 1)
       if (run !== speakRun) return
       nativeBusy = true
       try { await TTS.speak({ text: say, lang, rate: pace, pitch, ...(voice >= 0 ? { voice } : {}) }) } finally { if (run === speakRun) nativeBusy = false }
