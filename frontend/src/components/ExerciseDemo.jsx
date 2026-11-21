@@ -6,6 +6,7 @@ import { useStore } from '../store/useStore.js'
 import { CATALOGUE, EXIDX } from '../lib/exercises.js'
 import { exerciseNameFor } from '../lib/i18n.js'
 import { demoExercise } from '../lib/exercise-demo.js'
+import { askedExercise } from '../lib/exercise-ask.js'
 import Media from './Media.jsx'
 import '../exercise-demo.css'
 
@@ -22,6 +23,10 @@ function ownIds(S) {
 /** The exercise a question asks to see, or null. `currentId`: the exercise being trained now. */
 export function demoFor(question, S, currentId = null) {
   if (!question) return null
+  // The plain lift named in the question, ranked like the library search (lib/exercise-ask.js);
+  // what it leaves open ("this one", an exercise it does not find) goes to demoExercise.
+  const named = EXIDX[askedExercise(question, S?.customEx || [])] || null
+  if (named?.gif) return named
   const current = currentId ? EXIDX[currentId] || null : null
   const ex = demoExercise(question, { list: CATALOGUE, nameOf, prefer: ownIds(S), current })
   return ex && ex.gif ? ex : null

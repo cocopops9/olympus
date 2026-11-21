@@ -1,0 +1,68 @@
+// @vitest-environment happy-dom
+// The exercise a question asks how to do (lib/exercise-ask.js), read from the person's own words
+// ranked like the library search. Strict by design: no cue asking for technique, or no exercise named by its own name,
+// and nothing is shown.
+import { afterAll, describe, expect, it } from 'vitest'
+import { askedExercise } from './exercise-ask.js'
+import { setLang } from './i18n.js'
+
+afterAll(() => setLang('en'))
+
+describe('askedExercise', () => {
+  it('reads English questions, and picks the plain lift over its variants', async () => {
+    await setLang('en')
+    expect(askedExercise('How do I do a hip thrust?')).toBe('2072')
+    expect(askedExercise('how to deadlift properly')).toBe('0032')            // barbell deadlift
+    expect(askedExercise('what is the proper form for barbell bench press?')).toBe('0025')
+    expect(askedExercise('how do i squat')).toBe('1197')                      // "squat", not the dumbbell squat
+    expect(askedExercise('how do I do a barbell squat')).toBe('3593')         // the name itself, not "(on knees)"
+    expect(askedExercise('how should I do the leg press?')).toBe('0739')      // the 45 degree sled
+    expect(askedExercise('how do I do pull-ups')).toBe('0652')                // plural to the singular name
+    expect(askedExercise('technique for romanian deadlift')).toBe('0085')
+  })
+
+  it('reads Italian and Spanish questions against the translated names', async () => {
+    await setLang('it')
+    expect(askedExercise('Come si fa lo stacco rumeno?')).toBe('0085')
+    expect(askedExercise('come si fa la panca piana?')).toBe('0025')          // barbell, not the Smith machine
+    expect(askedExercise('tecnica dello stacco da terra')).toBe('0032')
+    expect(askedExercise('Chirone, come si esegue lo squat bulgaro senza dolore?')).toBe('0781')
+    expect(askedExercise('come si fa il curl con manubri')).toBe('0294')      // "con" is not "concentrato"
+    await setLang('es')
+    expect(askedExercise('¿Cómo se hace el press de banca?')).toBe('0025')
+    expect(askedExercise('cómo hago dominadas')).toBe('0652')
+  })
+
+  it('shows nothing without a technique question naming an exercise', async () => {
+    await setLang('en')
+    for (const q of ['how do I grow my chest?', 'I did squats today', 'how is my progress?', 'bench press 80 kg for 5, good?', '', null]) {
+      expect(askedExercise(q)).toBe(null)
+    }
+    await setLang('it')
+    for (const q of ['come posso aumentare il petto?', 'come sto andando?', 'oggi ho fatto panca piana']) {
+      expect(askedExercise(q)).toBe(null)
+    }
+  })
+
+  it('finds the person\'s own exercise by its name', async () => {
+    await setLang('en')
+    const custom = [{ id: 'c1', n: 'zercher hold walk', bp: 'upper legs', eq: 'barbell', tg: 'quads', custom: true }]
+    expect(askedExercise('how do I do the zercher hold walk?', custom)).toBe('c1')
+  })
+})
+
+describe('the demonstration beside a coach answer (components/ExerciseDemo.jsx demoFor)', () => {
+  it('shows the plain lift named in the question, with its animation', async () => {
+    const { demoFor } = await import('../components/ExerciseDemo.jsx')
+    await setLang('en')
+    const S = { workouts: [] }
+    expect(demoFor('how do i squat', S)?.id).toBe('1197')
+    expect(demoFor('how to deadlift properly', S)?.id).toBe('0032')
+    expect(demoFor('how should I do the leg press?', S)?.id).toBe('0739')
+    expect(demoFor('how do I do pull-ups', S)?.id).toBe('0652')
+    await setLang('it')
+    expect(demoFor('Chirone, come si esegue lo squat bulgaro senza dolore?', S)?.id).toBe('0781')
+    expect(demoFor('come si fa il curl con manubri', S)?.id).toBe('0294')
+    expect(demoFor('come sto andando?', S)).toBe(null)
+  })
+})
