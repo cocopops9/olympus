@@ -3567,6 +3567,6 @@ export default {
   "Natural voices": "Doğal sesler",
   "Not installed ({0} MB).": "Yüklü değil ({0} MB).",
   "Remove the natural voices?": "Doğal sesler kaldırılsın mı?",
-  "Greek aulos": "Yunan aulosu",
-  "An aulos calls you back, in the Greek manner.": "Bir aulos geri çağırıyor, Yunan usulü.",
+  "Greek lyre": "Yunan lirı",
+  "A lyre calls you back, in the Greek manner.": "Bir lir geri çağırıyor, Yunan usulü.",
 }

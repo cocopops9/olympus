@@ -101,23 +101,29 @@ export const celebrate = list => showCelebration?.(list)
 /*
  * How a medal is celebrated grows with its tier, and none of it has to be answered: it plays and
  * leaves by itself, a tap sends it away sooner, and a tap on the medal opens what it is.
- *   bronze, silver   a small banner slides in at the top (silver with a glint)
- *   gold             the banner, and a short fall of confetti
+ *   bronze, silver   the medal pops up in the middle of the screen with a burst of sparks, then
+ *                    flies up into a banner at the top (silver with a glint and a little confetti)
+ *   gold             the same, with more confetti
  *   platinum         the medal takes the middle of the screen, with rays and confetti
  *   olympian         the same, larger: a flash, a shockwave, two wheels of rays, a golden rain
- * `stay` is how long it stays, in milliseconds; `confetti` how many pieces fall. Every tier has a
- * sound of its own in the Greek manner, each grander than the one below (lib/medal-sounds.js).
+ * The pop of the three lower tiers lets nothing stop: it cannot be touched and is gone in 1.5 s.
+ * Until 2026-11-21 bronze and silver were only the banner, silent and without the pop, and were
+ * easy to miss after a workout. `stay` is how long it stays, in milliseconds; `confetti` how many
+ * pieces fall; `sparks` how many fly out of the pop. Every tier has a sound of its own in the
+ * Greek manner, each grander than the one below (lib/medal-sounds.js).
  */
 export const CELEBRATION = {
-  bronze: { kind: 'banner', stay: 3200, confetti: 0 },
-  silver: { kind: 'banner', stay: 3800, confetti: 0 },
-  gold: { kind: 'banner', stay: 4600, confetti: 22 },
-  platinum: { kind: 'stage', stay: 5200, confetti: 44 },
-  olympian: { kind: 'stage', stay: 7000, confetti: 84 },
+  bronze: { kind: 'banner', stay: 4200, confetti: 0, sparks: 10 },
+  silver: { kind: 'banner', stay: 4800, confetti: 12, sparks: 12 },
+  gold: { kind: 'banner', stay: 5400, confetti: 22, sparks: 14 },
+  platinum: { kind: 'stage', stay: 6000, confetti: 44, sparks: 0 },
+  olympian: { kind: 'stage', stay: 7000, confetti: 84, sparks: 0 },
 }
 export const celebrationOf = m => CELEBRATION[m?.tier] || CELEBRATION.bronze
 
 const CONFETTI = ['#f2b51c', '#ffe08a', '#ffffff', '#ff9f0a', '#c98c0a']
+// Silver's confetti is of its own metal.
+const CONFETTI_OF = { silver: ['#d7dce4', '#ffffff', '#aeb6c2', '#eef1f5'] }
 
 /** The celebration of the medals just earned, one after the other (see CELEBRATION). */
 export function MedalCelebration() {
@@ -140,7 +146,7 @@ export function MedalCelebration() {
   }, [m?.id])   // eslint-disable-line react-hooks/exhaustive-deps
   const confetti = useMemo(() => Array.from({ length: how.confetti }, (_, i) => ({
     left: Math.random() * 100, delay: Math.random() * (how.kind === 'stage' ? 1.2 : 0.5), dur: 1.8 + Math.random() * 1.8, rot: Math.random() * 360,
-    color: CONFETTI[i % CONFETTI.length],
+    color: (CONFETTI_OF[m?.tier] || CONFETTI)[i % (CONFETTI_OF[m?.tier] || CONFETTI).length],
   })), [m?.id])   // eslint-disable-line react-hooks/exhaustive-deps
   if (!m) return null
   const open = e => { e.stopPropagation(); setQueue([]); medalSheet(m) }
@@ -148,6 +154,10 @@ export function MedalCelebration() {
   const more = queue.length - 1
 
   if (how.kind === 'banner') return <div className={'mdl-cele mdl-cele-banner tier-' + m.tier} key={m.id} role="status" aria-live="polite" style={{ '--stay': how.stay + 'ms' }}>
+    <div className="mdl-pop" aria-hidden="true">
+      <span className="mdl-sparks">{Array.from({ length: how.sparks }, (_, i) => <i key={i} style={{ '--a': Math.round(i * 360 / how.sparks) + 'deg' }} />)}</span>
+      <MedalBadge m={m} size={112} glow />
+    </div>
     {fall}
     <button type="button" className="mdl-banner" onClick={open}>
       <MedalBadge m={m} size={52} glow />
@@ -194,7 +204,11 @@ export function useMedalWatcher(ready) {
       const groups = medalsFor(S, user?.id)
       const got = S.medals?.got
       const fresh = newlyEarned(groups, got || {})
-      if (!fresh.length) return
+      // The first look at a profile writes down what it already has, even when that is nothing,
+      // and shows none of it. Until 2026-11-21 nothing was written while nothing was earned, so a
+      // new profile's first medals (its first workout's) were taken for old ones and marked
+      // without a show.
+      if (!fresh.length && got) return
       const now = Date.now()
       update(s => { s.medals = { ...(s.medals || {}), got: { ...(s.medals?.got || {}), ...Object.fromEntries(fresh.map(m => [m.id, now])) } } })
       // Only what was just earned bursts onto the screen: a history that arrives from the server

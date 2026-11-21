@@ -75,6 +75,28 @@ describe('medal celebration', () => {
     expect(host.querySelectorAll('.mdl-confetti i').length).toBe(CELEBRATION.olympian.confetti)
   })
 
+  it('bronze, silver and gold first pop up in the middle with sparks, which nothing can touch', () => {
+    for (const tier of ['bronze', 'silver', 'gold']) {
+      act(() => celebrate([medal(tier)]))
+      const pop = host.querySelector('.mdl-pop')
+      expect(pop, tier).not.toBe(null)
+      expect(pop.getAttribute('aria-hidden')).toBe('true')
+      expect(pop.querySelector('.mdl')).not.toBe(null)
+      expect(pop.querySelectorAll('.mdl-sparks i').length, tier).toBe(CELEBRATION[tier].sparks)
+      act(() => { vi.advanceTimersByTime(CELEBRATION[tier].stay + 50) })
+    }
+    act(() => celebrate([medal('platinum')]))
+    expect(host.querySelector('.mdl-pop')).toBe(null)
+  })
+
+  it('silver has a little confetti of its own metal; bronze none', () => {
+    act(() => celebrate([medal('silver')]))
+    const pieces = [...host.querySelectorAll('.mdl-confetti i')]
+    expect(pieces.length).toBe(CELEBRATION.silver.confetti)
+    expect(pieces.length).toBeGreaterThan(0)
+    expect(pieces.some(i => /242, 181, 28|#f2b51c/i.test(i.style.background))).toBe(false)
+  })
+
   it('every tier plays the sound of its own tier, and none while Sounds is off', () => {
     for (const tier of TIERS) {
       act(() => celebrate([medal(tier)]))

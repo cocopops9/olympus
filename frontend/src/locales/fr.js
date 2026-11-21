@@ -3567,6 +3567,6 @@ export default {
   "Natural voices": "Voix naturelles",
   "Not installed ({0} MB).": "Non installées ({0} Mo).",
   "Remove the natural voices?": "Retirer les voix naturelles ?",
-  "Greek aulos": "Aulos grec",
-  "An aulos calls you back, in the Greek manner.": "Un aulos te rappelle, à la manière grecque.",
+  "Greek lyre": "Lyre grecque",
+  "A lyre calls you back, in the Greek manner.": "Une lyre te rappelle, à la manière grecque.",
 }

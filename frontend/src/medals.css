@@ -94,6 +94,31 @@
 @keyframes mdl-coin{from{transform:perspective(400px) rotateY(360deg) scale(.4)}}
 @keyframes mdl-glint{from{background-position:120% 0}to{background-position:-60% 0}}
 
+/* Bronze, silver, gold: before the banner, the medal pops up in the middle of the screen, spins,
+   throws out a ring of sparks and flies up to where the banner comes in. It cannot be touched. */
+.mdl-pop{position:absolute;left:50%;top:42%;width:0;height:0;pointer-events:none;perspective:600px;
+  --spark:#e8a265;animation:mdl-pop 1.5s cubic-bezier(.25,1,.35,1) both}
+.tier-silver .mdl-pop{--spark:#eef1f5}
+.tier-gold .mdl-pop{--spark:#ffd65c}
+.mdl-pop .mdl{position:absolute;left:calc(var(--s) / -2);top:calc(var(--s) * -.59);animation:mdl-coin .8s cubic-bezier(.2,1.3,.4,1) both}
+.mdl-pop::before{content:"";position:absolute;left:-110px;top:-110px;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,214,92,.6),rgba(255,214,92,0) 68%);animation:mdl-halo 1.5s ease-out both}
+.mdl-sparks{position:absolute;left:0;top:0}
+.mdl-sparks i{position:absolute;left:-2.5px;top:-12px;width:5px;height:24px;border-radius:3px;background:var(--spark);
+  box-shadow:0 0 8px var(--spark);opacity:0;animation:mdl-spark .75s ease-out .3s both}
+@keyframes mdl-pop{
+  0%{opacity:0;transform:scale(.3)}
+  14%{opacity:1;transform:scale(1.12)}
+  24%{transform:scale(1)}
+  68%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-36vh) scale(.4)}}
+@keyframes mdl-halo{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.15)}70%{opacity:.7}100%{opacity:0;transform:scale(.8)}}
+@keyframes mdl-spark{0%{opacity:1;transform:rotate(var(--a)) translateY(-52px) scaleY(.5)}100%{opacity:0;transform:rotate(var(--a)) translateY(-130px) scaleY(1.1)}}
+/* The banner comes in as the medal flies up into it. */
+.mdl-cele-banner .mdl-banner{animation-delay:1.05s,calc(var(--stay) - 420ms)}
+.mdl-cele-banner .mdl-banner .mdl{animation-delay:1.15s}
+.tier-silver .mdl-banner::after,.tier-gold .mdl-banner::after{animation-delay:1.5s}
+
 /* Platinum and Olympian: the medal takes the middle of the screen. A tap anywhere sends it away. */
 .mdl-cele-stage{pointer-events:auto;display:grid;place-items:center;padding:24px;
   animation:mdl-fade .35s ease both,mdl-stage-out .5s ease-in calc(var(--stay) - 520ms) both}
@@ -124,7 +149,7 @@
 @keyframes mdl-stage-out{to{opacity:0}}
 @media (prefers-reduced-motion:reduce){
   .mdl-banner,.mdl-banner .mdl,.mdl-cele-stage,.mdl-stage-medal,.tier-olympian .mdl-stage-medal,.mdl-stage h2,.mdl-stage .mdl-burst-k,.mdl-stage .mdl-tier,.mdl-stage .mdl-fun,.mdl-stage-d{animation:none}
-  .mdl-confetti,.mdl-rays,.mdl-shock,.mdl-stage-flash,.mdl-banner::after{display:none}
+  .mdl-confetti,.mdl-rays,.mdl-shock,.mdl-stage-flash,.mdl-banner::after,.mdl-pop{display:none}
   .mdl.glow .mdl-disc::after{animation:none;display:none}
 }
 

@@ -3622,6 +3622,6 @@ export default {
   "Natural voices": "الأصوات الطبيعية",
   "Not installed ({0} MB).": "غير مثبّتة ({0} ميغابايت).",
   "Remove the natural voices?": "هل تريد إزالة الأصوات الطبيعية؟",
-  "Greek aulos": "مزمار الأولوس اليوناني",
-  "An aulos calls you back, in the Greek manner.": "يناديك الأولوس من جديد على الطريقة اليونانية.",
+  "Greek lyre": "القيثارة اليونانية",
+  "A lyre calls you back, in the Greek manner.": "تناديك القيثارة من جديد على الطريقة اليونانية.",
 }

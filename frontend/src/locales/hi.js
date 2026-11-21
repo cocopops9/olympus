@@ -3567,6 +3567,6 @@ export default {
   "Natural voices": "स्वाभाविक आवाज़ें",
   "Not installed ({0} MB).": "इंस्टॉल नहीं हैं ({0} MB)।",
   "Remove the natural voices?": "स्वाभाविक आवाज़ें हटाएँ?",
-  "Greek aulos": "यूनानी औलोस",
-  "An aulos calls you back, in the Greek manner.": "यूनानी अंदाज़ में एक औलोस आपको वापस बुलाता है।",
+  "Greek lyre": "यूनानी लायर",
+  "A lyre calls you back, in the Greek manner.": "यूनानी अंदाज़ में एक लायर आपको वापस बुलाती है।",
 }

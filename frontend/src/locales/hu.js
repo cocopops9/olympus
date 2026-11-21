@@ -3570,6 +3570,6 @@ export default {
   "Natural voices": "Természetes hangok",
   "Not installed ({0} MB).": "Nincs telepítve ({0} MB).",
   "Remove the natural voices?": "Eltávolítod a természetes hangokat?",
-  "Greek aulos": "Görög aulosz",
-  "An aulos calls you back, in the Greek manner.": "Egy aulosz hív vissza, görög módra.",
+  "Greek lyre": "Görög líra",
+  "A lyre calls you back, in the Greek manner.": "Egy líra hív vissza, görög módra.",
 }

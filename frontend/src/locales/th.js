@@ -3578,6 +3578,6 @@ export default {
   "Natural voices": "เสียงธรรมชาติ",
   "Not installed ({0} MB).": "ยังไม่ได้ติดตั้ง ({0} MB)",
   "Remove the natural voices?": "ลบเสียงธรรมชาติไหม?",
-  "Greek aulos": "ออลอสแบบกรีก",
-  "An aulos calls you back, in the Greek manner.": "ออลอสเรียกกลับมา ตามแบบกรีก",
+  "Greek lyre": "พิณไลร์แบบกรีก",
+  "A lyre calls you back, in the Greek manner.": "พิณไลร์เรียกกลับมา ตามแบบกรีก",
 }

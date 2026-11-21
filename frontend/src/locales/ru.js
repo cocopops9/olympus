@@ -3571,6 +3571,6 @@ export default {
   "Natural voices": "Естественные голоса",
   "Not installed ({0} MB).": "Не установлены ({0} МБ).",
   "Remove the natural voices?": "Удалить естественные голоса?",
-  "Greek aulos": "Греческий авлос",
-  "An aulos calls you back, in the Greek manner.": "Авлос зовёт обратно на греческий лад.",
+  "Greek lyre": "Греческая лира",
+  "A lyre calls you back, in the Greek manner.": "Лира зовёт обратно на греческий лад.",
 }

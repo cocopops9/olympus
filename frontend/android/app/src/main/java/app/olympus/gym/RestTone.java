@@ -8,7 +8,7 @@ package app.olympus.gym;
  * the chime, high, low, then high and long, held near full scale in a bright timbre, and the
  * classic three beeps. Until v1.3.11 this side only knew the classic beeps, so a locked phone
  * played the quiet old sound however Settings → Sound was set. #306 added a bell, a beep-beep,
- * a whistle and a soft one, and the Greek aulos after them; their notes, peaks, holds and timbres are copied from
+ * a whistle and a soft one, and the Greek lyre after them; their notes, peaks, holds and timbres are copied from
  * frontend/src/lib/rest-sounds.js REST_SOUNDS and rendered the way the chime is.
  */
 final class RestTone {
@@ -28,7 +28,7 @@ final class RestTone {
     /** lib/sound.js TIMBRES: the strengths of the fundamental and its harmonics. A sine is {1}. */
     private static final double[] BRIGHT = {1, 0.6, 0.35, 0.2};
     private static final double[] BELL = {1, 0.25, 0.5, 0.1, 0.3};
-    private static final double[] AULOS = {1, 0, 0.55, 0, 0.3, 0, 0.15};
+    private static final double[] LYRE = {1, 0.45, 0.25, 0.12, 0.06};
     private static final double[] SINE = {1};
 
     /** lib/rest-sounds.js REST_SOUNDS: notes of {freq, dur, when} or {freq, dur, when, glideTo}. */
@@ -36,7 +36,7 @@ final class RestTone {
     private static final double[][] BEEP_NOTES = {{1760, 0.08, 0}, {1760, 0.08, 0.13}, {1760, 0.08, 0.4}, {1760, 0.08, 0.53}};
     private static final double[][] WHISTLE_NOTES = {{1300, 0.16, 0, 2100}, {1500, 0.42, 0.22, 2500}};
     private static final double[][] SOFT_NOTES = {{659, 0.4, 0}, {784, 0.4, 0.2}, {988, 0.8, 0.4}};
-    private static final double[][] GREEK_NOTES = {{1319, 0.16, 0}, {1175, 0.16, 0.2}, {1047, 0.16, 0.4}, {988, 0.7, 0.6}};
+    private static final double[][] GREEK_NOTES = {{659, 0.6, 0}, {988, 0.6, 0.2}, {1319, 1.2, 0.4}};
 
     /** Every name Settings → Sound can hand over (lib/rest-sounds.js REST_SOUND_IDS). */
     static final String[] KINDS = {"chime", "classic", "bell", "beep", "whistle", "soft", "greek"};
@@ -56,7 +56,7 @@ final class RestTone {
             case "beep": return withTail(renderNotes(BEEP_NOTES, 0.8, 0.8, BRIGHT));
             case "whistle": return withTail(renderNotes(WHISTLE_NOTES, 0.7, 0.55, SINE));
             case "soft": return withTail(renderNotes(SOFT_NOTES, 0.3, 0, SINE));
-            case "greek": return withTail(renderNotes(GREEK_NOTES, 0.9, 0.6, AULOS));
+            case "greek": return withTail(renderNotes(GREEK_NOTES, 0.72, 0.2, LYRE));
             default: return withTail(renderChime());
         }
     }

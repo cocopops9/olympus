@@ -62,12 +62,15 @@ describe('medal sounds, as data', () => {
     }
   })
 
-  it('is not the end-of-rest sound either: that one is a falling aulos tetrachord of its own', () => {
+  it('is not the end-of-rest sound either: that one is a lyre call of its own, in E', () => {
     const rest = REST_SOUNDS.greek.notes.map(n => n[0])
-    expect(rest).toEqual([...rest].sort((a, b) => b - a))   // it falls
+    expect(rest).toEqual([...rest].sort((a, b) => a - b))   // it rises
     for (const tier of TIERS) {
       const snd = MEDAL_SOUNDS[tier]
-      expect((snd.aulos || []).map(n => n[0]).join()).not.toBe(rest.join())
+      for (const kind of ['lyre', 'aulos']) {
+        const pitches = (snd[kind] || []).map(n => Math.round(n[0]))
+        expect(rest.every(f => pitches.includes(f)), tier + ' ' + kind).toBe(false)
+      }
     }
   })
 

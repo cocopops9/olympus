@@ -356,13 +356,17 @@ describe('the end-of-rest sounds (Settings → Sound)', () => {
     expect(shapes.size).toBe(sound.REST_SOUND_IDS.length)
   })
 
-  it('the Greek one is a falling run of four on an aulos, its notes held apart, and the default', () => {
+  it('the Greek one is a lyre struck three times up a fifth and an octave, plucked not held, and the default', () => {
     sound.chime(true, 'greek')
-    expect(ctx().tones.map(tn => tn.freq)).toEqual([1319, 1175, 1047, 988])
-    expect(ctx().oscs.every(o => o.wave && o.wave.imag[2] === 0 && Math.abs(o.wave.imag[3] - 0.55) < 1e-6 && o.wave.imag[4] === 0)).toBe(true)   // odd harmonics only
-    // no note starts before the one before it has ended: they never add up
-    const ends = ctx().oscs.map(o => o.until)
-    ctx().tones.slice(1).forEach((tn, i) => expect(tn.at).toBeGreaterThanOrEqual(ends[i] - 0.05))
+    const freqs = ctx().tones.map(tn => tn.freq)
+    expect(freqs).toEqual([659, 988, 1319])
+    expect(freqs).toEqual([...freqs].sort((a, b) => a - b))   // it rises, where the aulos fell
+    // every harmonic sounds, each weaker than the one below: a string, not a reed's odd ones only
+    expect(ctx().oscs.every(o => {
+      const h = [...o.wave.imag].slice(1)
+      return h.every(v => v > 0) && h.every((v, i) => i === 0 || v < h[i - 1])
+    })).toBe(true)
+    expect(sound.REST_SOUNDS.greek.hold).toBeLessThanOrEqual(0.2)   // dies away like a string
     expect(sound.restSoundOf({})).toBe('greek')
   })
 

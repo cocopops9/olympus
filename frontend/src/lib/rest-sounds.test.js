@@ -27,7 +27,7 @@ const caseOf = kind => {
   expect(m, kind).toBeTruthy()
   return { notes: notesOf(m[1]), peak: Number(m[2]), hold: Number(m[3]), timbre: m[4] }
 }
-const TIMBRE_OF = { BRIGHT: 'bright', BELL: 'bell', AULOS: 'aulos', SINE: undefined }
+const TIMBRE_OF = { BRIGHT: 'bright', BELL: 'bell', LYRE: 'lyre', SINE: undefined }
 
 describe('RestTone.java plays what the page plays', () => {
   it('knows every sound Settings offers, by the same names', () => {
@@ -39,7 +39,7 @@ describe('RestTone.java plays what the page plays', () => {
   it('has the same timbres', () => {
     expect(arrayOf('BRIGHT')).toEqual(TIMBRES.bright)
     expect(arrayOf('BELL')).toEqual(TIMBRES.bell)
-    expect(arrayOf('AULOS')).toEqual(TIMBRES.aulos)
+    expect(arrayOf('LYRE')).toEqual(TIMBRES.lyre)
     expect(arrayOf('SINE')).toEqual([1])
   })
 

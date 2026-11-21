@@ -57,8 +57,10 @@ const sleepAfter = endSec => {
 // decides how loud it gets. Built once per context; a browser without createPeriodicWave gets
 // the nearest built-in shape. android/.../RestTone.java renders the same harmonics.
 // `aulos` is the Greek double-reed pipe's: a reed in a cylindrical bore sounds the odd harmonics
-// (1st, 3rd, 5th, 7th) and hardly the even ones, which is what makes it nasal and reedy.
-export const TIMBRES = { bright: [1, 0.6, 0.35, 0.2], bell: [1, 0.25, 0.5, 0.1, 0.3], aulos: [1, 0, 0.55, 0, 0.3, 0, 0.15] }
+// (1st, 3rd, 5th, 7th) and hardly the even ones, which is what makes it nasal and reedy. `lyre` is a
+// plucked string's: every harmonic, each weaker than the one below, for a warm struck tone (the
+// end-of-rest 'greek' sound, played with almost no hold so each note dies away like a string).
+export const TIMBRES = { bright: [1, 0.6, 0.35, 0.2], bell: [1, 0.25, 0.5, 0.1, 0.3], aulos: [1, 0, 0.55, 0, 0.3, 0, 0.15], lyre: [1, 0.45, 0.25, 0.12, 0.06] }
 let waves = {}
 let wavesCtx = null
 const setTimbre = (ctx, o, name) => {

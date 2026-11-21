@@ -4,10 +4,13 @@
 //
 // All in the manner of ancient Greece, and each one fuller than the tier below, so the sound grows
 // as the medal matters more:
-//   bronze     a lyre, two plucked strings: the first measure of a song
-//   silver     the lyre runs up an arpeggio and an aulos (the double-reed pipe) holds a note over it
-//   gold       a drum, a lyre arpeggio and the salpinx (the bronze war trumpet) calling three notes
+//   bronze     a lyre: three strings up the triad, then two struck together and left to ring
+//   silver     the lyre runs up an arpeggio and answers it with a ringing chord, over a note an
+//              aulos (the double-reed pipe) holds
+//   gold       a drum, a lyre arpeggio and the salpinx (the bronze war trumpet) calling three notes,
+//              the last over a ringing lyre chord
 //   platinum   two drum hits, a lyre run over two octaves, the salpinx in fifths, a held chord
+//              of trumpets and strings
 //   olympian   a drum roll, a lyre sweep down the whole mode, an aulos trill, the salpinx in
 //              fifths and octaves, and a chord of four held for two seconds, with a drum under it
 // The notes are D, F, A (a D minor triad) and the modes of the old music: the tune is a stylised
@@ -21,11 +24,14 @@
 //   horn   [freq, when, dur, peak?]    the salpinx: two detuned saws through a low-pass filter
 //   drum   [freq, when]                a struck skin: a sine that drops a little, with its octave
 // `gain` is the level the layers are mixed to before a limiter (lib/sound.js medalSound). Set from
-// the sound rendered offline (the app's own sound.js through an OfflineAudioContext), so that
-//   - no tier clips (the highest peak is under 0.95 of full scale),
-//   - the loudness (RMS over the sound's length) rises with every tier: 0.073, 0.131, 0.150,
-//     0.155, 0.174 against the record's 0.099, and
-//   - each tier lasts longer than the one below: 0.8, 1.3, 1.8, 2.7, 4.1 seconds.
+// the sound rendered offline (the app's own sound.js through Chromium's OfflineAudioContext), so that
+//   - no tier clips (the highest peak, the olympian's, is 0.98 of full scale; the others 0.84-0.95),
+//   - the loudness (RMS over the audible length) rises with every tier: 0.084, 0.125, 0.154,
+//     0.165, 0.172 against the record's 0.100, and
+//   - each tier lasts longer than the one below (audible: within 40 dB of its loudest 20 ms):
+//     1.8, 2.3, 2.5, 3.1, 4.1 seconds. Bronze and silver were 0.7 and 1.3 s, and were found too
+//     short (2026-11-21): bronze now strikes its three strings and then a second, ringing pair;
+//     silver's arpeggio is answered by a ringing chord over a longer aulos note.
 // What a tier sounds like is not measured: the notes are the author's choice (above).
 const D = { d3: 146.83, a3: 220, d4: 293.66, f4: 349.23, a4: 440, d5: 587.33, f5: 698.46, a5: 880, d6: 1174.66 }
 
@@ -38,27 +44,36 @@ export const MEDAL_TIERS = ['bronze', 'silver', 'gold', 'platinum', 'olympian']
 export const MEDAL_SOUNDS = {
   bronze: {
     gain: 1.4,
-    lyre: [[D.d4, 0, 1.0], [D.a4, 0.2, 1.0]],
+    lyre: [[D.d4, 0, 1.5], [D.a4, 0.2, 1.5], [D.d5, 0.4, 1.5], [D.a4, 0.85, 1.9], [D.d5, 0.87, 1.9]],
   },
   silver: {
     gain: 1.25,
-    lyre: [[D.d4, 0, 1.1], [D.f4, 0.12, 1.1], [D.a4, 0.24, 1.1], [D.d5, 0.36, 1.1]],
-    aulos: [[D.a4, 0.9, 0.45, 0.12]],
+    lyre: [
+      [D.d4, 0, 1.3], [D.f4, 0.12, 1.3], [D.a4, 0.24, 1.3], [D.d5, 0.36, 1.5],
+      [D.a4, 1.05, 2.0], [D.d5, 1.07, 2.0], [D.f5, 1.09, 2.0],
+    ],
+    aulos: [[D.a4, 1.9, 0.5, 0.1]],
   },
   gold: {
-    gain: 1.1,
+    gain: 1.05,
     drum: [[D.d3, 0]],
-    lyre: [[D.d4, 0.1, 1.1], [D.f4, 0.2, 1.1], [D.a4, 0.3, 1.1], [D.d5, 0.4, 1.1], [D.f5, 0.5, 1.1]],
-    horn: [[D.d5, 0.6, 0.2], [D.d5, 0.85, 0.2], [D.a5, 1.1, 0.8]],
+    lyre: [
+      [D.d4, 0.1, 1.1], [D.f4, 0.2, 1.1], [D.a4, 0.3, 1.1], [D.d5, 0.4, 1.1], [D.f5, 0.5, 1.1],
+      [D.d4, 1.1, 2.4], [D.a4, 1.12, 2.4], [D.d5, 1.14, 2.4],
+    ],
+    horn: [[D.d5, 0.6, 0.2], [D.d5, 0.85, 0.2], [D.a5, 1.1, 1.6]],
   },
   platinum: {
     gain: 0.82,
     drum: [[D.d3, 0], [D.d3, 0.5]],
-    lyre: [D.d3, D.a3, D.d4, D.f4, D.a4, D.d5, D.f5, D.a5].map((f, i) => [f, 0.05 + i * 0.1, 1.2]),
+    lyre: [
+      ...[D.d3, D.a3, D.d4, D.f4, D.a4, D.d5, D.f5, D.a5].map((f, i) => [f, 0.05 + i * 0.1, 1.2]),
+      [D.d4, 1.6, 2.0], [D.a4, 1.62, 2.0], [D.d5, 1.64, 2.0], [D.f5, 1.66, 2.0],
+    ],
     horn: [
       [D.d5, 0.9, 0.25], [D.a5, 0.9, 0.25],
       [D.d5, 1.25, 0.25], [D.a5, 1.25, 0.25],
-      [D.d5, 1.6, 1.2], [D.a5, 1.6, 1.2], [D.d6, 1.6, 1.2],
+      [D.d5, 1.6, 1.8], [D.a5, 1.6, 1.8], [D.d6, 1.6, 1.8],
     ],
   },
   olympian: {

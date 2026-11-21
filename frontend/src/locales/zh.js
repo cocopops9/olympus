@@ -3567,6 +3567,6 @@ export default {
   "Natural voices": "自然声音",
   "Not installed ({0} MB).": "未安装（{0} MB）。",
   "Remove the natural voices?": "要删除自然声音吗？",
-  "Greek aulos": "希腊管笛（奥洛斯）",
-  "An aulos calls you back, in the Greek manner.": "希腊风格的奥洛斯管笛，叫你回来训练。",
+  "Greek lyre": "希腊里拉琴",
+  "A lyre calls you back, in the Greek manner.": "希腊风格的里拉琴，叫你回来训练。",
 }

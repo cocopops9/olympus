@@ -5,12 +5,16 @@
 export const CHIME_PEAK = 0.9
 const CHIME = [[1319, 0.16, 0], [988, 0.16, 0.22], [1319, 0.5, 0.44]]
 const CLASSIC = [[880, 0.15, 0], [880, 0.15, 0.25], [1320, 0.4, 0.5]]
-// The Greek one: the descending tetrachord E D C B (tone, tone, semitone: the unit the Greeks built
-// every scale from) played on an aulos, the double-reed pipe, the last note left to sound. It is
-// the sound of a rest that ends unless the profile picked another. Not a record's sound (a rising
-// lyre run into a trumpet, lib/sound.js triumph) nor a medal's (lib/medal-sounds.js): this one
-// falls, and is a single reed's.
-const GREEK = [[1319, 0.16, 0], [1175, 0.16, 0.2], [1047, 0.16, 0.4], [988, 0.7, 0.6]]
+// The Greek one: a lyre (kithara) struck three times up an open fifth and its octave, E5 B5 E6,
+// the last string left to ring. The default for a profile that never picked a sound. Plucked, not
+// held: each note peaks and dies away at once, where the chime holds a bright tone for 60% of each
+// note and the earlier aulos version (four falling reed notes, the user found it unpleasant) held
+// a buzzy, odd-harmonic tone. Rendered offline (Chromium OfflineAudioContext, the app's sound.js):
+// peak 0.87 of full scale, RMS 0.29 against the chime's 0.35, spectral centroid 1.2-2.4 kHz
+// against the chime's 1.9-2.5 and the aulos' 2.5-3.5, audible for 1.3 s. Not a record's sound (a
+// rising Dorian lyre run into a trumpet, lib/sound.js triumph) nor a medal's (lib/medal-sounds.js,
+// all in D): three notes in E, a fifth then a fourth apart.
+const GREEK = [[659, 0.6, 0], [988, 0.6, 0.2], [1319, 1.2, 0.4]]
 export const REST_SOUNDS = {
   chime: { notes: CHIME, peak: CHIME_PEAK, hold: 0.6, timbre: 'bright' },
   classic: { notes: CLASSIC },
@@ -22,7 +26,7 @@ export const REST_SOUNDS = {
   whistle: { notes: [[1300, 0.16, 0, 2100], [1500, 0.42, 0.22, 2500]], peak: 0.7, hold: 0.55 },
   // three low, rising notes that melt into each other, for a quiet room or headphones
   soft: { notes: [[659, 0.4, 0], [784, 0.4, 0.2], [988, 0.8, 0.4]], peak: 0.3, hold: 0 },
-  greek: { notes: GREEK, peak: CHIME_PEAK, hold: 0.6, timbre: 'aulos' },
+  greek: { notes: GREEK, peak: 0.72, hold: 0.2, timbre: 'lyre' },
 }
 // What a profile that never picked one plays.
 export const DEFAULT_REST_SOUND = 'greek'
