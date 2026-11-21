@@ -2630,4 +2630,6 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "This phone goes back to local-only. Before it does, it checks that your server has every change.": "Este celular volta a ser só local. Antes, ele confere se o servidor tem todas as alterações.",
   "Most work first: a set counts 1 where this is the main muscle, {0} where it only helps.": "Mais trabalho primeiro: uma série conta 1 quando este é o músculo principal e {0} quando só ajuda.",
   "Writing out what you said…": "Transcrevendo o que você disse…",
+  "The coaches’ own voices": "As vozes próprias dos treinadores",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena e Calliope podem falar {0} cada um com sua própria voz, onde houver uma gratuita boa o bastante. Funcionam offline, sem limite diário ({1} MB, de preferência no Wi-Fi).",
 }

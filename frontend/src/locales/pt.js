@@ -3568,4 +3568,6 @@ export default {
   "Not installed ({0} MB).": "Não instaladas ({0} MB).",
   "Remove the natural voices?": "Remover as vozes naturais?",
   "Writing out what you said…": "A transcrever o que disse…",
+  "The coaches’ own voices": "As vozes próprias dos treinadores",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "O Hercules, a Athena e a Calliope podem falar {0} cada um com a sua própria voz, onde houver uma gratuita suficientemente boa. Funcionam offline, sem limite diário ({1} MB, de preferência com Wi-Fi).",
 }

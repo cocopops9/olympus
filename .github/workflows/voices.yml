@@ -5,15 +5,19 @@
 # language on the first start (frontend/src/lib/local-voice.js) and reads aloud on the phone with
 # it (LocalVoicePlugin.java): no quota, no connection.
 #
-# Run by hand (workflow_dispatch) or by a change to this file. The first voice listed that exists
-# for a language is the one taken.
+# Run by hand (workflow_dispatch) or by a change to this file or to .github/voices/. The first voice
+# listed that exists for a language is the one taken.
+#
+# Olympus: the coaches' own Piper voices (.github/voices/coaches.json, coach-pack.py), for the
+# languages Kokoro does not speak, are packed as voice-coaches-<lang>.zip and listed under
+# "coaches" in voices.json.
 name: Offline voices
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/voices.yml']
+    paths: ['.github/workflows/voices.yml', '.github/voices/**']
 
 permissions:
   contents: write
@@ -26,9 +30,15 @@ jobs:
   voices:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/voices
+
       - name: Fetch and repack the voices
         run: |
           set -u
+          python3 -m venv work/venv
+          work/venv/bin/pip install --quiet onnx==1.23.2 onnxruntime==1.29.0 numpy==2.5.3
           base=https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models
           mkdir -p out work
           # app language | voice candidates, best first (locale-name-quality[:speaker id])
@@ -68,6 +78,8 @@ jobs:
                 cp "$model" work/p/model.onnx
                 cp "$dir/tokens.txt" work/p/tokens.txt
                 cp -r "$dir/espeak-ng-data" work/p/espeak-ng-data
+                # A voice that reads letters, not sounds (the Ukrainian one), is told so.
+                work/venv/bin/python -I .github/voices/piper_text.py work/p/model.onnx "$model.json" work/p
                 (cd work/p && zip -qr9 "../../out/voice-$lang.zip" .)
                 bytes=$(stat -c %s "out/voice-$lang.zip")
                 sum=$(sha256sum "out/voice-$lang.zip" | cut -d' ' -f1)
@@ -105,12 +117,20 @@ jobs:
             else echo "::warning::$kok has no voices or tokens"; fi
             rm -f "work/$kok.tar.bz2"
           else echo "::warning::no $kok"; fi
+          mkdir -p work/coaches
+          work/venv/bin/python -I .github/voices/coach-pack.py .github/voices/coaches.json "$base" work/coaches out
           python3 - <<'PY'
-          import json, re
+          import json, re, os, hashlib
           body = open('out/entries.txt').read().strip().rstrip(',')
           voices = json.loads(body + '\n}')
-          json.dump({'version': 1, 'voices': voices}, open('out/voices.json', 'w'), indent=1)
-          print(json.dumps(voices, indent=1))
+          coaches = json.load(open('out/coaches.json'))
+          for item in coaches.values():
+              if item.get('file'):
+                  z = 'out/' + item['file']
+                  item['bytes'] = os.path.getsize(z)
+                  item['sha256'] = hashlib.sha256(open(z, 'rb').read()).hexdigest()
+          json.dump({'version': 1, 'voices': voices, 'coaches': coaches}, open('out/voices.json', 'w'), indent=1)
+          print(json.dumps({'voices': voices, 'coaches': coaches}, indent=1))
           PY
           ls -la out
 

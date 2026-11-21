@@ -50,6 +50,15 @@ import java.util.zip.ZipInputStream;
  *   install({ lang, url, sha256 })        -> {}  with "progress" events { lang, received, total }
  *   remove({ lang })                      -> {}
  *   speak({ lang, text, sid, speed })     -> {}  when it has been read; a "start" event when the sound begins
+ *                                         (with `model`: "m1", "m2"… a model of a coaches pack)
+ *
+ * A coaches pack (lang "coaches-de": voice-coaches-de.zip, .github/voices/coach-pack.py) holds the
+ * Piper voices of the coaches who do not read with the language's own one: a folder per model
+ * (m1/model.onnx, m1/tokens.txt) and the espeak-ng data they share. At most two of its engines are
+ * kept in memory (each is some tens of MB), the ones read with last.
+ *
+ * A voice that reads letters, not sounds (a file named `characters` beside its model, written by
+ * .github/voices/piper_text.py) is given the text in lower case and no espeak-ng data.
  *   stop()                                -> {}
  *   audioNormal()                         -> { was }  the phone's audio back out of "call" mode
  *
@@ -75,12 +84,24 @@ public class LocalVoicePlugin extends Plugin {
 
     private static boolean safeLang(String lang) {
         // A language's Piper voice ("it", "pt-BR"), or the one Kokoro pack shared by its languages.
-        return lang != null && (lang.equals("kokoro") || lang.matches("[A-Za-z]{2,3}(-[A-Za-z]{2,4})?"));
+        // Or the coaches' own voices of a language ("coaches-de").
+        return lang != null && (lang.equals("kokoro") || lang.matches("(coaches-)?[A-Za-z]{2,3}(-[A-Za-z]{2,4})?"));
+    }
+
+    private static boolean isCoaches(String lang) { return lang.startsWith("coaches-"); }
+
+    private static boolean safeModel(String m) { return m != null && m.matches("m[1-9]"); }
+
+    // A folder with a voice in it: its model and tokens, and espeak-ng data unless it reads letters.
+    private static boolean hasVoice(File d, File espeak) {
+        return new File(d, "model.onnx").isFile() && new File(d, "tokens.txt").isFile()
+                && (new File(d, "characters").isFile() || espeak.isDirectory());
     }
 
     private boolean installed(String lang) {
         File d = new File(root(), lang);
-        return new File(d, "model.onnx").isFile() && new File(d, "tokens.txt").isFile() && new File(d, "espeak-ng-data").isDirectory();
+        File espeak = new File(d, "espeak-ng-data");
+        return isCoaches(lang) ? hasVoice(new File(d, "m1"), espeak) : hasVoice(d, espeak);
     }
 
     @PluginMethod
@@ -143,7 +164,7 @@ public class LocalVoicePlugin extends Plugin {
                 if (!sha.isEmpty() && !sha.equalsIgnoreCase(hex(md.digest()))) throw new Exception("the download is damaged (checksum)");
                 deleteAll(tmp);
                 unzip(zip, tmp);
-                if (!new File(tmp, "model.onnx").isFile()) throw new Exception("the voice has no model");
+                if (!new File(isCoaches(lang) ? new File(tmp, "m1") : tmp, "model.onnx").isFile()) throw new Exception("the voice has no model");
                 synchronized (engines) {
                     OfflineTts old = engines.remove(lang);
                     dropVariants(lang);
@@ -189,22 +210,28 @@ public class LocalVoicePlugin extends Plugin {
         float pitch = Math.max(0.8f, Math.min(1.2f, call.getFloat("pitch", 1.0f)));
         String accent = call.getString("accent", "");
         if (accent == null || !accent.matches("[a-z-]{0,8}")) accent = "";
+        String model = call.getString("model", "");
         if (!safeLang(lang) || !installed(lang)) { call.reject("no voice for " + lang, "no-voice"); return; }
+        if (isCoaches(lang) && (!safeModel(model) || !hasVoice(new File(new File(root(), lang), model), new File(new File(root(), lang), "espeak-ng-data")))) {
+            call.reject("no such voice in " + lang, "no-voice"); return;
+        }
         final String acc = accent;
+        final String mod = isCoaches(lang) ? model : "";
         final float genSpeed = speed / pitch;
         if (text.trim().isEmpty()) { call.resolve(); return; }
         final int me = ++run;
         stopPlaying();
         work.execute(() -> {
             try {
-                OfflineTts tts = engine(lang, acc);
+                OfflineTts tts = engine(lang, acc, mod);
+                boolean letters = new File(voiceDir(lang, mod), "characters").isFile();
                 // One sentence at a time: the first is heard while the next is made.
                 List<String> parts = pieces(text);
                 boolean started = false;
                 for (String part : parts) {
                     if (me != run) break;
                     if (part.trim().isEmpty()) continue;
-                    GeneratedAudio audio = tts.generate(part, sid, genSpeed);
+                    GeneratedAudio audio = tts.generate(letters ? part.toLowerCase(java.util.Locale.ROOT) : part, sid, genSpeed);
                     if (me != run) break;
                     if (!started) { started = true; notifyListeners("start", new JSObject()); }
                     play(audio.getSamples(), Math.round(audio.getSampleRate() * pitch), me);
@@ -270,12 +297,30 @@ public class LocalVoicePlugin extends Plugin {
 
     // A Kokoro pack (voices.bin beside the model) or a Piper voice. A Kokoro engine is made per
     // espeak-ng language it reads with, since that is part of its configuration.
-    private OfflineTts engine(String lang, String accent) {
+    private File voiceDir(String lang, String model) {
         File d = new File(root(), lang);
+        return model.isEmpty() ? d : new File(d, model);
+    }
+
+    // The engines of coaches packs, the one read with last at the end.
+    private final List<String> coachEngines = new ArrayList<>();
+
+    private OfflineTts engine(String lang, String accent, String modelDir) {
+        File d = voiceDir(lang, modelDir);
+        File espeak = new File(new File(root(), lang), "espeak-ng-data");
         boolean kokoro = new File(d, "voices.bin").isFile();
-        String key = kokoro ? lang + "|" + accent : lang;
+        String key = kokoro ? lang + "|" + accent : modelDir.isEmpty() ? lang : lang + "|" + modelDir;
         synchronized (engines) {
             OfflineTts tts = engines.get(key);
+            if (!modelDir.isEmpty()) {
+                coachEngines.remove(key);
+                coachEngines.add(key);
+                // Two at most: the oldest one goes.
+                while (coachEngines.size() > 2) {
+                    OfflineTts old = engines.remove(coachEngines.remove(0));
+                    if (old != null) old.release();
+                }
+            }
             if (tts != null) return tts;
             OfflineTtsModelConfig model = new OfflineTtsModelConfig();
             if (kokoro) {
@@ -298,7 +343,7 @@ public class LocalVoicePlugin extends Plugin {
                 OfflineTtsVitsModelConfig vits = new OfflineTtsVitsModelConfig();
                 vits.setModel(new File(d, "model.onnx").getAbsolutePath());
                 vits.setTokens(new File(d, "tokens.txt").getAbsolutePath());
-                vits.setDataDir(new File(d, "espeak-ng-data").getAbsolutePath());
+                if (!new File(d, "characters").isFile()) vits.setDataDir(espeak.getAbsolutePath());
                 model.setVits(vits);
             }
             model.setNumThreads(2);
@@ -344,6 +389,7 @@ public class LocalVoicePlugin extends Plugin {
     // The Kokoro engines of a pack, one per accent, when the pack is replaced or removed.
     private void dropVariants(String lang) {
         synchronized (engines) {
+            coachEngines.removeIf(k -> k.startsWith(lang + "|"));
             engines.keySet().removeIf(k -> {
                 if (!k.startsWith(lang + "|")) return false;
                 try { engines.get(k).release(); } catch (Exception ignored) { }

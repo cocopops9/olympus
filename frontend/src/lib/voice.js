@@ -6,8 +6,8 @@
 // own recogniser and voices. The models only ever see text.
 import { MOBILE } from './mobile.js'
 import { getLang } from './i18n.js'
-import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal } from './local-voice.js'
-import { castVoice, KOKORO } from './voice-cast.js'
+import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, voiceKey, audioNormal, coachVoices, coachesKey } from './local-voice.js'
+import { castVoice, KOKORO, PIPER } from './voice-cast.js'
 import { api } from './api.js'
 import { clipOf } from './wav.js'
 
@@ -412,12 +412,22 @@ export async function speak(text, { lang = voiceTag(), rate, who, onStart, keep 
   const pace = rate ?? kind?.rate ?? 1
   // Olympus: the most natural voice first. Kokoro on the phone where it speaks the language and
   // has a voice of this coach's own (lib/voice-cast.js), free, offline, no quota.
-  const cast = kind ? castVoice(who, getLang()) : null
+  const cast = kind ? castVoice(who, getLang(), coachVoices()) : null
   // The first time a coach speaks in a Kokoro language without the pack: it is offered, once.
   if (cast?.engine === KOKORO && localVoicesOn() && !hasLocalVoice(KOKORO)) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } }
   if (cast?.engine === KOKORO && localVoicesOn() && hasLocalVoice(KOKORO)) {
     try { await speakLocal(say, { key: KOKORO, sid: cast.sid, accent: cast.accent, speed: cast.speed * (rate ?? 1), pitch: cast.pitch, onStart: begin }); return } catch { /* the next voice */ }
     if (run !== speakRun) return
+  }
+  // Olympus: a coach's own Piper voice, where Kokoro does not speak the language: from the coaches
+  // pack (offered, once, the first time it is missing), or another speaker of the language's own voice.
+  if (cast?.engine === PIPER && localVoicesOn()) {
+    const pack = cast.model ? coachesKey() : voiceKey()
+    if (cast.model && pack && !hasLocalVoice(pack)) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } }
+    if (pack && hasLocalVoice(pack)) {
+      try { await speakLocal(say, { key: pack, model: cast.model, sid: cast.sid, speed: cast.speed * (rate ?? 1), pitch: cast.pitch, onStart: begin }); return } catch { /* the next voice */ }
+      if (run !== speakRun) return
+    }
   }
   // A man's offline voice on the phone (lib/local-voice.js): then for Chiron and Hercules, with no
   // quota and no wait; Chiron's lower than Hercules's (voice-cast.js), so the two are told apart.

@@ -41,16 +41,28 @@ export const kokoroLang = lang => {
   return CAST[base] ? base : null
 }
 
+export const PIPER = 'piper'
+
 /**
  * The voice `who` speaks with in `lang` (the app's language code): { engine: 'kokoro', sid,
- * speed, pitch, accent } or { engine: 'before', speed, pitch } (the app's earlier voices).
+ * speed, pitch, accent }, { engine: 'piper', model, sid, speed, pitch } (a coach's own Piper
+ * voice), or { engine: 'before', speed, pitch } (the app's earlier voices).
+ *
+ * `own`: the coaches' own Piper voices of the language, as the voices list publishes them
+ * (manifest.coaches[lang].who, .github/voices/coach-pack.py): { hercules: { model: 'm1', sid } }
+ * for a model of the coaches pack, { athena: { own: true, sid: 2 } } for another speaker of the
+ * language's own voice. They come after Kokoro and before the earlier voices.
  */
-export function castVoice(who, lang) {
+export function castVoice(who, lang, own = null) {
   const base = kokoroLang(lang)
   const k = base && CAST[base][who]
   if (k) return { ...k, accent: CAST[base].accent }
+  const p = own?.[who]
+  if (p && Number.isInteger(p.sid) && p.sid >= 0 && (p.own === true || /^m[1-9]$/.test(String(p.model || '')))) {
+    return { engine: PIPER, model: p.own === true ? '' : p.model, sid: p.sid, speed: Number(p.speed) > 0 ? Number(p.speed) : 1, pitch: Number(p.pitch) > 0 ? Number(p.pitch) : 1 }
+  }
   return { ...(BEFORE[who] || BEFORE.hercules) }
 }
 
 /** What tells two voices apart: the model and speaker, and how high they are played. */
-export const voiceIdentity = v => (v.engine === KOKORO ? `kokoro:${v.sid}` : 'before') + '@' + v.pitch
+export const voiceIdentity = v => (v.engine === KOKORO ? `kokoro:${v.sid}` : v.engine === PIPER ? `piper:${v.model || 'own'}:${v.sid}` : 'before') + '@' + v.pitch

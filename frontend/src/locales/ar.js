@@ -3623,4 +3623,6 @@ export default {
   "Not installed ({0} MB).": "غير مثبّتة ({0} ميغابايت).",
   "Remove the natural voices?": "هل تريد إزالة الأصوات الطبيعية؟",
   "Writing out what you said…": "جارٍ كتابة ما قلته…",
+  "The coaches’ own voices": "أصوات المدربين الخاصة",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "يمكن لكلٍّ من Hercules وAthena وCalliope التحدث بلغة {0} بصوته الخاص، حيث يتوفر صوت مجاني جيد بما يكفي. تعمل دون اتصال وبلا حد يومي ({1} ميغابايت، يُفضَّل Wi-Fi).",
 }
