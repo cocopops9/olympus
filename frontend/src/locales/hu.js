@@ -874,6 +874,7 @@ export default {
   'New equipment profile': 'Új eszközprofil',
   'Edit profile': 'Profil szerkesztése',
   'Filter by "{0}"': 'Szűrés erre: „{0}”',
+  'Filters': 'Szűrők',
   'Show all equipment': 'Minden eszköz megjelenítése',
   'Showing what you have in "{0}"': 'Az jelenik meg, ami megvan a(z) „{0}” profilban',
   'Showing all equipment': 'Minden eszköz megjelenítve',

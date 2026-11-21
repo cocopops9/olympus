@@ -986,6 +986,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'Tout l’équipement est affiché',
   'Showing what you have in "{0}"': 'Affichage de ce que tu as dans « {0} »',
+  'Filters': 'Filtres',
   'Show all equipment': 'Afficher tout l’équipement',
   'Filter by "{0}"': 'Filtrer par « {0} »',
   'Edit profile': 'Modifier le profil',

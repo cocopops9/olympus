@@ -986,6 +986,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': '正在显示全部器械',
   'Showing what you have in "{0}"': '正在显示你在“{0}”拥有的器械',
+  'Filters': '筛选',
   'Show all equipment': '显示全部器械',
   'Filter by "{0}"': '按“{0}”筛选',
   'Edit profile': '编辑配置',
