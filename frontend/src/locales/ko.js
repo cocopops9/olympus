@@ -986,6 +986,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': '모든 장비를 표시하는 중',
   'Showing what you have in "{0}"': '‘{0}’에 있는 장비를 표시하는 중',
+  'Filters': '필터',
   'Show all equipment': '모든 장비 표시',
   'Filter by "{0}"': '‘{0}’(으)로 필터',
   'Edit profile': '프로필 편집',

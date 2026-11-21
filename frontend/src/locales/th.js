@@ -821,6 +821,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'กำลังแสดงอุปกรณ์ทั้งหมด',
   'Showing what you have in "{0}"': 'แสดงเฉพาะที่คุณมีใน "{0}"',
+  'Filters': 'ตัวกรอง',
   'Show all equipment': 'แสดงอุปกรณ์ทั้งหมด',
   'Filter by "{0}"': 'กรองตาม "{0}"',
   'Edit profile': 'แก้ไขโปรไฟล์',

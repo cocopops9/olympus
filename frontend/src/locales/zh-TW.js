@@ -975,6 +975,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': '目前顯示所有器材',
   'Showing what you have in "{0}"': '目前顯示你在「{0}」擁有的器材',
+  'Filters': '篩選',
   'Show all equipment': '顯示全部器材',
   'Filter by "{0}"': '依「{0}」篩選',
   'Edit profile': '編輯器材設定檔',

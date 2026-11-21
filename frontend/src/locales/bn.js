@@ -1065,6 +1065,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'সব সরঞ্জাম দেখানো হচ্ছে',
   'Showing what you have in "{0}"': '"{0}"-এ আপনার যা আছে তা দেখানো হচ্ছে',
+  'Filters': 'ফিল্টার',
   'Show all equipment': 'সব সরঞ্জাম দেখান',
   'Filter by "{0}"': '"{0}" অনুযায়ী ফিল্টার করুন',
   'Edit profile': 'প্রোফাইল সম্পাদনা করুন',

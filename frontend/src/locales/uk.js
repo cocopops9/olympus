@@ -793,6 +793,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'Показано весь інвентар',
   'Showing what you have in "{0}"': 'Показано те, що є в «{0}»',
+  'Filters': 'Фільтри',
   'Show all equipment': 'Показати весь інвентар',
   'Filter by "{0}"': 'Фільтрувати за «{0}»',
   'Edit profile': 'Змінити профіль',

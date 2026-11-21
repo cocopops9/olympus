@@ -683,6 +683,7 @@ export default {
   'Unpair': 'إلغاء الربط',
   'Showing all equipment': 'عرض جميع المعدات',
   'Showing what you have in "{0}"': 'عرض ما لديك في «{0}»',
+  'Filters': 'عوامل التصفية',
   'Show all equipment': 'عرض جميع المعدات',
   'Filter by "{0}"': 'التصفية حسب «{0}»',
   'Edit profile': 'تعديل الملف',
