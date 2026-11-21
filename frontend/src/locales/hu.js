@@ -874,6 +874,7 @@ export default {
   'New equipment profile': 'Új eszközprofil',
   'Edit profile': 'Profil szerkesztése',
   'Filter by "{0}"': 'Szűrés erre: „{0}”',
+  'Filters': 'Szűrők',
   'Show all equipment': 'Minden eszköz megjelenítése',
   'Showing what you have in "{0}"': 'Az jelenik meg, ami megvan a(z) „{0}” profilban',
   'Showing all equipment': 'Minden eszköz megjelenítve',
@@ -3570,6 +3571,9 @@ export default {
   "Natural voices": "Természetes hangok",
   "Not installed ({0} MB).": "Nincs telepítve ({0} MB).",
   "Remove the natural voices?": "Eltávolítod a természetes hangokat?",
+  "Writing out what you said…": "Leírom, amit mondtál…",
+  "The coaches’ own voices": "Az edzők saját hangjai",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena és Calliope mindegyike saját hangon beszélhet ezen a nyelven: {0}, ahol van elég jó ingyenes hang. Offline működnek, napi korlát nélkül ({1} MB, Wi-Fi ajánlott).",
   "Greek lyre": "Görög líra",
   "A lyre calls you back, in the Greek manner.": "Egy líra hív vissza, görög módra.",
 }

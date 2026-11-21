@@ -8,6 +8,10 @@
 .voice-banner i{width:8px;height:8px;border-radius:50%;background:var(--acc);animation:mic-pulse 1.3s ease-out infinite}
 /* voice mode's own microphone: on while voice mode lasts, a tap ends it */
 .mic.voice{background:var(--acc);color:var(--on-acc)}
+/* What was said is being written out: no longer listening. */
+.mic.wait{background:var(--surface-2);color:var(--acc);opacity:1;animation:mic-wait 1s ease-in-out infinite}
+@keyframes mic-wait{0%,100%{opacity:.45}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.mic.wait{animation:none}}
 .mic.voice.on{background:var(--red);color:#fff}
 /* Olympus: the microphone as a stop button while it listens, and the voice-mode button. */
 .mic.on .mic-stop{display:block;width:13px;height:13px;border-radius:3px;background:currentColor}

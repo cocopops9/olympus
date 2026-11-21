@@ -586,6 +586,18 @@ h4.sec{
 .search-row>.ex-view-btn{width:46px;height:auto;border-radius:10px;background:var(--surface-2);font-size:20px}
 :root[data-theme="light"] .search-row>.ex-view-btn{background:rgba(118,118,128,.12)}
 .search-row>.ex-view-btn.on,:root[data-theme="light"] .search-row>.ex-view-btn.on{background:var(--acc-soft);color:var(--acc)}
+/* The picker's Filters button (type, equipment, equipment profile), dressed like the list/cards
+   button beside it; lit while open or while a filter narrows the list, with how many do. */
+.search-row>.ex-filter-btn{position:relative;width:46px;height:auto;border-radius:10px;background:var(--surface-2);font-size:19px}
+:root[data-theme="light"] .search-row>.ex-filter-btn{background:rgba(118,118,128,.12)}
+.search-row>.ex-filter-btn.on,:root[data-theme="light"] .search-row>.ex-filter-btn.on{background:var(--acc-soft);color:var(--acc)}
+.ex-filter-count{position:absolute;top:4px;inset-inline-end:4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--acc);color:#000;font-size:11px;font-weight:700;line-height:16px;text-align:center}
+.ex-filters{border-radius:12px;background:var(--surface-2);padding:8px 6px 2px;margin-bottom:10px}
+:root[data-theme="light"] .ex-filters{background:rgba(118,118,128,.08)}
+/* The picker's "Create your own exercise": one slim line above the list, not a full card. */
+.item.ex-new.slim,.ex-grid .item.ex-new.slim{padding:8px 12px;gap:12px;min-height:0}
+.item.ex-new.slim .thumb,.ex-grid .item.ex-new.slim .thumb{width:32px;height:32px;border-radius:8px;font-size:16px}
+.item.ex-new.slim .tt{font-size:15px;color:var(--acc)}
 
 /* ---------------------------------------------------------------- chips -- */
 .chips{

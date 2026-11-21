@@ -11,7 +11,7 @@ vi.mock('../lib/voice.js', async orig => ({
   ...(await orig()),
   canListen: async () => true,
   releaseMic: () => {},
-  listen: vi.fn(() => new Promise(r => { m.resolveListen = r })),
+  listen: vi.fn(opts => new Promise(r => { m.opts = opts; m.resolveListen = r })),
 }))
 import { MicButton } from './Voice.jsx'
 
@@ -33,5 +33,20 @@ describe('the dictation microphone', () => {
     await act(async () => m.resolveListen(m.stopper))
     await flush()
     expect(m.stopper).toHaveBeenCalledTimes(1)
+  })
+  it('says it is writing out what was said once the person stops, then is a microphone again', async () => {
+    const heard = []
+    await act(async () => root.render(<MicButton onText={() => {}} onFinal={() => {}} onHeard={v => heard.push(v)} />))
+    await flush()
+    await act(async () => host.querySelector('button.mic').click())
+    await act(async () => m.resolveListen(m.stopper))
+    await act(async () => m.opts.onHeard())          // a pause: the recording goes to be written out
+    const btn = host.querySelector('button.mic')
+    expect(btn.classList.contains('wait')).toBe(true)
+    expect(btn.disabled).toBe(true)
+    expect(btn.getAttribute('aria-label')).toBe('Writing out what you said…')
+    await act(async () => m.opts.onEnd())
+    expect(host.querySelector('button.mic').classList.contains('wait')).toBe(false)
+    expect(heard).toEqual([true, false])
   })
 })

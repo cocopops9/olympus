@@ -1,0 +1,23 @@
+{
+  "_doc": "Olympus: the coaches' own Piper voices for the languages Kokoro does not speak (packed by coach-pack.py). Chiron reads with the language's own voice (voice-<lang>.zip). A voice is listed only if Whisper understood it about as well as that voice (no more than 10 points more word errors on the same sentence, 2026-11-21) and its licence allows any use: CC0 (thorsten, kerstin, denis, dmitri, gosia, darkman, mc_speech, fahrettin, fettah, ukrainian_tts) or the M-AILABS dataset licence (karlsson, eva_k). Left out: de ramona (22% word errors, Kniebeugen misheard), hu anna and berta (61 and 69% against imre's 38%), ru irina (licence unknown), ru ruslan, de pavoque and tr dfki (non-commercial licences), uk lada (26.7% against 6.7%). Where a coach has none, they keep the earlier voice (lib/voice-cast.js).",
+  "langs": {
+    "de": {
+      "hercules": { "voice": "de_DE-karlsson-low" },
+      "athena": { "voice": "de_DE-kerstin-low" },
+      "calliope": { "voice": "de_DE-eva_k-x_low" }
+    },
+    "ru": {
+      "hercules": { "voice": "ru_RU-denis-medium" }
+    },
+    "uk": {
+      "athena": { "own": true, "sid": 2 }
+    },
+    "pl": {
+      "hercules": { "voice": "pl_PL-mc_speech-medium" },
+      "athena": { "voice": "pl_PL-gosia-medium" }
+    },
+    "tr": {
+      "hercules": { "voice": "tr_TR-fettah-medium" }
+    }
+  }
+}

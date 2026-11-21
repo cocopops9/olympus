@@ -547,7 +547,7 @@ const CAT_PRIOR = { strength: 3, calisthenics: 3, olympic: 2, plyometrics: 1, is
 // The one version every gym has, where the catalogue's name hides it: "leg press" means the 45°
 // sled, not the Smith machine or a one-leg variant (Discord, 2026-10-09).
 const EVERYDAY = { '0739': 6 }
-const priorOf = e => (CLASSIC.has(e.id) ? 3 : 0) + (EQ_PRIOR[e.eq] || 0) + (CAT_PRIOR[e.cat] || 0) + (EVERYDAY[e.id] || 0)
+export const priorOf = e => (CLASSIC.has(e.id) ? 3 : 0) + (EQ_PRIOR[e.eq] || 0) + (CAT_PRIOR[e.cat] || 0) + (EVERYDAY[e.id] || 0)
 
 // A name that is the query itself wins outright: as typed or in the singular 50, with the typos
 // the search allows for its length 40 ("sqat" is the exercise called "squat", not "dumbbell squat").
