@@ -821,6 +821,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'กำลังแสดงอุปกรณ์ทั้งหมด',
   'Showing what you have in "{0}"': 'แสดงเฉพาะที่คุณมีใน "{0}"',
+  'Filters': 'ตัวกรอง',
   'Show all equipment': 'แสดงอุปกรณ์ทั้งหมด',
   'Filter by "{0}"': 'กรองตาม "{0}"',
   'Edit profile': 'แก้ไขโปรไฟล์',
@@ -3578,4 +3579,7 @@ export default {
   "Natural voices": "เสียงธรรมชาติ",
   "Not installed ({0} MB).": "ยังไม่ได้ติดตั้ง ({0} MB)",
   "Remove the natural voices?": "ลบเสียงธรรมชาติไหม?",
+  "Writing out what you said…": "กำลังถอดสิ่งที่คุณพูด…",
+  "The coaches’ own voices": "เสียงของโค้ชแต่ละคน",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena และ Calliope พูดภาษา{0}ด้วยเสียงของตัวเองได้ ในกรณีที่มีเสียงฟรีที่ดีพอ ใช้งานแบบออฟไลน์ได้และไม่มีขีดจำกัดรายวัน ({1} MB แนะนำ Wi-Fi)",
 }

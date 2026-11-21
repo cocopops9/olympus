@@ -986,6 +986,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'Pokazywany jest cały sprzęt',
   'Showing what you have in "{0}"': 'Pokazywane jest to, co masz w „{0}”',
+  'Filters': 'Filtry',
   'Show all equipment': 'Pokaż cały sprzęt',
   'Filter by "{0}"': 'Filtruj według „{0}”',
   'Edit profile': 'Edytuj profil',
@@ -3567,4 +3568,7 @@ export default {
   "Natural voices": "Naturalne głosy",
   "Not installed ({0} MB).": "Niezainstalowane ({0} MB).",
   "Remove the natural voices?": "Usunąć naturalne głosy?",
+  "Writing out what you said…": "Zapisuję, co powiedziałeś…",
+  "The coaches’ own voices": "Własne głosy trenerów",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena i Calliope mogą mówić w języku: {0} każde własnym głosem, tam gdzie jest wystarczająco dobry darmowy głos. Działają offline, bez dziennego limitu ({1} MB, najlepiej przez Wi-Fi).",
 }

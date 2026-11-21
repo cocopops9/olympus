@@ -120,6 +120,7 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
   const mic = useRef(null)
   const seen = useRef(list.length)
   const [speaking, setSpeaking] = useState(false)
+  const [writing, setWriting] = useState(false)   // what was said is being written out
   // With both coaches answering, each answer is read as it comes, and the microphone opens once
   // the last one has been read.
   useEffect(() => {
@@ -178,13 +179,13 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
       </div>
     </main>
     <form className="cai-in" onSubmit={e => { e.preventDefault(); send() }}>
-      {voice && <div className="voice-banner" role="status"><i />{speaking ? t('{0} is speaking. Tap the microphone to stop voice mode.', name) : busy ? t('{0} is thinking…', name) : t('Voice mode: talk, I am listening. Tap the microphone to stop.')}</div>}
+      {voice && <div className="voice-banner" role="status"><i />{speaking ? t('{0} is speaking. Tap the microphone to stop voice mode.', name) : busy ? t('{0} is thinking…', name) : writing ? t('Writing out what you said…') : t('Voice mode: talk, I am listening. Tap the microphone to stop.')}</div>}
       <div className="cai-box">
         <textarea ref={input} rows={1} maxLength={2000} value={draft} placeholder={t('Ask {0}…', name)}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
         <MicButton control={mic} disabled={busy} onText={setDraft} onFinal={text => { if (voice) { silences.current = 0; send(text) } else setDraft(text) }}
-          onSilence={heardNothing} onStopVoice={voice ? () => { stopSpeaking(); onVoiceOff?.() } : undefined} />
+          onSilence={heardNothing} onHeard={setWriting} onStopVoice={voice ? () => { stopSpeaking(); onVoiceOff?.() } : undefined} />
         {!voice && onVoiceOn && !draft.trim() && <VoiceModeButton disabled={busy} onStart={onVoiceOn} />}
         <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
       </div>

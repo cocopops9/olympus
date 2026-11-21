@@ -26,6 +26,9 @@ function renderTop() {
 const chipByText = (host, text) =>
   [...host.querySelectorAll('.chips .chip')].find(b => b.textContent.trim() === text)
 const isOn = el => el.className.split(/\s+/).includes('on')
+// Type and equipment sit behind the Filters button beside the search.
+const filtersBtn = host => host.querySelector('button[aria-label="Filters"]')
+const openFilters = host => act(() => filtersBtn(host).click())
 // Every row's add button carries the exercise's name, so it tells which exercises are listed.
 const listed = host => [...host.querySelectorAll('.list .item button[aria-label]')]
   .map(b => b.getAttribute('aria-label'))
@@ -42,9 +45,27 @@ afterEach(() => {
 })
 
 describe('exercise picker type filter', () => {
+  it('opens on the muscle chips alone, with type and equipment one tap away behind Filters', () => {
+    exercisePicker(vi.fn())
+    const host = renderTop()
+    expect(host.querySelectorAll('.chips')).toHaveLength(1)
+    expect(chipByText(host, 'Any type')).toBeFalsy()
+    expect(filtersBtn(host).getAttribute('aria-expanded')).toBe('false')
+    expect(host.querySelector('.ex-filter-count')).toBeNull()
+    openFilters(host)
+    expect(filtersBtn(host).getAttribute('aria-expanded')).toBe('true')
+    act(() => chipByText(host, 'stretching').click())
+    // Closed again, the filter keeps narrowing the list and the button says how many do.
+    openFilters(host)
+    expect(chipByText(host, 'stretching')).toBeFalsy()
+    expect(host.querySelector('.ex-filter-count').textContent).toBe('1')
+    expect(isOn(filtersBtn(host))).toBe(true)
+  })
+
   it('shows the Type row between the muscle groups and the equipment, like the Library', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
+    openFilters(host)
     const strips = [...host.querySelectorAll('.chips')]
     expect(strips).toHaveLength(3)
     expect(strips[1].querySelector('.chip').textContent.trim()).toBe('Any type')
@@ -56,6 +77,7 @@ describe('exercise picker type filter', () => {
   it('narrows the list to the picked type', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
+    openFilters(host)
     act(() => chipByText(host, 'stretching').click())
     expect(isOn(chipByText(host, 'stretching'))).toBe(true)
     const names = listed(host)
@@ -67,6 +89,7 @@ describe('exercise picker type filter', () => {
   it('keeps the type across a muscle group that has none of it, and picks it back up', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
+    openFilters(host)
     act(() => chipByText(host, 'yoga').click())
     // Lower arms have no yoga: the row drops the choice for this view instead of listing nothing.
     act(() => chipByText(host, 'lower arms').click())

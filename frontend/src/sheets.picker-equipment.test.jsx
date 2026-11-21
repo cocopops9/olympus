@@ -45,6 +45,7 @@ describe('exercise picker equipment filter', () => {
   it('keeps the dumbbell filter when switching from lower arms to upper arms', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
+    act(() => host.querySelector('button[aria-label="Filters"]').click())   // type and equipment live behind Filters
 
     // lower arms → dumbbell
     act(() => chipByText(host, 'lower arms').click())

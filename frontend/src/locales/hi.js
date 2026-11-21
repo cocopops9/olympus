@@ -986,6 +986,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'सभी उपकरण दिखाए जा रहे हैं',
   'Showing what you have in "{0}"': '“{0}” में आपके पास जो है वह दिखाया जा रहा है',
+  'Filters': 'फ़िल्टर',
   'Show all equipment': 'सभी उपकरण दिखाएँ',
   'Filter by "{0}"': '“{0}” से फ़िल्टर करें',
   'Edit profile': 'प्रोफ़ाइल संपादित करें',
@@ -3567,4 +3568,7 @@ export default {
   "Natural voices": "स्वाभाविक आवाज़ें",
   "Not installed ({0} MB).": "इंस्टॉल नहीं हैं ({0} MB)।",
   "Remove the natural voices?": "स्वाभाविक आवाज़ें हटाएँ?",
+  "Writing out what you said…": "आपने जो कहा, उसे लिखा जा रहा है…",
+  "The coaches’ own voices": "कोचों की अपनी आवाज़ें",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena और Calliope हर एक {0} में अपनी आवाज़ में बोल सकते हैं, जहाँ कोई मुफ़्त आवाज़ काफ़ी अच्छी हो। ये ऑफ़लाइन, बिना दैनिक सीमा के काम करती हैं ({1} MB, Wi-Fi बेहतर)।",
 }

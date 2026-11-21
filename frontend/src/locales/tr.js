@@ -986,6 +986,7 @@ export default {
   // --- equipment profiles ---
   'Showing all equipment': 'Tüm ekipman gösteriliyor',
   'Showing what you have in "{0}"': '“{0}” içinde sahip olduklarını gösteriyor',
+  'Filters': 'Filtreler',
   'Show all equipment': 'Tüm ekipmanı göster',
   'Filter by "{0}"': '“{0}” ile filtrele',
   'Edit profile': 'Profili düzenle',
@@ -3567,4 +3568,7 @@ export default {
   "Natural voices": "Doğal sesler",
   "Not installed ({0} MB).": "Yüklü değil ({0} MB).",
   "Remove the natural voices?": "Doğal sesler kaldırılsın mı?",
+  "Writing out what you said…": "Söylediklerin yazıya dökülüyor…",
+  "The coaches’ own voices": "Koçların kendi sesleri",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena ve Calliope, yeterince iyi ücretsiz bir ses olduğunda {0} dilinde her biri kendi sesiyle konuşabilir. Çevrimdışı ve günlük sınır olmadan çalışır ({1} MB, Wi-Fi önerilir).",
 }
