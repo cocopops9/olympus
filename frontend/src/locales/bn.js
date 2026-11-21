@@ -3646,4 +3646,7 @@ export default {
   "Natural voices": "স্বাভাবিক কণ্ঠ",
   "Not installed ({0} MB).": "ইনস্টল করা নেই ({0} MB)।",
   "Remove the natural voices?": "স্বাভাবিক কণ্ঠগুলো সরাবেন?",
+  "Writing out what you said…": "আপনি যা বলেছেন তা লেখা হচ্ছে…",
+  "The coaches’ own voices": "কোচদের নিজস্ব কণ্ঠ",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena ও Calliope প্রত্যেকে {0} ভাষায় নিজের কণ্ঠে কথা বলতে পারে, যেখানে যথেষ্ট ভালো একটি বিনামূল্যের কণ্ঠ আছে। এগুলো অফলাইনে, দৈনিক সীমা ছাড়াই কাজ করে ({1} MB, Wi-Fi ভালো)।",
 }

@@ -3564,4 +3564,7 @@ export default {
   "Natural voices": "Природні голоси",
   "Not installed ({0} MB).": "Не встановлено ({0} МБ).",
   "Remove the natural voices?": "Видалити природні голоси?",
+  "Writing out what you said…": "Записую сказане…",
+  "The coaches’ own voices": "Власні голоси тренерів",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena і Calliope можуть говорити мовою «{0}» кожен своїм голосом, якщо є досить добрий безкоштовний. Вони працюють офлайн, без денного ліміту ({1} МБ, краще через Wi-Fi).",
 }

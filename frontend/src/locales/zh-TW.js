@@ -3560,4 +3560,7 @@ export default {
   "Natural voices": "自然聲音",
   "Not installed ({0} MB).": "未安裝（{0} MB）。",
   "Remove the natural voices?": "要刪除自然聲音嗎？",
+  "Writing out what you said…": "正在轉寫你說的話…",
+  "The coaches’ own voices": "教練們的專屬聲音",
+  "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "在有夠好的免費聲音時，Hercules、Athena 和 Calliope 可以各用自己的聲音說{0}。離線可用，沒有每日限制（{1} MB，建議使用 Wi-Fi）。",
 }

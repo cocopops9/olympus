@@ -10,7 +10,7 @@ import { Button, Row } from './ui.jsx'
 import Icon from './Icon.jsx'
 import {
   localVoicesOn, refreshLocalVoices, voiceKey, availableVoice, hasLocalVoice, installingVoice,
-  installLocalVoice, removeLocalVoice, voiceAsked, markVoiceAsked, onLocalVoices,
+  installLocalVoice, removeLocalVoice, voiceAsked, markVoiceAsked, onLocalVoices, coachesKey,
 } from '../lib/local-voice.js'
 import { KOKORO, kokoroLang } from '../lib/voice-cast.js'
 import { setNaturalVoiceOffer, speak, stopSpeaking, canSpeak } from '../lib/voice.js'
@@ -23,7 +23,8 @@ const langName = () => LANGS[getLang()] || getLang()
 
 function VoiceSetupSheet({ close, voiceKeyOf, auto }) {
   const key = voiceKeyOf
-  const natural = key === KOKORO
+  const natural = key === naturalKey()
+  const own = natural && key !== KOKORO   // the coaches' own Piper voices
   const v = availableVoice(key)
   const [state, setState] = useState(auto ? 'loading' : 'ask')   // ask | loading | done | failed
   const [got, setGot] = useState(0)
@@ -38,8 +39,10 @@ function VoiceSetupSheet({ close, voiceKeyOf, auto }) {
   const pct = total ? Math.min(100, Math.round(got * 100 / total)) : 0
   return <div className="vsetup">
     <div className="vsetup-i"><Icon name="mic" /></div>
-    <h3>{natural ? t('More natural voices') : t('The coach’s voice')}</h3>
-    <p className="muted small">{natural
+    <h3>{own ? t('The coaches’ own voices') : natural ? t('More natural voices') : t('The coach’s voice')}</h3>
+    <p className="muted small">{own
+      ? t('Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).', langName(), mb(v?.bytes))
+      : natural
       ? t('Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).', langName(), mb(v?.bytes))
       : state === 'ask'
         ? t('Install the voice Chiron and Hercules use for {0}? It works offline, with no daily limit ({1} MB).', langName(), mb(v?.bytes))
@@ -92,27 +95,31 @@ export function useVoiceSetup({ ready, blocked, lang }) {
   }, [ready, blocked, lang])
 }
 
-// Olympus: the natural voices (Kokoro, lib/voice-cast.js), one pack for the languages it speaks.
-// Offered the first time a coach speaks in one of them, once; then from Settings.
+// Olympus: the natural voices (Kokoro, lib/voice-cast.js), one pack for the languages it speaks;
+// in another language, the coaches' own Piper voices of it (lib/local-voice.js coachesKey), if it
+// has a pack of them. Offered the first time a coach speaks with one, once; then from Settings.
+const naturalKey = () => (kokoroLang(getLang()) ? KOKORO : coachesKey())
 export function openNaturalVoiceSetup() {
-  if (!localVoicesOn() || !kokoroLang(getLang()) || !availableVoice(KOKORO) || hasLocalVoice(KOKORO) || installingVoice(KOKORO)) return false
-  markVoiceAsked(KOKORO)
-  useUI.getState().openSheet(close => <VoiceSetupSheet close={close} voiceKeyOf={KOKORO} auto={false} />, { kind: 'center' })
+  const key = naturalKey()
+  if (!localVoicesOn() || !key || !availableVoice(key) || hasLocalVoice(key) || installingVoice(key)) return false
+  markVoiceAsked(key)
+  useUI.getState().openSheet(close => <VoiceSetupSheet close={close} voiceKeyOf={key} auto={false} />, { kind: 'center' })
   return true
 }
-setNaturalVoiceOffer(() => { if (!voiceAsked(KOKORO)) openNaturalVoiceSetup() })
+setNaturalVoiceOffer(() => { const key = naturalKey(); if (key && !voiceAsked(key)) openNaturalVoiceSetup() })
 
 /** The Settings row of the natural voices: installed (tap to remove), or one tap away. */
 export function NaturalVoiceRow() {
   const [, bump] = useState(0)
   useEffect(() => { if (localVoicesOn()) refreshLocalVoices(); return onLocalVoices(() => bump(n => n + 1)) }, [])
-  if (!localVoicesOn() || !kokoroLang(getLang()) || !availableVoice(KOKORO)) return null
-  const have = hasLocalVoice(KOKORO)
-  const size = mb(availableVoice(KOKORO)?.bytes)
-  const remove = () => import('../sheets.jsx').then(m => m.confirmSheet({ title: t('Remove the natural voices?'), confirmText: t('Remove'), danger: true, onConfirm: () => removeLocalVoice(KOKORO) }))
+  const key = naturalKey()
+  if (!localVoicesOn() || !key || !availableVoice(key)) return null
+  const have = hasLocalVoice(key)
+  const size = mb(availableVoice(key)?.bytes)
+  const remove = () => import('../sheets.jsx').then(m => m.confirmSheet({ title: t('Remove the natural voices?'), confirmText: t('Remove'), danger: true, onConfirm: () => removeLocalVoice(key) }))
   return <Row icon="mic" iconTint="var(--purple)" title={t('Natural voices')}
-    subtitle={have ? t('Installed: works offline. Tap to remove ({0} MB).', size) : installingVoice(KOKORO) ? t('Downloading…') : t('Not installed ({0} MB).', size)}
-    accessory={have ? 'none' : 'chevron'} onClick={installingVoice(KOKORO) ? undefined : have ? remove : openNaturalVoiceSetup} />
+    subtitle={have ? t('Installed: works offline. Tap to remove ({0} MB).', size) : installingVoice(key) ? t('Downloading…') : t('Not installed ({0} MB).', size)}
+    accessory={have ? 'none' : 'chevron'} onClick={installingVoice(key) ? undefined : have ? remove : openNaturalVoiceSetup} />
 }
 
 /** The Settings row: the coach's voice for the language, installed or one tap away. */

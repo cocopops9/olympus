@@ -55,7 +55,20 @@ export async function refreshLocalVoices() {
 }
 
 /** The published voice for `key`, or null. */
-export const availableVoice = key => (key && manifest?.voices?.[key]) || null
+// Olympus: the coaches' own Piper voices of a language (manifest.coaches, .github/voices/coach-pack.py),
+// for the languages Kokoro does not speak: Hercules, Athena and Calliope each with a voice of their
+// own where a free one is good enough. Some are in a pack of their own, voice-coaches-<lang>.zip,
+// key "coaches-<lang>"; some are another speaker of the language's own voice.
+const COACHES = 'coaches-'
+/** The coaches' own voices for `lang`: { hercules: { model, sid } , athena: { own: true, sid } }, or null. */
+export const coachVoices = (lang = getLang()) => { const k = voiceKey(lang); return (k && manifest?.coaches?.[k]?.who) || null }
+/** The key of the coaches pack of `lang`, or null when it has none to download. */
+export const coachesKey = (lang = getLang()) => { const k = voiceKey(lang); return k && manifest?.coaches?.[k]?.file ? COACHES + k : null }
+export const availableVoice = key => {
+  if (!key) return null
+  if (key.startsWith(COACHES)) { const c = manifest?.coaches?.[key.slice(COACHES.length)]; return c?.file ? c : null }
+  return manifest?.voices?.[key] || null
+}
 /** Whether the voice for `key` is on this phone. */
 export const hasLocalVoice = key => !!(key && installed?.has(key))
 
@@ -96,13 +109,14 @@ export async function removeLocalVoice(key) {
  */
 // `sid`, `accent`: a Kokoro speaker and the language it reads with (lib/voice-cast.js); a Piper
 // voice has its own speaker in the manifest. `pitch` plays it lower or higher, the pace kept.
-export async function speakLocal(text, { key, speed = 1, sid = null, accent = '', pitch = 1, onStart } = {}) {
+// `model`: which voice of a coaches pack ("m1", "m2"…).
+export async function speakLocal(text, { key, speed = 1, sid = null, accent = '', pitch = 1, model = '', onStart } = {}) {
   const v = availableVoice(key)
   const { p } = await plugin()
   let sub = null
   try {
     if (onStart) sub = await p.addListener('start', () => { const f = onStart; onStart = null; f?.() })
-    await p.speak({ lang: key, text, sid: sid ?? (Number(v?.sid) || 0), speed, pitch, accent })
+    await p.speak({ lang: key, text, sid: sid ?? (Number(v?.sid) || 0), speed, pitch, accent, ...(model ? { model } : {}) })
   } finally {
     try { await sub?.remove() } catch { /* gone */ }
   }
