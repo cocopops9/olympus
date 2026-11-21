@@ -3582,4 +3582,6 @@ export default {
   "Writing out what you said…": "กำลังถอดสิ่งที่คุณพูด…",
   "The coaches’ own voices": "เสียงของโค้ชแต่ละคน",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena และ Calliope พูดภาษา{0}ด้วยเสียงของตัวเองได้ ในกรณีที่มีเสียงฟรีที่ดีพอ ใช้งานแบบออฟไลน์ได้และไม่มีขีดจำกัดรายวัน ({1} MB แนะนำ Wi-Fi)",
+  "Greek lyre": "พิณไลร์แบบกรีก",
+  "A lyre calls you back, in the Greek manner.": "พิณไลร์เรียกกลับมา ตามแบบกรีก",
 }

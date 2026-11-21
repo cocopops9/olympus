@@ -3574,4 +3574,6 @@ export default {
   "Writing out what you said…": "Leírom, amit mondtál…",
   "The coaches’ own voices": "Az edzők saját hangjai",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena és Calliope mindegyike saját hangon beszélhet ezen a nyelven: {0}, ahol van elég jó ingyenes hang. Offline működnek, napi korlát nélkül ({1} MB, Wi-Fi ajánlott).",
+  "Greek lyre": "Görög líra",
+  "A lyre calls you back, in the Greek manner.": "Egy líra hív vissza, görög módra.",
 }

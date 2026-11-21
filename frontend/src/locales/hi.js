@@ -3571,4 +3571,6 @@ export default {
   "Writing out what you said…": "आपने जो कहा, उसे लिखा जा रहा है…",
   "The coaches’ own voices": "कोचों की अपनी आवाज़ें",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena और Calliope हर एक {0} में अपनी आवाज़ में बोल सकते हैं, जहाँ कोई मुफ़्त आवाज़ काफ़ी अच्छी हो। ये ऑफ़लाइन, बिना दैनिक सीमा के काम करती हैं ({1} MB, Wi-Fi बेहतर)।",
+  "Greek lyre": "यूनानी लायर",
+  "A lyre calls you back, in the Greek manner.": "यूनानी अंदाज़ में एक लायर आपको वापस बुलाती है।",
 }

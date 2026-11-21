@@ -3571,4 +3571,6 @@ export default {
   "Writing out what you said…": "正在转写你说的话…",
   "The coaches’ own voices": "教练们的专属声音",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "在有足够好的免费声音时，Hercules、Athena 和 Calliope 可以各用自己的声音说{0}。离线可用，没有每日限制（{1} MB，建议使用 Wi-Fi）。",
+  "Greek lyre": "希腊里拉琴",
+  "A lyre calls you back, in the Greek manner.": "希腊风格的里拉琴，叫你回来训练。",
 }

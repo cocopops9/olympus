@@ -3571,4 +3571,6 @@ export default {
   "Writing out what you said…": "말씀하신 내용을 받아쓰는 중…",
   "The coaches’ own voices": "코치들의 고유한 목소리",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena, Calliope가 충분히 좋은 무료 목소리가 있는 경우 {0}로 각자 자기 목소리로 말할 수 있어요. 오프라인으로, 하루 제한 없이 작동해요({1} MB, Wi-Fi 권장).",
+  "Greek lyre": "그리스 리라",
+  "A lyre calls you back, in the Greek manner.": "리라가 그리스식으로 당신을 다시 부릅니다.",
 }

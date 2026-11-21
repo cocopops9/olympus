@@ -3571,4 +3571,6 @@ export default {
   "Writing out what you said…": "Söylediklerin yazıya dökülüyor…",
   "The coaches’ own voices": "Koçların kendi sesleri",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena ve Calliope, yeterince iyi ücretsiz bir ses olduğunda {0} dilinde her biri kendi sesiyle konuşabilir. Çevrimdışı ve günlük sınır olmadan çalışır ({1} MB, Wi-Fi önerilir).",
+  "Greek lyre": "Yunan lirı",
+  "A lyre calls you back, in the Greek manner.": "Bir lir geri çağırıyor, Yunan usulü.",
 }

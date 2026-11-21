@@ -2633,4 +2633,6 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Writing out what you said…": "Transcrevendo o que você disse…",
   "The coaches’ own voices": "As vozes próprias dos treinadores",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena e Calliope podem falar {0} cada um com sua própria voz, onde houver uma gratuita boa o bastante. Funcionam offline, sem limite diário ({1} MB, de preferência no Wi-Fi).",
+  "Greek lyre": "Lira grega",
+  "A lyre calls you back, in the Greek manner.": "Uma lira chama de volta, à maneira grega.",
 }

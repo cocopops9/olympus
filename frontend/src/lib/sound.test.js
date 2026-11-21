@@ -345,8 +345,8 @@ describe('the end-of-rest sounds (Settings → Sound)', () => {
     return max
   }
 
-  it('offers the chime, the classic beeps and four more, each sounding different', () => {
-    expect(sound.REST_SOUND_IDS).toEqual(['chime', 'classic', 'bell', 'beep', 'whistle', 'soft'])
+  it('offers the chime, the classic beeps and five more, each sounding different', () => {
+    expect(sound.REST_SOUND_IDS).toEqual(['chime', 'classic', 'bell', 'beep', 'whistle', 'soft', 'greek'])
     const shapes = new Set()
     for (const id of sound.REST_SOUND_IDS) {
       fresh()
@@ -354,6 +354,20 @@ describe('the end-of-rest sounds (Settings → Sound)', () => {
       shapes.add(JSON.stringify(ctx().tones))
     }
     expect(shapes.size).toBe(sound.REST_SOUND_IDS.length)
+  })
+
+  it('the Greek one is a lyre struck three times up a fifth and an octave, plucked not held, and the default', () => {
+    sound.chime(true, 'greek')
+    const freqs = ctx().tones.map(tn => tn.freq)
+    expect(freqs).toEqual([659, 988, 1319])
+    expect(freqs).toEqual([...freqs].sort((a, b) => a - b))   // it rises, where the aulos fell
+    // every harmonic sounds, each weaker than the one below: a string, not a reed's odd ones only
+    expect(ctx().oscs.every(o => {
+      const h = [...o.wave.imag].slice(1)
+      return h.every(v => v > 0) && h.every((v, i) => i === 0 || v < h[i - 1])
+    })).toBe(true)
+    expect(sound.REST_SOUNDS.greek.hold).toBeLessThanOrEqual(0.2)   // dies away like a string
+    expect(sound.restSoundOf({})).toBe('greek')
   })
 
   it('never adds up past the point where the output clips', () => {
@@ -387,8 +401,10 @@ describe('the end-of-rest sounds (Settings → Sound)', () => {
   })
 
   it('reads the profile\'s pick, with the old classic switch and an older app\'s later choice', () => {
-    expect(sound.restSoundOf({})).toBe('chime')
-    expect(sound.restSoundOf(undefined)).toBe('chime')
+    // a profile that never picked one hears the Greek aulos; one that picked the chime keeps it
+    expect(sound.restSoundOf({})).toBe('greek')
+    expect(sound.restSoundOf(undefined)).toBe('greek')
+    expect(sound.restSoundOf({ restSound: 'chime' })).toBe('chime')
     expect(sound.restSoundOf({ restSound: 'bell' })).toBe('bell')
     expect(sound.restSoundOf({ restSound: 'kazoo' })).toBe('chime')
     expect(sound.restSoundOf({ classicChime: true })).toBe('classic')

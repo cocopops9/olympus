@@ -3591,4 +3591,6 @@ export default {
   "Writing out what you said…": "Was du gesagt hast, wird aufgeschrieben…",
   "The coaches’ own voices": "Die eigenen Stimmen der Coaches",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena und Calliope können {0} jeweils mit einer eigenen Stimme sprechen, wo eine freie gut genug ist. Sie funktionieren offline, ohne Tageslimit ({1} MB, WLAN empfohlen).",
+  "Greek lyre": "Griechische Lyra",
+  "A lyre calls you back, in the Greek manner.": "Eine Lyra ruft dich zurück, auf griechische Art.",
 }

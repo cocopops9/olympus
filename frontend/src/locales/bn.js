@@ -3650,4 +3650,6 @@ export default {
   "Writing out what you said…": "আপনি যা বলেছেন তা লেখা হচ্ছে…",
   "The coaches’ own voices": "কোচদের নিজস্ব কণ্ঠ",
   "Hercules, Athena and Calliope can each speak {0} with a voice of their own, where a free one is good enough. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Hercules, Athena ও Calliope প্রত্যেকে {0} ভাষায় নিজের কণ্ঠে কথা বলতে পারে, যেখানে যথেষ্ট ভালো একটি বিনামূল্যের কণ্ঠ আছে। এগুলো অফলাইনে, দৈনিক সীমা ছাড়াই কাজ করে ({1} MB, Wi-Fi ভালো)।",
+  "Greek lyre": "গ্রিক লায়ার",
+  "A lyre calls you back, in the Greek manner.": "গ্রিক ধাঁচে একটি লায়ার তোমাকে ডেকে ফিরিয়ে আনে।",
 }
