@@ -34,6 +34,7 @@ import { MicButton, VoiceModeButton } from './Voice.jsx'
 import { canSpeak } from '../lib/voice.js'
 import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
 import ExerciseDemo from './ExerciseDemo.jsx'
+import { demoFor } from '../lib/exercise-ask.js'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -163,11 +164,13 @@ function Menu({ data, busy, open, start, remove }) {
 /** A coach's message: its text, and the changes it proposes as cards (lib/coach-actions.js). */
 export function Reply({ m, onApplied }) {
   const { text, actions } = splitActions(m.content)
-  // Olympus: a demonstration is shown with the words; the rest are cards to apply.
-  const shown = actions.filter(isShown)
+  // Olympus: a demonstration is shown with the words; the rest are cards to apply. The ones the
+  // coach asked for, or else the one the question asked about (`m.demo`, lib/exercise-ask.js demoFor).
+  const shown = actions.filter(isShown).map(a => a.id)
+  if (!shown.length && m.demo) shown.push(m.demo)
   return <>
     {text && <Rich text={text} />}
-    {shown.map((a, i) => <ExerciseDemo key={a.id + ':' + i} id={a.id} />)}
+    {shown.map((id, i) => <ExerciseDemo key={id + ':' + i} id={id} />)}
     <CoachActions actions={actions.filter(a => !isShown(a))} applied={m.applied || []} onApplied={onApplied} />
   </>
 }
@@ -279,11 +282,15 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
     commit(sent); setDraft(''); setErr(''); setBusy(true); setLastCoach(uid, coach)
     onSent?.()
     try {
+      let demoShown = false
       for (const r of who) {
         setWriting(r)
         try {
           const res = own ? await askOwnCoach(ownCoach(uid, coach) || {}, msgs) : await askHercules(msgs, r, { chatId: sent.current })
-          msgs = [...msgs, { role: 'assistant', content: cleanReply(res.reply), ts: Date.now(), ...(own ? {} : { coach: r }), ...(res.model ? { model: String(res.model).slice(0, 40) } : {}) }]
+          const content = cleanReply(res.reply)
+          const demo = demoFor(msg, content, useStore.getState().S.customEx || [], demoShown)
+          demoShown = demoShown || !!demo || splitActions(content).actions.some(isShown)
+          msgs = [...msgs, { role: 'assistant', content, ts: Date.now(), ...(demo ? { demo } : {}), ...(own ? {} : { coach: r }), ...(res.model ? { model: String(res.model).slice(0, 40) } : {}) }]
           commit(putChat(latest.current, sent.current, msgs))
           if (!own) { const st = { ...(statusOf(uid, r) || {}), on: true, left: res.left, perDay: res.perDay }; setCached(uid, r, st); if (r === statusCoach) setStatus(st) }
         } catch (e) {
