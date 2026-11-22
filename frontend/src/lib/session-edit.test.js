@@ -357,3 +357,24 @@ describe('editChangesNothing', () => {
     expect(editChangesNothing({ active: null, workouts: [] })).toBe(false)
   })
 })
+
+describe('where the editor goes back to', () => {
+  const state = () => ({ active: null, routines: [], workouts: [{ id: 'w1', name: 'Legs', d: '2026-11-22', start: 1000, end: 1000 + 28 * 60000, entries: [{ id: '0025', sets: [{ w: 100, r: 5, done: true }] }] }] })
+
+  it('remembers the feed when opened from a post, and never saves it on the workout', () => {
+    const s = state()
+    editCompletedSession(s, 'w1', { returnTo: '/home' })
+    expect(s.active.editReturn).toBe('/home')
+    s.active.entries[0].sets[0].w = 110
+    const saved = saveWorkoutEdit(s)
+    expect(saved.entries[0].sets[0].w).toBe(110)
+    expect('editReturn' in saved).toBe(false)
+  })
+
+  it('has no return route when opened from the history, and ignores one that is not a path', () => {
+    const a = state(); editCompletedSession(a, 'w1')
+    expect('editReturn' in a.active).toBe(false)
+    const b = state(); editCompletedSession(b, 'w1', { returnTo: 'https://example.com' })
+    expect('editReturn' in b.active).toBe(false)
+  })
+})

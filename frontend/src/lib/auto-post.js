@@ -9,7 +9,9 @@
 //   S.postDel  [post id, ...]  posts to delete, waiting for a connection
 //   S.wpostEdit { [workout id]: { text, photos, song?, video? } }  the description, photos, song and video written for a
 //              workout's post (after the workout, or later), waiting to be sent; the title is the
-//              workout's own name
+//              workout's own name. An empty entry ({}) only asks for the workout card to be
+//              sent again (the workout was edited after it was posted): the server keeps the
+//              text, photos, song and video it has.
 // The server makes a second post of the same workout return the first (api/social.js, `wid`),
 // so a retry whose answer was lost, or two devices emptying the same queue, never doubles one.
 //
@@ -100,6 +102,32 @@ export function setPostDetails(s, w, { title, text = '', photos = [], song, vide
   if (v === undefined || v === '-') s.wposts = { ...(s.wposts || {}), [w.id]: '' }
 }
 
+/**
+ * The ids of the posted workouts whose card in the feed no longer says what the workout does: an
+ * edit of its exercises, sets, duration, date or name since `prev`. A workout carries the time of
+ * each edit (stampWorkout), so only those with a new stamp are compared, and only a difference
+ * in the card itself counts (a note written on the workout does not show in the feed).
+ */
+export function stalePosts(prev, next, summary = summaryFor) {
+  if (!prev || !next || prev.workouts === next.workouts) return []
+  const before = new Map((prev.workouts || []).filter(w => w?.id).map(w => [w.id, w]))
+  const out = []
+  for (const w of next.workouts || []) {
+    const v = w?.id ? next.wposts?.[w.id] : undefined
+    if (!v || v === '-') continue                          // not posted (yet), or not to be
+    const old = before.get(w.id)
+    if (!old || (old._ts || 0) === (w._ts || 0)) continue
+    if (JSON.stringify(summary(old, prev)) !== JSON.stringify(summary(w, next))) out.push(w.id)
+  }
+  return out
+}
+
+/** Asks for workout `wid`'s post to carry its card again, keeping what was written for it. In place on `s`. */
+export function refreshPost(s, wid) {
+  if (!wid || s.wpostEdit?.[wid]) return                   // a pending edit sends the card anyway
+  s.wpostEdit = { ...(s.wpostEdit || {}), [wid]: {} }
+}
+
 const dropDetails = wid => useStore.getState().update(s => {
   if (s.wpostEdit && wid in s.wpostEdit) { const n = { ...s.wpostEdit }; delete n[wid]; s.wpostEdit = n }
 })
@@ -173,7 +201,8 @@ export function flushPosts() {
       })
       // A retry finds the post made the first time, before the description was written: the
       // edit pass below brings it up to date. Otherwise what was written went out with it.
-      if (!gone && details && post && (post.text || '') === details.text && JSON.stringify(post.photos || []) === JSON.stringify(details.photos || [])
+      if (!gone && details && !Object.keys(details).length) dropDetails(wid)
+      else if (!gone && details && post && (post.text || '') === details.text && JSON.stringify(post.photos || []) === JSON.stringify(details.photos || [])
         && (details.song === undefined || (post.song?.id || null) === (details.song?.id || null))
         && (details.video === undefined || (post.video?.id || null) === (details.video?.id || null))) dropDetails(wid)
       if (!gone) announce(post)
@@ -206,6 +235,12 @@ export function startAutoPost() {
   if (typeof window === 'undefined') return () => {}
   const kick = () => { if (pending(useStore.getState().S)) flushPosts().catch(() => {}) }
   const unsub = useStore.subscribe((s, prev) => {
+    // A posted workout edited afterwards (from the post's pencil, the history, another device):
+    // its post is brought up to date with it.
+    if (s.S.workouts !== prev.S.workouts && socialReady(s.user)) {
+      const stale = stalePosts(prev.S, s.S)
+      if (stale.length) { s.update(d => { for (const wid of stale) refreshPost(d, wid) }); return }
+    }
     if ((s.ready && !prev.ready) || (s.user?.id && s.user?.id !== prev.user?.id) || ((s.S.wposts !== prev.S.wposts || s.S.wpostEdit !== prev.S.wpostEdit) && pending(s.S))) kick()
   })
   window.addEventListener('online', kick)

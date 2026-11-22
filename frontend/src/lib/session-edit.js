@@ -97,7 +97,7 @@ export const editLeftEmpty = active => !list(active?.entries).some(entry => list
  * Opens the editor on a saved workout: a copy of it becomes S.active. `ref` is the workout or its
  * id. Throws while another session is running, or when the workout is gone.
  */
-export function editCompletedSession(state, ref) {
+export function editCompletedSession(state, ref, { returnTo } = {}) {
   if (state.active) throw new Error('Finish the current workout first.')
   const key = ref && typeof ref === 'object' ? keyOf(ref) : ref
   const original = key == null ? null : list(state.workouts).find(w => keyOf(w) === key)
@@ -106,6 +106,10 @@ export function editCompletedSession(state, ref) {
   active.cur = 0
   active.editingWorkoutId = key
   active.editBase = Object.fromEntries(SESSION_FIELDS.map(k => [k, sessionField(original, k)]))
+  // Where closing the editor goes back to: the feed when it was opened from a post's pencil.
+  // The history otherwise. Kept on the draft, never on the saved record (buildCompletedWorkout
+  // copies only the fields of a workout).
+  if (typeof returnTo === 'string' && returnTo.startsWith('/')) active.editReturn = returnTo
   // A workout saved before exclusion moved onto the entries (ENG-11) carries only the whole-workout
   // flag. The editor rebuilds that flag from the entries (buildCompletedWorkout), so it is written
   // onto each of them here, the way a session starts since: the edited workout stays out of
