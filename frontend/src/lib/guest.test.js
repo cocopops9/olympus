@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { guestAllowed } from './guest.js'
+import { guestAllowed, guestEntryAllowed } from './guest.js'
 
 // The flag is the easy half. The half worth pinning down is what happens when the server did not
 // answer: a failed config fetch must not be read as "guests are disabled", or an instance that is
@@ -32,5 +32,18 @@ describe('guestAllowed', () => {
 
   it('treats the string "false" as the misconfiguration it is, not as a refusal', () => {
     expect(guestAllowed({ allow_guest: 'false' })).toBe(true)
+  })
+})
+
+// The Olympus phone app requires an account (2026-11-22): a guest is not let past the welcome
+// screen there, while the web app and a self-hosted phone build keep guest mode.
+describe('guestEntryAllowed', () => {
+  it('refuses a guest on the phone app that ships with its server', () => {
+    expect(guestEntryAllowed({ mobile: true, defaultServer: 'https://example.supabase.co/functions/v1/olympus' })).toBe(false)
+  })
+
+  it('keeps guest mode on the web app and on a phone build without a default server', () => {
+    expect(guestEntryAllowed({ mobile: false, defaultServer: 'https://example.supabase.co/functions/v1/olympus' })).toBe(true)
+    expect(guestEntryAllowed({ mobile: true, defaultServer: '' })).toBe(true)
   })
 })

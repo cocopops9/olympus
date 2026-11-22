@@ -359,18 +359,6 @@ export function AccountSheet({ close, mode: start = 'signup', email: email0 = ''
 }
 export const openAccountSheet = (mode, opts = {}) => useUI.getState().openSheet(close => <AccountSheet close={close} mode={mode} email={opts.email || ''} />)
 
-// Continuing without an account: said plainly what that leaves out before it is chosen.
-function LocalSheet({ close }) {
-  const { chooseLocalMode } = useStore()
-  return <div className="acct">
-    <h3>{t('Continue without an account?')}</h3>
-    <div className="muted small acct-lead">{t('Everything you log stays on this phone only. Without an account there is no feed or friends, no AI coaches, no invites and no sync or backup to the cloud. You can create an account later in Settings and your training comes with you.')}</div>
-    <Button variant="primary" onClick={() => { close(); openAccountSheet('signup') }}>{t('Create account')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); chooseLocalMode() }}>{t('Continue without an account')}</Button>
-  </div>
-}
-
 export default function MobileOnboarding() {
   const { chooseLocalMode } = useStore()
   const cfg = useServerConfig()
@@ -389,9 +377,7 @@ export default function MobileOnboarding() {
         <GoogleButton clientId={cfg?.google_client_id} busy={busy} setBusy={setBusy} setErr={setErr} done={who => useUI.getState().toast(t('Welcome, {0}', who))} invite={pendingInvite()} />
         {err && <div className="small acct-err" role="alert">{err}</div>}
 
-        <div style={{ height: 18 }} />
-        <button type="button" className="acct-link acct-center" onClick={() => useUI.getState().openSheet(close => <LocalSheet close={close} />)}>{t('Continue without an account')}</button>
-        <div className="dim small" style={{ marginTop: 6, lineHeight: 1.45 }}>{t('Only on this phone: no feed, AI coaches or sync.')}</div>
+        {/* An account is required here: there is no way in without one (lib/guest.js). */}
         <div style={{ height: 22 }} />
         <button type="button" className="acct-link acct-center dim small" onClick={() => openCfAccess()}>{t('Connection settings')}</button>
       </> : <>

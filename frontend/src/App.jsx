@@ -30,6 +30,7 @@ import { MOBILE, saveRemoteFile } from './lib/mobile.js'
 import { setVoiceHint, measureVoices } from './lib/voice.js'
 import { voiceHint } from './lib/voice-hint.js'
 import { DEFAULT_SERVER } from './lib/app-info.js'
+import { guestEntryAllowed } from './lib/guest.js'
 import { exitWorkoutEdit, startFlow } from './sheets.jsx'
 import Icon from './components/Icon.jsx'
 import TabBar from './components/TabBar.jsx'
@@ -133,7 +134,8 @@ function Shell() {
   // Android app: "Vibrate when the phone is on silent" sends the end-of-rest buzz through the
   // native side as an alarm (#375). buzzAsAlarm answers false off Android, so iOS buzzes as before.
   useEffect(() => { setAlarmBuzzer(MOBILE && S.vibrate !== false && S.vibrateOnSilent ? buzzAsAlarm : null) }, [S.vibrate, S.vibrateOnSilent])
-  const isGuest = useStore(s => s.isGuest())
+  // On the Olympus phone app an account is required: a guest stays on the welcome screen.
+  const isGuest = useStore(s => s.isGuest()) && guestEntryAllowed({ mobile: MOBILE, defaultServer: DEFAULT_SERVER })
   const needsMobileOnboarding = useStore(s => s.needsMobileOnboarding)
   const langV = useLang()   // re-renders the whole shell when the language (pack) changes
   useEffect(() => { setNav(navigate) }, [navigate])
