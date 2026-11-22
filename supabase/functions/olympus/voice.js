@@ -83,11 +83,13 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
   // verbose_json: each stretch of the clip comes with how sure Whisper was of it.
   form.append('response_format', 'verbose_json');
   form.append('temperature', '0');
-  // The person speaks the app's language, and Whisper is told which. No prompt: given a list of
-  // words, Whisper fills an unclear clip with that list ("barbell bench press, barbell squat, ..."),
-  // so the person's exercises go to the correction below, never to the recogniser.
+  // Whisper finds the language itself: the app's language is not always the one spoken (the app in
+  // English, the questions in Italian, 2026-11-22), and told the wrong one Whisper translates or
+  // garbles what was said. The app's language stays a hint for Gemini and the correction. No
+  // prompt: given a list of words, Whisper fills an unclear clip with that list ("barbell bench
+  // press, barbell squat, ..."), so the person's exercises go to the correction below, never to the
+  // recogniser.
   const l = langOf(lang);
-  if (l) form.append('language', l);
   const words = String(hint || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 500);
   // Gemini hears the same clip at the same time (it can use what a gym talk is about, which Whisper
   // cannot); its answer is the one used when it comes, Whisper's (corrected) when it does not.
@@ -117,16 +119,30 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     // after the other (up to 1.5 s plus a model's answer). The price: a correction asked for
     // nothing when Gemini answers within the grace.
     const ready = await within(heard, 0);
-    if (ready != null) return ready;
+    if (ready != null) { hearOnTime = Date.now(); return ready; }
     const fixing = mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
+    // The grace is given only while Gemini has lately been on time: in the function's log
+    // (2026-11-22) it answered within the grace on none of 51 clips, and the grace added 1.5 s to
+    // 23 of them. Not yet on time here: Whisper's words now, and Gemini's lateness is watched, so a
+    // Gemini that answers within the grace earns it for the next clips. A miss takes it away.
+    if (Date.now() - hearOnTime > HEAR_TRUST_MS) {
+      const t = Date.now();
+      heard.then(v => { if (v != null && Date.now() - t <= hearGraceMs) hearOnTime = Date.now(); }, () => {});
+      return await fixing;
+    }
     const g = await within(heard, hearGraceMs);
-    if (g != null) return g;
+    if (g != null) { hearOnTime = Date.now(); return g; }
+    hearOnTime = 0;
     return await fixing;
   } finally { clearTimeout(timer); }
 }
 
 // How long Gemini may take after Whisper has answered, before Whisper's words are used.
 const HEAR_GRACE_MS = 1500;
+// How long an answer on time keeps Gemini trusted with that grace (an assumption: about one
+// conversation with a coach), and when it last was on time.
+const HEAR_TRUST_MS = 10 * 60 * 1000;
+let hearOnTime = 0;
 // What a promise gives, or null when it has not given it within `ms`.
 const within = (promise, ms) => new Promise(resolve => {
   const timer = setTimeout(() => resolve(null), ms);
@@ -136,9 +152,10 @@ const within = (promise, ms) => new Promise(resolve => {
 // Formats Gemini takes as audio: WAV (what the app sends), MP3, Ogg. Not WebM.
 const GEMINI_HEARS = ['wav', 'mpeg', 'ogg'];
 // The 2.5 models answer 404 ("no longer available to new users"), so they are not asked.
-const HEAR_MODELS = ['gemini-3.8-flash-lite', 'gemini-3.8-flash'];
+// gemini-3.8-flash-lite answered 404 ("not found") to all 19 clips it was asked about (2026-11-22).
+const HEAR_MODELS = ['gemini-3.8-flash'];
 const hearResting = new Map();   // model -> time it may be asked again (out of quota, or not there)
-export const _clearHearResting = () => hearResting.clear();
+export const _clearHearResting = () => { hearResting.clear(); hearOnTime = 0; };
 
 /**
  * What a person said to their coach, heard by Gemini from the audio itself and the context: a gym,

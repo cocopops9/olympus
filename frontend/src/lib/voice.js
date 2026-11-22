@@ -11,6 +11,7 @@ import { speechParts } from './speech-text.js'
 import { castVoice, KOKORO, PIPER } from './voice-cast.js'
 import { api } from './api.js'
 import { clipOf } from './wav.js'
+import { textLang } from './text-lang.js'
 
 // BCP 47 tags for the app's languages: recognisers want a region.
 const TAGS = {
@@ -18,6 +19,9 @@ const TAGS = {
   pl: 'pl-PL', tr: 'tr-TR', hu: 'hu-HU', ar: 'ar-SA', bn: 'bn-IN', hi: 'hi-IN', ko: 'ko-KR', th: 'th-TH', zh: 'zh-CN', 'zh-TW': 'zh-TW',
 }
 export const voiceTag = (lang = getLang()) => TAGS[lang] || TAGS[String(lang).split('-')[0]] || 'en-US'
+// The language a line is read in: the one it is written in (lib/text-lang.js), the app's when that
+// is unclear. A coach answers in the language the person spoke, which need not be the app's.
+export const lineLang = text => textLang(text, getLang())
 
 const WebRecognition = () => (typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null)
 // A Capacitor plugin is a proxy that answers every property, `then` included, with a call to the
@@ -346,10 +350,11 @@ const askServer = (piece, lang, who, keep) => api('/api/voice/speak', { method: 
  * Asks the server for `text` read by `who` before it is needed. Nothing is played. Only when the
  * server has a voice; quietly nothing otherwise.
  */
-export function preloadVoice(text, { lang = voiceTag(), who, keep = false } = {}) {
+export function preloadVoice(text, { lang, who, keep = false } = {}) {
   if (!onServer(who)) return
   const say = speakable(text)
   if (!say) return
+  lang = lang || voiceTag(lineLang(say))
   for (const piece of pieces(say)) {
     const k = aheadKey(piece, lang, who)
     if (ahead.has(k)) continue
@@ -470,23 +475,25 @@ export const setNaturalVoiceOffer = fn => { naturalOffer = typeof fn === 'functi
  * Chiron and Hercules, the man's Piper voice of the language. With `offer`, a missing download is
  * offered (once, components/VoiceSetup.jsx).
  */
-export function localVoices(who, cast = castVoice(who, getLang(), coachVoices()), { offer = false } = {}) {
+export function localVoices(who, cast = null, { offer = false, lang = getLang() } = {}) {
   const kind = VOICES[who]
   if (!kind || !localVoicesOn()) return []
+  cast = cast || castVoice(who, lang, coachVoices(lang))
   const out = []
-  const ask = () => { if (offer) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } } }
+  // The download offered is the app language's (VoiceSetup.jsx): never for a line in another one.
+  const ask = () => { if (offer && lang === getLang()) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } } }
   if (cast?.engine === KOKORO) {
     if (!hasLocalVoice(KOKORO)) ask()
     else if (keepsUp(KOKORO)) out.push({ key: KOKORO, sid: cast.sid, accent: cast.accent, model: '', speed: cast.speed, pitch: cast.pitch, scaled: true })
   }
   if (cast?.engine === PIPER) {
-    const pack = cast.model ? coachesKey() : voiceKey()
+    const pack = cast.model ? coachesKey(lang) : voiceKey(lang)
     if (cast.model && pack && !hasLocalVoice(pack)) ask()
     if (pack && hasLocalVoice(pack) && keepsUp(pack)) out.push({ key: pack, sid: cast.sid, accent: '', model: cast.model, speed: cast.speed, pitch: cast.pitch, scaled: true })
   }
   // A man's offline voice on the phone: then for Chiron and Hercules, with no quota and no wait;
   // Chiron's lower than Hercules's (voice-cast.js), so the two are told apart.
-  const key = voiceKey()
+  const key = voiceKey(lang)
   if (kind.male && hasLocalVoice(key) && keepsUp(key)) out.push({ key, sid: null, accent: '', model: '', speed: cast?.speed ?? (who === 'chiron' ? 0.92 : 1), pitch: cast?.pitch ?? 1, scaled: false })
   return out
 }
@@ -498,9 +505,10 @@ export function localVoices(who, cast = castVoice(who, getLang(), coachVoices())
  */
 // With `text`, a line about to be said: its first two pieces are made ahead as well.
 export function warmCoachVoice(who, text = '') {
-  const v = localVoices(who)[0]
+  const say = text ? speakable(text) : ''
+  const v = localVoices(who, null, { lang: say ? lineLang(say) : getLang() })[0]
   if (!v) return Promise.resolve(null)
-  const parts = text ? speechParts(speakable(text)).slice(0, 2) : null
+  const parts = say ? speechParts(say).slice(0, 2) : null
   return warmLocal({ ...v, ...(parts?.length ? { parts } : {}) })
 }
 
@@ -528,12 +536,16 @@ let speaker = null
  */
 export const voiceStats = {}
 
-async function speakNow(text, { lang = voiceTag(), rate, who, onStart, keep = false } = {}) {
+async function speakNow(text, { lang, rate, who, onStart, keep = false } = {}) {
   // onStart: called once, when the sound really begins (the server's voice can take a few seconds).
   let started = false
   const begin = () => { if (!started) { started = true; onStart?.() } }
   const say = speakable(text)
   if (!say) return
+  // Read in the language it is written in: every voice below (offline, server, the phone's) is
+  // chosen for that language, not for the app's.
+  const spoken = lineLang(say)
+  lang = lang || voiceTag(spoken)
   const run = ++speakRun
   // One voice at a time: what was being read stops now, not when its sentence ends. Without this,
   // skipping through Calliope's tour quickly kept the last line going over the new one while the
@@ -545,9 +557,9 @@ async function speakNow(text, { lang = voiceTag(), rate, who, onStart, keep = fa
   const kind = VOICES[who] || null
   const pace = rate ?? kind?.rate ?? 1
   // Olympus: the most natural voice first: the phone's offline voices (localVoices), in order.
-  const cast = kind ? castVoice(who, getLang(), coachVoices()) : null
+  const cast = kind ? castVoice(who, spoken, coachVoices(spoken)) : null
   const parts = kind ? speechParts(say) : null
-  for (const v of kind ? localVoices(who, cast, { offer: true }) : []) {
+  for (const v of kind ? localVoices(who, cast, { offer: true, lang: spoken }) : []) {
     try {
       const stats = await speakLocal(say, { ...v, speed: v.speed * (v.scaled ? (rate ?? 1) : 1), parts, onStart: begin })
       noteVoiceSpeed(v.key, stats)
