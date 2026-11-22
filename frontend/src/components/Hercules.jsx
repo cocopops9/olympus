@@ -165,12 +165,15 @@ function Menu({ data, busy, open, start, remove }) {
 export function Reply({ m, onApplied }) {
   const { text, actions } = splitActions(m.content)
   // Olympus: a demonstration is shown with the words; the rest are cards to apply. The ones the
-  // coach asked for, or else the one the question asked about (`m.demo`, lib/exercise-ask.js demoFor).
+  // coach asked for, or else the one the question asked about (`m.demo`, lib/exercise-ask.js demoFor;
+  // a list when the question asked how to train for a sport: its drills).
   const shown = actions.filter(isShown).map(a => a.id)
-  if (!shown.length && m.demo) shown.push(m.demo)
+  if (!shown.length && m.demo) shown.push(...[].concat(m.demo))
   return <>
     {text && <Rich text={text} />}
-    {shown.map((id, i) => <ExerciseDemo key={id + ':' + i} id={id} />)}
+    {shown.length > 1
+      ? <div className="ex-demos">{shown.map((id, i) => <ExerciseDemo key={id + ':' + i} id={id} />)}</div>
+      : shown.map((id, i) => <ExerciseDemo key={id + ':' + i} id={id} />)}
     <CoachActions actions={actions.filter(a => !isShown(a))} applied={m.applied || []} onApplied={onApplied} />
   </>
 }

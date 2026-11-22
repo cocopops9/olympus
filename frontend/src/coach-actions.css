@@ -14,4 +14,7 @@
 .ex-demo{display:block;width:100%;max-width:320px;margin:8px 0 4px;padding:0;border:0;border-radius:16px;overflow:hidden;
   background:#fff;color:#111;text-align:start}
 .ex-demo video,.ex-demo img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff}
+.ex-demos{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+/* several at once (a sport's drills): side by side, two to a row on a phone */
+.ex-demos .ex-demo{flex:1 1 140px;max-width:240px;margin:0}
 .ex-demo-n{display:block;padding:8px 12px;font-weight:650;font-size:14px;background:var(--surface-2);color:var(--text)}

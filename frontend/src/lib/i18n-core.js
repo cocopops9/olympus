@@ -171,6 +171,8 @@ export const instrTranslated = ex => !!(instr && ex && instr[ex.id])
 // it, otherwise in English. Empty for exercises nobody has described yet and for custom ones.
 export const descFor = ex => {
   if (!ex) return ''
+  // A sport's drill is ours too: its description is a t() string like its name (lib/sports.js).
+  if (ex.sport && ex.desc) return t(ex.desc)
   const own = descs && descs[ex.id]
   if (own) return own
   if (!enDescs) askDetails()

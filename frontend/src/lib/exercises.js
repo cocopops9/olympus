@@ -2,7 +2,7 @@ import { EXDB, EXALIAS } from './exercises-data.js'
 import MUSCLE_MAP from './exercise-muscle-map.json' with { type: 'json' }
 import V13_IDS from './catalogue-v13-ids.json' with { type: 'json' }
 import { t, getVersion, exerciseNameSearchText } from './i18n-core.js'
-import { SPORTS, isSportEx } from './sports.js'
+import { SPORTS, DRILLS, isSportEx } from './sports.js'
 import { sportStill, sportClip, sportAnimation } from './sport-media.js'
 
 export { EXDB }
@@ -20,8 +20,8 @@ const catalogueExercise = ex => {
   return out
 }
 
-// The sports (lib/sports.js) are built in too: they sit after the dataset's exercises.
-export const CATALOGUE = [...EXDB.map(catalogueExercise), ...SPORTS]
+// The sports and their drills (lib/sports.js) are built in too: they sit after the dataset's exercises.
+export const CATALOGUE = [...EXDB.map(catalogueExercise), ...SPORTS, ...DRILLS]
 export const isSport = isSportEx
 
 // The generated dataset already supplies secondary muscles for most exercises. Keep the

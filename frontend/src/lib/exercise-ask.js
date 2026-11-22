@@ -17,7 +17,8 @@
 //      loose here: "how do I grow my chest" must not pick a chest press.
 import { exerciseNameFor } from './i18n.js'
 import { splitActions, isShown } from './coach-actions.js'
-import { CATALOGUE, normalizeStr, searchExercises, priorOf } from './exercises.js'
+import { CATALOGUE, EXIDX, normalizeStr, searchExercises, priorOf } from './exercises.js'
+import { SPORTS, drillsOf } from './sports.js'
 
 // The cues, accent-free and lower-case (the question is normalised the same way before
 // matching). Each is a regular-expression fragment; the candidate name is what follows it.
@@ -145,13 +146,63 @@ export function askedExercise(question, custom = []) {
   return null
 }
 
+// How to train for a sport ("how do I train for football?", "esercizi per il tennis", "basketball
+// drills"): a word about training within a few words of a sport's name. The words are stems,
+// matched at the start of a word of the question, accent-free: "allenarmi", "allenamento" and
+// "allenare" are all "allen". The sport is named in English or in the active language, by any part
+// of its name around brackets ("football (soccer)" is "football" and "soccer").
+const TRAIN_STEMS = [
+  'train', 'drill', 'practi', 'improv', 'better', 'workout', 'exercis', 'prepar',
+  'allen', 'eserciz', 'miglior', 'prepara',
+  'entren', 'ejercic', 'mejor',
+  'trein', 'exercic', 'melhor',
+  'entrain', 'exercice', 'ameliorer',
+  'trainier', 'ubung', 'verbesser',
+]
+const NEAR = 4
+
+const sportNames = sport => [sport.n, exerciseNameFor(sport)]
+  .flatMap(n => String(n).split(/[()]/))
+  .map(wordsOf).filter(w => w.length && w.join('').length >= 4)
+
+// Where the words of `name` start in `words`, or -1.
+const indexOfName = (words, name) => {
+  for (let i = 0; i + name.length <= words.length; i++) if (name.every((w, j) => words[i + j] === w)) return i
+  return -1
+}
+
+/** The ids of the drills of the sport a question asks how to train for, or []. */
+export function askedSportDrills(question) {
+  const words = wordsOf(String(question || '').slice(0, 400))
+  if (!words.length) return []
+  const cues = words.map((w, i) => (TRAIN_STEMS.some(s => w.startsWith(s)) ? i : -1)).filter(i => i >= 0)
+  if (!cues.length) return []
+  for (const sport of SPORTS) {
+    for (const name of sportNames(sport)) {
+      const at = indexOfName(words, name)
+      if (at < 0) continue
+      const end = at + name.length - 1
+      if (cues.some(c => (c < at ? at - c : c - end) <= NEAR)) return drillsOf(sport.id).map(d => d.id)
+    }
+  }
+  return []
+}
+
 /**
  * The exercise to keep on a coach's answer (`demo` on the message) that came without a
- * show_exercise action, when the question asked how to do one; null otherwise. `already`: a
+ * show_exercise action, when the question asked how to do one, or the drills of a sport (an
+ * array of ids) when it asked how to train for that sport; null otherwise. `already`: a
  * demonstration was shown for this question, by the coach who answered first when both answer,
  * so the second does not repeat it.
  */
 export function demoFor(question, reply, custom = [], already = false) {
   if (already || splitActions(reply).actions.some(isShown)) return null
-  return askedExercise(question, custom)
+  // A drill named by its name is that drill; otherwise a question about training for a sport is
+  // answered with its drills before the exercise search, which would read "how do I train for
+  // football" as the cross trainer.
+  const one = askedExercise(question, custom)
+  if (one && EXIDX[one]?.drillOf) return one
+  const drills = askedSportDrills(question)
+  if (drills.length) return drills
+  return one
 }
