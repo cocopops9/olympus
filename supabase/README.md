@@ -21,6 +21,34 @@ running and no machine to look after.
   `scripts/supabase-e2e.mjs` against the live function (`.github/workflows/supabase-e2e.yml`).
 - **Tests:** `api/test/supabase-core.test.js` runs the same code against an in-memory store.
 
+## The Claude connector
+
+`functions/olympus-mcp` is a remote MCP server (Streamable HTTP) through which Claude, or any MCP
+client, reads one profile's training: routines, the week plan, workouts set by set, body
+weight, estimated 1RMs and muscle balance. It is read-only, and its nine tools are the stdio
+server's (`mcp/src/tools.js`), spoken over HTTP by `mcp/src/remote.js`, so its numbers are the
+app's.
+
+- **Address:** the app's *Settings → Connect to Claude* asks `POST /api/connector` for one. It is
+  `https://<project>.supabase.co/functions/v1/olympus-mcp/<token>` (or `OLYMPUS_CONNECTOR_URL`
+  + `/<token>`), shown once; the account keeps only the token's SHA-256, when it was made and
+  when it was last used (written at most once an hour). A new address replaces the old one at
+  once; *Disconnect* and *Sign out everywhere* remove it.
+- **Why the token is in the address:** Claude's custom connectors take an address and, without
+  OAuth, nothing else; and a Supabase function on the default domain cannot serve the HTML
+  sign-in page an OAuth flow needs. A client that can send headers may send
+  `Authorization: Bearer <token>` to the bare address instead.
+- **In Claude:** Settings → Connectors → *Add custom connector*, paste the address. In Claude
+  Code: `claude mcp add --transport http olympus <address>`.
+- **Stateless:** every POST is answered with one JSON body; there is no session id and GET is
+  405 (no server-to-client stream), which the specification allows.
+- **Deploying:** like the app's function (below), with JWT verification off: `index.js` with the
+  `connector.js` import pointed at jsDelivr at the commit, `store.js` from `functions/olympus`
+  beside it, and `deno.json`, the import map for the two npm packages the tools use (`zod`,
+  `zod-to-json-schema`). The app's function must run a commit with `/api/connector` too.
+- **Tests:** `mcp/test/remote.test.js` (protocol parity with the MCP SDK's own listing, the
+  address's life cycle, one profile per address).
+
 **Not available here** (they need the Node server): passkeys and pairing codes, Web Push
 notifications outside the app, the plan-writing AI Coach (Hercules, the chat coach, is here), exercise photo and video uploads, the admin dashboard.
 The first profile created is the admin (it may delete anyone's posts).

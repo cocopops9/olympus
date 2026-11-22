@@ -30,6 +30,7 @@ import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
+import { newConnectorToken, tokenHash, connectorBase } from './connector-token.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, startEmailChange, checkEmailChange, emailChangeMail, emailChangedNotice, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
@@ -402,7 +403,41 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const { user } = await signedIn(req);
       await store.update(['db'], ({ get, set }) => {
         const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
-        if (u) { u.sv = sessionVersion(u) + 1; set('db', db); }
+        // Every way into the profile ends, the Claude connector's address included.
+        if (u) { u.sv = sessionVersion(u) + 1; delete u.connector; set('db', db); }
+      });
+      return { status: 200, body: { ok: true } };
+    },
+
+    // The Claude connector (connector.js): one address per profile, shown once when it is made.
+    // The account keeps its hash, when it was made and when Claude last used it.
+    'GET /api/connector': async req => {
+      const { user } = await signedIn(req);
+      const c = user.connector;
+      return { status: 200, body: { available: !!connectorBase(env), on: !!c?.h, created: c?.at || null, used: c?.used || null } };
+    },
+    'POST /api/connector': async req => {
+      const { user } = await signedIn(req);
+      await req.text();
+      const base = connectorBase(env);
+      if (!base) return { status: 503, body: { error: 'the connector is not set up on this server', code: 'no-connector' } };
+      const token = newConnectorToken();
+      const at = now();
+      await store.update(['db'], ({ get, set }) => {
+        const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
+        if (!u) throw new HttpError(401, 'not signed in');
+        // A new address replaces the old one, which stops working at once.
+        u.connector = { h: tokenHash(token), at };
+        set('db', db);
+      });
+      return { status: 200, body: { url: base + '/' + token, created: at } };
+    },
+    'POST /api/connector/delete': async req => {
+      const { user } = await signedIn(req);
+      await req.text();
+      await store.update(['db'], ({ get, set }) => {
+        const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
+        if (u?.connector) { delete u.connector; set('db', db); }
       });
       return { status: 200, body: { ok: true } };
     },

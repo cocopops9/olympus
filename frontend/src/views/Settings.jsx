@@ -52,6 +52,7 @@ import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../compone
 import AccountHero, { useFace } from '../components/AccountHero.jsx'
 import { SignInSection } from '../components/AccountEdit.jsx'
 import { GymsManager } from '../components/Gyms.jsx'
+import { ClaudeConnectorPage } from '../components/ClaudeConnector.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
@@ -420,6 +421,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     look: () => themeLabel + ' · ' + accentLabel(S),
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
+    claude: () => '',
     about: () => 'v' + __APP_VERSION__,
   }
 
@@ -879,6 +881,8 @@ export default function Settings({ page = null, find = null, via = null }) {
         {SOURCE_URL && <> <a href={SOURCE_URL + '/blob/main/NOTICE.md'} target="_blank" rel="noopener">{t('Licences and notices')}</a></>}
       </div>
     </>,
+
+    claude: () => <ClaudeConnectorPage />,
 
     account: () => <>
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's

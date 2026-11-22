@@ -139,6 +139,10 @@ their own 92 tests in `frontend/src/lib/*.test.js`.
   `assign_weekday`, `override_day`.
 - **Phase 3:** Streamable HTTP transport, opt-in 4th container in `docker-compose.yml`. Same
   tool implementations, second transport — the MCP SDK supports both behind one tool registration.
+- **Done (Olympus, remote):** the same tools over Streamable HTTP for the Supabase server, one
+  profile per connector address: `src/remote.js` (the protocol) and
+  `supabase/functions/olympus/connector.js` (the address). `src/profile.js` is where the tools
+  read their profile from: this stdio server's data folder, or one request's document.
 
 ## License
 

@@ -3,6 +3,7 @@
    tool call without a restart. */
 import fs from 'node:fs'
 import path from 'node:path'
+import { setReader, defaultsShape } from './profile.js'
 
 const DATA_DIR = process.env.OPENGYM_DATA || path.join(process.cwd(), 'data')
 
@@ -154,12 +155,5 @@ export function _seedStateForTests(state) {
   if (_watcher) { _watcher.close(); _watcher = null }
 }
 
-function defaultsShape() {
-  return {
-    unit: 'kg', restSec: 90, sound: true, lang: 'en',
-    theme: 'dark', accent: 'lime', body: 'male', targetW: null,
-    bodyweight: [], routines: [], week: {}, dayPlan: {},
-    exWeights: {}, workouts: [], customEx: [], gifSize: 'full',
-    reminder: { on: false, time: '08:00', tz: null }
-  }
-}
+// The tools read through profile.js; this file is their source for the stdio server.
+setReader({ getState, getUser })
