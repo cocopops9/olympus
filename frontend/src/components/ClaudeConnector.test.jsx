@@ -2,13 +2,14 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ClaudeConnectorPage } from './ClaudeConnector.jsx'
+import { ClaudeConnectorPage, CLAUDE_CONNECTORS } from './ClaudeConnector.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-/* Settings → Connect to Claude (supabase/functions/olympus/core.js /api/connector). The address
-   is shown once, right after it is made; afterwards the page says when it was made and used,
-   and replaces or removes it after a confirmation. */
+/* Settings → Connect to Claude (supabase/functions/olympus/core.js /api/connector). One tap makes
+   the address, copies it and opens Claude's connectors page; the address is known only then.
+   Afterwards the page says when it was made and used, and replaces or removes it after a
+   confirmation. */
 const mocks = vi.hoisted(() => {
   const state = { answers: {}, calls: [], confirms: [] }
   state.toast = vi.fn()
@@ -49,21 +50,28 @@ beforeEach(() => { mocks.answers = {}; mocks.calls = []; mocks.confirms = []; mo
 afterEach(() => { for (const { root, host } of mounted.splice(0)) { act(() => root.unmount()); host.remove() } })
 
 describe('Connect to Claude', () => {
-  it('off: one button makes the address, which is shown once with a copy button', async () => {
+  it('off: one tap makes the address, copies it and opens Claude’s connectors page', async () => {
     mocks.answers['GET /api/connector'] = { available: true, on: false, created: null, used: null }
     mocks.answers['POST /api/connector'] = { url: URL, created: Date.parse('2026-11-22T12:00:00Z') }
+    const opened = vi.spyOn(window, 'open').mockImplementation(() => null)
     const host = mount()
     await settle()
-    expect(text(host)).not.toContain(URL)
-    act(() => button(host, 'Make my connector address').click())
-    await settle()
-    expect(text(host)).toContain(URL)
-    expect(text(host)).toContain('Shown only now.')
-    act(() => button(host, 'Copy the address').click())
+    act(() => button(host, 'Connect Claude').click())
     await settle()
     expect(mocks.copy).toHaveBeenCalledWith(URL)
-    expect(mocks.toast).toHaveBeenCalledWith('Address copied')
+    expect(mocks.toast).toHaveBeenCalledWith('Address copied: now finish in Claude.')
+    expect(opened).toHaveBeenCalledWith(CLAUDE_CONNECTORS, '_blank', 'noopener')
+    expect(text(host)).toContain('Finish in Claude')
+    expect(text(host)).toContain('Shown only now.')
+    expect(button(host, 'Connect Claude')).toBeUndefined()
+    // the second chance, for a browser that blocked the first opening or a lost clipboard
+    act(() => button(host, 'Open Claude').click())
+    expect(opened).toHaveBeenCalledTimes(2)
+    act(() => button(host, 'Copy the address').click())
+    await settle()
+    expect(mocks.copy).toHaveBeenCalledTimes(2)
     expect(text(host)).toContain('Not yet')
+    opened.mockRestore()
   })
 
   it('on: says when it was used, and disconnects only after the confirmation', async () => {
@@ -72,14 +80,14 @@ describe('Connect to Claude', () => {
     await settle()
     expect(text(host)).toContain('Last used by Claude')
     expect(text(host)).not.toContain('Not yet')
-    expect(button(host, 'Make my connector address')).toBeUndefined()
+    expect(button(host, 'Connect Claude')).toBeUndefined()
     act(() => button(host, 'Disconnect Claude').click())
     expect(mocks.calls.some(c => c.path === '/api/connector/delete')).toBe(false)
     expect(mocks.confirms).toHaveLength(1)
     await act(async () => { await mocks.confirms[0].onConfirm() })
     expect(mocks.calls.some(c => c.path === '/api/connector/delete' && c.method === 'POST')).toBe(true)
     expect(mocks.toast).toHaveBeenCalledWith('Claude disconnected')
-    expect(button(host, 'Make my connector address')).toBeTruthy()
+    expect(button(host, 'Connect Claude')).toBeTruthy()
   })
 
   it('a server without the connector says so and offers nothing to press', async () => {
@@ -87,7 +95,6 @@ describe('Connect to Claude', () => {
     const host = mount()
     await settle()
     expect(text(host)).toContain('This server does not offer the Claude connector.')
-    expect(button(host, 'Make my connector address')).toBeUndefined()
-    expect(text(host)).toContain('How to connect')
+    expect(button(host, 'Connect Claude')).toBeUndefined()
   })
 })
