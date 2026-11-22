@@ -252,8 +252,10 @@ export const CHIRON_ACTIONS_HELP = [
 // Olympus: what Hercules and Athena say aloud is not their written answer read word for word (a
 // list, a heading, "1.6-2.2 g/kg" read out is hard to follow): they add a short spoken version,
 // which the app reads in voice mode and never shows (frontend lib/speech-text.js splitSpeech).
+// First, not last: an answer longer than the reply's token cap (Athena's is 900) lost a block at
+// its end, and voice mode then read the whole written answer, heading first.
 export const SPEECH_HELP = [
-  'Your answer may also be heard in voice mode. After everything else, end your reply with the version you would say aloud, in a block like this:',
+  'Your answer may also be heard in voice mode. Begin your reply with the version you would say aloud, in a block like this, then write your answer:',
   '```olympus-speech\nRest about two minutes, then do eighty kilos for five. The last set felt easy, so this keeps you close to two reps from failure.\n```',
   'Write it as you would say it standing next to them: the same advice as your written answer, its key numbers included, in 2 to 4 short sentences and at most about 60 words, in the same language. Plain spoken sentences only: no lists, headings, markdown, symbols or abbreviations (say "kilos", "grams per kilo", "minutes"); a range as words ("two to three minutes"). Leave out what only makes sense on screen, and never mention the block or the written answer.',
 ].join('\n');

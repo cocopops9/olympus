@@ -96,6 +96,8 @@ describe('splitSpeech', () => {
   it('gives no spoken version when there is none, and drops a block left open', () => {
     expect(splitSpeech('Just the answer.')).toEqual({ text: 'Just the answer.', speech: '' })
     expect(splitSpeech('The answer.\n\n```olympus-speech\nThe answer, said')).toEqual({ text: 'The answer.', speech: 'The answer, said' })
+    // At the start of the reply (api/hercules.js SPEECH_HELP), so a reply cut at its cap keeps it.
+    expect(splitSpeech('```olympus-speech\nAbout two grams per kilo.\n```\n\n**Protein**\n- 1.6 to 2.2 g/kg')).toEqual({ text: '**Protein**\n- 1.6 to 2.2 g/kg', speech: 'About two grams per kilo.' })
     expect(splitSpeech('')).toEqual({ text: '', speech: '' })
   })
 })

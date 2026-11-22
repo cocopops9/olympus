@@ -351,14 +351,28 @@ let speakRun = 0
 let voiceFails = 0
 
 // Short pieces, a sentence or a few: the first is heard while the next is being made.
-export function pieces(text, max = 800) {
+// Each piece must be made by the server while the one before it plays, or the voice stops and
+// waits. Sent as one request, everything after the first sentence took 22 s to come back after a
+// 1-second title (function log, 2026-11-22: Athena "read the title, then waited"). So the pieces
+// grow: the second at most twice the first (at least `start` characters), each next one twice the
+// one before. Doubling assumes the server makes speech at least twice as fast as it is heard,
+// less its fixed cost per request; at most `most` requests are spent on one answer (the server's
+// voice has a quota per request), the last taking what is left.
+export function pieces(text, max = 800, { start = 100, most = 4 } = {}) {
   const sentences = String(text).match(/[^.!?…\n]+[.!?…]*[\s\n]*/g) || [String(text)]
   const clean = sentences.map(x => x.trim()).filter(Boolean)
-  if (clean.length <= 1) return clean.flatMap(x => x.length > max ? x.match(new RegExp('.{1,' + max + '}', 'g')) : [x])
-  // The first sentence alone, so it is heard soon; the rest in one request, so the server's quota
-  // is spent twice at most on an answer.
-  const rest = clean.slice(1).join(' ')
-  return [clean[0], ...(rest.length > max ? rest.match(new RegExp('.{1,' + max + '}', 'g')) : [rest])]
+  const cut = x => (x.length > max ? x.match(new RegExp('.{1,' + max + '}', 'g')) : [x])
+  if (clean.length <= 1) return clean.flatMap(cut)
+  const out = [clean[0]]
+  let budget = Math.max(start, 2 * clean[0].length)
+  let cur = ''
+  for (let i = 1; i < clean.length; i++) {
+    cur = cur ? cur + ' ' + clean[i] : clean[i]
+    const last = out.length === most - 1
+    if (!last && cur.length >= budget) { out.push(cur); cur = ''; budget *= 2 }
+  }
+  if (cur) out.push(cur)
+  return [out[0], ...out.slice(1).flatMap(cut)]
 }
 
 // Lines asked for ahead of time (preloadVoice): the answer waits here until the line is spoken,
