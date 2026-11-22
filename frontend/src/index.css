@@ -1825,6 +1825,29 @@ body.no-tabbar.resting #toast{bottom:calc(100px + var(--sab))}
 .wd-ss{box-shadow:inset 3px 0 0 var(--acc);padding-inline-start:11px;margin-bottom:12px}
 .wd-ss .ss-label{margin:0 0 8px}
 .wd-ss .wd-ex:last-child{margin-bottom:0}
+/* Its sets as chips (components/SetChips.jsx): the load and its unit over the reps and theirs,
+   so the two numbers of a set can no longer be read the wrong way round. */
+.setchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.setchip{
+  display:inline-flex;align-items:center;gap:7px;min-width:54px;padding:5px 9px 6px;
+  border-radius:10px;background:var(--surface-2);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 14%,transparent);
+  font-variant-numeric:tabular-nums;line-height:1.15;
+}
+.setchip.text{font-size:13px;color:var(--label);min-width:0}
+.setchip.warm{background:transparent;box-shadow:inset 0 0 0 1px var(--label-3);opacity:.75}
+.setchip-seg{display:inline-flex;align-items:center;gap:8px}
+.setchip-part{display:flex;flex-direction:column;gap:2px}
+.setchip-w{font-size:15px;font-weight:600;color:var(--label);letter-spacing:-.01em;white-space:nowrap}
+.setchip-w small{font-size:11px;font-weight:500;color:var(--label-2);margin-inline-start:2px}
+.setchip-w>small:only-child{margin-inline-start:0}
+.setchip-r{font-size:12px;color:var(--label-2);white-space:nowrap}
+.setchip-r b{font-size:13px;font-weight:600;color:var(--acc)}
+.setchip-r small{font-size:11px;margin-inline-start:3px}
+.setchip-drop{color:var(--label-3);font-size:13px}
+.setchip-tags{display:flex;flex-direction:column;align-items:flex-start;gap:3px;align-self:stretch;justify-content:center}
+.setchip-f{font-size:10.5px;font-weight:700;color:var(--orange);background:color-mix(in srgb,var(--orange) 16%,transparent);border-radius:5px;padding:1px 5px}
+.setchip-e{font-size:10.5px;color:var(--label-2);white-space:nowrap}
 .ss-card{
   border-radius:var(--r-lg);padding:14px;
   background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--acc-line);

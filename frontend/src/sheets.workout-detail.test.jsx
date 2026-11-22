@@ -52,8 +52,20 @@ describe('workout detail', () => {
       { id: lifts[0], target: { mode: 'reps' }, sets: [done(100, 8, { type: 'dropset', drops: [{ w: 80, r: 6 }, { w: 60, r: 5 }] })] },
       { id: lifts[1], target: { mode: 'reps' }, sets: [done(60, 16, { type: 'restpause', clusters: [{ r: 4, restSec: 15 }, { r: 2, restSec: 15 }] })] },
     ]))
-    const rows = [...mountTopSheet().querySelectorAll('.wd-ex .ss')].map(el => el.textContent)
-    expect(rows).toEqual(['100×8 ↘ 80×6 ↘ 60×5', '60×10+4+2'])
+    const rows = [...mountTopSheet().querySelectorAll('.wd-ex .setchip')].map(el => el.getAttribute('aria-label'))
+    expect(rows).toEqual(['100 kg, 8 reps ↘ 80 kg, 6 reps ↘ 60 kg, 5 reps', '60 kg, 10+4+2 reps'])
+  })
+
+  // "50×10 · 80×10" left it to the reader which number was the weight (2026-11-22): each set is
+  // now a chip with the load and its unit over the reps and theirs.
+  it('shows each set as a chip that names the load and the reps', () => {
+    workoutDetailSheet(workout([
+      { id: lifts[0], target: { mode: 'reps' }, sets: [done(50, 10), done(80, 10), { w: 90, r: 8, done: false }] },
+    ]))
+    const chips = [...mountTopSheet().querySelectorAll('.wd-ex .setchip')]
+    expect(chips.map(c => [c.querySelector('.setchip-w').textContent, c.querySelector('.setchip-r').textContent]))
+      .toEqual([['50kg', '10reps'], ['80kg', '10reps']])   // the unchecked set is not listed
+    expect(chips.map(c => c.getAttribute('aria-label'))).toEqual(['50 kg, 10 reps', '80 kg, 10 reps'])
   })
 
   it('keeps a superset together under one label, in a flat and in a combined workout', () => {

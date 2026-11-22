@@ -130,17 +130,34 @@ export const effortOf = S => {
   const e = S && S.effort
   return e === 'none' || EFFORT[e] ? e : (S && S.showRir ? 'rir' : 'none')
 }
+/** A set's (or one side's) reps as written down: "10", or a rest-pause set's bursts "10+4+2". */
+export function burstRepsOf(side, cfg) {
+  const planned = cfg?.intensifier?.type === 'restpause'
+  const reps = side.r || 0
+  const bursts = clustersOf(side).map(b => Number(b?.r) || 0).filter(r => r > 0)
+  const sum = bursts.reduce((a, b) => a + b, 0)
+  if (!bursts.length || sum > reps || (planned && sum !== reps)) return reps
+  return (reps > sum ? [reps - sum, ...bursts] : bursts).join('+')
+}
+/** "RIR 2" / "RPE 8" for a set that logged its effort, else null. */
+export const effortOfSet = s => {
+  const k = s.rir != null ? 'rir' : s.rpe != null ? 'rpe' : null
+  return k ? `${EFFORT[k].hd} ${fmtNum(s[k])}` : null
+}
 // The "(RIR 2)" / "(RPE 8)" tail on a set summary, empty when nothing was logged.
 const effortTail = s => {
-  const k = s.rir != null ? 'rir' : s.rpe != null ? 'rpe' : null
-  return k ? ` (${EFFORT[k].hd} ${fmtNum(s[k])})` : ''
+  const e = effortOfSet(s)
+  return e ? ` (${e})` : ''
 }
 
 // One-line summary of a logged set. `cfg` carries the mode when the caller has it (a routine
 // entry or a workout entry); passing an id alone keeps the old body-part behaviour.
 // `speedUnit` is the profile's (lib/speed.js speedUnitOf); without one a cardio set reads km/h.
 const EXPLICIT_MODES = new Set(['reps', 'time', 'cardio'])
-export function setLabel(id, s, cfg, speedUnit) {
+// How a logged set is read: the config it is read against (with the caller's id when the config
+// carries none) and its mode. setLabel and the set chips of a past workout (lib/set-chip.js) both
+// read a set through this, so the two never disagree on what kind of set it was.
+export function setReadOf(id, s, cfg) {
   // The id is the caller's when the config does not carry one: a freestyle target is built
   // without it, and modeOf would then fall back to 'reps' and print a run as "0×0".
   const c = cfg ? { ...cfg, id: cfg.id ?? id } : { id }
@@ -152,6 +169,10 @@ export function setLabel(id, s, cfg, speedUnit) {
   // custom one moved to Cardio after months of rep sets read them all as "0 min @ 0 km/h", next
   // to the volume those same sets still count. A set with reps and nothing cardio was a rep set.
   if (!EXPLICIT_MODES.has(cfg?.mode) && mode !== 'reps' && s.r > 0 && !(s.min > 0 || s.speed > 0 || s.sec > 0)) mode = 'reps'
+  return { c, mode }
+}
+export function setLabel(id, s, cfg, speedUnit) {
+  const { c, mode } = setReadOf(id, s, cfg)
   // A treadmill grade rides along when the set has one (lib/incline.js); a flat set reads as it did.
   // A sport has no speed to give: "90 min", not "90 min @ 0 km/h".
   if (mode === 'cardio' && isSport(EXIDX[c.id])) return fmtCardioMin(s.min || 0)
@@ -179,14 +200,7 @@ export function setLabel(id, s, cfg, speedUnit) {
   // the extra reps belong to is not known, so such a set reads as its plain total. The target
   // says whether the exercise plans rest-pause; a row added to it and given bursts live can only
   // be told apart by that, and reads as its plain total too, which is still what was lifted.
-  const planned = c.intensifier?.type === 'restpause'
-  const repsOf = side => {
-    const reps = side.r || 0
-    const bursts = clustersOf(side).map(b => Number(b?.r) || 0).filter(r => r > 0)
-    const sum = bursts.reduce((a, b) => a + b, 0)
-    if (!bursts.length || sum > reps || (planned && sum !== reps)) return reps
-    return (reps > sum ? [reps - sum, ...bursts] : bursts).join('+')
-  }
+  const repsOf = side => burstRepsOf(side, c)
   // One side's "weight×reps" (or bodyweight "reps" / "+belt × reps"), the same shape a whole
   // straight set reads as — reused for each side of a unilateral set below. A drop-set's drops
   // follow it ("100×8 ↘ 80×6"): the volume of the workout counts them, so the list has to show
