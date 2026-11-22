@@ -35,6 +35,7 @@ import { canSpeak } from '../lib/voice.js'
 import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
 import ExerciseDemo from './ExerciseDemo.jsx'
 import { demoFor } from '../lib/exercise-ask.js'
+import { richBlocks, inlineRuns } from '../lib/rich-text.js'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -103,20 +104,16 @@ export function Avatar({ size = 'md', live = false, badge = true, coach = 'hercu
   </span>
 }
 
-/** **bold**, line breaks, and "- " or "1. " lists: the little formatting the model uses. */
+/** A coach's answer as headings, paragraphs and lists (lib/rich-text.js): tables included. */
 export function Rich({ text }) {
-  const blocks = String(text).split(/\n{2,}/)
-  const inline = s => s.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith('**') && part.endsWith('**') && part.length > 4
-    ? <strong key={i}>{part.slice(2, -2)}</strong> : part))
-  return blocks.map((b, i) => {
-    const lines = b.split('\n').filter(l => l.trim() !== '')
-    const bullet = /^\s*(?:[-*•]|\d+[.)])\s+/
-    if (lines.length && lines.every(l => bullet.test(l))) {
-      const ordered = /^\s*\d/.test(lines[0])
-      const items = lines.map((l, j) => <li key={j}>{inline(l.replace(bullet, ''))}</li>)
-      return ordered ? <ol key={i}>{items}</ol> : <ul key={i}>{items}</ul>
+  const inline = s => inlineRuns(s).map((r, i) => (r.bold ? <strong key={i}>{r.text}</strong> : r.text))
+  return richBlocks(text).map((b, i) => {
+    if (b.type === 'h') return <p key={i} className="rich-h"><strong>{inline(b.text)}</strong></p>
+    if (b.type === 'ul' || b.type === 'ol') {
+      const items = b.items.map((l, j) => <li key={j}>{inline(l)}</li>)
+      return b.type === 'ol' ? <ol key={i}>{items}</ol> : <ul key={i}>{items}</ul>
     }
-    return <p key={i}>{lines.map((l, j) => <span key={j}>{j > 0 && <br />}{inline(l.replace(bullet, '• '))}</span>)}</p>
+    return <p key={i}>{b.lines.map((l, j) => <span key={j}>{j > 0 && <br />}{inline(l)}</span>)}</p>
   })
 }
 
