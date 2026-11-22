@@ -34,6 +34,7 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 import ExerciseGuide from './components/ExerciseGuide.jsx'
 import EquipChips from './components/EquipChips.jsx'
 import RecordMedals, { Medal } from './components/RecordMedals.jsx'
+import SetChips from './components/SetChips.jsx'
 import { levelLabel, levelValue, levelWhat } from './components/StrengthLevels.jsx'
 import { levelUps, liftOf, strengthLevels } from './lib/strength-level.js'
 import './strength.css'
@@ -2606,7 +2607,9 @@ function WorkoutDetail({ w, close }) {
     return <div key={i} className="row wd-ex" style={{ alignItems: 'flex-start' }} {...tappable(() => exerciseHistorySheet(e.id))}>
       {ex && <Thumb ex={ex} />}
       <div className="grow"><div className={`tt ${exerciseNameClass(ex)}`} style={{ fontWeight: 600 }}>{nameOf(e)} {w.prs && w.prs.includes(e.id) && <span className="pr"><Icon name="trophy" />PR</span>}<RecordMedals kinds={e.rec} compact /></div>
-        <div className="ss">{e.sets.filter(hasCompletedWork).map(s => setLabel(e.id, s, e.target, speedUnitOf(st))).join('  ·  ') || t('no sets')}</div>
+        {e.sets.some(hasCompletedWork)
+          ? <SetChips id={e.id} sets={e.sets.filter(hasCompletedWork)} target={e.target} unit={st.unit || 'kg'} speedUnit={speedUnitOf(st)} />
+          : <div className="ss">{t('no sets')}</div>}
         {e.note && <div className="small dim" style={{ marginTop: 3 }}>
           {e.notePin && <Icon name="pin" style={{ fontSize: 12, marginInlineEnd: 4, verticalAlign: '-1px', color: 'var(--yellow)' }} />}{e.note}
         </div>}</div>
