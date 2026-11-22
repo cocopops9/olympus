@@ -3,3 +3,9 @@ project_id = "jmhvabcwzrnzscbtqblk"
 [functions.olympus]
 verify_jwt = false
 entrypoint = "./functions/olympus/index.js"
+
+# The Claude connector (functions/olympus/connector.js): its address carries its own token.
+[functions.olympus-mcp]
+verify_jwt = false
+entrypoint = "./functions/olympus-mcp/index.js"
+import_map = "./functions/olympus-mcp/deno.json"
