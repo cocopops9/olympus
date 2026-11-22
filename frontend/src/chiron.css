@@ -95,7 +95,10 @@
 .chv-st.writing::after{content:'';display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:currentColor;vertical-align:middle;animation:chv-dot 1s ease-in-out infinite}
 @keyframes chv-dot{0%,100%{opacity:.25}50%{opacity:1}}
 .chv-heard{margin:0;font-size:14px;font-style:italic;line-height:1.35;color:var(--label)}
-.chv-said{margin:0;font-size:13px;line-height:1.4;color:var(--label-2);max-height:5.6em;overflow-y:auto}
+.chv-said{margin:6px 10px 0 14px;font-size:14px;line-height:1.45;color:var(--label-2);max-height:45vh;overflow-y:auto;overscroll-behavior:contain}
+.chv-answer{color:var(--label)}
+.chv-answer p{margin:0 0 6px}.chv-answer p:last-child{margin:0}
+.chv-answer ul,.chv-answer ol{margin:0 0 6px;padding-inline-start:20px}
 .chv-ctl{display:flex;gap:8px}
 .chv-b{width:40px;height:40px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:18px;
   background:var(--surface-2);color:var(--label);cursor:pointer}
