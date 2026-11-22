@@ -70,7 +70,30 @@ export const setVoiceHint = fn => { hintOf = typeof fn === 'function' ? fn : nul
 // transcription after 0.7 s, and the end of the wait 1 s into the silence when that text is a
 // finished sentence, end a whole question about a second after the last word (it was 2 s or more);
 // a sentence left open still waits for the long pause, so a slow speaker is not cut short.
-export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 700, sentenceMs: 1000, specMax: 3 }
+//
+// The room's noise is measured all along, not only in the first moments: the quietest level of the
+// last `floorMs` (the noise between words; a "minimum statistics" floor). The phone's automatic gain
+// raises the noise while nobody speaks, and against a floor taken once at the start that louder
+// noise counted as speech: Chiron stayed on "listening" for 25 s after the question ended
+// (2026-11-22, the first clip reached the server 40 s after he was opened). 3 s holds several
+// pauses between words, so speech itself never becomes the floor.
+export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 700, sentenceMs: 1000, specMax: 3, floorMs: 3000 }
+
+/** The voice threshold over a room whose noise changes: `hear(level, now)` says whether it is voice. */
+export function voiceGate({ calibrateMs = LISTEN.calibrateMs, floorMs = LISTEN.floorMs, ratio = 2.2, least = 0.008, t0 = 0 } = {}) {
+  let floor = null     // the room measured in the first moments
+  const recent = []   // [time, level] of the last floorMs
+  return {
+    hear(level, now) {
+      recent.push([now, level])
+      while (recent.length && now - recent[0][0] > floorMs) recent.shift()
+      if (now - t0 < calibrateMs) { floor = floor == null ? level : (floor + level) / 2; return false }
+      let quietest = Infinity
+      for (const [, v] of recent) if (v < quietest) quietest = v
+      return level > Math.max(least, Math.max(floor || 0, quietest) * ratio)
+    },
+  }
+}
 /** Whether a transcript reads as a finished sentence: at least three words, closed by . ? or ! */
 export const endsSentence = text => /\S+\s+\S+\s+\S+/.test(String(text || '').trim()) && /[.?!…]["')\]]*$/.test(String(text || '').trim())
 
@@ -156,7 +179,8 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
     try { await ac.resume?.() } catch { /* the first sound resumes it */ }
   } catch { analyser = null; proc = null }
   const t0 = Date.now()
-  let spoke = !analyser, lastVoice = t0, firstVoice = t0, floor = null, cancelled = false, finished = false, sent = false
+  let spoke = !analyser, lastVoice = t0, firstVoice = t0, cancelled = false, finished = false, sent = false
+  const gate = voiceGate({ t0 })
   const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
   const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
   const release = () => { clearInterval(tick); micLater(stream); try { proc?.disconnect() } catch { /* gone */ } try { ac?.close() } catch { /* closed */ } }
@@ -206,10 +230,9 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
   const tick = setInterval(() => {
     const now = Date.now()
     if (analyser) {
-      const v = loud()
-      if (now - t0 < LISTEN.calibrateMs) { floor = floor == null ? v : (floor + v) / 2; return }
-      const threshold = Math.max(0.008, (floor || 0) * 2.2)
-      if (v > threshold) { if (!spoke) { spoke = true; firstVoice = now } lastVoice = now }
+      const voice = gate.hear(loud(), now)
+      if (now - t0 < LISTEN.calibrateMs) return
+      if (voice) { if (!spoke) { spoke = true; firstVoice = now } lastVoice = now }
       const pause = spoke && lastVoice - firstVoice < LISTEN.earlyMs ? LISTEN.earlyPauseMs : LISTEN.pauseMs
       if (spoke && now - lastVoice > pause) return stop()
       const quiet = now - lastVoice
