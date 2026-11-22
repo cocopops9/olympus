@@ -23,6 +23,10 @@ export const DEFAULT = {
   ra: 0, ro: 0,
   sx: 0, sy: 0, so: 0, sa: 0,
   scroll: 0, flip: 0,
+  // the floor under each foot, above the ground (a box to step on): fr the right foot, fl the left
+  fr: 0, fl: 0,
+  // how much the figure hangs from its hands (a drill's own `place` reads it), 0 to 1
+  hang: 0,
 }
 
 const rad = d => (d * Math.PI) / 180
@@ -64,8 +68,9 @@ export function skeleton(p) {
   }
   let hip = [p.hx, 0]
   const r0 = leg(hip, p.rt, p.rk), l0 = leg(hip, p.lt, p.lk)
-  const lowest = Math.max(r0.ankle[1] + 4, r0.toe[1] + 3, l0.ankle[1] + 4, l0.toe[1] + 3)
-  const hy = p.hy != null ? p.hy : GROUND - lowest - p.jump
+  // The hip is set so that the foot nearest its own floor stands on it and the other is above its own.
+  const low = L => Math.max(L.ankle[1] + 4, L.toe[1] + 3)
+  const hy = p.hy != null ? p.hy : Math.min(GROUND - (p.fr || 0) - low(r0), GROUND - (p.fl || 0) - low(l0)) - p.jump
   hip = [p.hx, hy]
   const R = leg(hip, p.rt, p.rk), L = leg(hip, p.lt, p.lk)
   const sh = add(hip, [Math.sin(rad(p.tor)), -Math.cos(rad(p.tor))], LEN.torso)

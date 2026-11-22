@@ -71,3 +71,10 @@
 .eq-tile{width:44px;height:44px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;
   background:var(--surface-2);color:var(--label);margin-inline-end:12px}
 .chip.eq-fam:has(.eq-ico){border-radius:16px;min-width:76px;padding-left:12px;padding-right:12px}
+/* A sport's drills on its sheet (sheets.jsx SportDrills): a row each, picture, name, chevron. */
+.drills{margin:6px 0 10px}
+.drill-row{display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;margin:0;border:0;border-radius:12px;
+  background:none;color:var(--text);font:inherit;text-align:start;cursor:pointer}
+.drill-row:active{background:var(--surface-2)}
+.drill-n{flex:1;min-width:0;font-weight:600}
+.drill-row .icon,.drill-row svg{flex:none;opacity:.5}

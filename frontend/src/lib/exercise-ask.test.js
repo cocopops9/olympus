@@ -4,7 +4,7 @@
 // action. Strict by design: no cue asking for technique, or no exercise named by its own name,
 // and nothing is shown.
 import { afterAll, describe, expect, it } from 'vitest'
-import { askedExercise, demoFor } from './exercise-ask.js'
+import { askedExercise, askedSportDrills, demoFor } from './exercise-ask.js'
 import { setLang } from './i18n.js'
 import { splitActions } from './coach-actions.js'
 
@@ -78,5 +78,36 @@ describe('demoFor (the chat)', () => {
     expect(splitActions('Drive.' + action).actions[0].id).toBe('0032')        // the coach's own choice stays
     expect(demoFor('how do I do a hip thrust?', 'Agreed with Hercules.', [], true)).toBe(null)
     expect(demoFor('how am I doing?', 'Well.', [], false)).toBe(null)
+  })
+})
+
+describe('askedSportDrills (how to train for a sport)', () => {
+  const FOOTBALL = ['drill-football-cone-dribble', 'drill-football-wall-pass']
+  const TENNIS = ['drill-tennis-split-step', 'drill-tennis-wall-rally']
+  it('reads the question in English and in the active language', async () => {
+    await setLang('en')
+    expect(askedSportDrills('How do I train for football?')).toEqual(FOOTBALL)
+    expect(askedSportDrills('show me some soccer drills')).toEqual(FOOTBALL)
+    expect(askedSportDrills('what should I practise to get better at tennis')).toEqual(TENNIS)
+    await setLang('it')
+    expect(askedSportDrills('come mi alleno per il calcio?')).toEqual(FOOTBALL)
+    expect(askedSportDrills('esercizi per il tennis')).toEqual(TENNIS)
+    expect(askedSportDrills('allenamento per arrampicata')).toEqual(['drill-climbing-hangboard', 'drill-climbing-lock-off'])
+    await setLang('es')
+    expect(askedSportDrills('¿cómo entreno para el fútbol?')).toEqual(FOOTBALL)
+  })
+
+  it('needs both a word about training and a sport, close together', async () => {
+    await setLang('en')
+    for (const q of ['I played football today', 'how do I train my chest?', 'how was my training?', 'I train legs on Monday and on Saturday we always play some football with friends', '', null]) {
+      expect(askedSportDrills(q), String(q)).toEqual([])
+    }
+  })
+
+  it('in the chat: a named drill is shown alone, a sport shows both of its drills', async () => {
+    await setLang('en')
+    expect(demoFor('how do I train for football?', 'Work on your first touch.', [], false)).toEqual(FOOTBALL)
+    expect(demoFor('how do I do the tennis split step?', 'Hop as they hit.', [], false)).toBe('drill-tennis-split-step')
+    expect(demoFor('how do I train for football?', 'ok', [], true)).toBe(null)
   })
 })

@@ -1,4 +1,4 @@
-// Olympus: draws the sports animations (engine.mjs, sports.mjs) into frontend/src/assets/sports/:
+// Olympus: draws the sports animations (engine.mjs, sports.mjs) and the drills' (drills.mjs) into frontend/src/assets/sports/:
 // <id>.mp4 (180 px, 10 frames a second, 3 s loop, like the exercise clips) and <id>.webp (the still).
 // Run: NODE_PATH=$(npm root -g) node scripts/sports-media/render.mjs [sport-id ...] [--sheet]
 // (Playwright draws the frames, ffmpeg joins them). --sheet writes a contact sheet to look at instead.
@@ -7,9 +7,13 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { SIZE, GROUND, poseAt, skeleton, figureSvg, partWeights } from './engine.mjs'
-import { SPORTS as SPORT_DEFS } from './sports.mjs'
-import { SPORTS as CATALOGUE } from '../../frontend/src/lib/sports.js'
+import { SIZE, GROUND, DEFAULT, poseAt, skeleton, figureSvg, partWeights } from './engine.mjs'
+import { SPORTS as SPORT_ONLY } from './sports.mjs'
+import { DRILLS as DRILL_DEFS } from './drills.mjs'
+import { SPORTS, DRILLS } from '../../frontend/src/lib/sports.js'
+
+const SPORT_DEFS = { ...SPORT_ONLY, ...DRILL_DEFS }
+const CATALOGUE = [...SPORTS, ...DRILLS]
 
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright')
@@ -118,11 +122,14 @@ function framesOf(id) {
   for (let i = 0; i < FRAMES; i++) {
     const t = i / FRAMES
     let p = poseAt(def.keys, t)
-    if (def.over) { const o = def.over(t, p); p = { ...p, ...(Object.fromEntries(Object.entries({ hx: o.hx, hy: o.hy, tor: o.tor, hd: o.hd, rt: o.rt, rk: o.rk, lt: o.lt, lk: o.lk, ru: o.ru, re: o.re, lu: o.lu, le: o.le, scroll: o.scroll }).filter(([, v]) => v !== undefined))) } }
+    if (def.over) { const o = def.over(t, p); p = { ...p, ...Object.fromEntries(Object.entries(o).filter(([k, v]) => v !== undefined && (k in DEFAULT))) } }
+    // A drill may place the figure itself (hanging from a bar: the hands where the bar is).
+    if (def.place) p = { ...p, ...def.place(p) }
     const { svg, s } = figureSvg(p, w)
-    const back = (SCENES[def.scene] || (() => ground()))(p.scroll ?? t)
+    const sceneOf = typeof def.scene === 'function' ? def.scene : (SCENES[def.scene] || (() => ground()))
+    const back = sceneOf(p.scroll ?? t, p)
     // a soft shadow under the feet
-    const shadow = def.scene === 'swimming' || def.scene === 'climbing' ? '' : `<ellipse cx="${s.hip[0].toFixed(1)}" cy="${GROUND + 3}" rx="${22}" ry="3" fill="#000" opacity=".07"/>`
+    const shadow = def.scene === 'swimming' || def.scene === 'climbing' || def.noShadow ? '' : `<ellipse cx="${s.hip[0].toFixed(1)}" cy="${GROUND + 3}" rx="${22}" ry="3" fill="#000" opacity=".07"/>`
     // the ball: held (bf 0) or flying (bf 1), the flight an arc
     let balls = ''
     if (def.ball) {
@@ -142,7 +149,8 @@ function framesOf(id) {
       const ski = (x, y) => line(x - 30, y, x + 36, y, '#7d848d', 3.2)
       extra = pole(s.LA) + pole(s.RA) + ski(s.L.ankle[0], GROUND + 2) + ski(s.R.ankle[0] + 2, GROUND + 3)
     }
-    const front = def.scene === 'swimming' ? `<rect x="0" y="${(106 + 1.2 * Math.sin(TAU(t))).toFixed(1)}" width="${SIZE}" height="80" fill="${WATER}" opacity=".32"/>` : ''
+    if (def.props) extra += def.props(s, p, t)
+    const front = (def.front ? def.front(s, p, t) : '') + (def.scene === 'swimming' ? `<rect x="0" y="${(106 + 1.2 * Math.sin(TAU(t))).toFixed(1)}" width="${SIZE}" height="80" fill="${WATER}" opacity=".32"/>` : '')
     const svgFull = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}"><rect width="${SIZE}" height="${SIZE}" fill="#fff"/>${back}${shadow}${extra}${svg}${racket(def.racket, s, p)}${shuttle(p.sx, p.sy, p.sa, p.so)}${balls}${front}</svg>`
     out.push(svgFull)
   }
