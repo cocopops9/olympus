@@ -10,7 +10,7 @@ vi.mock('./api.js', async orig => ({ ...(await orig()), api: vi.fn(async () => (
 vi.mock('./local-voice.js', () => ({
   localVoicesOn: () => true,
   hasLocalVoice: k => h.installed.has(k),
-  voiceKey: () => 'en',
+  voiceKey: (l = 'en') => String(l).split('-')[0],
   coachVoices: () => null,
   coachesKey: () => null,
   audioNormal: () => {},
@@ -65,6 +65,37 @@ describe('the offline voice', () => {
     expect(h.stops).toBe(before)
     await voice.stopSpeaking()
     expect(h.stops).toBe(before + 1)
+  })
+})
+
+describe('the language a line is read in', () => {
+  // The app is in English (the tests' language); the person speaks Italian, so the coach answers in Italian.
+  const italian = 'Oggi hai fatto un ottimo lavoro sulla panca: tre serie da otto ripetizioni. La prossima volta aggiungi 2,5 kg.'
+
+  it('is the language the answer is written in, not the app\'s', async () => {
+    voice.speak(italian, { who: 'athena' })
+    await vi.waitFor(() => expect(h.calls).toHaveLength(1))
+    expect(h.calls[0]).toMatchObject({ key: 'kokoro', sid: 35, accent: 'it' })
+  })
+
+  it('takes the man\'s Piper voice of that language, never the app language\'s', async () => {
+    h.installed = new Set(['en', 'it'])
+    voice.speak(italian, { who: 'hercules' })
+    await vi.waitFor(() => expect(h.calls).toHaveLength(1))
+    expect(h.calls[0].key).toBe('it')
+    h.installed = new Set(['en'])
+    expect(voice.localVoices('hercules', null, { lang: 'it' })).toEqual([])
+  })
+
+  it('is made ready ahead in that language too', async () => {
+    await voice.warmCoachVoice('chiron', italian)
+    expect(h.warms[0]).toMatchObject({ key: 'kokoro', sid: 36, accent: 'it' })
+  })
+
+  it('stays the app\'s when the line says too little', async () => {
+    voice.speak('Bench press 3x8', { who: 'athena' })
+    await vi.waitFor(() => expect(h.calls).toHaveLength(1))
+    expect(h.calls[0]).toMatchObject({ key: 'kokoro', sid: 3, accent: '' })
   })
 })
 

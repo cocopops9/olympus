@@ -5,7 +5,7 @@ import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/o
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
 
-test('a recorded clip goes to Whisper in the app language with no prompt to echo, and silence inventions read as nothing', async () => {
+test('a recorded clip goes to Whisper, which finds the language itself, with no prompt to echo, and silence inventions read as nothing', async () => {
   const calls = [];
   const fetchImpl = async (url, init) => { calls.push({ url, init }); return { ok: true, json: async () => ({ text: calls.length === 1 ? ' Quanto riposo? ' : 'Grazie.' }) }; };
   assert.equal(await transcribe({ data: clip, type: 'audio/webm;codecs=opus', lang: 'it-IT' }, { key: 'k', fetchImpl }), 'Quanto riposo?');
@@ -13,7 +13,8 @@ test('a recorded clip goes to Whisper in the app language with no prompt to echo
   assert.equal(calls[0].init.headers.Authorization, 'Bearer k');
   const form = calls[0].init.body;
   assert.equal(form.get('model'), 'whisper-large-v3');
-  assert.equal(form.get('language'), 'it');
+  // Not told the app's language: it is not always the one spoken.
+  assert.equal(form.get('language'), null);
   assert.equal(form.get('prompt'), null);
   assert.equal(form.get('response_format'), 'verbose_json');
   assert.equal(form.get('file').name, 'clip.webm');
@@ -146,7 +147,7 @@ test('Gemini hears a WAV clip beside Whisper and its words are the ones used; wi
   };
   const out = await transcribe({ data: clip, type: 'audio/wav', lang: 'en-US', hint: 'Barbell Squat' }, { key: 'k', geminiKey: 'g', fetchImpl });
   assert.equal(out, 'How do I train explosiveness in basketball?');
-  assert.match(calls.find(c => c.url.includes('generativelanguage')).url, /gemini-3\.8-flash-lite:generateContent$/);
+  assert.match(calls.find(c => c.url.includes('generativelanguage')).url, /gemini-3\.8-flash:generateContent$/);
   assert.equal(calls.some(c => c.url.includes('/chat/completions')), false);
 
   // WebM is not a format Gemini takes: Whisper alone.
@@ -165,7 +166,7 @@ test('when Gemini is out of quota or retired its model rests and the next is tri
     return { ok: false, status: url.includes('3.8-flash-lite') ? 429 : 404, text: async () => 'no' };
   };
   assert.equal(await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl }), 'what exercises am i weaker');
-  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 2);
+  assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 1);
   urls.length = 0;
   await transcribe({ data: clip, type: 'audio/wav', lang: 'en' }, { key: 'k', geminiKey: 'g', fetchImpl });
   assert.equal(urls.filter(u => u.includes('generativelanguage')).length, 0);   // all resting
@@ -303,4 +304,29 @@ test('the correction runs beside Gemini\'s grace, not after it', async () => {
   assert.equal(out, 'how many sets of squats');
   // One after the other it takes 400 ms or more; side by side about 200.
   assert.ok(Date.now() - t0 < 350, 'took ' + (Date.now() - t0) + ' ms');
+});
+
+test('Gemini is waited for only while it has lately been on time: earned by an answer within the grace, lost by a miss', async () => {
+  _clearHearResting();
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  let geminiMs = 60;
+  const fetchImpl = async url => {
+    if (url.includes('/audio/transcriptions')) return { ok: true, json: async () => ({ text: 'quanto riposo devo prendere' }) };
+    if (url.includes('/chat/completions')) return { ok: true, json: async () => ({ choices: [{ message: { content: 'Quanto riposo devo prendere.' } }] }) };
+    await wait(geminiMs);
+    return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Quanto riposo devo prendere?' }] } }] }) };
+  };
+  const ask = () => transcribe({ data: clip, type: 'audio/wav', lang: 'it' }, { key: 'k', geminiKey: 'g', hearGraceMs: 200, fetchImpl });
+  // Not yet on time here: no wait, Whisper's corrected words.
+  let t0 = Date.now();
+  assert.equal(await ask(), 'Quanto riposo devo prendere.');
+  assert.ok(Date.now() - t0 < 50, 'waited ' + (Date.now() - t0) + ' ms');
+  await wait(100);   // it answered within the grace: trusted now
+  assert.equal(await ask(), 'Quanto riposo devo prendere?');
+  // A miss: Whisper's words after the grace, and no wait on the next clip.
+  geminiMs = 400;
+  assert.equal(await ask(), 'Quanto riposo devo prendere.');
+  t0 = Date.now();
+  assert.equal(await ask(), 'Quanto riposo devo prendere.');
+  assert.ok(Date.now() - t0 < 50, 'waited ' + (Date.now() - t0) + ' ms');
 });
