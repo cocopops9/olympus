@@ -70,7 +70,31 @@ describe('Connect to Claude', () => {
     act(() => button(host, 'Copy the address').click())
     await settle()
     expect(mocks.copy).toHaveBeenCalledTimes(2)
-    expect(text(host)).toContain('Not yet')
+    // nothing has reached the connector yet, so it is not called connected
+    expect(text(host)).toContain('Not added in Claude yet')
+    expect(text(host)).not.toContain('Last used by Claude')
+    opened.mockRestore()
+  })
+
+  it('made but never used: the steps stay, and a lost address is replaced in one tap', async () => {
+    mocks.answers['GET /api/connector'] = { available: true, on: true, created: Date.parse('2026-11-22T12:00:00Z'), used: null }
+    mocks.answers['POST /api/connector'] = { url: URL, created: Date.parse('2026-11-22T13:00:00Z') }
+    const opened = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const host = mount()
+    await settle()
+    expect(text(host)).toContain('Not added in Claude yet')
+    expect(text(host)).toContain('Open claude.ai in your browser')
+    expect(button(host, 'Copy the address')).toBeUndefined()
+    act(() => button(host, 'Copy a new address').click())
+    await settle()
+    expect(mocks.calls.some(c => c.path === '/api/connector' && c.method === 'POST')).toBe(true)
+    expect(mocks.copy).toHaveBeenCalledWith(URL)
+    expect(button(host, 'Copy the address')).toBeTruthy()
+    // Claude reaches it while the athlete is away: coming back shows it connected
+    mocks.answers['GET /api/connector'] = { available: true, on: true, created: Date.parse('2026-11-22T13:00:00Z'), used: Date.parse('2026-11-22T13:05:00Z') }
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await new Promise(r => setTimeout(r, 0)) })
+    expect(text(host)).toContain('Last used by Claude')
+    expect(text(host)).not.toContain('Not added in Claude yet')
     opened.mockRestore()
   })
 
@@ -79,7 +103,7 @@ describe('Connect to Claude', () => {
     const host = mount()
     await settle()
     expect(text(host)).toContain('Last used by Claude')
-    expect(text(host)).not.toContain('Not yet')
+    expect(text(host)).not.toContain('Not added in Claude yet')
     expect(button(host, 'Connect Claude')).toBeUndefined()
     act(() => button(host, 'Disconnect Claude').click())
     expect(mocks.calls.some(c => c.path === '/api/connector/delete')).toBe(false)
