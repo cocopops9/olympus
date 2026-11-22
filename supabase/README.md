@@ -42,10 +42,13 @@ app's.
   Code: `claude mcp add --transport http olympus <address>`.
 - **Stateless:** every POST is answered with one JSON body; there is no session id and GET is
   405 (no server-to-client stream), which the specification allows.
-- **Deploying:** like the app's function (below), with JWT verification off: `index.js` with the
-  `connector.js` import pointed at jsDelivr at the commit, `store.js` from `functions/olympus`
+- **Deploying:** with JWT verification off: `index.js` with the `connector.js` import pointed at
+  `https://raw.githubusercontent.com/cocopops9/olympus/<commit>/supabase/functions/olympus/connector.js`
+  (not jsDelivr: it answers 403 for this repository, which is over its 50 MB limit for GitHub
+  packages, so the 33 files the tools import could not be fetched), `store.js` from `functions/olympus`
   beside it, and `deno.json`, the import map for the two npm packages the tools use (`zod`,
   `zod-to-json-schema`). The app's function must run a commit with `/api/connector` too.
+- **Live:** version 1 deployed 2026-11-22 from main 8890c598 (`olympus` v54 serves `/api/connector`).
 - **Tests:** `mcp/test/remote.test.js` (protocol parity with the MCP SDK's own listing, the
   address's life cycle, one profile per address).
 
