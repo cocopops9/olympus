@@ -7,18 +7,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 
-const h = vi.hoisted(() => ({ said: [], ends: [], stops: 0, mic: 0, warmed: [] }))
+const h = vi.hoisted(() => ({ said: [], texts: [], ends: [], stops: 0, mic: 0, warmed: [] }))
 vi.mock('../lib/hercules.js', async orig => ({
   ...(await orig()),
   herculesStatus: vi.fn(async () => ({ on: true, perDay: 20, left: 20 })),
-  askHercules: vi.fn(async (list, coach) => ({ reply: 'Answer from ' + coach + '.', left: 19, perDay: 20 })),
+  // Athena's answer carries a short spoken version (api/hercules.js SPEECH_HELP); Hercules's does not.
+  askHercules: vi.fn(async (list, coach) => ({ reply: 'Answer from ' + coach + '.' + (coach === 'athena' ? '\n\n- 1.6-2.2 g/kg\n\n```olympus-speech\nAbout two grams of protein per kilo.\n```' : ''), left: 19, perDay: 20 })),
 }))
 vi.mock('../lib/voice.js', async orig => ({
   ...(await orig()),
   canSpeak: () => true,
   warmVoice: () => Promise.resolve(),
   warmCoachVoice: who => { h.warmed.push(who); return Promise.resolve() },
-  speak: (text, { who }) => { h.said.push(who); return new Promise(r => h.ends.push(r)) },
+  speak: (text, { who }) => { h.said.push(who); h.texts.push(text); return new Promise(r => h.ends.push(r)) },
   stopSpeaking: async () => { h.stops++ },
 }))
 vi.mock('../components/Voice.jsx', async orig => ({
@@ -35,7 +36,7 @@ const flush = () => act(() => new Promise(r => setTimeout(r, 0)))
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   localStorage.clear(); resetGreetingForTests()
-  Object.assign(h, { said: [], ends: [], stops: 0, mic: 0, warmed: [] })
+  Object.assign(h, { said: [], texts: [], ends: [], stops: 0, mic: 0, warmed: [] })
   localStorage.setItem('olympus_voice_mode', '1')
   useStore.setState({ S: structuredClone(DEF), user: { id: 'u1', name: 'Giuseppe Rossi' }, ready: true })
   host = document.createElement('div'); document.body.appendChild(host)
@@ -62,6 +63,11 @@ describe('voice mode with both coaches', () => {
     await act(async () => { h.ends[0]() })
     await flush()
     expect(h.said).toEqual(['hercules', 'athena'])
+    // Each says its spoken version when it wrote one, else its written answer; the spoken
+    // version is never shown.
+    expect(h.texts).toEqual(['Answer from hercules.', 'About two grams of protein per kilo.'])
+    expect(host.textContent).not.toContain('olympus-speech')
+    expect(host.textContent).not.toContain('About two grams')
     expect(h.stops).toBe(stopsWhileTalking)
     expect(h.mic).toBe(micAtStart)
     await act(async () => { h.ends[1]() })

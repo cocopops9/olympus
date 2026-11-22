@@ -133,11 +133,13 @@ export async function speakLocal(text, { key, speed = 1, sid = null, accent = ''
 // said with), those are made now too, and speak plays them at once: Chiron's greeting while he
 // gets up. That is asked each time; the engine alone once per voice per start of the app.
 const warmed = new Map()   // voice -> promise
-export function warmLocal({ key, sid = null, accent = '', model = '', speed = 1, pitch = 1, parts = null } = {}) {
+// With `measure`, a line of about 2 s is made as well, to measure how fast this phone makes the
+// voice ({ rtf, measured } in the result); also asked each time.
+export function warmLocal({ key, sid = null, accent = '', model = '', speed = 1, pitch = 1, parts = null, measure = false } = {}) {
   if (!localVoicesOn() || !hasLocalVoice(key)) return Promise.resolve(null)
   const v = availableVoice(key)
   const args = { lang: key, sid: sid ?? (Number(v?.sid) || 0), accent, speed, pitch, ...(model ? { model } : {}) }
-  if (parts?.length) return plugin().then(({ p }) => p.warm({ ...args, parts })).catch(() => null)
+  if (parts?.length || measure) return plugin().then(({ p }) => p.warm({ ...args, ...(parts?.length ? { parts } : {}), ...(measure ? { measure: true } : {}) })).catch(() => null)
   const id = key + '|' + accent + '|' + model
   if (!warmed.has(id)) {
     const job = plugin().then(({ p }) => p.warm(args)).catch(() => { warmed.delete(id); return null })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { speechParts, cleanLine, sentencesOf, PAUSE, LIMITS } from './speech-text.js'
+import { speechParts, cleanLine, sentencesOf, splitSpeech, PAUSE, LIMITS } from './speech-text.js'
 
 const texts = parts => parts.map(p => p.text)
 
@@ -82,5 +82,20 @@ describe('speechParts', () => {
   it('reads the Italian greeting as two pieces with a sentence pause', () => {
     const parts = speechParts('Sono sveglio. Inizia un esercizio e chiedimi quello che vuoi.')
     expect(parts).toEqual([{ text: 'Sono sveglio.', pause: PAUSE.sentence }, { text: 'Inizia un esercizio e chiedimi quello che vuoi.', pause: 0 }])
+  })
+})
+
+describe('splitSpeech', () => {
+  it('takes the spoken version out of the written answer', () => {
+    const reply = '**Rest**\n- 2 to 3 min on compounds\n\n```olympus-action\n{"type": "set_rest", "seconds": 150}\n```\n\n```olympus-speech\nRest about two and a half minutes between your compound sets.\n```'
+    const { text, speech } = splitSpeech(reply)
+    expect(speech).toBe('Rest about two and a half minutes between your compound sets.')
+    expect(text).toBe('**Rest**\n- 2 to 3 min on compounds\n\n```olympus-action\n{"type": "set_rest", "seconds": 150}\n```')
+  })
+
+  it('gives no spoken version when there is none, and drops a block left open', () => {
+    expect(splitSpeech('Just the answer.')).toEqual({ text: 'Just the answer.', speech: '' })
+    expect(splitSpeech('The answer.\n\n```olympus-speech\nThe answer, said')).toEqual({ text: 'The answer.', speech: 'The answer, said' })
+    expect(splitSpeech('')).toEqual({ text: '', speech: '' })
   })
 })

@@ -36,6 +36,7 @@ import { CalliopeFace, calliopeSheet } from './Calliope.jsx'
 import ExerciseDemo from './ExerciseDemo.jsx'
 import { demoFor } from '../lib/exercise-ask.js'
 import { richBlocks, inlineRuns } from '../lib/rich-text.js'
+import { splitSpeech } from '../lib/speech-text.js'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -287,10 +288,11 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
         setWriting(r)
         try {
           const res = own ? await askOwnCoach(ownCoach(uid, coach) || {}, msgs) : await askHercules(msgs, r, { chatId: sent.current })
-          const content = cleanReply(res.reply)
+          // What is shown, and the shorter version voice mode says instead (lib/speech-text.js).
+          const { text: content, speech } = splitSpeech(cleanReply(res.reply))
           const demo = demoFor(msg, content, useStore.getState().S.customEx || [], demoShown)
           demoShown = demoShown || !!demo || splitActions(content).actions.some(isShown)
-          msgs = [...msgs, { role: 'assistant', content, ts: Date.now(), ...(demo ? { demo } : {}), ...(own ? {} : { coach: r }), ...(res.model ? { model: String(res.model).slice(0, 40) } : {}) }]
+          msgs = [...msgs, { role: 'assistant', content, ts: Date.now(), ...(speech ? { speech } : {}), ...(demo ? { demo } : {}), ...(own ? {} : { coach: r }), ...(res.model ? { model: String(res.model).slice(0, 40) } : {}) }]
           commit(putChat(latest.current, sent.current, msgs))
           if (!own) { const st = { ...(statusOf(uid, r) || {}), on: true, left: res.left, perDay: res.perDay }; setCached(uid, r, st); if (r === statusCoach) setStatus(st) }
         } catch (e) {
