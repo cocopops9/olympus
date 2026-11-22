@@ -215,6 +215,9 @@ function ChironVoice({ tips, unit, online }) {
   const [mouth, setMouth] = useState(0)
   const [heard, setHeard] = useState('')
   const [said, setSaid] = useState('')
+  // What is said is the coach's answer: shown whole, with its demonstration and its cards (Reply),
+  // not only the words read aloud.
+  const [answered, setAnswered] = useState(false)
   const [paused, setPaused] = useState(false)
   const live = useRef(true)
   const stopListening = useRef(null)
@@ -227,10 +230,11 @@ function ChironVoice({ tips, unit, online }) {
     if (cur && useStore.getState().S.active && cur.ts < (useStore.getState().S.active.start || 0)) c.start()
   }, [])
 
-  const say = async text => {
+  const say = async (text, { answer = false } = {}) => {
     const words = speakable(text)
     if (!words) return
     setSaid(words)
+    setAnswered(answer)
     // He is shown thinking until the sound really starts, then the mouth opens and shuts at the pace
     // of syllables, a little irregular, while the voice reads.
     setPose('thinking')
@@ -289,7 +293,7 @@ function ChironVoice({ tips, unit, online }) {
       setPose('thinking')
       const reply = await chat.current.send(text)
       if (!going()) return
-      await say(reply || chat.current.err || t('I could not answer that. Try again.'))
+      await say(reply || chat.current.err || t('I could not answer that. Try again.'), { answer: !!reply })
     }
     // Not listening any more: the microphone closes now, so music sounds right again.
     if (going()) { setPose('idle'); setPaused(true); releaseMic() }
@@ -310,14 +314,15 @@ function ChironVoice({ tips, unit, online }) {
   }
   const keyboard = () => { halt(); setPose('idle'); setPaused(true); chironSheet() }
   const status = pose === 'listening' ? t('I am listening…') : pose === 'writing' ? t('Writing out what you said…') : pose === 'thinking' ? t('Let me think…') : pose === 'speaking' ? t('Chiron is speaking') : paused ? t('Tap the microphone to talk to me.') : t('Your coach between sets')
-  return <div className="chv" role="group" aria-label={t('Chiron')}>
+  const lastAnswer = c.list[c.list.length - 1]?.role === 'assistant' ? c.list[c.list.length - 1] : null
+  return <div className="chv-wrap" role="group" aria-label={t('Chiron')}>
+  <div className="chv">
     <button className="chv-fig" onClick={toggleMic} aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}>
       <ChironFigure state={pose === 'writing' ? 'thinking' : pose} mouth={mouth} size={140} />
     </button>
     <div className="chv-side">
       <div className="chv-n"><b>{t('Chiron')}</b><span className={'chv-st ' + pose} aria-live="polite">{status}</span></div>
       {heard && pose !== 'speaking' && <p className="chv-heard">“{heard}”</p>}
-      {said && <p className="chv-said">{said.length > 220 ? said.slice(0, 219) + '…' : said}</p>}
       <div className="chv-ctl">
         <button className={'chv-b mic' + (pose === 'listening' ? ' on' : '')} onClick={toggleMic} disabled={!online}
           aria-label={pose === 'listening' ? t('Stop listening') : t('Talk to Chiron')}><Icon name="mic" /></button>
@@ -325,6 +330,10 @@ function ChironVoice({ tips, unit, online }) {
         <button className="chv-b" onClick={() => { halt(); sleepNow() }} aria-label={t('Let him sleep')}><Icon name="moon" /></button>
       </div>
     </div>
+  </div>
+    {answered && lastAnswer
+      ? <div className="chv-said chv-answer" key={lastAnswer.ts}><Reply m={lastAnswer} onApplied={k => c.markApplied(c.list.length - 1, k)} /></div>
+      : said && <p className="chv-said">{said}</p>}
   </div>
 }
 

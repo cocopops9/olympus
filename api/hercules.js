@@ -197,7 +197,7 @@ export const ACTIONS_HELP = [
   'The app shows it as a card with an Apply button: nothing changes until they tap it, so never say it is done. The actions:',
   '- create_routine {"name": "Push A", "exercises": [{"name": "barbell bench press", "sets": 4, "reps": 6, "weight": 80}]} (exercise names in English, as in the app; up to 15 exercises; weight in their unit, 0 if unknown)',
   '- add_exercise {"name": "cable fly", "sets": 3, "reps": 12, "weight": 15} (only while a workout is in progress)',
-  '- show_exercise {"name": "barbell bench press"} (when they ask how an exercise is done: the app shows its demonstration video beside your words; then explain the technique in a few short cues: setup, movement, the usual mistake)',
+  '- show_exercise {"name": "barbell bench press"} (always add it when they ask how an exercise is done, how to train or perform it, its form or technique, or to show or explain it: the app shows its demonstration video beside your words; then explain the technique in a few short cues: setup, movement, the usual mistake)',
   '- set_next_sets {"weight": 82.5, "reps": 6} (the remaining sets of the current exercise of the workout in progress)',
   '- set_rest {"seconds": 150} (the default rest between sets, 15 to 600)',
   '- set_stats_cards {"cards": ["summary", "progress", "muscles"]} (which statistics their Stats page shows, in order; ids: highlights, summary, activity, progress, muscles, weekly, effort, structural, photos, recent)',
@@ -211,7 +211,7 @@ export const CHIRON_ACTIONS_HELP = [
   '```olympus-action\n{"type": "set_next_sets", "weight": 82.5, "reps": 6}\n```',
   '- set_next_sets {"weight": 82.5, "reps": 6} (the remaining sets of the current exercise)',
   '- add_exercise {"name": "cable fly", "sets": 3, "reps": 12, "weight": 15} (exercise names in English, as in the app)',
-  '- show_exercise {"name": "barbell bench press"} (when they ask how an exercise is done: the app shows its demonstration video beside your words; then explain the technique in a few short cues: setup, movement, the usual mistake)',
+  '- show_exercise {"name": "barbell bench press"} (always add it when they ask how an exercise is done, how to train or perform it, its form or technique, or to show or explain it: the app shows its demonstration video beside your words; then explain the technique in a few short cues: setup, movement, the usual mistake)',
   'Nothing changes until they tap it: never say it is done.',
 ].join('\n');
 
@@ -285,6 +285,7 @@ export function systemPrompt({ name = '', lang = 'en', context = '', coach = 'he
     'Coach like a real expert who knows this person: use their training data below, refer to their actual exercises, sessions, volume and progress, and give concrete, practical answers (exercises, sets, reps, effort as RIR or RPE, rest, progression, substitutions, technique cues, food examples and amounts).',
     'Base what you say on current evidence and well-established practice; when the evidence is mixed or individual, say so in one line. Do not invent facts about the person: if something you need is missing, ask one short question.',
     c.style + ' Keep answers short: usually under 160 words, short paragraphs or a few bullet points, unless the person asks for a full plan or more detail.',
+    'Your answer is read on a narrow phone screen and may be read aloud. Format it with only: short paragraphs, "- " bullet points, "1. " numbered steps, **bold** for a few key words, and a short heading line in **bold** before a group of bullets. Never write tables, HTML tags (no <br>), code blocks other than the action blocks below, or horizontal rules.',
     // Hercules and Athena share one conversation in the app; an answer by the other is marked.
     !persona && ['hercules', 'athena'].includes(coachOf(coach))
       ? `Hercules and Athena talk with the person in the same conversation. A message that begins with "[${coachOf(coach) === 'hercules' ? 'Athena' : 'Hercules'} answered this one]" is ${coachOf(coach) === 'hercules' ? 'Athena' : 'Hercules'}'s answer, not the person's words and not yours: build on it, add what it missed, or disagree with a reason, without repeating it. When it is the last message, give your own view of the person's question just before it. Never begin your own answer with such a mark.`
@@ -303,6 +304,25 @@ export function systemPrompt({ name = '', lang = 'en', context = '', coach = 'he
 
 /** What the model thought before answering is not part of the answer. */
 export const withoutThinking = text => String(text).replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trim();
+
+/**
+ * An answer the reply limit cut off (finish_reason "length") ends at its last whole sentence or
+ * line, and an action block left open is dropped, so the person never reads a half word or a
+ * broken card. Unchanged when nothing whole is left.
+ */
+export function wholeAnswer(text) {
+  let s = String(text);
+  if ((s.match(/```/g) || []).length % 2) s = s.slice(0, s.lastIndexOf('```'));
+  s = s.trimEnd();
+  let end = -1;
+  for (const m of s.matchAll(/[.!?…。！？](?=["')\]»”*]*(?:\s|$))/g)) end = m.index + 1;
+  const line = s.lastIndexOf('\n');
+  const at = Math.max(end, line);
+  const cut = at > 0 ? s.slice(0, at).replace(/\*+$/, '').trimEnd() : '';
+  // A sentence end inside bold leaves "**" behind: closed again.
+  const bold = (cut.match(/\*\*/g) || []).length % 2 ? cut + '**' : cut;
+  return bold || String(text).trim();
+}
 
 // Parameters some models take and some refuse; the request is repeated without them when refused.
 const extrasFor = model => (/gpt-oss/.test(model) ? { reasoning_effort: 'low', include_reasoning: false } : /qwen/.test(model) ? { reasoning_effort: 'none' } : {});
@@ -330,7 +350,11 @@ async function call(config, model, messages, fetchImpl, timeoutMs, more = {}) {
     if (res.status === 400 && Object.keys(extras).length) ({ res, body } = await post(config, model, messages, {}, fetchImpl, ctl.signal));
     if (!res.ok) return { status: res.status, error: body?.error?.message || res.statusText || 'error' };
     const reply = body?.choices?.[0]?.message?.content;
-    const clean = typeof reply === 'string' ? withoutThinking(reply) : '';
+    let clean = typeof reply === 'string' ? withoutThinking(reply) : '';
+    if (clean && body?.choices?.[0]?.finish_reason === 'length') {
+      console.error(model + ': answer cut at the reply limit (' + (config.replyTokens || LIMITS.replyTokens) + ' tokens)');
+      clean = wholeAnswer(clean);
+    }
     return clean ? { reply: clean } : { status: 502, error: 'empty answer' };
   } catch (e) {
     return { status: e?.name === 'AbortError' ? 504 : 502, error: e?.message || 'no answer' };
