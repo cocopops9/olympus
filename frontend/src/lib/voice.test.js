@@ -70,6 +70,16 @@ describe('reading in pieces', () => {
     expect(p.join(' ')).toBe('Rest two minutes. Then 100 kg for 5. Keep your back straight. Breathe out as you push.')
     expect(p.length).toBe(2)
   })
+  it('after a title, the next pieces grow from short, so each is made while the one before plays', () => {
+    const body = Array.from({ length: 12 }, (_, i) => `Point ${i + 1} is about keeping the bar close and the back straight.`).join(' ')
+    const p = pieces('Squat technique\n' + body)
+    expect(p[0]).toBe('Squat technique')
+    // The second piece is short: one request for the whole rest came back 22 s after the title.
+    expect(p[1].length).toBeLessThan(200)
+    for (let i = 2; i < p.length - 1; i++) expect(p[i].length).toBeGreaterThan(p[i - 1].length)
+    expect(p.length).toBeLessThanOrEqual(4)
+    expect(p.join(' ')).toBe('Squat technique ' + body)
+  })
   it('a long sentence is cut', () => {
     expect(pieces('a'.repeat(500), 240).every(x => x.length <= 240)).toBe(true)
   })
