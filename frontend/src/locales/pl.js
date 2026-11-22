@@ -3666,7 +3666,7 @@ export default {
   "1. Open claude.ai in your browser": "1. Otwórz claude.ai w przeglądarce",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Dostosuj, Konektory, potem + Dodaj i Dodaj własny konektor. Na telefonie użyj przeglądarki, nie aplikacji Claude: konektory dodaje się w wersji webowej.",
   "2. Paste the address": "2. Wklej adres",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "Nazwa: Olympus. URL: wklej adres. Stuknij Dalej, wybierz Bez logowania, potem Dodaj.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "Nazwa: Olympus. URL: wklej adres. Stuknij Dalej. W sekcji Uwierzytelnianie wybierz Bez logowania, nawet jeśli Claude proponuje logowanie, potem Dodaj.",
   "Copy a new address": "Skopiuj nowy adres",
   "3. Ask": "3. Zapytaj",
   "Address copied: now finish in Claude.": "Adres skopiowany: dokończ teraz w Claude.",

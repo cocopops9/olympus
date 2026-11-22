@@ -3670,7 +3670,7 @@ export default {
   "1. Open claude.ai in your browser": "1. Откройте claude.ai в браузере",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Настроить, Коннекторы, затем + Добавить и Добавить свой коннектор. На телефоне используйте браузер, а не приложение Claude: коннекторы добавляются в веб-версии.",
   "2. Paste the address": "2. Вставьте адрес",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "Имя: Olympus. URL: вставьте адрес. Нажмите Продолжить, выберите Без входа, затем Добавить.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "Имя: Olympus. URL: вставьте адрес. Нажмите Продолжить. В разделе Аутентификация выберите Без входа, даже если Claude предлагает вход, затем Добавить.",
   "Copy a new address": "Скопировать новый адрес",
   "3. Ask": "3. Спросите",
   "Address copied: now finish in Claude.": "Адрес скопирован: теперь завершите в Claude.",
