@@ -13,3 +13,17 @@
  * @returns {boolean} true when the guest entrance may be shown and used.
  */
 export const guestAllowed = config => !(config && config.allow_guest === false)
+
+/**
+ * Whether someone without an account may use the app at all on this build.
+ *
+ * The Olympus phone app ships with its own server (DEFAULT_SERVER): there, an account is
+ * required, so a local-only guest profile is not a way in. A phone that was already used
+ * without an account goes back to the welcome screen; what it logged stays on the phone and
+ * comes along when that person signs in or creates an account (adoptProfile).
+ * Builds without a default server (self-hosted phone app, the web app) keep their own rules.
+ *
+ * @param {{mobile: boolean, defaultServer: string}} build
+ * @returns {boolean} false when only a signed-in account may get past the welcome screen.
+ */
+export const guestEntryAllowed = ({ mobile, defaultServer }) => !(mobile && defaultServer)
