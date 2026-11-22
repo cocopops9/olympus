@@ -1968,6 +1968,7 @@ export const PT_BR_OVERRIDES = {
   // Olympus: natural voices, the voice previews, exercise demonstrations.
   "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena e Calliope podem falar {0} com vozes mais naturais, cada um com a sua. Funcionam offline, sem limite diário ({1} MB, de preferência no Wi-Fi).",
   "Each coach speaks with a voice of their own. Tap to listen.": "Cada coach tem a própria voz. Toque para ouvir.",
+  "First word after {0} s. Each second of speech takes {1} s to make.": "Primeira palavra após {0} s. Cada segundo de fala leva {1} s para ser gerado.",
   "Hear the voices": "Ouvir as vozes",
   "Hello, I am {0}. Ask me anything about your training.": "Oi, eu sou {0}. Pergunte qualquer coisa sobre o seu treino.",
   "How to do {0}": "Como fazer: {0}",
