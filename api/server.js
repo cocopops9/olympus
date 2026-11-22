@@ -18,7 +18,7 @@ import * as coachJobs from './coach/jobs.js';
 import { coachRoutes } from './coach/routes.js';
 import { startCadence } from './coach/cadence.js';
 import { startWarmup } from './coach/warmup.js';
-import { dayReminderPush, nudgePush, restTimerPush, testPush, socialPush } from './push-messages.js';
+import { dayReminderPush, nudgePush, restTimerPush, testPush, socialPush, socialPushWanted } from './push-messages.js';
 import { verifyError } from './verify-error.js';
 import {
   hashPassword, verifyPassword, needsRehash, passwordProblem, passwordLength, nameKey, BusyError,
@@ -175,7 +175,12 @@ function atomicWrite(file, content, mode) { durableWrite(file, content, mode); }
 // in that profile's language, unless they switched it off (pushSocial in their social profile).
 const SOCIAL = createSocial({
   dataDir: DATA, write: (f, c) => atomicWrite(f, c, 0o600), users: () => db.users,
-  onNotify: (uid, note) => { sendPush(uid, socialPush(readStateCached(uid)?.lang, note)).catch(e => console.error('social push failed', e.message)); },
+  onNotify: (uid, note) => {
+    const st = readStateCached(uid);
+    // A kind switched off in Settings → Notifications (the app's S.newsOff) is not pushed either.
+    if (!socialPushWanted(st, note.kind)) return;
+    sendPush(uid, socialPush(st?.lang, note)).catch(e => console.error('social push failed', e.message));
+  },
 });
 // Messages between two profiles (chat.js): the conversations and the lists of them, kept in
 // memory and saved as one file, DATA_DIR/chats.json.

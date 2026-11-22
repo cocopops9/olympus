@@ -13,7 +13,7 @@ import {
   installLocalVoice, removeLocalVoice, voiceAsked, markVoiceAsked, onLocalVoices, coachesKey,
 } from '../lib/local-voice.js'
 import { KOKORO, kokoroLang } from '../lib/voice-cast.js'
-import { setNaturalVoiceOffer, speak, stopSpeaking, canSpeak } from '../lib/voice.js'
+import { setNaturalVoiceOffer, speak, stopSpeaking, canSpeak, voiceStats } from '../lib/voice.js'
 
 const FIRST = 'olympus_voice_setup_done'
 const firstDone = () => { try { return localStorage.getItem(FIRST) === '1' } catch { return true } }
@@ -137,6 +137,14 @@ export function VoiceSetupRow() {
 // Olympus: the four voices side by side, so they can be heard and compared on this phone. Each
 // reads the same sentence, in the language of the app, with the voice it speaks with everywhere.
 const SPEAKERS = [['chiron', 'Chiron'], ['hercules', 'Hercules'], ['athena', 'Athena'], ['calliope', 'Calliope']]
+// How fast the offline voice was the last time this coach spoke here (lib/voice.js voiceStats).
+const timing = who => {
+  const v = voiceStats[who]
+  if (!v || !(v.firstMs >= 0) || !(v.rtf > 0)) return null
+  return <div className="muted small">{t('First word after {0} s. Each second of speech takes {1} s to make.', fmtSec(v.firstMs / 1000), fmtSec(v.rtf))}</div>
+}
+const fmtSec = x => (Math.round(x * 10) / 10).toLocaleString(getLang(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
 function VoicePreviewSheet({ close }) {
   const [playing, setPlaying] = useState(null)
   useEffect(() => () => stopSpeaking(), [])
@@ -152,7 +160,7 @@ function VoicePreviewSheet({ close }) {
     <div className="list menu-list">
       {SPEAKERS.map(([who, name]) => <div key={who} className="item menu-item" role="button" tabIndex={0} onClick={() => play(who)}>
         <span className="lrow-i"><Icon name={playing === who ? 'wave' : 'play'} /></span>
-        <div className="grow"><div className="tt">{name}</div></div>
+        <div className="grow"><div className="tt">{name}</div>{timing(who)}</div>
       </div>)}
     </div>
     <div style={{ height: 10 }} />

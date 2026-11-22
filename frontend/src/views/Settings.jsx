@@ -58,6 +58,7 @@ import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '.
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
 import { setTelemetry, TELEMETRY_WHAT } from '../components/Community.jsx'
 import { PAGES, ROOT_GROUPS, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
+import { NewsKindsSection, NotifySoundSection } from '../components/NotificationPrefs.jsx'
 
 /* Settings (v1.3.11). The root is one screen: an account card, eleven rows that each open a page
    (/settings/<page>), and a search over every row. Rare things live one level further down
@@ -401,6 +402,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     profiles: (S.equipProfiles || []).length > 0, nameLang: EXERCISE_NAME_LANGS.includes(baseLang(lang)),
     pushOK: !MOBILE && pushSupported(), reminderOn: !!S.reminder?.on, nudge: !!S.reminder?.nudge,
     autoBackup: !!S.autoBackup, synced: !!sync, installTip: !MOBILE && !standalone(), androidWeb: IS_ANDROID,
+    social: socialReady(user),
   }
   const mode = scheduleModeOf(S)
   const layout = ['list', 'compact', 'focus'].includes(S.workoutView) ? S.workoutView : 'cards'
@@ -630,7 +632,12 @@ export default function Settings({ page = null, find = null, via = null }) {
       </>
     },
 
-    reminders: () => <NotificationsCard S={S} update={update} toast={toast} />,
+    // Notifications: the reminders, which kinds of social news you hear about, and their sound.
+    reminders: () => <>
+      <NotificationsCard S={S} update={update} toast={toast} />
+      {socialReady(user) && <NewsKindsSection S={S} update={update} />}
+      <NotifySoundSection S={S} social={socialReady(user)} />
+    </>,
 
     plan: () => <>
       <Section>
@@ -1113,7 +1120,7 @@ function MobileReminderCard({ S, update, toast }) {
     setReminder({ on })
   }
   return (
-    <Section title={t('Notifications')}
+    <Section title={t('Reminders')}
       footer={S.reminder?.on ? t('Reminds you at this time on days that have a routine planned.') + nudgeNote(S) : null}>
       <Row icon="calendar" iconTint="var(--orange)" title={t('Workout day reminder')}>
         <Switch checked={!!S.reminder?.on} onChange={toggle} />
@@ -1188,7 +1195,7 @@ function PushCard({ S, update, toast }) {
 
   return <>
     <Section
-      title={t('Notifications')}
+      title={t('Reminders')}
       footer={on && S.reminder?.on
         ? t("Only sent on days you have a routine planned and haven't logged a workout yet.") +
           (S.reminder?.tz ? ' ' + t('Timezone: {0} (auto-detected, updates if you travel).', S.reminder.tz) : '') +

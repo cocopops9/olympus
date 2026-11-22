@@ -717,6 +717,15 @@ test('social pushes speak the profile’s language and fall back to English', as
   assert.equal(socialPush('ja', { kind: 'request', fromName: 'Ken' }).body, 'Ken wants to follow you');
 });
 
+test('a kind of social news switched off in the app is not pushed; every kind is on by default', async () => {
+  const { socialPushWanted } = await import('../push-messages.js');
+  assert.equal(socialPushWanted(null, 'like'), true);
+  assert.equal(socialPushWanted({}, 'comment'), true);
+  assert.equal(socialPushWanted({ newsOff: ['like', 'follow'] }, 'like'), false);
+  assert.equal(socialPushWanted({ newsOff: ['like', 'follow'] }, 'comment'), true);
+  assert.equal(socialPushWanted({ newsOff: 'like' }, 'like'), true);
+});
+
 test('a workout posted twice (an offline retry, a second device) stays one post', t => {
   const { s } = store(t, [ANNA, BEN]);
   const w = { name: 'Chest & Triceps', d: '2026-10-25', sets: 12, exercises: [{ n: 'bench press', sets: 4, best: '80 kg × 6' }] };

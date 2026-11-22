@@ -123,10 +123,10 @@ describe('the root', () => {
     expect(rowTitled('Workout').querySelector('.lrow-v').textContent).toBe('No rest timer · Cards')
   })
 
-  it('signed in, Reminders is there and the card names the account; on the phone app the Coach too', () => {
+  it('signed in, Notifications is there and the card names the account; on the phone app the Coach too', () => {
     mocks.user = { id: 'u1', name: 'Dana' }
     mount()
-    expect(titles()).toContain('Reminders')
+    expect(titles()).toContain('Notifications')
     expect(titles()).not.toContain('AI Coach')
     expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('Dana')
     // the profile picture, as everyone sees it (a god's portrait until one is chosen; its
@@ -135,10 +135,31 @@ describe('the root', () => {
     mocks.user = null
     mocks.MOBILE = true
     mount()
-    expect(titles()).toContain('Reminders')
+    expect(titles()).toContain('Notifications')
     // Olympus: the AI coaches live in their own screen, not in Settings.
     expect(titles()).not.toContain('AI Coach')
     expect(host.querySelector('.sp-acct .lrow-t').textContent).toBe('This phone')
+  })
+
+  it('Notifications: each kind of social news has its switch, and the sound its sheet', () => {
+    mocks.user = { id: 'u1', name: 'Dana' }
+    mount('reminders')
+    for (const k of ['Likes', 'Comments', 'New followers', 'Follow requests', 'Accepted requests']) expect(titles()).toContain(k)
+    act(() => rowTitled('Likes').querySelector('[role="switch"]').click())
+    expect(mocks.S.newsOff).toEqual(['like'])
+    mount('reminders')
+    expect(rowTitled('Likes').querySelector('[role="switch"]').getAttribute('aria-checked')).toBe('false')
+    expect(rowTitled('Notification sound').querySelector('.lrow-v').textContent).toBe('Cymbals and lyre')
+    act(() => rowTitled('Notification sound').click())
+    expect(mocks.sheets).toHaveLength(1)
+    act(() => rowTitled('Timer alerts').click())
+    expect(mocks.navs).toEqual([['/settings/alerts']])
+    // the phone app without a server: no social news to choose from, the sound is still there
+    mocks.user = null
+    mocks.MOBILE = true
+    mount('reminders')
+    expect(titles()).not.toContain('Likes')
+    expect(titles()).toContain('Notification sound')
   })
 
   it('a row opens its page; the card opens Account', () => {

@@ -21,6 +21,7 @@
 // session busy. (Suspending does NOT hand the phone back to a paused music app — see 1.)
 import { REST_SOUNDS } from './rest-sounds.js'
 import { MEDAL_SOUNDS, DRUM_RING, medalSoundEnd } from './medal-sounds.js'
+import { NOTIFY_SOUNDS, CYMBAL_BASE, CYMBAL_PARTIALS, notifySoundEnd } from './notify-sounds.js'
 
 let audioCtx = null
 let idleTm = null
@@ -220,6 +221,10 @@ const pluck = (ctx, freq, when, dur = 1.1, peak = 0.5, out = ctx.destination) =>
   src.buffer = pluckBuffer(ctx, freq, dur)
   src.connect(g); g.connect(out)
   const t0 = ctx.currentTime + when
+  // Silent until the string is struck: a gain left at its default of 1 let the first sample of a
+  // string struck partway into a render quantum through at full strength, twice the peak asked
+  // for (measured offline: an 880 Hz pluck at 0.14 s peaked at 1.0 with a peak of 0.5).
+  g.gain.setValueAtTime(0, ctx.currentTime)
   g.gain.setValueAtTime(peak, t0)
   g.gain.exponentialRampToValueAtTime(0.001, t0 + dur)
   src.start(t0); src.stop(t0 + dur + 0.05)
@@ -306,4 +311,57 @@ export function medalSound(enabled, tier) {
     for (const [f, w] of snd.drum || []) drum(ctx, f, w, out)
     sleepAfter(medalSoundEnd(snd) + 0.1)
   } catch (e) { /* a medal without its sound is still a medal */ }
+}
+
+// A pair of small bronze cymbals (kymbala) struck together: for each cymbal, a few sine partials in
+// a struck plate's inharmonic ratios, each dying away on its own, the higher ones sooner. The two
+// cymbals are a little apart in pitch, so their partials beat and the strike shimmers.
+const cymbal = (ctx, when, peak, out) => {
+  const t0 = ctx.currentTime + when
+  for (const base of CYMBAL_BASE) {
+    for (const [ratio, share, ring] of CYMBAL_PARTIALS) {
+      const o = ctx.createOscillator(), g = ctx.createGain()
+      o.type = 'sine'; o.frequency.value = base * ratio
+      o.connect(g); g.connect(out)
+      g.gain.setValueAtTime(0.0001, t0)
+      g.gain.exponentialRampToValueAtTime(peak * share, t0 + 0.003)
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + ring)
+      o.start(t0); o.stop(t0 + ring + 0.05)
+    }
+  }
+}
+
+/**
+ * Renders one Greek notification sound (lib/notify-sounds.js) into `ctx`, live or offline. The
+ * app plays it through notifySound(); scripts/render-notify-sounds.mjs renders it to the WAV files
+ * the Android notification channels play, so both are the same sound. Answers its length in seconds.
+ */
+export function renderNotifySound(ctx, id, out = ctx.destination) {
+  const snd = NOTIFY_SOUNDS[id]
+  if (!snd) return 0
+  // Through a compressor, like a medal's sound, so the plucks' sharp attacks set the peak less
+  // and the ring after them is heard: a notification is often heard from a pocket or a bag.
+  const mix = ctx.createGain()
+  mix.gain.value = snd.gain ?? 1
+  if (typeof ctx.createDynamicsCompressor === 'function') {
+    const comp = ctx.createDynamicsCompressor()
+    comp.threshold.value = -18; comp.knee.value = 6; comp.ratio.value = 6
+    comp.attack.value = 0.002; comp.release.value = 0.2
+    const makeup = ctx.createGain()
+    makeup.gain.value = snd.makeup ?? 1
+    mix.connect(comp); comp.connect(makeup); makeup.connect(out)
+  } else mix.connect(out)
+  for (const [w, p] of snd.cymbal || []) cymbal(ctx, w, p, mix)
+  for (const [f, w, d, p] of snd.lyre || []) pluck(ctx, f, w, d, p, mix)
+  return notifySoundEnd(id)
+}
+
+// A notification while the app is open (store/useSocial.js), or a tap on a choice in Settings.
+// 'system' and 'off' play nothing here: the phone's own sound is the phone's to play.
+export function notifySound(id) {
+  if (!Object.hasOwn(NOTIFY_SOUNDS, id)) return
+  try {
+    const ctx = wake()
+    sleepAfter(renderNotifySound(ctx, id) + 0.1)
+  } catch (e) { /* the news still arrives without its sound */ }
 }
