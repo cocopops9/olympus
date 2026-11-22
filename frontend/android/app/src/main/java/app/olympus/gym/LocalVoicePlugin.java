@@ -49,8 +49,13 @@ import java.util.zip.ZipInputStream;
  *   list()                                -> { langs: [...] }
  *   install({ lang, url, sha256 })        -> {}  with "progress" events { lang, received, total }
  *   remove({ lang })                      -> {}
- *   speak({ lang, text, sid, speed })     -> {}  when it has been read; a "start" event when the sound begins
- *                                         (with `model`: "m1", "m2"… a model of a coaches pack)
+ *   speak({ lang, text, sid, speed, parts })  -> { firstMs, rtf, … }  when it has been heard; a "start"
+ *                                         event when the sound begins (with `model`: "m1", "m2"… a model
+ *                                         of a coaches pack; `parts`: [{ text, pause }], the pieces to read
+ *                                         and the milliseconds of silence after each, lib/speech-text.js)
+ *   warm({ lang, accent, model, sid, speed, pitch, parts })  -> { loaded, loadMs, rtf }  the engine
+ *                                         made ready ahead, and with `parts` the first pieces of a line
+ *                                         about to be said made too (speak then plays them at once)
  *
  * A coaches pack (lang "coaches-de": voice-coaches-de.zip, .github/voices/coach-pack.py) holds the
  * Piper voices of the coaches who do not read with the language's own one: a folder per model
@@ -73,7 +78,7 @@ public class LocalVoicePlugin extends Plugin {
     private final ExecutorService work = Executors.newSingleThreadExecutor();
     private final ExecutorService downloads = Executors.newSingleThreadExecutor();
     private final Map<String, OfflineTts> engines = new HashMap<>();
-    private volatile AudioTrack playing = null;
+    private volatile Playback playback = null;
     private volatile int run = 0;
 
     private File root() {
@@ -215,32 +220,301 @@ public class LocalVoicePlugin extends Plugin {
         if (isCoaches(lang) && (!safeModel(model) || !hasVoice(new File(new File(root(), lang), model), new File(new File(root(), lang), "espeak-ng-data")))) {
             call.reject("no such voice in " + lang, "no-voice"); return;
         }
+        // The pieces to read and the pause after each (lib/speech-text.js), or the text cut here.
+        List<String> parts = new ArrayList<>();
+        List<Integer> pauses = new ArrayList<>();
+        JSArray given = call.getArray("parts");
+        if (given != null && given.length() > 0) {
+            for (int i = 0; i < given.length() && i < 400; i++) {
+                org.json.JSONObject o = given.optJSONObject(i);
+                if (o == null) continue;
+                String t = o.optString("text", "");
+                if (t.trim().isEmpty()) continue;
+                parts.add(t);
+                pauses.add(Math.max(0, Math.min(2000, o.optInt("pause", 0))));
+            }
+        } else {
+            for (String t : pieces(text)) { parts.add(t); pauses.add(SENTENCE_PAUSE_MS); }
+        }
+        if (parts.isEmpty()) { call.resolve(); return; }
         final String acc = accent;
         final String mod = isCoaches(lang) ? model : "";
         final float genSpeed = speed / pitch;
-        if (text.trim().isEmpty()) { call.resolve(); return; }
         final int me = ++run;
         stopPlaying();
         work.execute(() -> {
+            Playback out = null;
             try {
+                long t0 = System.nanoTime();
+                String key = engineKey(lang, acc, mod);
                 OfflineTts tts = engine(lang, acc, mod);
                 boolean letters = new File(voiceDir(lang, mod), "characters").isFile();
-                // One sentence at a time: the first is heard while the next is made.
-                List<String> parts = pieces(text);
-                boolean started = false;
-                for (String part : parts) {
+                double loadS = (System.nanoTime() - t0) / 1e9;
+                double genTotal = 0, firstS = -1;
+                // One piece at a time, the next one made while the one before it is heard. The sound
+                // starts once what is ready covers the time the next piece takes to make
+                // (SpeechPacing), so it does not stop for long in the middle.
+                for (int i = 0; i < parts.size(); i++) {
                     if (me != run) break;
-                    if (part.trim().isEmpty()) continue;
-                    GeneratedAudio audio = tts.generate(letters ? part.toLowerCase(java.util.Locale.ROOT) : part, sid, genSpeed);
+                    String part = parts.get(i);
+                    String said = letters ? part.toLowerCase(java.util.Locale.ROOT) : part;
+                    Made made = takeMade(madeKey(key, sid, genSpeed, said));
+                    if (made == null) {
+                        long g0 = System.nanoTime();
+                        GeneratedAudio audio = tts.generate(said, sid, genSpeed);
+                        double genS = (System.nanoTime() - g0) / 1e9;
+                        genTotal += genS;
+                        made = new Made(audio.getSamples(), audio.getSampleRate());
+                        if (made.samples != null && made.samples.length > 0) rtfs.put(key, SpeechPacing.updateRtf(rtfOf(key), genS, made.samples.length / (double) made.rate));
+                    }
                     if (me != run) break;
-                    if (!started) { started = true; notifyListeners("start", new JSObject()); }
-                    play(audio.getSamples(), Math.round(audio.getSampleRate() * pitch), me);
+                    float[] samples = made.samples;
+                    if (samples == null || samples.length == 0) continue;
+                    int rate = Math.round(made.rate * pitch);
+                    if (out == null) { out = new Playback(rate, me); playback = out; }
+                    boolean last = i == parts.size() - 1;
+                    out.add(samples, last ? 0 : SpeechPacing.pauseSamples(pauses.get(i), rate));
+                    // A next piece made ahead (warm with `parts`) costs no time.
+                    int nextChars = last ? 0 : hasMade(madeKey(key, sid, genSpeed, letters ? parts.get(i + 1).toLowerCase(java.util.Locale.ROOT) : parts.get(i + 1))) ? 0 : parts.get(i + 1).length();
+                    if (!out.started() && SpeechPacing.shouldStart(out.bufferedSeconds(), nextChars, speed, rtfOf(key))) {
+                        out.start();
+                        firstS = (System.nanoTime() - t0) / 1e9;
+                    }
                 }
-                call.resolve();
+                if (out != null && me == run) {
+                    if (!out.started()) { out.start(); firstS = (System.nanoTime() - t0) / 1e9; }
+                    out.finish();
+                    out.awaitEnd();
+                }
+                JSObject r = new JSObject();
+                r.put("loadMs", Math.round(loadS * 1000));
+                r.put("firstMs", Math.round(firstS * 1000));
+                r.put("rtf", Math.round(rtfOf(key) * 100) / 100.0);
+                r.put("genMs", Math.round(genTotal * 1000));
+                r.put("parts", parts.size());
+                r.put("stopped", me != run);
+                call.resolve(r);
+            } catch (Throwable e) {
+                call.reject("the voice failed: " + e.getMessage());
+            } finally {
+                if (out != null) { out.cancel(); out.release(); if (playback == out) playback = null; }
+            }
+        });
+    }
+
+    /**
+     * Makes the engine of a voice ready before it is needed: the model read from storage and run
+     * once, which on the first answer otherwise comes before the first word. Asked for when a coach
+     * is about to talk (Chiron getting up, voice mode turned on). Same arguments as speak, no text.
+     */
+    @PluginMethod
+    public void warm(PluginCall call) {
+        String lang = call.getString("lang");
+        String accent = call.getString("accent", "");
+        if (accent == null || !accent.matches("[a-z-]{0,8}")) accent = "";
+        String model = call.getString("model", "");
+        int sid = call.getInt("sid", 0);
+        float speed = call.getFloat("speed", 1.0f);
+        float pitch = Math.max(0.8f, Math.min(1.2f, call.getFloat("pitch", 1.0f)));
+        final float genSpeed = speed / pitch;
+        // `parts`: the first pieces of a line about to be said (Chiron's greeting), made now.
+        List<String> ahead = new ArrayList<>();
+        JSArray given = call.getArray("parts");
+        if (given != null) {
+            for (int i = 0; i < given.length() && ahead.size() < MADE_MAX; i++) {
+                org.json.JSONObject o = given.optJSONObject(i);
+                String t = o == null ? "" : o.optString("text", "");
+                if (!t.trim().isEmpty()) ahead.add(t);
+            }
+        }
+        if (!safeLang(lang) || !installed(lang)) { call.reject("no voice for " + lang, "no-voice"); return; }
+        final String acc = accent;
+        final String mod = isCoaches(lang) ? (safeModel(model) ? model : "") : "";
+        if (isCoaches(lang) && mod.isEmpty()) { call.reject("no such voice in " + lang, "no-voice"); return; }
+        work.execute(() -> {
+            try {
+                long t0 = System.nanoTime();
+                String key = engineKey(lang, acc, mod);
+                boolean had = hasEngine(key);
+                OfflineTts tts = engine(lang, acc, mod);
+                double loadS = (System.nanoTime() - t0) / 1e9;
+                JSObject r = new JSObject();
+                r.put("loaded", !had);
+                r.put("loadMs", Math.round(loadS * 1000));
+                boolean letters = new File(voiceDir(lang, mod), "characters").isFile();
+                if (!had && ahead.isEmpty()) {
+                    // One short line, thrown away: the first run of a model is slower than the next.
+                    String line = "Ok, let's go.";
+                    long g0 = System.nanoTime();
+                    GeneratedAudio a = tts.generate(letters ? line.toLowerCase(java.util.Locale.ROOT) : line, sid, 1.0f);
+                    double genS = (System.nanoTime() - g0) / 1e9;
+                    float[] s = a.getSamples();
+                    if (s != null && s.length > 0) rtfs.put(key, SpeechPacing.updateRtf(rtfOf(key), genS, s.length / (double) a.getSampleRate()));
+                    r.put("warmMs", Math.round(genS * 1000));
+                }
+                long a0 = System.nanoTime();
+                for (String part : ahead) {
+                    String said = letters ? part.toLowerCase(java.util.Locale.ROOT) : part;
+                    String mk = madeKey(key, sid, genSpeed, said);
+                    if (hasMade(mk)) continue;
+                    long g0 = System.nanoTime();
+                    GeneratedAudio a = tts.generate(said, sid, genSpeed);
+                    double genS = (System.nanoTime() - g0) / 1e9;
+                    Made m = new Made(a.getSamples(), a.getSampleRate());
+                    if (m.samples != null && m.samples.length > 0) rtfs.put(key, SpeechPacing.updateRtf(rtfOf(key), genS, m.samples.length / (double) m.rate));
+                    putMade(mk, m);
+                }
+                if (!ahead.isEmpty()) r.put("aheadMs", Math.round((System.nanoTime() - a0) / 1e6));
+                r.put("rtf", Math.round(rtfOf(key) * 100) / 100.0);
+                call.resolve(r);
             } catch (Throwable e) {
                 call.reject("the voice failed: " + e.getMessage());
             }
         });
+    }
+
+    // Pieces made ahead of being said (warm with `parts`), each used once. A few at most: one line.
+    private static final int MADE_MAX = 4;
+    private static final class Made {
+        final float[] samples; final int rate;
+        Made(float[] samples, int rate) { this.samples = samples; this.rate = rate; }
+    }
+    private final java.util.LinkedHashMap<String, Made> made = new java.util.LinkedHashMap<>();
+    private static String madeKey(String engine, int sid, float genSpeed, String text) {
+        return engine + "|" + sid + "|" + Math.round(genSpeed * 1000) + "|" + text;
+    }
+    private boolean hasMade(String k) { synchronized (made) { return made.containsKey(k); } }
+    private Made takeMade(String k) { synchronized (made) { return made.remove(k); } }
+    private void putMade(String k, Made m) {
+        synchronized (made) {
+            made.put(k, m);
+            while (made.size() > MADE_MAX) made.remove(made.keySet().iterator().next());
+        }
+    }
+
+    // The pause after a piece cut here (no pieces from the app): about a sentence's.
+    private static final int SENTENCE_PAUSE_MS = 150;
+
+    // How fast each engine makes its sound (seconds to make one second of it), learned as it speaks.
+    private final Map<String, Double> rtfs = new java.util.concurrent.ConcurrentHashMap<>();
+    private double rtfOf(String key) { Double r = rtfs.get(key); return r == null ? SpeechPacing.FIRST_RTF : r; }
+
+    /**
+     * One answer's sound: a streaming AudioTrack fed from a queue by a thread of its own, so each
+     * piece follows the one before it with only the pause it is given, and a piece is being made
+     * while another plays. Nothing is heard before start(); awaitEnd() returns once the last sample
+     * has been played, so the microphone only opens after the voice has really finished.
+     */
+    private final class Playback {
+        private final int rate;
+        private final int me;
+        private final AudioTrack track;
+        private final java.util.concurrent.LinkedBlockingQueue<short[]> queue = new java.util.concurrent.LinkedBlockingQueue<>();
+        private final short[] END = new short[0];
+        private volatile boolean started = false, cancelled = false;
+        private long queuedFrames = 0;        // written to the queue
+        private Thread feeder = null;
+
+        Playback(int rate, int me) {
+            this.rate = rate;
+            this.me = me;
+            int min = AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+            track = new AudioTrack.Builder()
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                    .setAudioFormat(new AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(rate)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .setBufferSizeInBytes(Math.max(min * 2, rate / 4 * 2))   // at least a quarter of a second
+                    .build();
+        }
+
+        boolean started() { return started; }
+
+        /** Seconds of sound queued and not yet heard. */
+        double bufferedSeconds() {
+            long heard = started ? Math.max(0, track.getPlaybackHeadPosition() & 0xffffffffL) : 0;
+            return Math.max(0, queuedFrames - heard) / (double) rate;
+        }
+
+        void add(float[] samples, int pauseFrames) {
+            short[] pcm = new short[samples.length + pauseFrames];
+            for (int i = 0; i < samples.length; i++) {
+                float s = Math.max(-1f, Math.min(1f, samples[i]));
+                pcm[i] = (short) (s * 32767);
+            }
+            queuedFrames += pcm.length;
+            queue.add(pcm);
+        }
+
+        void start() {
+            if (started) return;
+            started = true;
+            track.play();
+            notifyListeners("start", new JSObject());
+            feeder = new Thread(() -> {
+                try {
+                    while (!cancelled && me == run) {
+                        short[] pcm = queue.take();
+                        if (pcm == END) break;
+                        int off = 0;
+                        while (off < pcm.length && !cancelled && me == run) {
+                            int n = track.write(pcm, off, pcm.length - off);
+                            if (n <= 0) return;
+                            off += n;
+                        }
+                    }
+                } catch (Throwable ignored) {
+                    // Stopped (interrupted), or the track released under it: nothing more to play.
+                }
+            }, "olympus-voice");
+            feeder.start();
+        }
+
+        private long endFrames = 0;
+
+        /**
+         * Nothing more comes. A quarter of a second of silence follows the last word, so the track's
+         * start threshold never holds back the end of it; it is not waited for (awaitEnd).
+         */
+        void finish() {
+            endFrames = queuedFrames;
+            queue.add(new short[rate / 4]);
+            queue.add(END);
+        }
+
+        /** Returns once the last word has been played, or the answer was stopped. */
+        void awaitEnd() throws InterruptedException {
+            // A safety for a track that stops moving: the time left to play, and a second more.
+            long until = System.currentTimeMillis() + endFrames * 1000L / rate + 1000;
+            while (!cancelled && me == run && System.currentTimeMillis() < until) {
+                long head = track.getPlaybackHeadPosition() & 0xffffffffL;
+                if (head >= endFrames) break;
+                Thread.sleep(20);
+            }
+            // The last few milliseconds leave the speaker after the head has passed them.
+            if (!cancelled && me == run) Thread.sleep(60);
+            cancel();
+        }
+
+        void cancel() {
+            if (cancelled) return;
+            cancelled = true;
+            queue.clear();
+            queue.add(END);
+            try { track.pause(); track.flush(); } catch (Exception ignored) { }
+            if (feeder != null) feeder.interrupt();
+        }
+
+        void release() {
+            // The feeder leaves its write once the track is paused and flushed (cancel); the track
+            // is released after it, not under it.
+            try { if (feeder != null) feeder.join(300); } catch (InterruptedException ignored) { }
+            try { track.release(); } catch (Exception ignored) { }
+        }
     }
 
     // The text as the voice can read it: no markdown or pictures (it would read them as noise), and
@@ -305,11 +579,26 @@ public class LocalVoicePlugin extends Plugin {
     // The engines of coaches packs, the one read with last at the end.
     private final List<String> coachEngines = new ArrayList<>();
 
+    private String engineKey(String lang, String accent, String modelDir) {
+        boolean kokoro = new File(voiceDir(lang, modelDir), "voices.bin").isFile();
+        return kokoro ? lang + "|" + accent : modelDir.isEmpty() ? lang : lang + "|" + modelDir;
+    }
+
+    private boolean hasEngine(String key) { synchronized (engines) { return engines.containsKey(key); } }
+
+    // Threads for a voice: one per fast core. Phones have 4 fast cores and 4 slow ones at most
+    // (big.LITTLE); a thread on a slow core holds up the others at every step. Measured on a
+    // server: 4 threads made Kokoro 16% faster than 2.
+    private static int threads() {
+        int n = Runtime.getRuntime().availableProcessors() / 2;
+        return Math.max(2, Math.min(4, n));
+    }
+
     private OfflineTts engine(String lang, String accent, String modelDir) {
         File d = voiceDir(lang, modelDir);
         File espeak = new File(new File(root(), lang), "espeak-ng-data");
         boolean kokoro = new File(d, "voices.bin").isFile();
-        String key = kokoro ? lang + "|" + accent : modelDir.isEmpty() ? lang : lang + "|" + modelDir;
+        String key = engineKey(lang, accent, modelDir);
         synchronized (engines) {
             OfflineTts tts = engines.get(key);
             if (!modelDir.isEmpty()) {
@@ -346,7 +635,7 @@ public class LocalVoicePlugin extends Plugin {
                 if (!new File(d, "characters").isFile()) vits.setDataDir(espeak.getAbsolutePath());
                 model.setVits(vits);
             }
-            model.setNumThreads(2);
+            model.setNumThreads(threads());
             model.setProvider("cpu");
             OfflineTtsConfig config = new OfflineTtsConfig();
             config.setModel(model);
@@ -354,36 +643,6 @@ public class LocalVoicePlugin extends Plugin {
             engines.put(key, tts);
             return tts;
         }
-    }
-
-    // Plays the samples and returns once they have been heard (or stopped).
-    private void play(float[] samples, int rate, int me) throws InterruptedException {
-        if (samples == null || samples.length == 0) return;
-        short[] pcm = new short[samples.length];
-        for (int i = 0; i < samples.length; i++) {
-            float s = Math.max(-1f, Math.min(1f, samples[i]));
-            pcm[i] = (short) (s * 32767);
-        }
-        AudioTrack track = new AudioTrack.Builder()
-                .setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-                .setAudioFormat(new AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(rate)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .setBufferSizeInBytes(pcm.length * 2)
-                .build();
-        playing = track;
-        track.write(pcm, 0, pcm.length);
-        track.play();
-        long ms = (long) pcm.length * 1000L / rate;
-        long until = System.currentTimeMillis() + ms + 150;
-        while (System.currentTimeMillis() < until && me == run) Thread.sleep(40);
-        try { track.stop(); } catch (Exception ignored) { }
-        track.release();
-        if (playing == track) playing = null;
     }
 
     // The Kokoro engines of a pack, one per accent, when the pack is replaced or removed.
@@ -399,11 +658,9 @@ public class LocalVoicePlugin extends Plugin {
     }
 
     private void stopPlaying() {
-        AudioTrack t = playing;
-        playing = null;
-        if (t != null) {
-            try { t.pause(); t.flush(); } catch (Exception ignored) { }
-        }
+        Playback p = playback;
+        playback = null;
+        if (p != null) p.cancel();
     }
 
     private void progress(String lang, long got, long total) {

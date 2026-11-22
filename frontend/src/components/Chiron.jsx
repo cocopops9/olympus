@@ -17,7 +17,7 @@ import { coachProfileOf } from '../lib/coach-profile.js'
 import { tapWake, quickTips, WAKE_TAPS } from '../lib/chiron.js'
 import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
-import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice, releaseMic } from '../lib/voice.js'
+import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice, warmCoachVoice, speechGuardMs, releaseMic } from '../lib/voice.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
@@ -243,12 +243,15 @@ function ChironVoice({ tips, unit, online }) {
         setMouth(Math.max(0, Math.abs(Math.sin(k * 11.5)) * (0.55 + 0.45 * Math.abs(Math.sin(k * 2.3)))))
       }, 80)
     }
-    // A voice that never says it has finished (a WebView without voices) does not hold him: he
-    // goes on after about the time the words take to say, counted from when it started.
-    let giveUp
-    const enough = new Promise(r => { giveUp = r; setTimeout(r, 40000) })
-    const began = () => { start(); setTimeout(giveUp, 3000 + words.length * 90) }
+    // He listens again once the voice has finished, never on a clock while it still talks (the
+    // microphone opened in the middle of his greeting when its second sentence was slow to come).
+    // Only a voice that never starts, or never says it has finished, is given up on: 40 s with no
+    // sound, or speechGuardMs after the sound began.
+    let giveUp, guard
+    const enough = new Promise(r => { giveUp = r; guard = setTimeout(r, 40000) })
+    const began = () => { start(); clearTimeout(guard); guard = setTimeout(giveUp, speechGuardMs(words)) }
     try { if (canSpeak()) await Promise.race([speak(words, { who: 'chiron', onStart: began }), enough]) } catch { /* read on screen instead */ }
+    clearTimeout(guard)
     clearInterval(mouthTimer.current); setMouth(0)
   }
   const hear = () => new Promise(resolve => {
@@ -296,6 +299,7 @@ function ChironVoice({ tips, unit, online }) {
   useEffect(() => {
     live.current = true
     warmVoice()
+    warmCoachVoice('chiron')
     run(true)
     return () => { live.current = false; halt(); releaseMic() }
   }, [])
@@ -371,6 +375,8 @@ export function WorkoutChiron() {
   const online = socialReady(user)
   // Gets up on the page, then talks: from three taps (on a phone that can listen) or the microphone.
   const wakeToVoice = () => {
+    // His greeting is made while he gets up, so he says it as soon as he stands.
+    warmCoachVoice('chiron', greeting(tips, S.unit))
     clearTimeout(timer.current)
     setTap(null)
     setWaking(true)
@@ -379,6 +385,9 @@ export function WorkoutChiron() {
   const press = () => {
     // While he is getting up the taps wait: a fourth would start the count again over the animation.
     if (awake || waking) return
+    // His voice is made ready from the first tap: reading it in takes seconds on a phone, and the
+    // taps and his getting up cover them (lib/voice.js warmCoachVoice).
+    if (canHear) warmCoachVoice('chiron')
     const next = tapWake(tapRef.current, Date.now())
     clearTimeout(timer.current)
     if (next.awake) {

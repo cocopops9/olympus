@@ -110,16 +110,40 @@ export async function removeLocalVoice(key) {
 // `sid`, `accent`: a Kokoro speaker and the language it reads with (lib/voice-cast.js); a Piper
 // voice has its own speaker in the manifest. `pitch` plays it lower or higher, the pace kept.
 // `model`: which voice of a coaches pack ("m1", "m2"…).
-export async function speakLocal(text, { key, speed = 1, sid = null, accent = '', pitch = 1, model = '', onStart } = {}) {
+// `parts`: the pieces to read and the pause after each (lib/speech-text.js); the plugin cuts the
+// text itself when there are none. Resolves with what the plugin measured ({ firstMs, rtf, … }).
+export async function speakLocal(text, { key, speed = 1, sid = null, accent = '', pitch = 1, model = '', parts = null, onStart } = {}) {
   const v = availableVoice(key)
   const { p } = await plugin()
   let sub = null
   try {
     if (onStart) sub = await p.addListener('start', () => { const f = onStart; onStart = null; f?.() })
-    await p.speak({ lang: key, text, sid: sid ?? (Number(v?.sid) || 0), speed, pitch, accent, ...(model ? { model } : {}) })
+    return await p.speak({ lang: key, text, sid: sid ?? (Number(v?.sid) || 0), speed, pitch, accent, ...(model ? { model } : {}), ...(parts?.length ? { parts } : {}) })
   } finally {
     try { await sub?.remove() } catch { /* gone */ }
   }
+}
+
+/**
+ * Makes the offline voice of `key` ready ahead of its first line (LocalVoicePlugin.warm): the
+ * model read and run once, which otherwise holds up the first answer by seconds. Asked once per
+ * voice per start of the app; quietly nothing when it cannot.
+ */
+// With `parts` (the first pieces of a line about to be said, at the `speed` and `pitch` it will be
+// said with), those are made now too, and speak plays them at once: Chiron's greeting while he
+// gets up. That is asked each time; the engine alone once per voice per start of the app.
+const warmed = new Map()   // voice -> promise
+export function warmLocal({ key, sid = null, accent = '', model = '', speed = 1, pitch = 1, parts = null } = {}) {
+  if (!localVoicesOn() || !hasLocalVoice(key)) return Promise.resolve(null)
+  const v = availableVoice(key)
+  const args = { lang: key, sid: sid ?? (Number(v?.sid) || 0), accent, speed, pitch, ...(model ? { model } : {}) }
+  if (parts?.length) return plugin().then(({ p }) => p.warm({ ...args, parts })).catch(() => null)
+  const id = key + '|' + accent + '|' + model
+  if (!warmed.has(id)) {
+    const job = plugin().then(({ p }) => p.warm(args)).catch(() => { warmed.delete(id); return null })
+    warmed.set(id, job)
+  }
+  return warmed.get(id)
 }
 
 export async function stopLocal() {
@@ -132,7 +156,7 @@ const askedKey = key => 'olympus_voice_asked_' + key
 export const voiceAsked = key => { try { return localStorage.getItem(askedKey(key)) === '1' } catch { return true } }
 export const markVoiceAsked = key => { try { localStorage.setItem(askedKey(key), '1') } catch { /* asked again */ } }
 
-export const _resetLocalVoices = () => { manifest = null; installed = null; installing.clear() }
+export const _resetLocalVoices = () => { manifest = null; installed = null; installing.clear(); warmed.clear() }
 export const _setLocalVoices = (m, inst) => { manifest = m; installed = new Set(inst || []) }
 
 /**

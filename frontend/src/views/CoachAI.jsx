@@ -18,7 +18,7 @@ import { Switch } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import '../coach-ai.css'
 import { MicButton, useCanListen, VoiceModeButton } from '../components/Voice.jsx'
-import { speak, stopSpeaking, canSpeak, warmVoice } from '../lib/voice.js'
+import { speak, stopSpeaking, canSpeak, warmVoice, warmCoachVoice } from '../lib/voice.js'
 import { useUI } from '../store/useUI.js'
 import { splitActions } from '../lib/coach-actions.js'
 
@@ -119,28 +119,52 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
   // which goes by itself when you stop talking (lib/voice.js).
   const mic = useRef(null)
   const seen = useRef(list.length)
+  const seenChat = useRef(data.current)
   const [speaking, setSpeaking] = useState(false)
   const [writing, setWriting] = useState(false)   // what was said is being written out
-  // With both coaches answering, each answer is read as it comes, and the microphone opens once
-  // the last one has been read.
+  // With both coaches answering, each answer is read as it comes, after the one before it has
+  // been read in full (it used to stop Hercules mid-sentence the moment Athena's answer arrived),
+  // and the microphone opens once the last one has been read. `epoch` counts the stops (voice mode
+  // off, another conversation, the page left): what was queued before one is never read.
+  const queue = useRef(Promise.resolve())
+  const queued = useRef(0)
+  const epoch = useRef(0)
+  const hushAll = () => { epoch.current++; queued.current = 0; stopSpeaking(); setSpeaking(false) }
   useEffect(() => {
-    const grew = list.length > seen.current
+    // Every answer that came since the last look, in order: two can arrive in one render. Another
+    // conversation opened is not read out: only what is said in it from now on.
+    const sameChat = seenChat.current === data.current
+    seenChat.current = data.current
+    const fresh = sameChat && list.length > seen.current ? list.slice(seen.current).filter(m => m.role === 'assistant') : []
     seen.current = list.length
-    const lastMsg = list[list.length - 1]
-    if (!voice || !grew || lastMsg?.role !== 'assistant') return
-    let gone = false
-    setSpeaking(true)
-    speak(splitActions(lastMsg.content).text, { who: c.authorOf(lastMsg) }).finally(() => { if (gone) return; setSpeaking(false); if (!busyRef.current) { silences.current = 0; mic.current?.start() } })
-    return () => { gone = true; stopSpeaking(); setSpeaking(false) }
+    if (!voice || !fresh.length) return
+    const mine = epoch.current
+    for (const m of fresh) {
+      const text = splitActions(m.content).text, who = c.authorOf(m)
+      queued.current++
+      setSpeaking(true)
+      warmCoachVoice(who)
+      queue.current = queue.current
+        .then(() => (mine === epoch.current ? speak(text, { who }) : null))
+        .catch(() => {})
+        .finally(() => {
+          if (mine !== epoch.current || --queued.current > 0) return
+          setSpeaking(false)
+          if (!busyRef.current) { silences.current = 0; mic.current?.start() }
+        })
+    }
   }, [list.length, voice])
+  useEffect(() => () => hushAll(), [data.current])
   const busyRef = useRef(busy)
   busyRef.current = busy
   // Voice mode is hands free: it listens as soon as it is on, and after every answer read; the
   // microphone button ends it. Two silences in a row end it too.
   const silences = useRef(0)
   useEffect(() => {
-    if (!voice) { stopSpeaking(); mic.current?.stop({ cancel: true }); return }
+    if (!voice) { hushAll(); mic.current?.stop({ cancel: true }); return }
     warmVoice()
+    // The voices of the coaches of this chat made ready before their first answer.
+    for (const who of coach === BOTH ? ['hercules', 'athena'] : [coach]) warmCoachVoice(who)
     silences.current = 0
     const tm = setTimeout(() => { if (!busyRef.current) mic.current?.start() }, 300)
     return () => clearTimeout(tm)
@@ -185,7 +209,7 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
         <MicButton control={mic} disabled={busy} onText={setDraft} onFinal={text => { if (voice) { silences.current = 0; send(text) } else setDraft(text) }}
-          onSilence={heardNothing} onHeard={setWriting} onStopVoice={voice ? () => { stopSpeaking(); onVoiceOff?.() } : undefined} />
+          onSilence={heardNothing} onHeard={setWriting} onStopVoice={voice ? () => { hushAll(); onVoiceOff?.() } : undefined} />
         {!voice && onVoiceOn && !draft.trim() && <VoiceModeButton disabled={busy} onStart={onVoiceOn} />}
         <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
       </div>
