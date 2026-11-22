@@ -92,25 +92,12 @@ const SPORT_LIST = [
   },
 ]
 
-// Where the exercise catalogue already draws the movement, the sport or drill shows that drawing
-// (the value is its catalogue id): same artist and style as every other exercise, and a real
-// animation rather than two key poses. Chosen from the catalogue's own names and descriptions,
-// for the movement that is closest to how the sport is played or the drill is done; a medicine
-// ball stands in for the sport's ball where the throw is the same. The rest keep a drawing of
-// their own (sport-media.js).
+// A drill that is itself a catalogue exercise (a hangboard hang, a wall sit, a step-up) shows that
+// exercise's drawing (the value is its catalogue id): same artist and style as every other
+// exercise, and a real animation. Only an exact match counts: a sport, or a drill done with the
+// sport's ball or racket, keeps a drawing of its own that shows the sport (sport-media.js), since
+// a look-alike exercise (a medicine-ball throw for a handball shot) does not show the sport.
 export const CATALOGUE_DRAWING = {
-  'sport-football': '5967', // agility ball drill: footwork and direction changes with a ball
-  'sport-basketball': '4709', // basketball shot jump
-  'sport-swimming': '6944', // swimming crawl style
-  'sport-hiking': '3004', // briskly walking
-  'sport-skiing': '3671', // ski step: side-to-side hops that imitate a skier
-  'drill-football-cone-dribble': '5986', // cone drill
-  'drill-basketball-form-shooting': '4709', // basketball shot jump
-  'drill-swimming-kickboard': '3227', // swimmer kicks: the flutter kick, lying face down
-  'drill-swimming-pull-buoy': '6944', // swimming crawl style: the arm stroke alone
-  'drill-rugby-ground-pass': '1699', // medicine ball rotational throw
-  'drill-handball-wall-throw': '3442', // medicine ball standing overhead throw
-  'drill-handball-defense-step': '4257', // shuffle: quick lateral steps in an athletic stance
   'drill-climbing-hangboard': '3832', // handboard slope hang
   'drill-climbing-lock-off': '3835', // handboard hang with 90 degree elbow
   'drill-hiking-step-up': '4579', // bodyweight step up on stepbox
