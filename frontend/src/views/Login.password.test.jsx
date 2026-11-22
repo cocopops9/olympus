@@ -58,7 +58,7 @@ describe('Login with password sign-in', () => {
     expect(page.textContent).toContain('Passkeys use your fingerprint. No passwords to remember.')
     mocks.webauthn = false
     const noPasskeys = mount(<Login />)
-    expect(noPasskeys.textContent).toContain("This browser doesn't do passkeys, but you can still use Olympus locally on this device.")
+    expect(noPasskeys.textContent).toContain("This browser doesn't support passkeys, and this instance requires an account.")
     expect(buttons(noPasskeys)).not.toContain('Sign in with password')
   })
 
@@ -98,5 +98,17 @@ describe('Login with password sign-in', () => {
     expect(buttons(sheet)).toContain('Create profile')
     expect(sheet.querySelector('input[placeholder="Invite code"]')).toBeTruthy()
     expect(sheet.querySelector('input[autocomplete="new-password"]')).toBeTruthy()
+  })
+
+  it('never offers "Continue without account", whatever the server config says', () => {
+    for (const config of [null, { allow_guest: true }, { password_login: true, allow_guest: true }]) {
+      for (const webauthn of [true, false]) {
+        mocks.config = config
+        mocks.webauthn = webauthn
+        const page = mount(<Login />)
+        expect(buttons(page)).not.toContain('Continue without account')
+        expect(page.textContent).not.toContain('Continue without account')
+      }
+    }
   })
 })
