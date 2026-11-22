@@ -146,3 +146,26 @@ describe('endsSentence', () => {
     expect(endsSentence('')).toBe(false)
   })
 })
+
+describe('the end of a question in a room that gets louder', () => {
+  it('is heard when the phone raises the noise after the last word, instead of listening on to the limit', async () => {
+    const { out, LISTEN } = await start()
+    level = 0.003   // a quiet room while it is measured
+    await run(LISTEN.calibrateMs + 100)
+    level = 0.08    // the question
+    await run(1500)
+    level = 0.03    // after it, the automatic gain lifts the room's noise far over the first measure
+    await run(LISTEN.floorMs + LISTEN.pauseMs + 1000)
+    expect(out.ended).toBe(true)
+    expect(calls.length).toBeGreaterThan(0)
+  })
+
+  it('a steady question is not cut short: speech never becomes the floor while its pauses are there', async () => {
+    const { out, LISTEN } = await start()
+    level = 0.003
+    await run(LISTEN.calibrateMs + 100)
+    // Ten seconds of speech: 400 ms of voice, 150 ms between words.
+    for (let i = 0; i < 18; i++) { level = 0.08; await run(400); level = 0.004; await run(150) }
+    expect(out.ended).toBe(false)
+  })
+})
