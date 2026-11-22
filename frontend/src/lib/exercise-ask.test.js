@@ -35,6 +35,22 @@ describe('askedExercise', () => {
     expect(askedExercise('cómo hago dominadas')).toBe('0652')
   })
 
+  it('reads "tell me how", "show me how to train" and training verbs, strictly by name', async () => {
+    await setLang('en')
+    expect(askedExercise('tell me how to do a hip thrust')).toBe('2072')
+    expect(askedExercise('show me how to train the squat')).toBe('1197')
+    expect(askedExercise('how do I train romanian deadlift?')).toBe('0085')
+    // After a training verb the words may name a muscle: only an exercise's own name counts.
+    for (const q of ['how do I train my chest?', 'how to train legs', 'show me how to train back']) expect(askedExercise(q)).toBe(null)
+    await setLang('it')
+    expect(askedExercise('dimmi come si fa lo stacco rumeno')).toBe('0085')
+    expect(askedExercise('fammi vedere come si fa la panca piana')).toBe('0025')
+    expect(askedExercise('come si allena lo stacco rumeno?')).toBe('0085')
+    expect(askedExercise('come allenare il petto?')).toBe(null)
+    await setLang('es')
+    expect(askedExercise('dime cómo se hace el press de banca')).toBe('0025')
+  })
+
   it('shows nothing without a technique question naming an exercise', async () => {
     await setLang('en')
     for (const q of ['how do I grow my chest?', 'I did squats today', 'how is my progress?', 'bench press 80 kg for 5, good?', '', null]) {

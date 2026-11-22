@@ -33,6 +33,7 @@ import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { EXDB } from '../lib/exercises-data.js'
 import { WorkoutChiron, useChiron, WAKE_VOICE_MS } from './Chiron.jsx'
+import { askHercules } from '../lib/hercules.js'
 
 const squat = EXDB.find(e => e.n === 'barbell full squat')
 const roots = []
@@ -85,6 +86,20 @@ describe('Chiron by voice', () => {
     expect(useChiron.getState().awake).toBe(false)
     // asleep again: the figure lies down in the page
     expect(host.querySelector('.whdr-chiron')).not.toBeNull()
+  })
+
+  it('shows his whole answer under him, with the demonstration of the exercise asked about', { timeout: 30000 }, async () => {
+    // Longer than the 220 characters the panel used to cut the answer at.
+    const long = 'Drive through the heels and squeeze the glutes at the top. '.repeat(6) + 'Last cue: chin tucked.'
+    askHercules.mockImplementationOnce(async () => ({ reply: long, left: 14, perDay: 15 }))
+    mocks.heard = ['How do I do a hip thrust?', '', '']
+    const host = mount(<WorkoutChiron />)
+    await wake(host)
+    await wait(1600)
+    const answer = host.querySelector('.chv-answer')
+    expect(answer).not.toBeNull()
+    expect(answer.textContent).toContain('Last cue: chin tucked.')
+    expect(answer.querySelector('.ex-demo')).not.toBeNull()
   })
 
   it('the voice panel never shows him asleep or waking again: he stands from the first moment', { timeout: 30000 }, async () => {

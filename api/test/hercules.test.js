@@ -2,7 +2,7 @@
    the fallback model, and the two servers' routes with a stand-in provider. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS, CALLIOPE_DEFAULTS, APP_GUIDE, GUIDE_SCREENS, modelLabel } from '../hercules.js';
+import { herculesConfig, spend, refund, leftToday, cleanChat, systemPrompt, askHercules, handleHercules, withoutThinking, wholeAnswer, LIMITS, DEFAULTS, ATHENA_DEFAULTS, CHIRON_DEFAULTS, CALLIOPE_DEFAULTS, APP_GUIDE, GUIDE_SCREENS, modelLabel } from '../hercules.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const fakeFetch = (answers, seen = []) => async (url, init) => {
@@ -277,4 +277,15 @@ test('Calliope, the guide, answers about the app from its manual, briefly, and s
   assert.match(seen[0].messages[0].content, /Screen open now: Home/);
   // Her count is her own: the coaches' messages are untouched.
   assert.equal((await call('GET', '/api/hercules', null, token)).body.left, LIMITS.perDay);
+});
+
+test('an answer cut at the reply limit ends at its last whole sentence, without an open action block', async () => {
+  assert.equal(wholeAnswer('Rest 3 min. Then add 2.5 kg and keep the bar pa'), 'Rest 3 min.');
+  assert.equal(wholeAnswer('**Setup**\n- Feet wide.\n- Chest up and bra'), '**Setup**\n- Feet wide.');
+  assert.equal(wholeAnswer('Good set.\n```olympus-action\n{"type": "set_rest", "sec'), 'Good set.');
+  assert.equal(wholeAnswer('**Keep it light.** Then go hea'), '**Keep it light.**');
+  assert.equal(wholeAnswer('no sentence end at all'), 'no sentence end at all');
+  const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ finish_reason: 'length', message: { content: 'Squat deep. Brace har' } }] }) });
+  const r = await askHercules({ config: { key: 'k', model: 'm', baseUrl: 'x' }, messages: [{ role: 'user', content: 'hi' }], fetchImpl });
+  assert.equal(r.reply, 'Squat deep.');
 });

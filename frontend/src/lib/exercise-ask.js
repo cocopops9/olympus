@@ -27,13 +27,15 @@ const CUES = [
   // English
   'how (?:do|should|can) (?:i|you|we|one)(?: properly| correctly| safely)?(?: do| perform| execute| make)?',
   'how to(?: properly| correctly| safely)?(?: do| perform| execute)?', 'how is', 'how are',
+  'tell me how to(?: properly| correctly| safely)?(?: do| perform| execute)?',
   '(?:proper |correct |good )?(?:form|technique) (?:for|on|of|in)', 'show me(?: how to do)?', 'explain(?: how to do)?', 'teach me(?: how to do)?',
   // Italian
   'come (?:si )?(?:fa|fanno|esegue|eseguono|eseguo|faccio|fare|eseguire)(?: correttamente| bene)?', 'come (?:devo|posso|dovrei) (?:fare|eseguire)',
   '(?:la )?(?:tecnica|esecuzione|forma) (?:corretta )?(?:del|dello|della|dei|degli|delle|di|per)', 'spiegami(?: come (?:si )?fa)?', 'mostrami(?: come (?:si )?fa)?', 'insegnami(?: a fare)?',
+  'dimmi come (?:si )?(?:fa|fanno|esegue|fare|eseguire)', 'fammi vedere(?: come (?:si )?(?:fa|fanno|esegue))?', 'come (?:si )?(?:allena|allenano|alleno|allenare)',
   // Spanish
   'como (?:se )?(?:hace|hacen|realiza|realizo|hago|hacer|ejecuta)(?: correctamente| bien)?', 'como (?:debo|puedo) (?:hacer|realizar)',
-  '(?:la )?(?:tecnica|ejecucion) (?:correcta )?(?:del|de la|de los|de las|de|para)', 'explicame(?: como se hace)?', 'muestrame(?: como se hace)?', 'ensename(?: a hacer)?',
+  '(?:la )?(?:tecnica|ejecucion) (?:correcta )?(?:del|de la|de los|de las|de|para)', 'explicame(?: como se hace)?', 'muestrame(?: como se hace)?', 'ensename(?: a hacer)?', 'dime como se hace', 'como (?:se )?(?:entrena|entrenar|entreno)',
   // Portuguese
   'como (?:se )?(?:faz|fazem|executa|faco|fazer|executar)(?: corretamente| bem)?', 'como (?:devo|posso) (?:fazer|executar)',
   '(?:a )?(?:tecnica|execucao) (?:correta )?(?:do|da|dos|das|de|para)', 'explica(?:-me)?(?: como se faz)?', 'mostra(?:-me)?(?: como se faz)?',
@@ -44,6 +46,21 @@ const CUES = [
   'wie (?:mache|macht|fuhre|fuhrt) (?:ich|man)(?: richtig)?', 'wie geht', '(?:die )?(?:technik|ausfuhrung) (?:beim|bei|vom|von|fur)', 'zeig mir(?: wie)?', 'erklar mir(?: wie)?',
 ]
 const CUE = new RegExp('(?:^|[^a-z])(?:' + CUES.join('|') + ')(?=[^a-z]|$)', 'g')
+
+// A verb of training right after the cue ("how do I train the squat", "come allenare lo stacco"):
+// what it trains may be a muscle as well as a lift, so the name after it must be an exercise's
+// own name (exerciseNamed `strict`): "how do I train my chest" must not pick a chest press.
+// Strict means: a query that holds a body part is taken only when it is a whole name by itself
+// ("squat"); "romanian deadlift" names a lift, "chest" or "upper chest" a muscle.
+const BODY = new Set(`
+  chest pec pecs back lats legs leg arms arm shoulders shoulder delts abs core glutes glute biceps triceps quads hamstrings calves forearms traps neck hips
+  petto pettorali schiena dorsali gambe gamba braccia braccio spalle spalla addominali addome glutei bicipiti tricipiti quadricipiti femorali polpacci avambracci trapezi collo
+  pecho pectorales espalda piernas pierna brazos brazo hombros hombro abdominales gluteos biceps triceps cuadriceps isquiotibiales gemelos antebrazos
+  peito costas pernas braco bracos ombros abdomen
+  poitrine dos jambes bras epaules abdos fessiers
+  brust rucken beine arme schultern bauch po
+`.split(/\s+/).filter(Boolean))
+const TRAIN = new Set('train training allenare allenarsi allenamento allena alleno allenano entrenar entreno entrena treinar treino treina entrainer entraine trainieren trainiere'.split(' '))
 
 // Leading words that are not part of a name: articles, "a", "the", "properly"...
 const FILLER = new Set(`
@@ -102,12 +119,12 @@ function distance(ex, words) {
  * press before the rest). A name that is the query itself wins outright, as in the library
  * search: "squat" is the squat, not the dumbbell squat.
  */
-function exerciseNamed(query, custom) {
+function exerciseNamed(query, custom, strict = false) {
   const found = searchExercises([...custom, ...CATALOGUE], query.join(' ')).slice(0, 40)
   let best = null, bestScore = -Infinity
   for (const ex of found) {
     const d = distance(ex, query)
-    if (d == null) continue
+    if (d == null || (strict && d > 0 && query.some(w => BODY.has(w)))) continue
     const score = priorOf(ex) - d + (d === 0 ? 50 : 0)
     // Ties keep the search's order.
     if (score > bestScore) { best = ex; bestScore = score }
@@ -116,14 +133,14 @@ function exerciseNamed(query, custom) {
 }
 
 /** The exercise one candidate phrase names, or null: the longest start of it that names one. */
-function nameAfter(phrase, custom) {
+function nameAfter(phrase, custom, strict = false) {
   const words = wordsOf(phrase)
-  while (words.length && FILLER.has(words[0])) words.shift()
+  while (words.length && (FILLER.has(words[0]) || TRAIN.has(words[0]))) { strict = strict || TRAIN.has(words[0]); words.shift() }
   for (let n = Math.min(words.length, MAX_WORDS); n > 0; n--) {
     const query = words.slice(0, n)
     while (query.length && FILLER.has(query[query.length - 1])) query.pop()
     if (!query.length || query.join('').length < 3) continue
-    const ex = exerciseNamed(query, custom)
+    const ex = exerciseNamed(query, custom, strict)
     if (ex) return ex
   }
   return null
@@ -140,7 +157,8 @@ export function askedExercise(question, custom = []) {
   // how do I do a pull-up" finds the pull-up after either.
   for (const m of text.matchAll(CUE)) {
     const rest = text.slice(m.index + m[0].length).split(/[?!.;:\n]/)[0]
-    const ex = nameAfter(rest, custom)
+    // A cue that ends with a training verb ("come si allena") makes the name strict, as one followed by it does.
+    const ex = nameAfter(rest, custom, TRAIN.has(wordsOf(m[0]).pop()))
     if (ex) return ex.id
   }
   return null

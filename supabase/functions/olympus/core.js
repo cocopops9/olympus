@@ -30,7 +30,7 @@ import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
-import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, googleClients, verifyGoogle } from './accounts.js';
+import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, startEmailChange, checkEmailChange, emailChangeMail, emailChangedNotice, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
 const WID_KEEP = 50;
@@ -411,7 +411,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     'GET /api/account/password': async req => {
       const { user } = await signedIn(req);
       const users = usersOf(await store.read('db'));
-      return { status: 200, body: { set: !!user.pw, setAt: user.pw?.set || null, passkeys: 0, name: user.name, nameTaken: nameTaken(users, user.name, user.id), email: user.email || null } };
+      const pending = user.emailChange?.email && user.emailChange.exp > now() ? user.emailChange.email : null;
+      return { status: 200, body: { set: !!user.pw, setAt: user.pw?.set || null, passkeys: 0, name: user.name, nameTaken: nameTaken(users, user.name, user.id), email: user.email || null, emailPending: pending, emailCodes: canMail(env) } };
     },
     'POST /api/account/password': async req => {
       const { user } = await signedIn(req);
@@ -448,6 +449,85 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         u.name = name;
         set('db', db);
       });
+      return out;
+    },
+
+    // A new e-mail address (the one a forgotten password is reset through), in two steps: this
+    // asks for the current password (a profile made with Google, which has none, goes on the code
+    // alone) and sends a code to the new address; POST /api/account/email/confirm with that code
+    // makes the change. Wrong passwords here count towards the same pause as at sign-in. A server
+    // that cannot send e-mail saves the address at once, unverified, as the Node server does.
+    'POST /api/account/email': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      const email = normalizeEmail(text(body.email).trim());
+      if (!email) return { status: 400, body: { error: 'that is not an e-mail address', code: 'email-invalid' } };
+      if (email === user.email) return { status: 200, body: { ok: true, email } };
+      if (user.pw?.h) {
+        const wait = lockedFor(user);
+        if (wait) return { status: 429, body: { error: 'too many attempts', code: 'locked', retryAfter: Math.ceil(wait / 1000) } };
+        const current = text(body.current);
+        if (!current) return { status: 403, body: { error: 'enter your current password', code: 'current-required' } };
+        if (!(await verifyPassword(current, user.pw.h))) {
+          await store.update(['db'], ({ get, set }) => {
+            const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
+            if (!u) return;
+            u.fails = (u.fails || 0) + 1;
+            if (u.fails > LOCK_FREE) u.lockUntil = now() + Math.min(LOCK_MAX_MS, LOCK_BASE_MS * 2 ** (u.fails - LOCK_FREE - 1));
+            set('db', db);
+          });
+          return { status: 403, body: { error: 'your current password is not right', code: 'current-wrong' } };
+        }
+      }
+      const codes = canMail(env);
+      let out = null, mail = null;
+      await store.update(['db'], async ({ get, set }) => {
+        const db = get('db'); const users = usersOf(db); const u = users.find(x => x.id === user.id);
+        if (!u) { out = { status: 401, body: { error: 'not signed in' } }; return; }
+        if (users.some(x => x.id !== u.id && x.email === email)) { out = { status: 409, body: { error: 'another profile already uses this e-mail address', code: 'email-taken' } }; return; }
+        if (!codes) {
+          u.email = email; u.emailVerified = false; delete u.emailChange;
+          set('db', db);
+          out = { status: 200, body: { ok: true, email } };
+          return;
+        }
+        try {
+          const { code, change } = startEmailChange(u, email, await key(), now());
+          u.emailChange = change;
+          mail = emailChangeMail(u, email, code);
+          set('db', db);
+        } catch (e) {
+          out = { status: 429, body: e.message === 'wait' ? { error: 'wait a minute before asking for another code', code: 'wait' } : { error: 'too many codes today', code: 'limit' } };
+        }
+      });
+      if (out) return out;
+      let sent = false;
+      try { sent = await sendMail(env, mail, fetchImpl); } catch (e) { console.error('email change mail', e); }
+      if (!sent) return { status: 503, body: { error: 'the e-mail could not be sent', code: 'mail-failed' } };
+      return { status: 200, body: { ok: true, pending: true, email } };
+    },
+    'POST /api/account/email/confirm': async req => {
+      const { user } = await signedIn(req);
+      const body = await readJson(req);
+      let out = { status: 400, body: { error: 'ask for a new code', code: 'code-none' } }, notice = null;
+      await store.update(['db'], async ({ get, set }) => {
+        const db = get('db'); const users = usersOf(db); const u = users.find(x => x.id === user.id);
+        if (!u) return;
+        const verdict = checkEmailChange(u, await key(), body.code, now());
+        if (verdict === 'wrong') { set('db', db); out = { status: 400, body: { error: 'the code is not right', code: 'code-wrong' } }; return; }
+        if (verdict === 'expired') { out = { status: 400, body: { error: 'the code has expired', code: 'code-expired' } }; return; }
+        if (verdict !== 'ok') return;
+        const email = u.emailChange.email;
+        if (users.some(x => x.id !== u.id && x.email === email)) { out = { status: 409, body: { error: 'another profile already uses this e-mail address', code: 'email-taken' } }; return; }
+        const old = u.email;
+        u.email = email; u.emailVerified = true;
+        // Only the stamps stay, so the limit on codes a day still holds.
+        u.emailChange = { sent: u.emailChange.sent || [] };
+        set('db', db);
+        if (old && old !== email) notice = emailChangedNotice(u, old, email);
+        out = { status: 200, body: { ok: true, email } };
+      });
+      if (notice) { try { await sendMail(env, notice, fetchImpl); } catch (e) { console.error('email notice', e); } }
       return out;
     },
 

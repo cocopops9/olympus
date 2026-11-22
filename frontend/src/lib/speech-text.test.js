@@ -25,6 +25,20 @@ describe('speechParts', () => {
     expect(parts[0].text.length).toBeLessThanOrEqual(LIMITS.first)
   })
 
+  it('reads html line breaks and bullets inside a line as items of their own', () => {
+    const parts = speechParts('| **Setup** | • Feet apart, toes out. <br>• Weight on mid-foot. |')
+    expect(texts(parts)).toEqual(['Setup.', 'Feet apart, toes out.', 'Weight on mid-foot.'])
+    expect(parts.every(p => !/[•<>]/.test(p.text))).toBe(true)
+  })
+
+  it('cuts a long first sentence with no comma before a bracket, else between words', () => {
+    expect(texts(speechParts('Squat Fundamentals (knee-friendly for your DX-ACL and cartilage issues)'))[0]).toBe('Squat Fundamentals')
+    const first = speechParts('Today we are going to work on the deadlift setup and the way you brace')[0]
+    expect(first.text.length).toBeLessThanOrEqual(LIMITS.first)
+    expect(first.pause).toBe(PAUSE.clause)
+    expect(first.text).toMatch(/\w$/)
+  })
+
   it('does not cut a short first sentence, nor a later one at its commas', () => {
     const later = 'Then, slowly, lower the bar to your chest.'
     expect(texts(speechParts('I am awake. ' + later))).toEqual(['I am awake.', later])

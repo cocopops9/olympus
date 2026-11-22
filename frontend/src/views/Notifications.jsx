@@ -7,6 +7,7 @@ import { useSocial } from '../store/useSocial.js'
 import { t } from '../lib/i18n.js'
 import { fmtAgo } from '../lib/format.js'
 import { socialReady, fetchNotifications, fetchRequests, answerRequest, markNotificationsRead, notificationLine, socialErrorText } from '../lib/social.js'
+import { visibleNews, newsOn } from '../lib/notify-sounds.js'
 import { Button } from '../components/ui.jsx'
 import Icon from '../components/Icon.jsx'
 import { Avatar, PersonRow } from '../components/Social.jsx'
@@ -17,6 +18,7 @@ const ICON = { like: 'heart', comment: 'chat', follow: 'person', request: 'lock'
 export default function Notifications() {
   const nav = useNavigate()
   const user = useStore(s => s.user)
+  const S = useStore(s => s.S)
   const ready = socialReady(user)
   const [items, setItems] = useState(null)
   const [requests, setRequests] = useState([])
@@ -30,10 +32,12 @@ export default function Notifications() {
       const reqs = await fetchRequests()
       // A request still waiting is listed once, with its buttons, not again among the news.
       const waiting = new Set(reqs.map(u => u.id))
-      setItems((before.items || []).filter(n => !(n.kind === 'request' && waiting.has(n.from.id))))
+      // The kinds switched off in Settings → Notifications are not listed. A follow request still
+      // waiting for an answer is, whatever the switch says: it cannot be answered anywhere else.
+      setItems(visibleNews(S, before.items).items.filter(n => !(n.kind === 'request' && waiting.has(n.from.id))))
       setRequests(reqs)
       const after = await markNotificationsRead()
-      useSocial.getState().set({ unread: after.unread || 0, requests: after.requests || 0 })
+      useSocial.getState().set({ unread: visibleNews(S, after.items).unread, requests: newsOn(S, 'request') ? after.requests || 0 : 0 })
     } catch (e) { setError(socialErrorText(e, t)) }
   }
   useEffect(() => { if (ready) load() }, [ready])
@@ -56,6 +60,7 @@ export default function Notifications() {
     <div className="hdr">
       <button className="iconbtn" onClick={back} aria-label={t('Back')}><Icon name="chevronLeft" /></button>
       <div style={{ flex: 1, marginInlineStart: 12 }}><h1>{t('Notifications')}</h1></div>
+      <button className="iconbtn" onClick={() => nav('/settings/reminders')} aria-label={t('Notification settings')}><Icon name="gear" /></button>
     </div>
     {error && <div className="empty">{error}<div style={{ marginTop: 12 }}><Button size="sm" variant="tinted" icon="reset" onClick={load}>{t('Try again')}</Button></div></div>}
     {requests.length > 0 && <>

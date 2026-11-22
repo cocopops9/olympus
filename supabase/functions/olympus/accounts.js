@@ -102,6 +102,71 @@ export function resetMail(user, code) {
   return { to: user.email, subject: `${code} is your Olympus reset code`, text, html };
 }
 
+/* ------------------------------ e-mail change ------------------------------ */
+
+// A new address takes effect only once a code sent to it comes back: the address is where a
+// forgotten password is reset, so a typo, or someone holding a copied session, must not be able
+// to point it somewhere the owner cannot read. The code is bound to the address it was sent to,
+// and follows the reset's limits (15 minutes, 5 tries, one e-mail a minute, 5 a day).
+const changeHash = (secret, uid, email, code) => crypto.createHmac('sha256', secret).update('email:' + uid + ':' + email + ':' + code).digest('base64url');
+
+/**
+ * A pending change of `user`'s address to `email` at `now`: { code, change } where `change` is
+ * what the account keeps. Throws 'wait' or 'limit' like startReset.
+ */
+export function startEmailChange(user, email, secret, now, rand = () => crypto.randomInt(1000000)) {
+  const sent = (user.emailChange?.sent || []).filter(t => t > now - 86400000);
+  if (sent.length && now - sent[sent.length - 1] < RESET_GAP_MS) throw new Error('wait');
+  if (sent.length >= RESET_PER_DAY) throw new Error('limit');
+  const code = String(rand()).padStart(6, '0');
+  return { code, change: { email, h: changeHash(secret, user.id, email, code), exp: now + RESET_TTL_MS, tries: 0, sent: [...sent, now] } };
+}
+
+/** Checks `code` against the pending change: 'ok' | 'expired' | 'wrong' (a try used) | 'none'. */
+export function checkEmailChange(user, secret, code, now) {
+  const c = user.emailChange;
+  if (!c?.h || !c.email) return 'none';
+  if (c.exp < now || (c.tries || 0) >= RESET_TRIES) return 'expired';
+  const want = Buffer.from(c.h), got = Buffer.from(changeHash(secret, user.id, c.email, String(code || '').replace(/\D/g, '')));
+  if (want.length === got.length && crypto.timingSafeEqual(want, got)) return 'ok';
+  c.tries = (c.tries || 0) + 1;
+  return 'wrong';
+}
+
+const escHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/** The code to the new address: { to, subject, text, html }. */
+export function emailChangeMail(user, email, code) {
+  const text = [
+    `Hi ${user.name},`,
+    '',
+    `Your Olympus code to confirm this e-mail address is: ${code}`,
+    '',
+    'Enter it in the app. It works for 15 minutes.',
+    'If you did not ask for this, ignore this e-mail: nothing changes.',
+  ].join('\n');
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111">
+<p>Hi ${escHtml(user.name)},</p><p>Your Olympus code to confirm this e-mail address is:</p>
+<p style="font-size:30px;font-weight:700;letter-spacing:6px;margin:18px 0">${code}</p>
+<p>Enter it in the app. It works for 15 minutes.</p>
+<p style="color:#666">If you did not ask for this, ignore this e-mail: nothing changes.</p></div>`;
+  return { to: email, subject: `${code} is your Olympus confirmation code`, text, html };
+}
+
+/** The note to the old address once the change is made, so a change nobody asked for is seen. */
+export function emailChangedNotice(user, oldEmail, newEmail) {
+  const text = [
+    `Hi ${user.name},`,
+    '',
+    `The e-mail address of your Olympus profile is now ${newEmail}.`,
+    'If you did not make this change, change your password in the app and write to us.',
+  ].join('\n');
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111">
+<p>Hi ${escHtml(user.name)},</p><p>The e-mail address of your Olympus profile is now <b>${escHtml(newEmail)}</b>.</p>
+<p style="color:#666">If you did not make this change, change your password in the app and write to us.</p></div>`;
+  return { to: oldEmail, subject: 'Your Olympus e-mail address was changed', text, html };
+}
+
 /* ------------------------------ Google ------------------------------------ */
 
 /** The client IDs Google tokens may be for (GOOGLE_CLIENT_ID, comma separated); [] = Google off. */

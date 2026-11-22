@@ -463,6 +463,13 @@ export function speak(text, opts = {}) {
 }
 let speaker = null
 
+/**
+ * What the offline voice measured the last time each coach spoke on this phone: { firstMs: from
+ * the call to the first sound, rtf: seconds taken to make one second of speech }. Shown under the
+ * voices in Settings (components/VoiceSetup.jsx), so how fast this phone is can be read off it.
+ */
+export const voiceStats = {}
+
 async function speakNow(text, { lang = voiceTag(), rate, who, onStart, keep = false } = {}) {
   // onStart: called once, when the sound really begins (the server's voice can take a few seconds).
   let started = false
@@ -486,6 +493,7 @@ async function speakNow(text, { lang = voiceTag(), rate, who, onStart, keep = fa
     try {
       const stats = await speakLocal(say, { ...v, speed: v.speed * (v.scaled ? (rate ?? 1) : 1), parts, onStart: begin })
       if (stats && typeof console !== 'undefined') console.info('[voice]', who, v.key, JSON.stringify(stats))
+      if (stats && who) voiceStats[who] = { firstMs: Number(stats.firstMs), rtf: Number(stats.rtf), at: Date.now() }
       return
     } catch (e) {
       if (typeof console !== 'undefined') console.warn('[voice]', who, v.key, String(e?.message || e))
