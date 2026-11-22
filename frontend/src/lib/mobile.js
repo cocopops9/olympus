@@ -14,6 +14,7 @@ import { isoOf, todayISO } from './format.js'
 import { effectiveRoutineIds } from './history.js'
 import { NUDGE_COPY, lineIndex, nudgeFor, nudgeMinute, toneOf } from './nudge.js'
 import { excusedOn } from './day-notes.js'
+import { notifyChannelOf } from './notify-sounds.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
 
@@ -169,6 +170,27 @@ export function buildNudgeNotifications(S, now = new Date()) {
   return notifications
 }
 
+// The sound a reminder or a nudge makes (Settings → Notifications → Notification sound,
+// lib/notify-sounds.js). Android 8+ takes it from the notification's channel, so each goes out on
+// the channel of the sound picked; iOS reads a notification's own `sound`, a file in the app bundle,
+// and plays its default when the file is not there. Pure, for the tests.
+export function withNotifySound(S, notifications) {
+  const ch = notifyChannelOf(S)
+  return notifications.map(n => ({ ...n, channelId: ch.id, ...(ch.sound ? { sound: ch.sound } : {}) }))
+}
+// The channel is made once per phone and never changes after (Android keeps a channel's sound as
+// it was made), which is why each sound has its own id. iOS and the web have no channels.
+async function ensureNotifyChannel(LocalNotifications, S) {
+  const ch = notifyChannelOf(S)
+  try {
+    await LocalNotifications.createChannel({
+      id: ch.id, name: t('Reminders'), description: t('Workout day reminders and nudges'),
+      importance: ch.importance, visibility: 1, vibration: ch.importance > 2,
+      ...(ch.sound ? { sound: ch.sound } : {}),
+    })
+  } catch (e) { /* no channels here: the notification's own sound, or the default */ }
+}
+
 // (Re)schedule the workout-day reminder: one one-off notification per future calendar date in
 // the bounded window. Cheap enough to run after any state change — the plan or the reminder time
 // may just have been edited. `interactive` gates the OS permission prompt to the Settings toggle;
@@ -186,8 +208,11 @@ export async function syncReminder(S, interactive = false) {
     let perm = await LocalNotifications.checkPermissions()
     if (perm.display !== 'granted' && interactive) perm = await LocalNotifications.requestPermissions()
     if (perm.display !== 'granted') return false
-    const notifications = [...buildReminderNotifications(S), ...buildNudgeNotifications(S)]
-    if (notifications.length) await LocalNotifications.schedule({ notifications })
+    const notifications = withNotifySound(S, [...buildReminderNotifications(S), ...buildNudgeNotifications(S)])
+    if (notifications.length) {
+      await ensureNotifyChannel(LocalNotifications, S)
+      await LocalNotifications.schedule({ notifications })
+    }
     return true
   } catch (e) { return false }
 }

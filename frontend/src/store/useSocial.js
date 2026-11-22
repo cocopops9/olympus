@@ -6,26 +6,48 @@ import { create } from 'zustand'
 import { fetchNotifications, fetchChatUnread, saveProfile } from '../lib/social.js'
 import { syncPortrait } from '../lib/portrait-sync.js'
 import { useStore } from './useStore.js'
+import { visibleNews, newsOn, notifySoundOf } from '../lib/notify-sounds.js'
+import { notifySound } from '../lib/sound.js'
+
+// The notification sound, once for any number of things that arrived since the last count. Only
+// while the app is in front: in the background the counts are not asked for at all.
+function announce(now, S) {
+  const before = heard
+  heard = now
+  if (!before) return
+  if (now.news > before.news || now.messages > before.messages) notifySound(notifySoundOf(S))
+}
+
+// What the last refresh counted, so a later one can tell news that just arrived (and play the
+// notification sound, lib/notify-sounds.js) from news already seen. null: nothing counted yet,
+// so what is waiting when the app opens is counted, not announced.
+let heard = null
 
 export const useSocial = create(set => ({
   unread: 0,
   requests: 0,
   // Messages waiting unread, over every conversation (views/Chats.jsx).
   messages: 0,
-  // The answer is also handed back, so the notifications screen can use it directly.
+  // The answer is also handed back, so the notifications screen can use it directly. The counts
+  // leave out the kinds of news switched off in Settings → Notifications (S.newsOff).
   async refresh() {
     try {
       const n = await fetchNotifications()
-      set({ unread: n.unread || 0, requests: n.requests || 0 })
-      fetchChatUnread().then(messages => set({ messages }))
-      // The portrait this profile shows without a picture of its own, sent once (and again if its sex changes).
       const { user, S } = useStore.getState()
+      const { unread } = visibleNews(S, n.items)
+      const requests = newsOn(S, 'request') ? n.requests || 0 : 0
+      set({ unread, requests })
+      fetchChatUnread().then(messages => {
+        set({ messages })
+        announce({ news: unread + requests, messages }, S)
+      })
+      // The portrait this profile shows without a picture of its own, sent once (and again if its sex changes).
       syncPortrait(user, S, saveProfile)
       return n
     } catch { return null }
   },
   set: counts => set(counts),
-  reset: () => set({ unread: 0, requests: 0, messages: 0 }),
+  reset: () => { heard = null; set({ unread: 0, requests: 0, messages: 0 }) },
 }))
 
 const EVERY_MS = 60000
