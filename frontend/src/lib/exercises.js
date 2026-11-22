@@ -198,13 +198,18 @@ export const figureOf = S => (S?.exFigure === 'female' || S?.exFigure === 'male'
   ? S.exFigure
   : (S?.body === 'female' ? 'female' : 'male')
 const drawing = (ex, figure) => (figure === 'female' ? ex.fv : figure === 'male' ? ex.mv : null) || null
-// The sports' drawings come bundled with the app (lib/sport-media.js), whatever the media base is.
+// A sport or drill shows the catalogue exercise that draws its movement (`media`, lib/sports.js)
+// when there is one; the others' own drawings come bundled with the app (lib/sport-media.js),
+// whatever the media base is.
+const catalogueDrawing = ex => (ex.media && EXIDX[ex.media] && !EXIDX[ex.media].sport ? EXIDX[ex.media] : null)
 export const imgSrc = (ex, figure) => ex.sport
-  ? sportStill(ex.id)
+  ? (catalogueDrawing(ex) ? imgSrc(catalogueDrawing(ex), figure) : sportStill(ex.id))
   : IMG_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.webp' : ex.img)
 const clipFile = f => (CLIP_EXT !== '.mp4' && f.endsWith('.mp4') ? f.slice(0, -4) + CLIP_EXT : f)
 export const gifSrc = (ex, figure) => ex.sport
-  ? (CLIP_EXT === '.webp' ? sportAnimation(ex.id) : sportClip(ex.id))
+  ? (catalogueDrawing(ex)
+      ? gifSrc(catalogueDrawing(ex), figure)
+      : (CLIP_EXT === '.webp' ? sportAnimation(ex.id) : sportClip(ex.id)))
   : GIF_BASE + clipFile(drawing(ex, figure) ? drawing(ex, figure) + '.mp4' : ex.gif)
 // The catalogue's animations are short MP4 loops; a fork's or an older build's may still be GIFs.
 export const isVideoSrc = src => /\.(mp4|webm)(\?|$)/i.test(src || '')

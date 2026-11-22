@@ -92,13 +92,41 @@ const SPORT_LIST = [
   },
 ]
 
+// Where the exercise catalogue already draws the movement, the sport or drill shows that drawing
+// (the value is its catalogue id): same artist and style as every other exercise, and a real
+// animation rather than two key poses. Chosen from the catalogue's own names and descriptions,
+// for the movement that is closest to how the sport is played or the drill is done; a medicine
+// ball stands in for the sport's ball where the throw is the same. The rest keep a drawing of
+// their own (sport-media.js).
+export const CATALOGUE_DRAWING = {
+  'sport-football': '5967', // agility ball drill: footwork and direction changes with a ball
+  'sport-basketball': '4709', // basketball shot jump
+  'sport-swimming': '6944', // swimming crawl style
+  'sport-hiking': '3004', // briskly walking
+  'sport-skiing': '3671', // ski step: side-to-side hops that imitate a skier
+  'drill-football-cone-dribble': '5986', // cone drill
+  'drill-basketball-form-shooting': '4709', // basketball shot jump
+  'drill-swimming-kickboard': '3227', // swimmer kicks: the flutter kick, lying face down
+  'drill-swimming-pull-buoy': '6944', // swimming crawl style: the arm stroke alone
+  'drill-rugby-ground-pass': '1699', // medicine ball rotational throw
+  'drill-handball-wall-throw': '3442', // medicine ball standing overhead throw
+  'drill-handball-defense-step': '4257', // shuffle: quick lateral steps in an athletic stance
+  'drill-climbing-hangboard': '3832', // handboard slope hang
+  'drill-climbing-lock-off': '3835', // handboard hang with 90 degree elbow
+  'drill-hiking-step-up': '4579', // bodyweight step up on stepbox
+  'drill-hiking-lunge': '9700', // bodyweight walking low lunge
+  'drill-skiing-wall-sit': '7557', // wall sit (narrow stance)
+  'drill-skiing-squat-jump': '3222', // semi squat jump
+}
+
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
 const secondariesOf = w => Object.keys(w).filter(k => w[k] > 0 && w[k] < 0.6)
 
 /**
- * The sports as catalogue entries: cardio mode (minutes), a category of their own, and an original
- * drawing each (`img` and `gif` only mark that there is one; the files are found by id in
- * sport-media.js, drawn by scripts/sports-media).
+ * The sports as catalogue entries: cardio mode (minutes), a category of their own, and a drawing
+ * each: the catalogue's own (`media`, see CATALOGUE_DRAWING) or else an original one (`img` and
+ * `gif` only mark that there is one; the files are found by id in sport-media.js, made by
+ * scripts/sports-media).
  */
 export const SPORTS = SPORT_LIST.map(s => ({
   id: s.id,
@@ -109,6 +137,7 @@ export const SPORTS = SPORT_LIST.map(s => ({
   sm: [],
   cat: 'sport',
   sport: true,
+  media: CATALOGUE_DRAWING[s.id] || null,
   img: s.id + '.webp',
   gif: s.id + '.mp4',
   icon: s.icon,
@@ -300,6 +329,7 @@ export const DRILLS = DRILL_LIST.map(d => ({
   sport: true,
   drillOf: d.of,
   desc: d.desc,
+  media: CATALOGUE_DRAWING[d.id] || null,
   img: d.id + '.webp',
   gif: d.id + '.mp4',
   icon: SPORT_LIST.find(s => s.id === d.of).icon,
