@@ -3639,6 +3639,7 @@ export default {
   // Olympus: natural voices, the voice previews, exercise demonstrations.
   "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena ও Calliope {0} ভাষায় আরও স্বাভাবিক কণ্ঠে কথা বলতে পারে, প্রত্যেকের নিজস্ব কণ্ঠে। এগুলো অফলাইনে চলে, দৈনিক সীমা ছাড়া ({1} MB, Wi-Fi ভালো)।",
   "Each coach speaks with a voice of their own. Tap to listen.": "প্রত্যেক কোচের নিজস্ব কণ্ঠ আছে। শুনতে ট্যাপ করুন।",
+  "First word after {0} s. Each second of speech takes {1} s to make.": "প্রথম শব্দ {0} সেকেন্ড পরে। প্রতি সেকেন্ড কথা তৈরি করতে {1} সেকেন্ড লাগে।",
   "Hear the voices": "কণ্ঠগুলো শুনুন",
   "Hello, I am {0}. Ask me anything about your training.": "হ্যালো, আমি {0}। আপনার ট্রেনিং নিয়ে যা খুশি জিজ্ঞেস করুন।",
   "How to do {0}": "{0} কীভাবে করবেন",

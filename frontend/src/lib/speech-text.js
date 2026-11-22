@@ -27,12 +27,12 @@
 export const PAUSE = { clause: 0, sentence: 150, block: 350 }
 
 /**
- * first: the longest first piece, in characters (about 2.6 s of speech at the measured 0.045 s per
- * character). max: the longest piece; a longer sentence is cut at a clause. Shorter pieces start
+ * first: the longest first piece, in characters (about 2.1 s of speech at the measured 0.045 s per
+ * character; 55 before Build 94, which kept the first word too long on a phone, 2026-11-22). max: the longest piece; a longer sentence is cut at a clause. Shorter pieces start
  * sooner and are stopped sooner (a piece being made cannot be interrupted), longer ones keep more
  * of a sentence's intonation together.
  */
-export const LIMITS = { first: 55, max: 140, minClause: 15 }
+export const LIMITS = { first: 40, max: 140, minClause: 15 }
 
 // Abbreviations that end with a full stop but not a sentence (lower case, without the stop).
 const ABBREV = new Set(['e.g', 'i.e', 'etc', 'vs', 'approx', 'min', 'max', 'sec', 'dr', 'mr', 'mrs', 'ms', 'st', 'no',
@@ -105,13 +105,19 @@ function cutLong(sentence, max, min = 30) {
   return out
 }
 
-// The first sentence cut at its first clause mark, when it is too long to be heard soon.
+// The first sentence cut so that it is heard soon: at its first clause mark, else before an
+// opening bracket, else at the last space within `first` (a phrase break the voice reads with
+// no pause added, so the two halves join when the second is ready in time).
 function cutFirst(sentence, first, minClause) {
   if (sentence.length <= first) return [sentence]
-  for (let i = minClause; i < Math.min(sentence.length - minClause, first); i++) {
-    if (CLAUSE.test(sentence[i]) && /\s/.test(sentence[i + 1] || ' ')) return [sentence.slice(0, i + 1).trim(), sentence.slice(i + 1).trim()]
+  const end = Math.min(sentence.length - minClause, first)
+  const at = i => [sentence.slice(0, i).trim(), sentence.slice(i).trim()]
+  for (let i = minClause; i < end; i++) {
+    if (CLAUSE.test(sentence[i]) && /\s/.test(sentence[i + 1] || ' ')) return at(i + 1)
   }
-  return [sentence]
+  for (let i = end; i >= minClause; i--) if (sentence[i] === '(' && sentence[i - 1] === ' ') return at(i)
+  const sp = sentence.lastIndexOf(' ', end)
+  return sp >= minClause ? at(sp) : [sentence]
 }
 
 /**
@@ -119,7 +125,10 @@ function cutFirst(sentence, first, minClause) {
  * silence after the piece (0 after the last). Empty when nothing in it is read.
  */
 export function speechParts(text, { limits = LIMITS, pause = PAUSE } = {}) {
+  // A line break written as html (<br>, common in table cells) or a bullet in the middle of a
+  // line starts a new line too: each is an item of its own.
   const src = String(text || '').replace(/```[\s\S]*?```/g, '\n').replace(/\r\n?/g, '\n')
+    .replace(/<br\s*\/?>/gi, '\n').replace(/\s+[•▪◦]\s+/g, '\n')
   const parts = []
   for (const rawLine of src.split('\n')) {
     let line = cleanLine(rawLine)
