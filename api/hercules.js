@@ -28,12 +28,21 @@ export const DEFAULTS = {
   fallback: 'openai/gpt-oss-20b',
 };
 
-// Athena answers from other model families than Hercules, so the two think differently and can
-// disagree: Alibaba's Qwen, and Meta's Llama when Qwen is busy (or retired: it is a preview model
-// on Groq), never one of OpenAI's open models that Hercules runs on. All free on Groq's free tier.
+// Athena answers from another model family than Hercules, so the two think differently and can
+// disagree: Alibaba's Qwen, free on Groq's free tier. Groq's free tier gives Qwen 7000 input and
+// 1000 output tokens a minute; Athena asked for 8401 in and 1218 out and was refused every time
+// (413 and 429 in the function's log, 2026-11-22), so her request is kept within both:
+// `inputTokens` (askHercules drops the oldest turns to fit) and `replyTokens`. Her fallback was
+// Meta's Llama 3.3 70B, which Groq no longer serves to this account (404, same log): it is now
+// OpenAI's small open model, a model this account is known to reach (Hercules's fallback), with
+// limits of its own apart from Hercules's larger model. An answer from another family is worth
+// less than an answer at all.
 export const ATHENA_DEFAULTS = {
   model: 'qwen/qwen3.8-27b',
-  fallback: 'llama-3.3-70b-versatile',
+  fallback: 'openai/gpt-oss-20b',
+  replyTokens: 900,
+  inputTokens: 6000,
+  context: 5000,
 };
 
 /** A model id as people read it: 'openai/gpt-oss-120b' is "GPT-OSS 120B". */
@@ -129,7 +138,30 @@ export function herculesConfig(env = {}, coach = 'hercules') {
     replyTokens: defaults.replyTokens || LIMITS.replyTokens,
     history: defaults.history || LIMITS.history,
     context: defaults.context || LIMITS.context,
+    ...(defaults.inputTokens ? { inputTokens: defaults.inputTokens } : {}),
   };
+}
+
+/**
+ * Tokens a text is taken to cost: one per 3 characters. Tokenizers of these models average about
+ * 3.5 to 4 characters a token on English and fewer on Italian and on numbers, so 3 errs towards
+ * more tokens than are sent (an assumption, not measured on each model).
+ */
+export const tokensOf = text => Math.ceil(String(text || '').length / 3);
+
+/**
+ * `full` (the system message, then the conversation) within `budget` input tokens: the oldest
+ * turns are left out first; the system message and the last turn always stay. Unchanged with no
+ * budget or when it fits.
+ */
+export function fitInput(full, budget) {
+  if (!budget) return full;
+  const cost = list => list.reduce((n, m) => n + tokensOf(m.content) + 4, 0);
+  let [system, ...rest] = full;
+  while (rest.length > 1 && cost([system, ...rest]) > budget) rest = rest.slice(1);
+  // A conversation sent to the model starts with the person's turn.
+  while (rest.length > 1 && rest[0].role !== 'user') rest = rest.slice(1);
+  return [system, ...rest];
 }
 
 export const dayOf = ms => new Date(ms).toISOString().slice(0, 10);
@@ -378,12 +410,13 @@ async function call(config, model, messages, fetchImpl, timeoutMs, more = {}) {
  */
 export async function askHercules({ config, messages, name, lang, context, fetchImpl = globalThis.fetch, timeoutMs = LIMITS.timeoutMs }) {
   if (!config?.key) throw new HerculesError(503, COACHES[coachOf(config?.coach)].name + ' is not set up on this server', 'hercules-off');
-  const full = [{ role: 'system', content: systemPrompt({ name, lang, context, coach: config.coach }) }, ...messages];
+  const full = fitInput([{ role: 'system', content: systemPrompt({ name, lang, context, coach: config.coach }) }, ...messages], config.inputTokens);
   const first = await call(config, config.model, full, fetchImpl, timeoutMs);
   if (first.reply) return { reply: first.reply, model: config.model };
   // Only the provider's status and message: never the key or the person's text.
   console.error(coachOf(config.coach) + ': ' + config.model + ' answered ' + first.status + ': ' + String(first.error).slice(0, 300));
-  const retry = config.fallback && config.fallback !== config.model && [404, 408, 429, 500, 502, 503, 504].includes(first.status);
+  // 413: the request is larger than the model takes (a provider's per-minute limit included).
+  const retry = config.fallback && config.fallback !== config.model && [404, 408, 413, 429, 500, 502, 503, 504].includes(first.status);
   if (retry) {
     const second = await call(config, config.fallback, full, fetchImpl, timeoutMs);
     if (second.reply) return { reply: second.reply, model: config.fallback };

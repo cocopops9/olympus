@@ -120,7 +120,9 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
   const mic = useRef(null)
   const seen = useRef(list.length)
   const seenChat = useRef(data.current)
-  const [speaking, setSpeaking] = useState(false)
+  // Who is being heard (a coach's id), or null: the banner names them, not the coach picked now,
+  // which may have changed while the answer of the one before is still read.
+  const [speaking, setSpeaking] = useState(null)
   const [writing, setWriting] = useState(false)   // what was said is being written out
   // With both coaches answering, each answer is read as it comes, after the one before it has
   // been read in full (it used to stop Hercules mid-sentence the moment Athena's answer arrived),
@@ -129,7 +131,7 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
   const queue = useRef(Promise.resolve())
   const queued = useRef(0)
   const epoch = useRef(0)
-  const hushAll = () => { epoch.current++; queued.current = 0; stopSpeaking(); setSpeaking(false) }
+  const hushAll = () => { epoch.current++; queued.current = 0; stopSpeaking(); setSpeaking(null) }
   useEffect(() => {
     // Every answer that came since the last look, in order: two can arrive in one render. Another
     // conversation opened is not read out: only what is said in it from now on.
@@ -143,14 +145,14 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
       // The coach's short spoken version when there is one, else the written answer (lib/speech-text.js).
       const text = m.speech || splitActions(m.content).text, who = c.authorOf(m)
       queued.current++
-      setSpeaking(true)
+      setSpeaking(cur => cur || who)
       warmCoachVoice(who)
       queue.current = queue.current
-        .then(() => (mine === epoch.current ? speak(text, { who }) : null))
+        .then(() => { if (mine !== epoch.current) return null; setSpeaking(who); return speak(text, { who }) })
         .catch(() => {})
         .finally(() => {
           if (mine !== epoch.current || --queued.current > 0) return
-          setSpeaking(false)
+          setSpeaking(null)
           if (!busyRef.current) { silences.current = 0; mic.current?.start() }
         })
     }
@@ -204,7 +206,7 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
       </div>
     </main>
     <form className="cai-in" onSubmit={e => { e.preventDefault(); send() }}>
-      {voice && <div className="voice-banner" role="status"><i />{speaking ? t('{0} is speaking. Tap the microphone to stop voice mode.', name) : busy ? t('{0} is thinking…', name) : writing ? t('Writing out what you said…') : t('Voice mode: talk, I am listening. Tap the microphone to stop.')}</div>}
+      {voice && <div className="voice-banner" role="status"><i />{speaking ? t('{0} is speaking. Tap the microphone to stop voice mode.', coachName(speaking)) : busy ? t('{0} is thinking…', coachName(c.writing)) : writing ? t('Writing out what you said…') : t('Voice mode: talk, I am listening. Tap the microphone to stop.')}</div>}
       <div className="cai-box">
         <textarea ref={input} rows={1} maxLength={2000} value={draft} placeholder={t('Ask {0}…', name)}
           onChange={e => setDraft(e.target.value)}
