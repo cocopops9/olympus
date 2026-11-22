@@ -3659,7 +3659,7 @@ export default {
   "1. Open claude.ai in your browser": "1. 在瀏覽器中開啟 claude.ai",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "自訂、連接器，然後點 + 新增 和 新增自訂連接器。手機上請用瀏覽器，不要用 Claude App：連接器需在網頁版新增。",
   "2. Paste the address": "2. 貼上地址",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "名稱：Olympus。URL：貼上地址。點繼續，選擇無需登入，然後點新增。",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "名稱：Olympus。URL：貼上地址。點繼續。在驗證中選擇無需登入（即使 Claude 建議登入），然後點新增。",
   "Copy a new address": "複製新地址",
   "3. Ask": "3. 提問",
   "Address copied: now finish in Claude.": "網址已複製：現在到 Claude 中完成。",

@@ -3721,7 +3721,7 @@ export default {
   "1. Open claude.ai in your browser": "1. افتح claude.ai في المتصفح",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "تخصيص، الموصلات، ثم + إضافة وإضافة موصل مخصص. على الهاتف استخدم المتصفح لا تطبيق Claude: تُضاف الموصلات من الويب.",
   "2. Paste the address": "2. الصق العنوان",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "الاسم: Olympus. الرابط: الصق العنوان. اضغط متابعة، واختر بدون تسجيل دخول، ثم إضافة.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "الاسم: Olympus. الرابط: الصق العنوان. اضغط متابعة. ضمن المصادقة اختر بدون تسجيل دخول، حتى لو اقترح Claude تسجيل الدخول، ثم إضافة.",
   "Copy a new address": "نسخ عنوان جديد",
   "3. Ask": "3. اسأل",
   "Address copied: now finish in Claude.": "تم نسخ العنوان: أكمل الآن في Claude.",

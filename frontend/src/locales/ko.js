@@ -3666,7 +3666,7 @@ export default {
   "1. Open claude.ai in your browser": "1. 브라우저에서 claude.ai 열기",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "사용자 지정, 커넥터, 그다음 + 추가와 사용자 지정 커넥터 추가. 휴대폰에서는 Claude 앱이 아니라 브라우저를 사용하세요: 커넥터는 웹에서 추가합니다.",
   "2. Paste the address": "2. 주소 붙여넣기",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "이름: Olympus. URL: 주소를 붙여넣기. 계속을 누르고 로그인 없음을 선택한 뒤 추가.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "이름: Olympus. URL: 주소를 붙여넣기. 계속을 누릅니다. 인증에서 Claude가 로그인을 제안하더라도 로그인 없음을 선택한 뒤 추가.",
   "Copy a new address": "새 주소 복사",
   "3. Ask": "3. 질문하기",
   "Address copied: now finish in Claude.": "주소를 복사했어요: 이제 Claude에서 마무리하세요.",

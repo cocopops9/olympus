@@ -3663,7 +3663,7 @@ export default {
   "1. Open claude.ai in your browser": "1. Відкрийте claude.ai у браузері",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Налаштувати, Конектори, потім + Додати й Додати власний конектор. На телефоні користуйтеся браузером, а не застосунком Claude: конектори додаються у вебверсії.",
   "2. Paste the address": "2. Вставте адресу",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "Назва: Olympus. URL: вставте адресу. Торкніться Продовжити, виберіть Без входу, потім Додати.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "Назва: Olympus. URL: вставте адресу. Торкніться Продовжити. У розділі Автентифікація виберіть Без входу, навіть якщо Claude пропонує вхід, потім Додати.",
   "Copy a new address": "Скопіювати нову адресу",
   "3. Ask": "3. Запитайте",
   "Address copied: now finish in Claude.": "Адресу скопійовано: тепер завершіть у Claude.",

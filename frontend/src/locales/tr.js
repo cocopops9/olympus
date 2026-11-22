@@ -3666,7 +3666,7 @@ export default {
   "1. Open claude.ai in your browser": "1. Tarayıcıda claude.ai’yi aç",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Özelleştir, Bağlayıcılar, ardından + Ekle ve Özel bağlayıcı ekle. Telefonda Claude uygulamasını değil tarayıcıyı kullan: bağlayıcılar web’den eklenir.",
   "2. Paste the address": "2. Adresi yapıştır",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "Ad: Olympus. URL: adresi yapıştır. Devam’a dokun, Oturum açma yok’u seç, sonra Ekle.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "Ad: Olympus. URL: adresi yapıştır. Devam’a dokun. Kimlik doğrulama altında, Claude oturum açmayı önerse bile Oturum açma yok’u seç, sonra Ekle.",
   "Copy a new address": "Yeni adres kopyala",
   "3. Ask": "3. Sor",
   "Address copied: now finish in Claude.": "Adres kopyalandı: şimdi Claude’da tamamla.",

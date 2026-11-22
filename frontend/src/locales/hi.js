@@ -3666,7 +3666,7 @@ export default {
   "1. Open claude.ai in your browser": "1. ब्राउज़र में claude.ai खोलें",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Customize, Connectors, फिर + Add और Add custom connector. फ़ोन पर Claude ऐप नहीं, ब्राउज़र इस्तेमाल करें: कनेक्टर वेब पर जोड़े जाते हैं।",
   "2. Paste the address": "2. पता पेस्ट करें",
-  "Name: Olympus. URL: paste the address. Tap Continue, choose No sign in, then Add.": "नाम: Olympus. URL: पता पेस्ट करें। Continue दबाएँ, No sign in चुनें, फिर Add.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "नाम: Olympus. URL: पता पेस्ट करें। Continue दबाएँ। Authentication में No sign in चुनें, भले Claude साइन-इन सुझाए, फिर Add.",
   "Copy a new address": "नया पता कॉपी करें",
   "3. Ask": "3. पूछें",
   "Address copied: now finish in Claude.": "पता कॉपी हो गया: अब Claude में पूरा करें।",
