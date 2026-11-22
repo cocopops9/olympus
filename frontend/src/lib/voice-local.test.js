@@ -4,7 +4,7 @@
 // another's line alone, and how long Chiron waits on a line before he listens again.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const h = vi.hoisted(() => ({ installed: new Set(['kokoro', 'en']), calls: [], warms: [], stops: 0, pending: [] }))
+const h = vi.hoisted(() => ({ installed: new Set(['kokoro', 'en']), calls: [], warms: [], stops: 0, pending: [], measured: 0.5 }))
 vi.mock('./mobile.js', async orig => ({ ...(await orig()), MOBILE: true }))
 vi.mock('./api.js', async orig => ({ ...(await orig()), api: vi.fn(async () => ({ speak: false })) }))
 vi.mock('./local-voice.js', () => ({
@@ -15,14 +15,17 @@ vi.mock('./local-voice.js', () => ({
   coachesKey: () => null,
   audioNormal: () => {},
   stopLocal: () => { h.stops++ },
-  warmLocal: v => { h.warms.push(v); return Promise.resolve({ loaded: true }) },
+  warmLocal: v => { h.warms.push(v); return Promise.resolve(v.measure ? { rtf: h.measured, measured: true } : { loaded: true }) },
   speakLocal: (text, opts) => { h.calls.push({ text, ...opts }); return new Promise(r => h.pending.push(r)) },
+  // How fast Kokoro is on this phone (lib/voice.js measureVoices), when the test measures it.
 }))
 
 const voice = await import('./voice.js')
 const { speechParts } = await import('./speech-text.js')
 
-beforeEach(() => { h.calls = []; h.warms = []; h.stops = 0; h.pending.forEach(r => r({})); h.pending = []; h.installed = new Set(['kokoro', 'en']) })
+// Kokoro measured fast enough on this phone, unless a test says otherwise.
+const measuredKokoro = rtf => { localStorage.setItem('olympus_voice_speed', JSON.stringify({ kokoro: { rtf, at: Date.now() } })); voice._resetVoiceSpeeds() }
+beforeEach(() => { h.calls = []; h.warms = []; h.stops = 0; h.pending.forEach(r => r({})); h.pending = []; h.installed = new Set(['kokoro', 'en']); h.measured = 0.5; measuredKokoro(0.5) })
 
 describe('the offline voice', () => {
   it('is given the answer in pieces, each with its pause', async () => {
@@ -62,6 +65,45 @@ describe('the offline voice', () => {
     expect(h.stops).toBe(before)
     await voice.stopSpeaking()
     expect(h.stops).toBe(before + 1)
+  })
+})
+
+describe('a voice too slow for the phone', () => {
+  it('is left out: Kokoro slower than real time gives way to the man’s Piper voice, and Athena to the next voice', () => {
+    measuredKokoro(1.6)
+    expect(voice.localVoices('chiron').map(v => v.key)).toEqual(['en'])
+    expect(voice.localVoices('athena')).toEqual([])
+  })
+
+  it('Kokoro not yet measured on this phone is not used; once measured fast enough it is', () => {
+    localStorage.removeItem('olympus_voice_speed'); voice._resetVoiceSpeeds()
+    expect(voice.localVoices('athena')).toEqual([])
+    measuredKokoro(voice.FAST_RTF)
+    expect(voice.localVoices('athena').map(v => v.key)).toEqual(['kokoro'])
+  })
+
+  it('is measured when not known, and the measurement decides', async () => {
+    localStorage.removeItem('olympus_voice_speed'); voice._resetVoiceSpeeds()
+    h.measured = 2.1
+    await voice.measureVoices()
+    expect(h.warms.at(-1)).toMatchObject({ key: 'kokoro', measure: true })
+    expect(voice.voiceSpeed('kokoro').rtf).toBe(2.1)
+    expect(voice.localVoices('chiron').map(v => v.key)).toEqual(['en'])
+    // Known and recent: not measured again.
+    const before = h.warms.length
+    await voice.measureVoices()
+    expect(h.warms).toHaveLength(before)
+  })
+
+  it('learns from what each answer measured', async () => {
+    voice.speak('Rest two minutes.', { who: 'athena' })
+    await vi.waitFor(() => expect(h.calls).toHaveLength(1))
+    h.pending.shift()({ rtf: 1.4, measured: true })
+    await vi.waitFor(() => expect(voice.voiceSpeed('kokoro').rtf).toBe(1.4))
+    expect(voice.localVoices('athena')).toEqual([])
+    // A result that measured nothing (every piece too short) changes nothing.
+    voice.noteVoiceSpeed('en', { rtf: 1, measured: false })
+    expect(voice.voiceSpeed('en')).toBe(null)
   })
 })
 

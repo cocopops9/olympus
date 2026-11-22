@@ -140,7 +140,8 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
     if (!voice || !fresh.length) return
     const mine = epoch.current
     for (const m of fresh) {
-      const text = splitActions(m.content).text, who = c.authorOf(m)
+      // The coach's short spoken version when there is one, else the written answer (lib/speech-text.js).
+      const text = m.speech || splitActions(m.content).text, who = c.authorOf(m)
       queued.current++
       setSpeaking(true)
       warmCoachVoice(who)

@@ -27,7 +27,7 @@ import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { syncPushSubscription } from './lib/push.js'
 import { MOBILE, saveRemoteFile } from './lib/mobile.js'
-import { setVoiceHint } from './lib/voice.js'
+import { setVoiceHint, measureVoices } from './lib/voice.js'
 import { voiceHint } from './lib/voice-hint.js'
 import { DEFAULT_SERVER } from './lib/app-info.js'
 import { exitWorkoutEdit, startFlow } from './sheets.jsx'
@@ -115,6 +115,10 @@ function useReloginOnUpdate(ready, user) {
 
 function Shell() {
   useEffect(() => { setVoiceHint(() => voiceHint(useStore.getState().S)); return () => setVoiceHint(null) }, [])
+  // How fast this phone makes the coaches' natural voice, measured once a week a little after the
+  // app opens, while no coach is talking (lib/voice.js measureVoices): a voice too slow for the
+  // phone is then left out of the answers.
+  useEffect(() => { if (!MOBILE) return; const t = setTimeout(() => { measureVoices() }, 15000); return () => clearTimeout(t) }, [])
   const navigate = useNavigate()
   const loc = useLocation()
   const navType = useNavigationType()

@@ -290,6 +290,7 @@ public class LocalVoicePlugin extends Plugin {
                 r.put("loadMs", Math.round(loadS * 1000));
                 r.put("firstMs", Math.round(firstS * 1000));
                 r.put("rtf", Math.round(rtfOf(key) * 100) / 100.0);
+                r.put("measured", rtfs.containsKey(key));
                 r.put("genMs", Math.round(genTotal * 1000));
                 r.put("parts", parts.size());
                 r.put("stopped", me != run);
@@ -327,6 +328,9 @@ public class LocalVoicePlugin extends Plugin {
                 if (!t.trim().isEmpty()) ahead.add(t);
             }
         }
+        // `measure`: the line below is made even when the engine was ready, to measure how fast
+        // this phone makes this voice (lib/voice.js keeps it and leaves a slow voice out).
+        final boolean measure = Boolean.TRUE.equals(call.getBoolean("measure", false));
         if (!safeLang(lang) || !installed(lang)) { call.reject("no voice for " + lang, "no-voice"); return; }
         final String acc = accent;
         final String mod = isCoaches(lang) ? (safeModel(model) ? model : "") : "";
@@ -342,15 +346,24 @@ public class LocalVoicePlugin extends Plugin {
                 r.put("loaded", !had);
                 r.put("loadMs", Math.round(loadS * 1000));
                 boolean letters = new File(voiceDir(lang, mod), "characters").isFile();
-                if (!had && ahead.isEmpty()) {
-                    // One short line, thrown away: the first run of a model is slower than the next.
+                // The first run of a model is slower than the next: one short line, thrown away
+                // (too short to count towards rtf, SpeechPacing.MEASURE_MIN_S).
+                if (!had && (ahead.isEmpty() || measure)) {
                     String line = "Ok, let's go.";
+                    long g0 = System.nanoTime();
+                    tts.generate(letters ? line.toLowerCase(java.util.Locale.ROOT) : line, sid, 1.0f);
+                    r.put("warmMs", Math.round((System.nanoTime() - g0) / 1e6));
+                }
+                // Then, when asked, a line of about 2 s that does count: how fast this phone makes
+                // this voice, measured before it is needed for an answer.
+                if (measure) {
+                    String line = "Ok, let's go. Keep your back straight and breathe.";
                     long g0 = System.nanoTime();
                     GeneratedAudio a = tts.generate(letters ? line.toLowerCase(java.util.Locale.ROOT) : line, sid, 1.0f);
                     double genS = (System.nanoTime() - g0) / 1e9;
                     float[] s = a.getSamples();
                     if (s != null && s.length > 0) rtfs.put(key, SpeechPacing.updateRtf(rtfOf(key), genS, s.length / (double) a.getSampleRate()));
-                    r.put("warmMs", Math.round(genS * 1000));
+                    r.put("measureMs", Math.round(genS * 1000));
                 }
                 long a0 = System.nanoTime();
                 for (String part : ahead) {
@@ -366,6 +379,7 @@ public class LocalVoicePlugin extends Plugin {
                 }
                 if (!ahead.isEmpty()) r.put("aheadMs", Math.round((System.nanoTime() - a0) / 1e6));
                 r.put("rtf", Math.round(rtfOf(key) * 100) / 100.0);
+                r.put("measured", rtfs.containsKey(key));
                 call.resolve(r);
             } catch (Throwable e) {
                 call.reject("the voice failed: " + e.getMessage());

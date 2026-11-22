@@ -149,3 +149,18 @@ export function speechParts(text, { limits = LIMITS, pause = PAUSE } = {}) {
   if (parts.length) parts[parts.length - 1].pause = 0
   return parts
 }
+
+const SPOKEN = /```olympus-speech[^\S\n]*\n?([\s\S]*?)(?:```|$)/g
+
+/**
+ * A coach's reply split into what is shown and what is said: { text, speech }. Hercules and Athena
+ * end their reply with a short spoken version in an olympus-speech block (api/hercules.js
+ * SPEECH_HELP), which voice mode reads instead of the written answer; `speech` is '' when there is
+ * none (an older answer, a reply cut at its limit), and the written answer is read then. A block
+ * left open by a reply that stopped short is still taken out of the text.
+ */
+export function splitSpeech(reply) {
+  const said = []
+  const text = String(reply || '').replace(SPOKEN, (_, body) => { said.push(body.trim()); return '' }).replace(/\n{3,}/g, '\n\n').trim()
+  return { text, speech: said.filter(Boolean).join(' ') }
+}

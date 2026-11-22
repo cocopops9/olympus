@@ -400,6 +400,64 @@ async function speakOnServer(say, lang, who, run, onStart, keep) {
   return true
 }
 
+// Olympus: how fast this phone makes each offline voice, kept between starts of the app:
+// { [key]: { rtf, at } }, rtf the seconds taken to make one second of speech (LocalVoicePlugin).
+// A voice is made one piece at a time while the piece before it plays, so a voice slower than real
+// time stops between its pieces however the start is timed (SpeechPacing.java): the "few words, a
+// silence of seconds, a few words" heard with Kokoro on a mid-range phone (Build 97, 2026-11-22).
+// Such a voice is left out for answers, and the next voice is used: Piper (measured 0.035 to 0.048
+// against Kokoro's 0.92 to 1.07 on the same 4-core Xeon, 2026-11-22, about 25 times faster), the
+// server's voice, or the phone's own, which all keep up.
+const SPEED_KEY = 'olympus_voice_speed'
+/**
+ * The slowest a voice may be and still be used for answers: 0.8, below real time with a margin
+ * for a busy phone and for the spread between one measurement and the next (an assumption).
+ */
+export const FAST_RTF = 0.8
+/** A measurement older than this is taken again (the app, the voice or the phone may change). */
+const SPEED_DAYS = 7
+let speeds = null
+const knownSpeeds = () => {
+  if (!speeds) { try { speeds = JSON.parse(localStorage.getItem(SPEED_KEY) || '{}') || {} } catch { speeds = {} } }
+  return speeds
+}
+/** Keeps what the plugin measured for voice `key` (its result of speak or warm). */
+export function noteVoiceSpeed(key, result) {
+  const rtf = Number(result?.rtf)
+  if (!key || !result?.measured || !(rtf > 0)) return
+  knownSpeeds()[key] = { rtf, at: Date.now() }
+  try { localStorage.setItem(SPEED_KEY, JSON.stringify(speeds)) } catch { /* measured again next time */ }
+}
+/** What is known of how fast this phone makes voice `key`: { rtf, at } or null. */
+export const voiceSpeed = key => knownSpeeds()[key] || null
+/**
+ * Whether voice `key` keeps up with its own speech on this phone. Kokoro (82M parameters) is used
+ * only once measured fast enough: on the phones it is too slow for, the first answer stopped
+ * after every few words. Piper (a few M) is taken to keep up until a measurement says otherwise.
+ */
+export function keepsUp(key) {
+  const m = voiceSpeed(key)
+  if (key === KOKORO) return !!m && m.rtf <= FAST_RTF
+  return !m || m.rtf <= FAST_RTF
+}
+const stale = m => !m || Date.now() - m.at > SPEED_DAYS * 86400000
+let measuring = null
+export const _resetVoiceSpeeds = () => { speeds = null; measuring = null }
+/**
+ * Measures Kokoro on this phone when that is not known (or is old), so that it is used where it
+ * keeps up. It takes the voice engine for a few seconds (a 2 s line, made at the phone's pace),
+ * so it is asked a little after the app opens, when no coach is talking (App.jsx).
+ */
+export function measureVoices(who = 'athena') {
+  if (measuring || !localVoicesOn() || !hasLocalVoice(KOKORO) || !stale(voiceSpeed(KOKORO)) || speaker) return measuring
+  const cast = castVoice(who, getLang(), coachVoices())
+  if (cast?.engine !== KOKORO) return null
+  measuring = warmLocal({ key: KOKORO, sid: cast.sid, accent: cast.accent, measure: true })
+    .then(r => { noteVoiceSpeed(KOKORO, r); return r })
+    .finally(() => { measuring = null })
+  return measuring
+}
+
 // Olympus: how the natural voices are offered (components/VoiceSetup.jsx registers it).
 let naturalOffer = null
 export const setNaturalVoiceOffer = fn => { naturalOffer = typeof fn === 'function' ? fn : null }
@@ -419,17 +477,17 @@ export function localVoices(who, cast = castVoice(who, getLang(), coachVoices())
   const ask = () => { if (offer) { try { naturalOffer?.() } catch { /* the offer is a convenience */ } } }
   if (cast?.engine === KOKORO) {
     if (!hasLocalVoice(KOKORO)) ask()
-    else out.push({ key: KOKORO, sid: cast.sid, accent: cast.accent, model: '', speed: cast.speed, pitch: cast.pitch, scaled: true })
+    else if (keepsUp(KOKORO)) out.push({ key: KOKORO, sid: cast.sid, accent: cast.accent, model: '', speed: cast.speed, pitch: cast.pitch, scaled: true })
   }
   if (cast?.engine === PIPER) {
     const pack = cast.model ? coachesKey() : voiceKey()
     if (cast.model && pack && !hasLocalVoice(pack)) ask()
-    if (pack && hasLocalVoice(pack)) out.push({ key: pack, sid: cast.sid, accent: '', model: cast.model, speed: cast.speed, pitch: cast.pitch, scaled: true })
+    if (pack && hasLocalVoice(pack) && keepsUp(pack)) out.push({ key: pack, sid: cast.sid, accent: '', model: cast.model, speed: cast.speed, pitch: cast.pitch, scaled: true })
   }
   // A man's offline voice on the phone: then for Chiron and Hercules, with no quota and no wait;
   // Chiron's lower than Hercules's (voice-cast.js), so the two are told apart.
   const key = voiceKey()
-  if (kind.male && hasLocalVoice(key)) out.push({ key, sid: null, accent: '', model: '', speed: cast?.speed ?? (who === 'chiron' ? 0.92 : 1), pitch: cast?.pitch ?? 1, scaled: false })
+  if (kind.male && hasLocalVoice(key) && keepsUp(key)) out.push({ key, sid: null, accent: '', model: '', speed: cast?.speed ?? (who === 'chiron' ? 0.92 : 1), pitch: cast?.pitch ?? 1, scaled: false })
   return out
 }
 
@@ -492,6 +550,7 @@ async function speakNow(text, { lang = voiceTag(), rate, who, onStart, keep = fa
   for (const v of kind ? localVoices(who, cast, { offer: true }) : []) {
     try {
       const stats = await speakLocal(say, { ...v, speed: v.speed * (v.scaled ? (rate ?? 1) : 1), parts, onStart: begin })
+      noteVoiceSpeed(v.key, stats)
       if (stats && typeof console !== 'undefined') console.info('[voice]', who, v.key, JSON.stringify(stats))
       if (stats && who) voiceStats[who] = { firstMs: Number(stats.firstMs), rtf: Number(stats.rtf), at: Date.now() }
       return
