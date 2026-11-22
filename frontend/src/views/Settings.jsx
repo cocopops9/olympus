@@ -10,6 +10,8 @@ import { copyText } from '../lib/clipboard.js'
 import { useUI } from '../store/useUI.js'
 import { guideLevelOf, withGuideLevel, withTipsReset } from '../lib/guide.js'
 import { calliopeSheet, replayGuide } from '../components/Calliope.jsx'
+import AppGuide from '../components/AppGuide.jsx'
+import { guideProgress } from '../lib/app-guide.js'
 import { exportSheet } from '../components/ExportSheet.jsx'
 import { ACCENTS, ACCENT_NAMES, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY, fmtPlate } from '../lib/format.js'
 import { inventoryFor, ownsPlates } from '../lib/plates.js'
@@ -421,6 +423,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
     about: () => 'v' + __APP_VERSION__,
+    guide: () => { const g = guideProgress(S); return g.done ? g.done + '/' + g.total : t('Start here') },
   }
 
   const open = id => {
@@ -454,6 +457,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     })} />
 
   const pages = {
+    guide: () => <AppGuide />,
     workout: () => <>
       <Section title={t('Rest')} footer={t('Each exercise can have its own rest too. Set it in the exercise settings of a routine.')}>
         {restRow}
@@ -840,6 +844,7 @@ export default function Settings({ page = null, find = null, via = null }) {
           ]}
           onChange={level => update(s => { s.hints = withGuideLevel(s.hints, level) })} />
         <Row icon="sparkles" iconTint="var(--acc)" title={t('Show the welcome tour again')} accessory="chevron" onClick={() => replayGuide()} />
+        <Row icon="help" iconTint="var(--acc)" title={t('App guide')} subtitle={t('Every feature, step by step, with things to try')} accessory="chevron" onClick={() => open('guide')} />
         <Row icon="chat" iconTint="var(--acc)" title={t('Ask Calliope')} subtitle={t('Your guide: how anything in the app works')} accessory="chevron" onClick={() => calliopeSheet()} />
         <Row icon="reset" iconTint="var(--grey)" title={t('Show the tips again')} onClick={() => {
           update(s => { s.hints = withTipsReset(s.hints) })
