@@ -26,6 +26,9 @@ import '../social.css'
 
 /** Fired on window with the new post as `detail` whenever this device publishes one. */
 import { POSTED_EVENT, autoPostOn, forgetPost, flushPosts, postDetails, setPostDetails } from '../lib/auto-post.js'
+import { editCompletedSession } from '../lib/session-edit.js'
+import { closeThenNav } from '../lib/nav.js'
+import { workoutDurationSheet } from '../sheets.jsx'
 import { GOD_AVATARS, godFor, avatarUrl as godAvatarUrl } from '../lib/god-avatars.js'
 export { POSTED_EVENT }
 const MAX_PHOTOS = 4
@@ -328,7 +331,7 @@ export function PostCard({ post, onChange, onDelete, commentsOpen = false }) {
         <div className="post-ago">{fmtAgo(post.ts)}</div>
       </button>
       {post.mine && post.wid && useStore.getState().S.workouts.some(w => w.id === post.wid) && <button className="iconbtn"
-        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos, song: post.song || null, video: post.video || null })}
+        onClick={() => postEditorSheet(useStore.getState().S.workouts.find(w => w.id === post.wid), { text: post.text, photos: post.photos, song: post.song || null, video: post.video || null }, { withWorkout: true })}
         aria-label={t('Edit post')}><Icon name="pencil" /></button>}
       {post.mine && <button className="iconbtn" onClick={remove} aria-label={t('Delete post')}><Icon name="trash" /></button>}
     </div>
@@ -601,9 +604,36 @@ export function PostEditor({ w, initial = null, onSaved }) {
   </div>
 }
 
-/** The editor in a sheet of its own: a workout's post opened from the feed or from the workout. */
-export const postEditorSheet = (w, initial) => useUI.getState().openSheet(close => <>
+/**
+ * The workout behind a post, from the post's pencil in the feed: what was done (the exercises,
+ * their sets, weights and reps, added or taken out) and how long it took. The exercises open in
+ * the workout screen's editor (lib/session-edit.js), which comes back to the feed on Save; the
+ * duration in its own sheet over this one. The post's card follows either edit on its own
+ * (lib/auto-post.js stalePosts).
+ */
+export function PostWorkoutRows({ w, close }) {
+  const rec = useStore(s => s.S.workouts.find(x => x.id === w.id)) || w
+  const busy = useStore(s => !!s.S.active)
+  const card = workoutPostSummary(rec)
+  const editSets = () => {
+    if (useStore.getState().S.active) { toast(t('Finish the current workout first.')); return }
+    try { useStore.getState().update(state => { editCompletedSession(state, rec, { returnTo: '/home' }) }); closeThenNav(close, '/workout') }
+    catch (e) { toast(t(e.message)) }
+  }
+  return <Section title={t('Workout')} footer={busy ? t('Finish the current workout first.') : null} className="pe-wk">
+    <Row icon="dumbbell" title={t('Edit workout')} subtitle={[t('{0} exercises', card.exercises.length), t('{0} sets', card.sets)].join(' · ')}
+      accessory="chevron" onClick={busy ? undefined : editSets} />
+    <Row icon="stopwatch" title={t('Change duration')} value={fmtDur(card.durMs)} accessory="chevron" onClick={() => workoutDurationSheet(rec)} />
+  </Section>
+}
+
+/**
+ * The editor in a sheet of its own: a workout's post opened from the feed or from the workout.
+ * From the feed (`withWorkout`) the workout itself can be edited too, above the post's words.
+ */
+export const postEditorSheet = (w, initial, { withWorkout = false } = {}) => useUI.getState().openSheet(close => <>
   <h3>{t('Edit post')}</h3>
+  {withWorkout && <PostWorkoutRows w={w} close={close} />}
   <PostEditor w={w} initial={initial} onSaved={close} />
 </>)
 

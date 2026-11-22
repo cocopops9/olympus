@@ -3374,7 +3374,11 @@ function WorkoutComplete({ close }) {
 }
 export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
 
-export function saveWorkoutEdits(onExit = () => nav('/history')) {
+// Where the editor goes once closed: where it was opened from (a post in the feed), else the
+// history. Read when the save or close starts, while the draft that says so is still there.
+const editExit = () => { const to = S().active?.editReturn || '/history'; return () => nav(to) }
+
+export function saveWorkoutEdits(onExit = editExit()) {
   // A save decision left open after the editor already closed (a second prompt from a route
   // exit that raced the first save) has nothing to save or delete: it only finishes leaving.
   if (!S().active?.editingWorkoutId) { onExit(); return }
@@ -3414,7 +3418,7 @@ export function saveWorkoutEdits(onExit = () => nav('/history')) {
 let savePrompt = null
 const promptOpen = () => !!savePrompt && useUI.getState().sheets.some(x => x.id === savePrompt.id)
 
-export function exitWorkoutEdit(onExit = () => nav('/history')) {
+export function exitWorkoutEdit(onExit = editExit()) {
   if (!S().active?.editingWorkoutId) { onExit(); return }
   if (promptOpen()) { savePrompt.onExit = onExit; return }
   const prompt = { id: null, onExit }
