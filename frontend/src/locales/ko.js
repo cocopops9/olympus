@@ -3560,6 +3560,7 @@ export default {
   // Olympus: natural voices, the voice previews, exercise demonstrations.
   "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena, Calliope가 {0}로 더 자연스러운 목소리로 말할 수 있어요. 각자 자기 목소리로요. 오프라인으로, 하루 제한 없이 작동해요({1} MB, Wi-Fi 권장).",
   "Each coach speaks with a voice of their own. Tap to listen.": "코치마다 자기 목소리가 있어요. 탭해서 들어 보세요.",
+  "First word after {0} s. Each second of speech takes {1} s to make.": "첫 단어까지 {0}초. 음성 1초를 만드는 데 {1}초가 걸립니다.",
   "Hear the voices": "목소리 들어 보기",
   "Hello, I am {0}. Ask me anything about your training.": "안녕하세요, {0}예요. 운동에 대해 뭐든 물어보세요.",
   "How to do {0}": "{0} 하는 법",

@@ -3557,6 +3557,7 @@ export default {
   // Olympus: natural voices, the voice previews, exercise demonstrations.
   "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena і Calliope можуть говорити мовою «{0}» природнішими голосами, у кожного свій. Вони працюють офлайн, без денного ліміту ({1} МБ, краще через Wi-Fi).",
   "Each coach speaks with a voice of their own. Tap to listen.": "Кожен тренер має свій голос. Торкніться, щоб послухати.",
+  "First word after {0} s. Each second of speech takes {1} s to make.": "Перше слово через {0} с. Кожна секунда мовлення створюється за {1} с.",
   "Hear the voices": "Послухати голоси",
   "Hello, I am {0}. Ask me anything about your training.": "Привіт, я {0}. Питай що завгодно про свої тренування.",
   "How to do {0}": "Як виконувати: {0}",

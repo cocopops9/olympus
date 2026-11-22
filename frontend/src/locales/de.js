@@ -3580,6 +3580,7 @@ export default {
   // Olympus: natural voices, the voice previews, exercise demonstrations.
   "Chiron, Hercules, Athena and Calliope can speak {0} with more natural voices, each their own. They work offline, with no daily limit ({1} MB, Wi-Fi recommended).": "Chiron, Hercules, Athena und Calliope können {0} mit natürlicheren Stimmen sprechen, jeder mit seiner eigenen. Sie funktionieren offline, ohne Tageslimit ({1} MB, WLAN empfohlen).",
   "Each coach speaks with a voice of their own. Tap to listen.": "Jeder Coach hat seine eigene Stimme. Zum Anhören tippen.",
+  "First word after {0} s. Each second of speech takes {1} s to make.": "Erstes Wort nach {0} s. Jede Sekunde Sprache braucht {1} s zum Erzeugen.",
   "Hear the voices": "Stimmen anhören",
   "Hello, I am {0}. Ask me anything about your training.": "Hallo, ich bin {0}. Frag mich alles über dein Training.",
   "How to do {0}": "So geht's: {0}",

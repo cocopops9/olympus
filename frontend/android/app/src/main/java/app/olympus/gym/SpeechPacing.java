@@ -10,8 +10,9 @@ package app.olympus.gym;
  * rtf is under 1 the voice keeps ahead of what is heard. Where it is not (Kokoro on a mid-range
  * phone), starting as soon as the first piece is ready leaves a silence before the second piece
  * as long as the difference. That is the "I am awake. ... long wait ... rest of the sentence" the
- * person heard. So the sound starts once the sound already made covers the time the next piece
- * is expected to take, and any gap left is at most `TOLERANCE_S`.
+ * person heard. So where rtf is under 1 the sound starts once the sound already made covers the
+ * time the next piece is expected to take, and any gap left is at most `TOLERANCE_S`. Where it is
+ * over 1 no wait removes the gaps, and the sound starts with the first piece.
  *
  * Measured with sherpa-onnx 1.13.8 and the kokoro-int8-multi-lang-v1_0 pack (4 threads, a 2.1 GHz
  * Xeon, 2026-11-21): making a piece took 0.21 s + 0.81 s per second of sound, and a piece lasted
@@ -49,12 +50,24 @@ final class SpeechPacing {
     static boolean shouldStart(double buffered, int nextChars, double speed, double rtf) {
         if (nextChars <= 0) return true;
         double r = rtf > 0 ? rtf : FIRST_RTF;
+        // Slower than real time: the answer ends at the same moment however long the start waits
+        // (each piece is ready only when it is ready), so waiting only moves silence from the
+        // middle to the start, where it was heard as the coach not answering (Build 93,
+        // 2026-11-22). The sound starts with the first piece.
+        if (r > 1) return true;
         return buffered + TOLERANCE_S >= r * expectedSeconds(nextChars, speed);
     }
 
+    /**
+     * The shortest piece that counts towards rtf. A piece also costs a fixed 0.21 s (measured): on a
+     * half-second piece that alone adds 40% and would make a fast phone look slower than real time,
+     * which now changes when the sound starts. From 1.5 s on it adds at most 14%.
+     */
+    static final double MEASURE_MIN_S = 1.5;
+
     /** The running rtf after one piece took `genSeconds` to make and lasts `soundSeconds`. */
     static double updateRtf(double previous, double genSeconds, double soundSeconds) {
-        if (!(soundSeconds > 0.2) || !(genSeconds >= 0)) return previous;
+        if (!(soundSeconds >= MEASURE_MIN_S) || !(genSeconds >= 0)) return previous;
         double now = genSeconds / soundSeconds;
         return previous > 0 ? (1 - WEIGHT) * previous + WEIGHT * now : now;
     }
