@@ -58,11 +58,15 @@ describe('voice mode with both coaches', () => {
     await flush(); await flush(); await flush()
     // Hercules is talking; Athena's answer is there but waits, and nothing was stopped.
     expect(h.said).toEqual(['hercules'])
+    // The banner names who is heard, not the coach picked on the screen.
+    const banner = () => host.querySelector('.voice-banner').textContent
+    expect(banner()).toMatch(/^Hercules is speaking/)
     const stopsWhileTalking = h.stops
     expect(h.mic).toBe(micAtStart)
     await act(async () => { h.ends[0]() })
     await flush()
     expect(h.said).toEqual(['hercules', 'athena'])
+    expect(banner()).toMatch(/^Athena is speaking/)
     // Each says its spoken version when it wrote one, else its written answer; the spoken
     // version is never shown.
     expect(h.texts).toEqual(['Answer from hercules.', 'About two grams of protein per kilo.'])

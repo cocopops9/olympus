@@ -110,7 +110,7 @@ test('Supabase: the routes count per profile and report the limit', async () => 
 test('Athena is another coach: her own model, allowance and voice, on Hercules\'s key unless she has one', () => {
   const env = { HERCULES_API_KEY: 'k', HERCULES_BASE_URL: 'https://p.example/v1' };
   const a = herculesConfig(env, 'athena');
-  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20, replyTokens: LIMITS.replyTokens, history: LIMITS.history, context: LIMITS.context });
+  assert.deepEqual(a, { coach: 'athena', key: 'k', baseUrl: 'https://p.example/v1', model: ATHENA_DEFAULTS.model, fallback: ATHENA_DEFAULTS.fallback, perDay: 20, replyTokens: ATHENA_DEFAULTS.replyTokens, history: LIMITS.history, context: ATHENA_DEFAULTS.context, inputTokens: ATHENA_DEFAULTS.inputTokens });
   assert.notEqual(ATHENA_DEFAULTS.model, DEFAULTS.model);
   const own = herculesConfig({ ...env, ATHENA_API_KEY: 'k2', ATHENA_MODEL: 'gemini-x', ATHENA_PER_DAY: '7', ATHENA_BASE_URL: 'https://g.example/openai/' }, 'athena');
   assert.equal(own.key, 'k2'); assert.equal(own.model, 'gemini-x'); assert.equal(own.perDay, 7); assert.equal(own.baseUrl, 'https://g.example/openai');
@@ -229,12 +229,14 @@ test('the coaches\' memory: notes they can edit and insights they do not see, di
   assert.deepEqual(bad.body, { notes: ['A'], insights: ['B'], left: MEMORY.perDay - 1 });
 });
 
-test('Athena thinks with other models than Hercules, and both know they share the conversation', () => {
-  // Qwen first, Llama when it is busy: never one of the OpenAI open models Hercules runs on.
-  for (const m of [ATHENA_DEFAULTS.model, ATHENA_DEFAULTS.fallback]) assert.doesNotMatch(m, /gpt-oss|openai/);
+test('Athena thinks with another model than Hercules, and both know they share the conversation', () => {
+  // Qwen first; when it fails, a model this account reaches, never the larger one Hercules answers with.
+  assert.doesNotMatch(ATHENA_DEFAULTS.model, /gpt-oss|openai/);
+  assert.notEqual(ATHENA_DEFAULTS.fallback, DEFAULTS.model);
+  assert.equal(ATHENA_DEFAULTS.fallback, DEFAULTS.fallback);
   assert.match(DEFAULTS.model, /gpt-oss/);
   assert.equal(modelLabel(ATHENA_DEFAULTS.model), 'Qwen 3.8 27B');
-  assert.equal(modelLabel(ATHENA_DEFAULTS.fallback), 'Llama 3.3 70B');
+  assert.equal(modelLabel('llama-3.3-70b-versatile'), 'Llama 3.3 70B');
   assert.match(systemPrompt({ coach: 'athena' }), /\[Hercules answered this one\]/);
   assert.match(systemPrompt({ coach: 'hercules' }), /\[Athena answered this one\]/);
   assert.doesNotMatch(systemPrompt({ coach: 'chiron' }), /answered this one/);
@@ -288,4 +290,37 @@ test('an answer cut at the reply limit ends at its last whole sentence, without 
   const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ finish_reason: 'length', message: { content: 'Squat deep. Brace har' } }] }) });
   const r = await askHercules({ config: { key: 'k', model: 'm', baseUrl: 'x' }, messages: [{ role: 'user', content: 'hi' }], fetchImpl });
   assert.equal(r.reply, 'Squat deep.');
+});
+
+test('Athena\'s request stays within what Groq\'s free tier lets Qwen take', async () => {
+  // 7000 input and 1000 output tokens a minute (the 413 and 429 in the function's log, 2026-11-22).
+  assert.ok(ATHENA_DEFAULTS.inputTokens < 7000);
+  assert.ok(ATHENA_DEFAULTS.replyTokens < 1000);
+  const config = herculesConfig({ HERCULES_API_KEY: 'k' }, 'athena');
+  // A long conversation and the largest training summary she reads.
+  const long = Array.from({ length: 12 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'word '.repeat(380) }));
+  const sent = [];
+  const fetchImpl = async (url, init) => { sent.push(JSON.parse(init.body)); return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'Fine.' } }] }) }; };
+  await askHercules({ config, messages: long, name: 'Giuseppe', lang: 'it', context: 'x'.repeat(config.context), fetchImpl });
+  const body = sent[0];
+  const chars = body.messages.reduce((n, m) => n + m.content.length, 0);
+  assert.ok(chars / 3 <= ATHENA_DEFAULTS.inputTokens, 'about ' + Math.round(chars / 3) + ' tokens');
+  assert.equal(body.max_tokens, ATHENA_DEFAULTS.replyTokens);
+  // The newest turn is always sent, and the conversation starts with the person.
+  assert.equal(body.messages.at(-1).content, long.at(-1).content);
+  assert.equal(body.messages[1].role, 'user');
+  assert.ok(body.messages.length < long.length + 1);
+});
+
+test('a request the model finds too large (413) goes to the fallback', async () => {
+  const config = herculesConfig({ HERCULES_API_KEY: 'k' }, 'athena');
+  const models = [];
+  const fetchImpl = async (url, init) => {
+    const { model } = JSON.parse(init.body); models.push(model);
+    if (model === ATHENA_DEFAULTS.model) return { ok: false, status: 413, statusText: 'too large', json: async () => ({ error: { message: 'Request too large' } }) };
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'From the fallback.' } }] }) };
+  };
+  const r = await askHercules({ config, messages: [{ role: 'user', content: 'Plan my week' }], fetchImpl });
+  assert.deepEqual(r, { reply: 'From the fallback.', model: ATHENA_DEFAULTS.fallback });
+  assert.deepEqual(models, [ATHENA_DEFAULTS.model, ATHENA_DEFAULTS.fallback]);
 });
