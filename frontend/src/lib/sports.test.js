@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SPORTS, DRILLS, drillsOf, SPORT_MINUTES_PER_SET, QUALITIES, setsEquivalent } from './sports.js'
+import { SPORTS, DRILLS, CATALOGUE_DRAWING, drillsOf, SPORT_MINUTES_PER_SET, QUALITIES, setsEquivalent } from './sports.js'
 import { CATALOGUE, EXIDX, isCardio, isSport, categoriesOf } from './exercises.js'
 import { modeOf, defaultConfig, setLabel, exLine } from './history.js'
 import { MUSCLES, musclesOf, loadOfWorkouts, loadOfRoutine } from './muscles.js'
@@ -7,6 +7,20 @@ import { GROUPS, exercisesFor, countsFor } from './exercise-guide.js'
 import { exerciseNameFor, descFor } from './i18n-core.js'
 import { imgSrc, gifSrc } from './exercises.js'
 import { sportStill, sportClip, sportAnimation } from './sport-media.js'
+
+// A sport or drill drawn by the catalogue shows that exercise's files; the others ship their own.
+function expectDrawing(ex) {
+  if (ex.media) {
+    expect(imgSrc(ex), ex.id).toBe(imgSrc(EXIDX[ex.media]))
+    expect(gifSrc(ex), ex.id).toBe(gifSrc(EXIDX[ex.media]))
+    return
+  }
+  expect(sportStill(ex.id), ex.id).toMatch(/\.webp/)
+  expect(sportClip(ex.id), ex.id).toMatch(/\.mp4/)
+  expect(sportAnimation(ex.id), ex.id).toMatch(/anim\.webp/)
+  expect(imgSrc(EXIDX[ex.id])).toBe(sportStill(ex.id))
+  expect(gifSrc(EXIDX[ex.id])).toBe(sportClip(ex.id))
+}
 
 describe('sports', () => {
   it('are in the catalogue with an id of their own and a name', () => {
@@ -80,14 +94,8 @@ describe('sports', () => {
   it('show their name in English', () => {
     expect(exerciseNameFor(EXIDX['sport-basketball'])).toBe('basketball')
   })
-  it('each has its own drawing: a still, a loop and an animated loop', () => {
-    for (const s of SPORTS) {
-      expect(sportStill(s.id), s.id).toMatch(/\.webp/)
-      expect(sportClip(s.id), s.id).toMatch(/\.mp4/)
-      expect(sportAnimation(s.id), s.id).toMatch(/anim\.webp/)
-      expect(imgSrc(EXIDX[s.id])).toBe(sportStill(s.id))
-      expect(gifSrc(EXIDX[s.id])).toBe(sportClip(s.id))
-    }
+  it('each has a drawing: the catalogue exercise of its movement, or a still, a loop and an animated loop of its own', () => {
+    for (const s of SPORTS) expectDrawing(s)
   })
 })
 
@@ -123,12 +131,19 @@ describe('sport drills', () => {
     expect(musclesOf(EXIDX['drill-skiing-wall-sit']).quadriceps).toBe(1)
   })
 
-  it('each has its own drawing: a still, a loop and an animated loop', () => {
-    for (const d of DRILLS) {
-      expect(sportStill(d.id), d.id).toMatch(/\.webp/)
-      expect(sportClip(d.id), d.id).toMatch(/\.mp4/)
-      expect(sportAnimation(d.id), d.id).toMatch(/anim\.webp/)
-      expect(gifSrc(EXIDX[d.id])).toBe(sportClip(d.id))
+  it('each has a drawing: the catalogue exercise of its movement, or a still, a loop and an animated loop of its own', () => {
+    for (const d of DRILLS) expectDrawing(d)
+  })
+
+  it('show the catalogue drawing of the exercise they name, for the chosen figure too', () => {
+    for (const [id, media] of Object.entries(CATALOGUE_DRAWING)) {
+      const ex = EXIDX[id], drawn = EXIDX[media]
+      expect(ex?.media, id).toBe(media)
+      expect(drawn && !drawn.sport, `${id} -> ${media}`).toBe(true)
+      for (const figure of ['male', 'female']) {
+        expect(imgSrc(ex, figure)).toBe(imgSrc(drawn, figure))
+        expect(gifSrc(ex, figure)).toBe(gifSrc(drawn, figure))
+      }
     }
   })
 })
