@@ -80,3 +80,9 @@ export function socialPush(lang, note) {
   // One tray entry per kind: a burst of likes replaces itself instead of stacking up.
   return { title: 'Olympus', body: line, tag: 'social-' + note.kind };
 }
+
+/** Whether a profile wants this kind of social news pushed: every kind is on until the app's
+ *  Settings → Notifications switches it off (S.newsOff, a list of kinds, in the profile's state). */
+export function socialPushWanted(state, kind) {
+  return !(Array.isArray(state?.newsOff) && state.newsOff.includes(kind));
+}
