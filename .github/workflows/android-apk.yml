@@ -37,6 +37,9 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+          # Gradle's downloads kept between runs: Build 94 failed with Maven Central answering
+          # 429 Too Many Requests to every dependency fetched afresh (2026-11-22).
+          cache: gradle
       - name: Android SDK licences
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
@@ -84,7 +87,10 @@ jobs:
           set -o pipefail
           # On a failure, Gradle's own explanation becomes an annotation of the run: readable from
           # the run's summary and the checks API without downloading the whole log.
-          if ! ./gradlew --no-daemon assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER)) 2>&1 | tee "$RUNNER_TEMP/gradle.log"; then
+          # Should a fetch still meet a rate limit or a dropped connection, Gradle tries again,
+          # waiting 2, 4, 8, 16 and 32 s (about a minute in all) instead of 3 tries within 1 s.
+          if ! ./gradlew --no-daemon -Dorg.gradle.internal.repository.max.tentatives=6 \
+              -Dorg.gradle.internal.repository.initial.backoff=2000 assembleRelease -PolympusVersionCode=$((1000 + GITHUB_RUN_NUMBER)) 2>&1 | tee "$RUNNER_TEMP/gradle.log"; then
             why=$( { grep -A14 'What went wrong' "$RUNNER_TEMP/gradle.log" || true; grep -E 'error:|Duplicate class|AAPT: error|FAILED' "$RUNNER_TEMP/gradle.log" || true; echo '--- last lines ---'; tail -25 "$RUNNER_TEMP/gradle.log"; } \
               | head -90 | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN{ORS="%0A"} {print}' || true)
             echo "::error title=Gradle build failed::$why"
