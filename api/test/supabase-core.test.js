@@ -431,3 +431,67 @@ test('accounts: Google on a profile whose e-mail nobody proved takes its passwor
   assert.equal(res.status, 200);
   assert.equal((await s.call('POST', '/api/app/login', { body: { identifier: 'Mia', password: PW } })).status, 401);
 });
+
+test('account: a new e-mail address takes effect only with the code sent to it', async () => {
+  const mails = [];
+  const fetchImpl = async (url, init) => { mails.push(JSON.parse(init.body)); return new Response('{}', { status: 200 }); };
+  const clock = { t: Date.parse('2026-10-24T12:00:00Z') };
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), now: () => clock.t, env: { RESEND_API_KEY: 'k', MAIL_FROM: 'Olympus <no-reply@olympus.app>' }, fetchImpl });
+  const call = async (method, p, body, token) => {
+    const res = await app.handle(new Request(BASE + p, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) }));
+    return { status: res.status, body: await res.json() };
+  };
+  const ana = (await call('POST', '/api/app/signup', { name: 'Ana', password: PW, email: 'ana@example.com' })).body;
+  await call('POST', '/api/app/signup', { name: 'Ben', password: PW + ' b', email: 'ben@example.com' });
+  const change = body => call('POST', '/api/account/email', body, ana.token);
+
+  assert.equal((await change({ email: 'not an address', current: PW })).body.code, 'email-invalid');
+  assert.equal((await change({ email: 'new@example.com' })).body.code, 'current-required');
+  assert.equal((await change({ email: 'new@example.com', current: 'wrong wrong wrong' })).body.code, 'current-wrong');
+  assert.equal((await change({ email: 'Ben@Example.com', current: PW })).body.code, 'email-taken');
+  assert.equal(mails.length, 0, 'nothing is sent before the checks pass');
+
+  const asked = await change({ email: 'New@Example.com', current: PW });
+  assert.deepEqual(asked.body, { ok: true, pending: true, email: 'new@example.com' });
+  assert.equal(mails.length, 1);
+  assert.equal(mails[0].to[0], 'new@example.com', 'the code goes to the new address');
+  const code = /address is: (\d{6})/.exec(mails[0].text)[1];
+  const status = (await call('GET', '/api/account/password', undefined, ana.token)).body;
+  assert.equal(status.email, 'ana@example.com', 'nothing changes before the code comes back');
+  assert.equal(status.emailPending, 'new@example.com');
+  assert.equal(status.emailCodes, true);
+  assert.equal((await change({ email: 'new@example.com', current: PW })).body.code, 'wait', 'one e-mail a minute');
+
+  const wrong = code === '000000' ? '111111' : '000000';
+  assert.equal((await call('POST', '/api/account/email/confirm', { code: wrong }, ana.token)).body.code, 'code-wrong');
+  const done = await call('POST', '/api/account/email/confirm', { code }, ana.token);
+  assert.deepEqual(done.body, { ok: true, email: 'new@example.com' });
+  assert.equal(mails.length, 2);
+  assert.equal(mails[1].to[0], 'ana@example.com', 'the old address is told');
+  assert.match(mails[1].text, /now new@example\.com/);
+  assert.equal((await call('POST', '/api/account/email/confirm', { code }, ana.token)).body.code, 'code-none', 'a code works once');
+  assert.equal((await call('POST', '/api/app/login', { identifier: 'new@example.com', password: PW })).status, 200, 'sign in with the new address');
+  assert.equal((await call('POST', '/api/app/login', { identifier: 'ana@example.com', password: PW })).status, 401, 'the old one no longer signs in');
+
+  // A code expires after 15 minutes.
+  clock.t += 61000;
+  await change({ email: 'third@example.com', current: PW });
+  const code2 = /address is: (\d{6})/.exec(mails.at(-1).text)[1];
+  clock.t += 15 * 60000 + 1;
+  assert.equal((await call('POST', '/api/account/email/confirm', { code: code2 }, ana.token)).body.code, 'code-expired');
+  assert.equal((await call('GET', '/api/account/password', undefined, ana.token)).body.email, 'new@example.com');
+
+  // Wrong current passwords count towards the sign-in pause.
+  for (let i = 0; i < 6; i++) await change({ email: 'x@example.com', current: 'nope nope nope' });
+  assert.equal((await change({ email: 'x@example.com', current: PW })).body.code, 'locked');
+});
+
+test('account: without a mail service a new e-mail address is saved at once, unverified', async () => {
+  const s = server();
+  const ana = await signup(s, 'Ana');
+  const r = await s.call('POST', '/api/account/email', { token: ana.token, body: { email: 'other@example.com', current: PW } });
+  assert.deepEqual(r.body, { ok: true, email: 'other@example.com' });
+  const st = (await s.call('GET', '/api/account/password', { token: ana.token })).body;
+  assert.equal(st.email, 'other@example.com');
+  assert.equal(st.emailCodes, false);
+});

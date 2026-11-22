@@ -50,6 +50,7 @@ import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
 import { VoiceSetupRow, NaturalVoiceRow, VoicePreviewRow } from '../components/VoiceSetup.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
 import AccountHero, { useFace } from '../components/AccountHero.jsx'
+import { SignInSection } from '../components/AccountEdit.jsx'
 import { GymsManager } from '../components/Gyms.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
@@ -877,6 +878,8 @@ export default function Settings({ page = null, find = null, via = null }) {
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
       {user && !DEMO && <AccountHero />}
       {user && !DEMO && <ServerSyncSection />}
+      {/* Olympus: name, e-mail and password, where people look for them (also in Edit profile). */}
+      {user && !DEMO && MOBILE && <SignInSection />}
       {/* The phone's account block: its dashboard, its ID, and the way out. */}
       {user && !DEMO && MOBILE && <Section title={t('Your account')} footer={t('Your account ID names you on the server. Tap it to copy.')}>
         {/* Olympus: the Supabase server has the owner's dashboard instead of the Node server's admin pages. */}
