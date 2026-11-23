@@ -1,7 +1,12 @@
-// The Claude connector's address token (connector.js): made by the app's function (core.js),
+// The connectors' address token (Claude's and ChatGPT's) (connector.js): made by the app's function (core.js),
 // checked by the connector's. A module of its own so core.js does not load the connector's tools.
 import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
+
+// Where an account keeps each assistant's address: Claude's in `connector` (the first, so its
+// name stays), ChatGPT's beside it. Anything else asked for is Claude's.
+export const CONNECTOR_SLOTS = { claude: 'connector', chatgpt: 'connectorChatgpt' };
+export const connectorSlot = client => CONNECTOR_SLOTS[client] || CONNECTOR_SLOTS.claude;
 
 export const TOKEN_RE = /^[A-Za-z0-9_-]{32,128}$/;
 // 32 random bytes: 256 bits, as base64url (43 characters, safe in a URL path).

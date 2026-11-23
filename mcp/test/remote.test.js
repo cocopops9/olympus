@@ -211,6 +211,45 @@ describe('the address (core.js /api/connector and connector.js)', () => {
     expect((await w.rpc(third, 'ping')).status).toBe(404)
   })
 
+  test('ChatGPT gets its own address: made, used, replaced and removed apart from Claude\'s', async () => {
+    const GPT = '/api/connector?for=chatgpt'
+    expect((await w.call('GET', GPT, { token: ana.token })).body).toEqual({ available: true, on: false, created: null, used: null })
+    const claude = (await w.call('POST', '/api/connector', { token: ana.token, body: {} })).body.url
+    expect((await w.call('GET', GPT, { token: ana.token })).body.on).toBe(false)
+    const gpt = (await w.call('POST', GPT, { token: ana.token, body: {} })).body.url
+    expect(gpt.startsWith(CONNECTOR + '/')).toBe(true)
+    expect(gpt).not.toBe(claude)
+    expect((await w.call('GET', GPT, { token: ana.token })).body.url).toBe(gpt)
+    expect((await w.call('GET', '/api/connector', { token: ana.token })).body.url).toBe(claude)
+
+    // ChatGPT's address reads and writes the same profile, and only its own "last used" moves
+    const init = await w.rpc(gpt, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'openai-mcp', version: '1' } })
+    expect(init.status).toBe(200)
+    const tools = (await w.rpc(gpt, 'tools/list')).body.result.tools
+    expect(tools.length).toBe(TOOLS.length + WRITE_TOOLS.length)
+    // ChatGPT treats a tool without readOnlyHint as a write: every read tool carries it
+    for (const t of tools) expect(typeof t.annotations.readOnlyHint).toBe('boolean')
+    expect((await w.tool(gpt, 'get_bodyweight')).json.latest.weight).toBe((await w.tool(claude, 'get_bodyweight')).json.latest.weight)
+    expect((await w.call('GET', GPT, { token: ana.token })).body.used).toBe(w.clock.t)
+    w.clock.t += 7200000
+    await w.rpc(claude, 'ping')
+    expect((await w.call('GET', GPT, { token: ana.token })).body.used).toBe(w.clock.t - 7200000)
+
+    // a new ChatGPT address leaves Claude's working; removing ChatGPT's leaves Claude's too
+    const gpt2 = (await w.call('POST', GPT, { token: ana.token, body: {} })).body.url
+    expect((await w.rpc(gpt, 'ping')).status).toBe(404)
+    expect((await w.rpc(gpt2, 'ping')).status).toBe(200)
+    expect((await w.rpc(claude, 'ping')).status).toBe(200)
+    expect((await w.call('POST', '/api/connector/delete?for=chatgpt', { token: ana.token, body: {} })).status).toBe(200)
+    expect((await w.rpc(gpt2, 'ping')).status).toBe(404)
+    expect((await w.rpc(claude, 'ping')).status).toBe(200)
+    // "Sign out everywhere" ends both
+    const gpt3 = (await w.call('POST', GPT, { token: ana.token, body: {} })).body.url
+    expect((await w.call('POST', '/api/logout/all', { token: ana.token, body: {} })).status).toBe(200)
+    expect((await w.rpc(gpt3, 'ping')).status).toBe(404)
+    expect((await w.rpc(claude, 'ping')).status).toBe(404)
+  })
+
   test('"last used" is written on use, at most once an hour', async () => {
     const url = (await w.call('POST', '/api/connector', { token: ana.token, body: {} })).body.url
     await w.rpc(url, 'ping')

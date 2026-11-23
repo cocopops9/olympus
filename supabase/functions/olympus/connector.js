@@ -1,5 +1,5 @@
-// Olympus on Supabase: the Claude connector. A remote MCP server (Streamable HTTP) that lets
-// Claude, or any MCP client, read one profile's training: routines, workouts, body weight,
+// Olympus on Supabase: the Claude and ChatGPT connector. A remote MCP server (Streamable HTTP)
+// that lets Claude, ChatGPT or any MCP client read one profile's training: routines, workouts, body weight,
 // estimated 1RMs, muscle balance; and change it the way the athlete does in the app (log and
 // correct workouts and weigh-ins, routines, the week plan: mcp/src/write-tools.js). The read tools
 // are the stdio server's (mcp/src/tools.js), spoken over HTTP by mcp/src/remote.js.
@@ -13,7 +13,8 @@
 // the app's sign-in or sync down with it.
 //
 // Which profile: the connector address the app hands out (core.js, /api/connector) ends in a
-// random token, and the account keeps only its SHA-256. Claude's custom connectors take an
+// random token, and the account keeps only its SHA-256; Claude and ChatGPT get one address each.
+// Claude's custom connectors and ChatGPT's custom MCP servers ("No authentication") take an
 // address and, without OAuth, nothing else, so the address is the credential, the same way a
 // calendar's private feed address is. Settings shows when it was last used and replaces or
 // removes it in one tap; "Sign out everywhere" removes it too. A client that can send headers
@@ -21,7 +22,7 @@
 import crypto from 'node:crypto';
 import { answerBody } from '../../../mcp/src/remote.js';
 import { commitChange } from '../../../mcp/src/write-tools.js';
-import { TOKEN_RE, tokenHash } from './connector-token.js';
+import { TOKEN_RE, tokenHash, CONNECTOR_SLOTS } from './connector-token.js';
 import { stampPut } from './sync-stamps.js';
 
 const MAX_BODY = 1024 * 1024;
@@ -58,21 +59,25 @@ const json = (status, body, extra = {}) => new Response(body == null ? null : JS
 });
 
 export function createConnector({ store, now = () => Date.now() }) {
+  // The profile and which of its addresses (Claude's or ChatGPT's) the token is.
   async function profileOf(token) {
     const h = tokenHash(token);
-    const user = usersOf(await store.read('db')).find(u => u.connector?.h === h);
-    if (!user || user.disabled) return null;
-    return user;
+    const slots = Object.values(CONNECTOR_SLOTS);
+    for (const user of usersOf(await store.read('db'))) {
+      const slot = slots.find(s => user[s]?.h === h);
+      if (slot) return user.disabled ? null : { user, slot };
+    }
+    return null;
   }
 
-  async function markUsed(user) {
-    if (now() - (user.connector.used || 0) < USED_EVERY_MS) return;
+  async function markUsed(user, slot) {
+    if (now() - (user[slot].used || 0) < USED_EVERY_MS) return;
     await store.update(['db'], ({ get, set }) => {
       const db = get('db');
       const u = usersOf(db).find(x => x.id === user.id);
       // Only the token this request came with: a replaced or removed one is not revived.
-      if (!u || u.connector?.h !== user.connector.h) return;
-      u.connector.used = now();
+      if (!u || u[slot]?.h !== user[slot].h) return;
+      u[slot].used = now();
       set('db', db);
     });
   }
@@ -84,8 +89,9 @@ export function createConnector({ store, now = () => Date.now() }) {
     const token = tokenOf(req, url);
     // An unknown address answers 404, not 401: a 401 sends MCP clients looking for an OAuth
     // server, and there is none to find. Replaced and removed addresses land here too.
-    const user = token ? await profileOf(token) : null;
-    if (!user) return json(404, { error: 'this Olympus connector address is not active. Make a new one in the app: Settings, Connect to Claude.' });
+    const found = token ? await profileOf(token) : null;
+    if (!found) return json(404, { error: 'this Olympus connector address is not active. Make a new one in the app: Settings, Connect to Claude or Connect to ChatGPT.' });
+    const { user, slot } = found;
 
     // No server-to-client stream and no session to end (mcp/src/remote.js).
     if (req.method === 'GET' || req.method === 'DELETE') return json(405, { error: 'method not allowed' }, { Allow: 'POST' });
@@ -117,7 +123,7 @@ export function createConnector({ store, now = () => Date.now() }) {
       return result;
     };
     const { status, body } = await answerBody(text, { load, change });
-    try { await markUsed(user); } catch (e) { console.error('connector: last used', e); }
+    try { await markUsed(user, slot); } catch (e) { console.error('connector: last used', e); }
     return json(status, body);
   }
 

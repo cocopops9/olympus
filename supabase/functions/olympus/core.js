@@ -30,7 +30,7 @@ import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
-import { newConnectorToken, tokenHash, connectorBase, sealToken, openToken } from './connector-token.js';
+import { newConnectorToken, tokenHash, connectorBase, sealToken, openToken, CONNECTOR_SLOTS, connectorSlot } from './connector-token.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, startEmailChange, checkEmailChange, emailChangeMail, emailChangedNotice, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
@@ -403,27 +403,30 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const { user } = await signedIn(req);
       await store.update(['db'], ({ get, set }) => {
         const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
-        // Every way into the profile ends, the Claude connector's address included.
-        if (u) { u.sv = sessionVersion(u) + 1; delete u.connector; set('db', db); }
+        // Every way into the profile ends, the connectors' addresses included.
+        if (u) { u.sv = sessionVersion(u) + 1; for (const slot of Object.values(CONNECTOR_SLOTS)) delete u[slot]; set('db', db); }
       });
       return { status: 200, body: { ok: true } };
     },
 
-    // The Claude connector (connector.js): one address per profile. The account keeps its hash
-    // (for lookups), the token sealed with the server's key (so the app can copy the same address
-    // again), when it was made and when Claude last used it. An address made before sealing has
-    // no url here: the app then offers a new one.
-    'GET /api/connector': async req => {
+    // The connectors (connector.js): one address per profile for each assistant, Claude's and
+    // ChatGPT's (?for=chatgpt; connector-token.js CONNECTOR_SLOTS), so each has its own "last used"
+    // and is replaced or removed without touching the other. The account keeps the hash (for
+    // lookups), the token sealed with the server's key (so the app can copy the same address
+    // again), when it was made and when the assistant last used it. An address made before
+    // sealing has no url here: the app then offers a new one.
+    'GET /api/connector': async (req, query) => {
       const { user } = await signedIn(req);
-      const c = user.connector;
+      const c = user[connectorSlot(query?.get('for'))];
       const base = connectorBase(env);
       const token = c?.h && c.e && base ? openToken(await key(), c.e) : null;
       const url = token && tokenHash(token) === c.h ? base + '/' + token : null;
       return { status: 200, body: { available: !!base, on: !!c?.h, created: c?.at || null, used: c?.used || null, ...(url ? { url } : {}) } };
     },
-    'POST /api/connector': async req => {
+    'POST /api/connector': async (req, query) => {
       const { user } = await signedIn(req);
       await req.text();
+      const slot = connectorSlot(query?.get('for'));
       const base = connectorBase(env);
       if (!base) return { status: 503, body: { error: 'the connector is not set up on this server', code: 'no-connector' } };
       const token = newConnectorToken();
@@ -432,18 +435,19 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       await store.update(['db'], ({ get, set }) => {
         const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
         if (!u) throw new HttpError(401, 'not signed in');
-        // A new address replaces the old one, which stops working at once.
-        u.connector = { h: tokenHash(token), e: sealed, at };
+        // A new address replaces the old one of the same assistant, which stops working at once.
+        u[slot] = { h: tokenHash(token), e: sealed, at };
         set('db', db);
       });
       return { status: 200, body: { url: base + '/' + token, created: at } };
     },
-    'POST /api/connector/delete': async req => {
+    'POST /api/connector/delete': async (req, query) => {
       const { user } = await signedIn(req);
       await req.text();
+      const slot = connectorSlot(query?.get('for'));
       await store.update(['db'], ({ get, set }) => {
         const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
-        if (u?.connector) { delete u.connector; set('db', db); }
+        if (u?.[slot]) { delete u[slot]; set('db', db); }
       });
       return { status: 200, body: { ok: true } };
     },

@@ -18,6 +18,7 @@ export const PAGES = {
   equipment: { title: 'Equipment', icon: 'kettlebell', tint: 'var(--indigo)' },
   look: { title: 'Look & Home', icon: 'palette', tint: 'var(--purple)' },
   claude: { title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)' },
+  chatgpt: { title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)' },
   coach: { title: 'AI Coach', icon: 'sparkles', tint: 'var(--green)' },
   data: { title: 'Data & backup', icon: 'folder', tint: 'var(--blue)' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
@@ -30,9 +31,9 @@ export const PAGE_IDS = Object.keys(PAGES)
 // The root, top to bottom. Whether a row shows is pageVisible's call.
 // Olympus: the plan-writing AI Coach is not listed; Hercules, Athena and your own coaches live in
 // the AI coach screen (views/CoachAI.jsx).
-// Olympus: the app guide first, where someone new to the app looks for help. Connect to Claude
-// reads the profile on the server, so it needs one (components/ClaudeConnector.jsx).
-export const ROOT_GROUPS = [['guide'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['claude'], ['data', 'about']]
+// Olympus: the app guide first, where someone new to the app looks for help. Connect to Claude and
+// Connect to ChatGPT read the profile on the server, so they need one (components/ClaudeConnector.jsx).
+export const ROOT_GROUPS = [['guide'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['claude', 'chatgpt'], ['data', 'about']]
 
 /**
  * Whether a page exists for this device and profile. Reminders need a push server (signed in) or
@@ -42,7 +43,7 @@ export const ROOT_GROUPS = [['guide'], ['workout', 'alerts', 'reminders'], ['pla
 export function pageVisible(page, ctx) {
   if (page === 'reminders') return !!(ctx.user || ctx.mobile)
   if (page === 'coach') return false
-  if (page === 'claude') return !!ctx.user && !ctx.demo
+  if (page === 'claude' || page === 'chatgpt') return !!ctx.user && !ctx.demo
   return page in PAGES
 }
 
@@ -134,7 +135,9 @@ export const SEARCH = [
   { page: 'data', title: 'Photos & videos', icon: 'image', tint: 'var(--teal)', kw: 'media storage photos videos upload', when: c => c.hasMedia },
   { page: 'data', title: 'Reset everything', icon: 'trash', tint: 'var(--red)', kw: 'delete wipe reset erase' },
   // Connect to Claude
-  { page: 'claude', title: 'Ask Claude about your training', icon: 'sparkles', tint: 'var(--orange)', kw: 'claude ai assistant anthropic mcp connector connect link chatgpt llm integration', when: c => !!c.user && !c.demo },
+  { page: 'claude', title: 'Ask Claude about your training', icon: 'sparkles', tint: 'var(--orange)', kw: 'claude ai assistant anthropic mcp connector connect link llm integration', when: c => !!c.user && !c.demo },
+  // Connect to ChatGPT
+  { page: 'chatgpt', title: 'Ask ChatGPT about your training', icon: 'chat', tint: 'var(--green)', kw: 'chatgpt openai gpt ai assistant mcp connector plugin connect link llm integration', when: c => !!c.user && !c.demo },
   // About & updates
   { page: 'about', title: 'Tips', icon: 'lightbulb', tint: 'var(--yellow)', kw: 'help guide hints tutorial onboarding explain beginner', opts: ['All tips', 'Charts and numbers only', 'Off'] },
   { page: 'about', title: 'Show the welcome tour again', icon: 'sparkles', tint: 'var(--acc)', kw: 'tutorial intro guide welcome onboarding tour help calliope' },
