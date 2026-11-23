@@ -25,13 +25,21 @@ running and no machine to look after.
 
 `functions/olympus-mcp` is a remote MCP server (Streamable HTTP) through which Claude, or any MCP
 client, reads one profile's training: routines, the week plan, workouts set by set, body
-weight, estimated 1RMs and muscle balance. It is read-only, and its nine tools are the stdio
-server's (`mcp/src/tools.js`), spoken over HTTP by `mcp/src/remote.js`, so its numbers are the
-app's.
+weight, estimated 1RMs and muscle balance. Its read tools are the stdio server's
+(`mcp/src/tools.js`), spoken over HTTP by `mcp/src/remote.js`, so its numbers are the app's.
+
+It also writes, on that profile only, what the athlete does by hand in the app
+(`mcp/src/write-tools.js`): log, correct and remove workouts and weigh-ins, create, change and
+delete routines, plan weekdays and single dates. A change is saved like the app's own push: under
+the document's lock, stamped with `stampChange` (the app's stamps) and `stampPut` (as a writer that
+stamps), with a new revision and write id, so an open phone merges it within half a minute and
+keeps its own changes too. Removals take `confirm: true` and are marked destructive. The stdio
+server stays read-only.
 
 - **Address:** the app's *Settings → Connect to Claude* asks `POST /api/connector` for one. It is
   `https://<ref>.functions.supabase.co/olympus-mcp/<token>` (or `OLYMPUS_CONNECTOR_URL`
-  + `/<token>`), shown once; the account keeps only the token's SHA-256, when it was made and
+  + `/<token>`); the account keeps the token's SHA-256 (for lookups) and a copy sealed with the
+  server's key (so the app can show the same address again), when it was made and
   when it was last used (written at most once an hour). A new address replaces the old one at
   once; *Disconnect* and *Sign out everywhere* remove it.
 - **Why the token is in the address:** Claude's custom connectors take an address and, without

@@ -3759,10 +3759,10 @@ export default {
   "Make a new address?": "إنشاء عنوان جديد؟",
   "Not yet": "ليس بعد",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "بعد الاتصال، يقرأ Claude برامجك وتمارينك وأرقامك القياسية ووزن جسمك وتوازن عضلاتك، بالأرقام نفسها التي يعرضها التطبيق.",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "للقراءة فقط: يستطيع Claude قراءة تدريبك لكنه لا يستطيع تغيير أي شيء أو إضافته أو حذفه.",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "يمكن لأي شخص لديه هذا العنوان قراءة تدريبك: احتفظ به لنفسك. أضفه في Claude مرة واحدة فقط: نسخه مرة أخرى يعطي العنوان نفسه.",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "يقرأ Claude تدريبك، وعندما تطلب، يسجل التمارين والأوزان، وينشئ الروتينات ويعدلها ويخطط أسبوعك. يسألك قبل حذف أي شيء.",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "يمكن لأي شخص لديه هذا العنوان قراءة تدريبك وتغييره: احتفظ به لنفسك. أضفه في Claude مرة واحدة فقط: نسخه مرة أخرى يعطي العنوان نفسه.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "يتوقف العنوان الموجود لدى Claude عن العمل فورًا. ثم تلصق العنوان الجديد في Claude بدلًا من القديم.",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "يتوقف العنوان عن العمل فورًا ولن يتمكن Claude من قراءة تدريبك بعد الآن. يمكنك الاتصال مجددًا في أي وقت.",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "يتوقف العنوان عن العمل فورًا ولا يعود بإمكان Claude قراءة تدريبك أو تغييره. يمكنك الاتصال مجددًا في أي وقت.",
   "This server does not offer the Claude connector.": "هذا الخادم لا يوفّر موصل Claude.",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "فعّل Olympus في أدوات المحادثة، ثم اسأل مثلًا: «كيف كان أدائي في تمرين البنش برس هذا الشهر؟»",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)

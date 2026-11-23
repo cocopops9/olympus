@@ -10,7 +10,7 @@ import {
   modeOf, workoutVolume, setsDone, effectiveRoutine, effectiveRoutineIds, lastEntryFor, workoutAt
 } from '../../frontend/src/lib/history.js'
 import { queueView, queueNext, pinState } from '../../frontend/src/lib/queue.js'
-import { exOr, registerCustom } from '../../frontend/src/lib/exercises.js'
+import { exOr, registerCustom, searchExercises, CATALOGUE } from '../../frontend/src/lib/exercises.js'
 import { isWarmupRow, isFailureSet } from '../../frontend/src/lib/workout-model.js'
 import {
   bestSetOf, best1RM, e1rmSeries, DEFAULT_FORMULA, REP_CAP
@@ -670,10 +670,27 @@ export const previewSession = {
   }
 }
 
+/** search_exercises — the library's ids, for the connector's write tools and for any question. */
+export const searchExercisesTool = {
+  name: 'search_exercises',
+  description: 'Find exercises in the app\'s library (1,300+ built in, plus the athlete\'s own) by name, muscle or equipment. Returns ids to pass to log_workout, create_routine and the other tools that take an exercise, with each one\'s body part and mode (reps, time or cardio).',
+  schema: { query: z.string().min(1).max(80), limit: z.number().int().min(1).max(25).optional() },
+  handler: ({ query, limit = 10 }) => {
+    const S = getState() || {}
+    const own = Array.isArray(S.customEx) ? S.customEx : []
+    return {
+      results: searchExercises([...own, ...CATALOGUE], query).slice(0, limit).map(e => ({
+        id: e.id, name: e.n, body_part: e.bp || null, equipment: e.eq || null,
+        mode: modeOf({ id: e.id }), custom: own.some(c => c.id === e.id)
+      }))
+    }
+  }
+}
+
 /* ---------- registration list ---------- */
 
 export const TOOLS = [
-  listRoutines, getRoutine, previewSession, getWeekPlan, listWorkouts, getWorkout, getBodyweight, estimate1rm, muscleBalance
+  listRoutines, getRoutine, previewSession, getWeekPlan, listWorkouts, getWorkout, getBodyweight, estimate1rm, muscleBalance, searchExercisesTool
 ]
 
 function noState() {

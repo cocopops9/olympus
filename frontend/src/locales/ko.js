@@ -3704,10 +3704,10 @@ export default {
   "Make a new address?": "새 주소를 만들까요?",
   "Not yet": "아직 없음",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "연결하면 Claude가 루틴, 운동 기록, 개인 기록, 체중, 근육 균형을 앱에 표시되는 것과 같은 숫자로 읽습니다.",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "읽기 전용: Claude는 운동 기록을 읽을 수 있지만 아무것도 변경, 추가, 삭제할 수 없습니다.",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "이 주소가 있는 사람은 누구나 내 운동 기록을 읽을 수 있습니다: 혼자만 보관하세요. Claude에는 한 번만 추가하세요: 다시 복사해도 같은 주소입니다.",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "Claude는 내 운동 기록을 읽고, 요청하면 운동과 체중을 기록하고, 루틴을 만들고 수정하며, 한 주를 계획합니다. 무엇이든 삭제하기 전에는 먼저 묻습니다.",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "이 주소가 있는 사람은 누구나 내 운동 기록을 읽고 변경할 수 있습니다: 혼자만 보관하세요. Claude에는 한 번만 추가하세요: 다시 복사해도 같은 주소입니다.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude가 지금 가진 주소는 즉시 작동을 멈춥니다. 그다음 Claude에 기존 주소 대신 새 주소를 붙여넣으세요.",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "주소가 즉시 작동을 멈추고 Claude는 더 이상 운동 기록을 읽을 수 없습니다. 언제든 다시 연결할 수 있어요.",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "주소가 즉시 작동을 멈추고 Claude는 더 이상 내 운동 기록을 읽거나 변경할 수 없습니다. 언제든 다시 연결할 수 있습니다.",
   "This server does not offer the Claude connector.": "이 서버는 Claude 커넥터를 제공하지 않습니다.",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "채팅의 도구에서 Olympus를 켠 다음 이렇게 물어보세요: “이번 달 벤치프레스 어땠어?”",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)
