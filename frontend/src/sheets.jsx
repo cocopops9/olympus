@@ -40,6 +40,7 @@ import { levelUps, liftOf, strengthLevels } from './lib/strength-level.js'
 import './strength.css'
 import './greek-month.css'
 import GreekMonthBanner from './components/GreekMonth.jsx'
+import { useSwipeNav } from './lib/use-swipe-nav.js'
 import { equipFamilies, liveEquip, matchesEquip, equipmentVariants } from './lib/equipment-groups.js'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
@@ -2827,6 +2828,8 @@ export function Calendar({ start, close }) {
   const [dir, setDir] = useState(0)
   const y = cur.getFullYear(), mo = cur.getMonth()
   const step = by => { setDir(by); setCur(new Date(y, mo + by, 1)) }
+  // A sideways swipe on the month turns it, as the arrows do (lib/use-swipe-nav.js).
+  const swipe = useSwipeNav({ onPrev: () => step(-1), onNext: () => step(1) })
   const byDay = {}
   st.workouts.forEach(w => {
     const day = workoutDay(w)
@@ -2862,7 +2865,7 @@ export function Calendar({ start, close }) {
       <button className="iconbtn" onClick={() => step(1)} aria-label={t('Next month')}><Icon name="chevronRight" /></button>
     </div>
     {/* Keyed by month, so each change replays the slide-in. */}
-    <div key={y + '-' + mo} className={'gm-page' + (dir > 0 ? ' from-next' : dir < 0 ? ' from-prev' : '')}>
+    <div key={y + '-' + mo} className={'gm-page' + (dir > 0 ? ' from-next' : dir < 0 ? ' from-prev' : '')} {...swipe}>
       <GreekMonthBanner month={mo} />
       <div className="small muted" style={{ textAlign: 'center' }}>{monthWs.length ? `${tn('{0} workout', '{0} workouts', monthWs.length)} · ${fmtDur(monthMs)} · ${fmtVol(monthVol, st.unit)}` : t('No workouts this month')}</div>
       <div className="cal-grid">{weekOrder(ws).map(d => <div key={d} className="cal-h">{t(DAYS[d])}</div>)}{cells}</div>
