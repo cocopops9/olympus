@@ -3300,6 +3300,8 @@ export default {
   "golf": "golf",
   "ice hockey": "jégkorong",
   "american football": "amerikai futball",
+  "cycling": "kerékpározás",
+  "muay thai": "thai box",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

@@ -3297,6 +3297,8 @@ export default {
   "golf": "golf",
   "ice hockey": "buz hokeyi",
   "american football": "Amerikan futbolu",
+  "cycling": "bisiklet",
+  "muay thai": "Muay Thai",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

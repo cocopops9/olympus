@@ -3290,6 +3290,8 @@ export default {
   "golf": "高爾夫",
   "ice hockey": "冰上曲棍球",
   "american football": "美式足球",
+  "cycling": "自行車",
+  "muay thai": "泰拳",
   "Downloading update": "正在下載更新",
   "Installing…": "正在安裝…",
   "Download failed": "下載失敗",
