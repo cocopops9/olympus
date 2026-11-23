@@ -1,11 +1,23 @@
 // The workout calendar's month banner: the Attic month that themes the shown modern month
-// (lib/greek-months.js), with its emblem in a gold medallion, its name in Greek and in Latin
+// (lib/greek-months.js), with a black-figure scene of its festival on top, its emblem in a gold medallion, its name in Greek and in Latin
 // letters, and what the month was dedicated to, between two strips of Greek key.
 //
 // The emblems are line drawings in currentColor on a 64 × 64 grid, so they take the accent
 // colour and stay sharp at any size without shipping an image per month.
 import { t } from '../lib/i18n.js'
 import { atticMonthFor } from '../lib/greek-months.js'
+
+// Each month's scene: a black-figure frieze of its festival (scripts/greek-scenes), keyed by the
+// month's `art`. A month without one shows the banner alone. The glob sits in try/catch because a
+// bare `typeof import.meta.glob` check is false in a Vite build (it is a compile-time macro).
+let SCENES = {}
+try {
+  const files = import.meta.glob('../assets/greek-months/*.webp', { eager: true, import: 'default' })
+  SCENES = Object.fromEntries(Object.entries(files).map(([path, url]) => [path.split('/').pop().replace('.webp', ''), url]))
+} catch (e) { /* no bundler: no scenes */ }
+
+/** The scene picture for an emblem id, or undefined when that month has none. */
+export const sceneFor = art => SCENES[art]
 
 const SUN_RAYS = Array.from({ length: 12 }, (_, i) => {
   const a = (i * Math.PI) / 6
@@ -104,8 +116,11 @@ function Meander({ id }) {
 
 export default function GreekMonthBanner({ month }) {
   const m = atticMonthFor(month)
-  return <div className="gm-banner" style={{ '--gm': m.tint }} data-art={m.art}>
-    <Meander id="gm-key-top" />
+  const scene = sceneFor(m.art)
+  return <div className={'gm-banner' + (scene ? ' has-scene' : '')} style={{ '--gm': m.tint }} data-art={m.art}>
+    {scene
+      ? <img className="gm-scene" src={scene} alt="" width="960" height="381" decoding="async" draggable="false" />
+      : <Meander id="gm-key-top" />}
     <div className="gm-body">
       <div className="gm-medal"><GreekMonthArt art={m.art} /></div>
       <div className="gm-text">

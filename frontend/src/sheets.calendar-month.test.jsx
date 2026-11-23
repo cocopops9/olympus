@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { calendarSheet } from './sheets.jsx'
+import { ATTIC_MONTHS } from './lib/greek-months.js'
 
 const mounted = []
 function mountTopSheet() {
@@ -47,6 +48,14 @@ describe('workout calendar months', () => {
     expect(title(host)).toBe('November 2026')
     expect(attic(host)).toBe('Maimakterion')
     expect(host.querySelector('.gm-theme').textContent).toBe('Zeus of the storms')
+    expect(host.querySelector('img.gm-scene')).not.toBeNull()
+  })
+
+  it('names every scene picture after a month\'s emblem', () => {
+    const files = Object.keys(import.meta.glob('./assets/greek-months/*.webp'))
+    const arts = new Set(ATTIC_MONTHS.map(m => m.art))
+    expect(files.length).toBeGreaterThan(0)
+    for (const f of files) expect(arts.has(f.split('/').pop().replace('.webp', '')), f).toBe(true)
   })
 
   it('a swipe toward the start of the line opens the next month, toward the end the previous', () => {
