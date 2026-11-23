@@ -146,8 +146,8 @@ describe('Connect to Claude', () => {
 describe('Connect to ChatGPT', () => {
   const GPT = '/api/connector?for=chatgpt'
   it('off: one tap makes ChatGPT’s own address, copies it and opens ChatGPT’s plugins', async () => {
-    mocks.answers['GET ' + GPT] = { available: true, on: false, created: null, used: null }
-    mocks.answers['POST ' + GPT] = { url: URL, created: Date.parse('2026-11-23T12:00:00Z') }
+    mocks.answers['GET ' + GPT] = { for: 'chatgpt', available: true, on: false, created: null, used: null }
+    mocks.answers['POST ' + GPT] = { for: 'chatgpt', url: URL, created: Date.parse('2026-11-23T12:00:00Z') }
     const opened = vi.spyOn(window, 'open').mockImplementation(() => null)
     const host = mount(ChatGPTConnectorPage)
     await settle()
@@ -166,7 +166,7 @@ describe('Connect to ChatGPT', () => {
   })
 
   it('on: disconnecting removes ChatGPT’s address only, after the confirmation', async () => {
-    mocks.answers['GET ' + GPT] = { available: true, on: true, created: Date.parse('2026-11-01T12:00:00Z'), used: Date.parse('2026-11-20T12:00:00Z') }
+    mocks.answers['GET ' + GPT] = { for: 'chatgpt', available: true, on: true, created: Date.parse('2026-11-01T12:00:00Z'), used: Date.parse('2026-11-20T12:00:00Z') }
     const host = mount(ChatGPTConnectorPage)
     await settle()
     expect(text(host)).toContain('Last used by ChatGPT')
@@ -176,5 +176,14 @@ describe('Connect to ChatGPT', () => {
     expect(mocks.calls.some(c => c.path === '/api/connector/delete?for=chatgpt' && c.method === 'POST')).toBe(true)
     expect(mocks.calls.some(c => c.path === '/api/connector/delete')).toBe(false)
     expect(mocks.toast).toHaveBeenCalledWith('ChatGPT disconnected')
+  })
+
+  it('a server older than ChatGPT’s address answers with Claude’s: shown as not offered, nothing to press', async () => {
+    mocks.answers['GET ' + GPT] = { available: true, on: true, created: Date.parse('2026-11-01T12:00:00Z'), used: Date.parse('2026-11-20T12:00:00Z'), url: URL }
+    const host = mount(ChatGPTConnectorPage)
+    await settle()
+    expect(text(host)).toContain('This server does not offer the ChatGPT connector.')
+    expect(button(host, 'Disconnect ChatGPT')).toBeUndefined()
+    expect(button(host, 'Copy the address')).toBeUndefined()
   })
 })

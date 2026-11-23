@@ -143,7 +143,7 @@ describe('the address (core.js /api/connector and connector.js)', () => {
   })
 
   test('off until made; the same address can be read back, never stored in the clear', async () => {
-    expect((await w.call('GET', '/api/connector', { token: ana.token })).body).toEqual({ available: true, on: false, created: null, used: null })
+    expect((await w.call('GET', '/api/connector', { token: ana.token })).body).toEqual({ for: 'claude', available: true, on: false, created: null, used: null })
     expect((await w.call('GET', '/api/connector')).status).toBe(401)
     const made = await w.call('POST', '/api/connector', { token: ana.token, body: {} })
     expect(made.status).toBe(200)
@@ -213,7 +213,9 @@ describe('the address (core.js /api/connector and connector.js)', () => {
 
   test('ChatGPT gets its own address: made, used, replaced and removed apart from Claude\'s', async () => {
     const GPT = '/api/connector?for=chatgpt'
-    expect((await w.call('GET', GPT, { token: ana.token })).body).toEqual({ available: true, on: false, created: null, used: null })
+    expect((await w.call('GET', GPT, { token: ana.token })).body).toEqual({ for: 'chatgpt', available: true, on: false, created: null, used: null })
+    // anything else asked for is Claude's
+    expect((await w.call('GET', '/api/connector?for=__proto__', { token: ana.token })).body.for).toBe('claude')
     const claude = (await w.call('POST', '/api/connector', { token: ana.token, body: {} })).body.url
     expect((await w.call('GET', GPT, { token: ana.token })).body.on).toBe(false)
     const gpt = (await w.call('POST', GPT, { token: ana.token, body: {} })).body.url

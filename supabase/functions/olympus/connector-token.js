@@ -6,7 +6,7 @@ import { Buffer } from 'node:buffer';
 // Where an account keeps each assistant's address: Claude's in `connector` (the first, so its
 // name stays), ChatGPT's beside it. Anything else asked for is Claude's.
 export const CONNECTOR_SLOTS = { claude: 'connector', chatgpt: 'connectorChatgpt' };
-export const connectorSlot = client => CONNECTOR_SLOTS[client] || CONNECTOR_SLOTS.claude;
+export const connectorClient = client => (Object.hasOwn(CONNECTOR_SLOTS, client) ? client : 'claude');
 
 export const TOKEN_RE = /^[A-Za-z0-9_-]{32,128}$/;
 // 32 random bytes: 256 bits, as base64url (43 characters, safe in a URL path).

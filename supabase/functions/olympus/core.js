@@ -30,7 +30,7 @@ import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
-import { newConnectorToken, tokenHash, connectorBase, sealToken, openToken, CONNECTOR_SLOTS, connectorSlot } from './connector-token.js';
+import { newConnectorToken, tokenHash, connectorBase, sealToken, openToken, CONNECTOR_SLOTS, connectorClient } from './connector-token.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, startEmailChange, checkEmailChange, emailChangeMail, emailChangedNotice, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
@@ -417,16 +417,20 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     // sealing has no url here: the app then offers a new one.
     'GET /api/connector': async (req, query) => {
       const { user } = await signedIn(req);
-      const c = user[connectorSlot(query?.get('for'))];
+      const client = connectorClient(query?.get('for'));
+      const c = user[CONNECTOR_SLOTS[client]];
       const base = connectorBase(env);
       const token = c?.h && c.e && base ? openToken(await key(), c.e) : null;
       const url = token && tokenHash(token) === c.h ? base + '/' + token : null;
-      return { status: 200, body: { available: !!base, on: !!c?.h, created: c?.at || null, used: c?.used || null, ...(url ? { url } : {}) } };
+      // `for` names whose address this is: an app asking for ChatGPT's knows a server that
+      // predates it (and answers with Claude's) by its absence.
+      return { status: 200, body: { for: client, available: !!base, on: !!c?.h, created: c?.at || null, used: c?.used || null, ...(url ? { url } : {}) } };
     },
     'POST /api/connector': async (req, query) => {
       const { user } = await signedIn(req);
       await req.text();
-      const slot = connectorSlot(query?.get('for'));
+      const client = connectorClient(query?.get('for'));
+      const slot = CONNECTOR_SLOTS[client];
       const base = connectorBase(env);
       if (!base) return { status: 503, body: { error: 'the connector is not set up on this server', code: 'no-connector' } };
       const token = newConnectorToken();
@@ -439,12 +443,12 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         u[slot] = { h: tokenHash(token), e: sealed, at };
         set('db', db);
       });
-      return { status: 200, body: { url: base + '/' + token, created: at } };
+      return { status: 200, body: { for: client, url: base + '/' + token, created: at } };
     },
     'POST /api/connector/delete': async (req, query) => {
       const { user } = await signedIn(req);
       await req.text();
-      const slot = connectorSlot(query?.get('for'));
+      const slot = CONNECTOR_SLOTS[connectorClient(query?.get('for'))];
       await store.update(['db'], ({ get, set }) => {
         const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
         if (u?.[slot]) { delete u[slot]; set('db', db); }

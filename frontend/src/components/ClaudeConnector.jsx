@@ -102,7 +102,10 @@ export function ConnectorPage({ client = 'claude' }) {
   const [fresh, setFresh] = useState(null)      // the address just made (older servers show it only then)
   const [busy, setBusy] = useState(false)
 
-  const load = () => api(path).then(setSt, e => setSt(e.status === 404 ? { missing: true } : { error: true }))
+  // A server older than ChatGPT's address ignores ?for= and answers with Claude's: only an answer
+  // that names this assistant is its own (core.js GET /api/connector, `for`).
+  const own = r => (client === 'claude' || r?.for === client ? r : { missing: true })
+  const load = () => api(path).then(r => setSt(own(r)), e => setSt(e.status === 404 ? { missing: true } : { error: true }))
   useEffect(() => {
     load()
     // Coming back from the assistant: "used" is set by Claude's first request, so this is what tells the
@@ -117,6 +120,7 @@ export function ConnectorPage({ client = 'claude' }) {
     setBusy(true)
     try {
       const r = await api(path, { method: 'POST', body: '{}' })
+      if (own(r).missing) { setSt({ missing: true }); setBusy(false); return }
       setFresh(r.url)
       setSt({ available: true, on: true, created: r.created, used: null, url: r.url })
       const copied = await copyText(r.url)
