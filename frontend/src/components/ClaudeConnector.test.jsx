@@ -2,7 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ClaudeConnectorPage, CLAUDE_CONNECTORS } from './ClaudeConnector.jsx'
+import { ClaudeConnectorPage, ChatGPTConnectorPage, CLAUDE_CONNECTORS, CHATGPT_PLUGINS } from './ClaudeConnector.jsx'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -34,12 +34,12 @@ vi.mock('../sheets.jsx', () => ({ confirmSheet: opts => mocks.confirms.push(opts
 
 const URL = 'https://proj.functions.supabase.co/olympus-mcp/' + 'a'.repeat(43)
 const mounted = []
-function mount() {
+function mount(Page = ClaudeConnectorPage) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
   mounted.push({ root, host })
-  act(() => root.render(<ClaudeConnectorPage />))
+  act(() => root.render(<Page />))
   return host
 }
 const settle = () => act(() => new Promise(r => setTimeout(r, 0)))
@@ -138,5 +138,52 @@ describe('Connect to Claude', () => {
     await settle()
     expect(text(host)).toContain('This server does not offer the Claude connector.')
     expect(button(host, 'Connect Claude')).toBeUndefined()
+  })
+})
+
+/* Settings → Connect to ChatGPT: the same page on ChatGPT's own address (?for=chatgpt), so making,
+   copying or removing it never touches the address Claude has. */
+describe('Connect to ChatGPT', () => {
+  const GPT = '/api/connector?for=chatgpt'
+  it('off: one tap makes ChatGPT’s own address, copies it and opens ChatGPT’s plugins', async () => {
+    mocks.answers['GET ' + GPT] = { for: 'chatgpt', available: true, on: false, created: null, used: null }
+    mocks.answers['POST ' + GPT] = { for: 'chatgpt', url: URL, created: Date.parse('2026-11-23T12:00:00Z') }
+    const opened = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const host = mount(ChatGPTConnectorPage)
+    await settle()
+    expect(mocks.calls[0]).toEqual({ path: GPT, method: 'GET' })
+    act(() => button(host, 'Connect ChatGPT').click())
+    await settle()
+    expect(mocks.calls.some(c => c.path === GPT && c.method === 'POST')).toBe(true)
+    expect(mocks.calls.some(c => c.path === '/api/connector')).toBe(false)
+    expect(mocks.copy).toHaveBeenCalledWith(URL)
+    expect(mocks.toast).toHaveBeenCalledWith('Address copied: now finish in ChatGPT.')
+    expect(opened).toHaveBeenCalledWith(CHATGPT_PLUGINS, '_blank', 'noopener')
+    expect(text(host)).toContain('Open chatgpt.com in your browser')
+    expect(text(host)).toContain('No authentication')
+    expect(text(host)).not.toContain('Claude')
+    opened.mockRestore()
+  })
+
+  it('on: disconnecting removes ChatGPT’s address only, after the confirmation', async () => {
+    mocks.answers['GET ' + GPT] = { for: 'chatgpt', available: true, on: true, created: Date.parse('2026-11-01T12:00:00Z'), used: Date.parse('2026-11-20T12:00:00Z') }
+    const host = mount(ChatGPTConnectorPage)
+    await settle()
+    expect(text(host)).toContain('Last used by ChatGPT')
+    act(() => button(host, 'Disconnect ChatGPT').click())
+    expect(mocks.confirms[0].title).toBe('Disconnect ChatGPT?')
+    await act(async () => { await mocks.confirms[0].onConfirm() })
+    expect(mocks.calls.some(c => c.path === '/api/connector/delete?for=chatgpt' && c.method === 'POST')).toBe(true)
+    expect(mocks.calls.some(c => c.path === '/api/connector/delete')).toBe(false)
+    expect(mocks.toast).toHaveBeenCalledWith('ChatGPT disconnected')
+  })
+
+  it('a server older than ChatGPT’s address answers with Claude’s: shown as not offered, nothing to press', async () => {
+    mocks.answers['GET ' + GPT] = { available: true, on: true, created: Date.parse('2026-11-01T12:00:00Z'), used: Date.parse('2026-11-20T12:00:00Z'), url: URL }
+    const host = mount(ChatGPTConnectorPage)
+    await settle()
+    expect(text(host)).toContain('This server does not offer the ChatGPT connector.')
+    expect(button(host, 'Disconnect ChatGPT')).toBeUndefined()
+    expect(button(host, 'Copy the address')).toBeUndefined()
   })
 })
