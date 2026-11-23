@@ -3784,7 +3784,7 @@ export default {
   "Not yet": "এখনও নয়",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "যুক্ত হওয়ার পর Claude আপনার রুটিন, ওয়ার্কআউট, রেকর্ড, শরীরের ওজন ও পেশির ভারসাম্য পড়ে, অ্যাপে দেখানো একই সংখ্যায়।",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "শুধু পড়ার জন্য: Claude আপনার ট্রেনিং পড়তে পারে, কিন্তু কিছুই বদলাতে, যোগ করতে বা মুছতে পারে না।",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "শুধু এখনই দেখানো হচ্ছে। এই ঠিকানা যার কাছে থাকবে সে-ই আপনার ট্রেনিং পড়তে পারবে: নিজের কাছে রাখুন। হারিয়েছেন? নতুন তৈরি করুন।",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "এই ঠিকানা যার কাছে আছে সে আপনার প্রশিক্ষণ পড়তে পারে: এটি নিজের কাছে রাখুন। Claude-এ এটি একবারই যোগ করুন: আবার কপি করলে একই ঠিকানা পাওয়া যায়।",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude-এর কাছে থাকা ঠিকানাটি সঙ্গে সঙ্গে কাজ বন্ধ করে। তারপর পুরোনোটির জায়গায় নতুনটি Claude-এ পেস্ট করুন।",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "ঠিকানাটি সঙ্গে সঙ্গে কাজ বন্ধ করে এবং Claude আর আপনার ট্রেনিং পড়তে পারে না। যেকোনো সময় আবার যুক্ত করতে পারেন।",
   "This server does not offer the Claude connector.": "এই সার্ভার Claude কানেক্টর দেয় না।",

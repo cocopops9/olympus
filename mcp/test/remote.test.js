@@ -141,7 +141,7 @@ describe('the address (core.js /api/connector and connector.js)', () => {
     expect((await w.putState(ben.token, b)).status).toBe(200)
   })
 
-  test('off until made; made once, shown once, kept only as a hash', async () => {
+  test('off until made; the same address can be read back, never stored in the clear', async () => {
     expect((await w.call('GET', '/api/connector', { token: ana.token })).body).toEqual({ available: true, on: false, created: null, used: null })
     expect((await w.call('GET', '/api/connector')).status).toBe(401)
     const made = await w.call('POST', '/api/connector', { token: ana.token, body: {} })
@@ -151,8 +151,21 @@ describe('the address (core.js /api/connector and connector.js)', () => {
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/)
     const st = (await w.call('GET', '/api/connector', { token: ana.token })).body
     expect(st).toMatchObject({ on: true, created: w.clock.t, used: null })
-    expect(st.url).toBeUndefined()
+    expect(st.url).toBe(made.body.url)
     expect(JSON.stringify(w.store.docs.get('db'))).not.toContain(token)
+    // a new address replaces the one read back
+    const again = (await w.call('POST', '/api/connector', { token: ana.token, body: {} })).body.url
+    expect(again).not.toBe(made.body.url)
+    expect((await w.call('GET', '/api/connector', { token: ana.token })).body.url).toBe(again)
+    // an address made before sealing (hash only) is not shown, and a tampered seal shows nothing
+    const u = w.store.docs.get('db').users.find(x => x.connector)
+    const [iv, tag, body] = u.connector.e.split('.')
+    u.connector.e = [iv, tag, body.startsWith('A') ? 'B' + body.slice(1) : 'A' + body.slice(1)].join('.')
+    expect((await w.call('GET', '/api/connector', { token: ana.token })).body.url).toBeUndefined()
+    delete u.connector.e
+    const old = (await w.call('GET', '/api/connector', { token: ana.token })).body
+    expect(old.on).toBe(true)
+    expect(old.url).toBeUndefined()
   })
 
   test('Claude connects, lists the tools and reads its own profile only', async () => {

@@ -3705,7 +3705,7 @@ export default {
   "Not yet": "Henüz değil",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "Bağlandıktan sonra Claude rutinlerini, antrenmanlarını, rekorlarını, vücut ağırlığını ve kas dengeni, uygulamanın gösterdiği sayılarla okur.",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "Salt okunur: Claude antrenmanını okuyabilir ama hiçbir şeyi değiştiremez, ekleyemez veya silemez.",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "Yalnızca şimdi gösterilir. Bu adrese sahip herkes antrenmanını okuyabilir: kendine sakla. Kaybettin mi? Yenisini oluştur.",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Bu adrese sahip olan herkes antrenmanını okuyabilir: kendine sakla. Claude’a yalnızca bir kez ekle: yeniden kopyalamak aynı adresi verir.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude’daki mevcut adres hemen çalışmayı bırakır. Sonra eskisinin yerine yenisini Claude’a yapıştırırsın.",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "Adres hemen çalışmayı bırakır ve Claude artık antrenmanını okuyamaz. İstediğin zaman yeniden bağlanabilirsin.",
   "This server does not offer the Claude connector.": "Bu sunucu Claude bağlayıcısını sunmuyor.",

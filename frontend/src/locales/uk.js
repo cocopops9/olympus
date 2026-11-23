@@ -3702,7 +3702,7 @@ export default {
   "Not yet": "Ще ні",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "Після під’єднання Claude читає ваші програми, тренування, рекорди, вагу тіла й баланс м’язів, з тими самими числами, що показує застосунок.",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "Лише читання: Claude може читати ваші тренування, але не може нічого змінити, додати чи видалити.",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "Показується лише зараз. Будь-хто з цією адресою може читати ваші тренування: тримайте її при собі. Загубили? Створіть нову.",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Будь-хто з цією адресою може читати ваші тренування: тримайте її при собі. Додайте її в Claude лише раз: повторне копіювання дає ту саму адресу.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Адреса, яка зараз є в Claude, одразу перестає працювати. Потім вставте в Claude нову замість старої.",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "Адреса одразу перестає працювати, і Claude більше не може читати ваші тренування. Під’єднатися знову можна будь-коли.",
   "This server does not offer the Claude connector.": "Цей сервер не надає конектор Claude.",

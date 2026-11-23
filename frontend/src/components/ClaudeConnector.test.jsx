@@ -62,7 +62,7 @@ describe('Connect to Claude', () => {
     expect(mocks.toast).toHaveBeenCalledWith('Address copied: now finish in Claude.')
     expect(opened).toHaveBeenCalledWith(CLAUDE_CONNECTORS, '_blank', 'noopener')
     expect(text(host)).toContain('Finish in Claude')
-    expect(text(host)).toContain('Shown only now.')
+    expect(text(host)).toContain('Add it in Claude only once')
     expect(button(host, 'Connect Claude')).toBeUndefined()
     // the second chance, for a browser that blocked the first opening or a lost clipboard
     act(() => button(host, 'Open Claude').click())
@@ -96,6 +96,24 @@ describe('Connect to Claude', () => {
     expect(text(host)).toContain('Last used by Claude')
     expect(text(host)).not.toContain('Not added in Claude yet')
     opened.mockRestore()
+  })
+
+  it('made before: the server gives the same address again, so copying never replaces it', async () => {
+    mocks.answers['GET /api/connector'] = { available: true, on: true, created: Date.parse('2026-11-22T12:00:00Z'), used: null, url: URL }
+    const host = mount()
+    await settle()
+    expect(button(host, 'Copy a new address')).toBeUndefined()
+    act(() => button(host, 'Copy the address').click())
+    await settle()
+    expect(mocks.copy).toHaveBeenCalledWith(URL)
+    expect(mocks.calls.some(c => c.method === 'POST')).toBe(false)
+    // once Claude has used it, the address can still be copied from the connection section
+    mocks.answers['GET /api/connector'] = { available: true, on: true, created: Date.parse('2026-11-22T12:00:00Z'), used: Date.parse('2026-11-22T12:05:00Z'), url: URL }
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await new Promise(r => setTimeout(r, 0)) })
+    act(() => button(host, 'Copy the address').click())
+    await settle()
+    expect(mocks.copy).toHaveBeenCalledTimes(2)
+    expect(mocks.calls.some(c => c.method === 'POST')).toBe(false)
   })
 
   it('on: says when it was used, and disconnects only after the confirmation', async () => {

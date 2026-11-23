@@ -3698,7 +3698,7 @@ export default {
   "Not yet": "尚未",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "連接後，Claude 可以讀取你的訓練計畫、訓練紀錄、個人紀錄、體重和肌肉平衡，數字與應用程式中顯示的一致。",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "唯讀：Claude 可以讀取你的訓練，但不能更改、新增或刪除任何內容。",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "僅此時顯示。任何擁有此網址的人都能讀取你的訓練：請勿外流。弄丟了？產生一個新的。",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "擁有此位址的人都能讀取你的訓練：請自行保管。只需在 Claude 中新增一次：再次複製會得到相同的位址。",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude 目前使用的網址會立即失效。之後在 Claude 中用新網址取代舊網址。",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "該網址會立即失效，Claude 將無法再讀取你的訓練。你可以隨時重新連接。",
   "This server does not offer the Claude connector.": "此伺服器不提供 Claude 連接器。",

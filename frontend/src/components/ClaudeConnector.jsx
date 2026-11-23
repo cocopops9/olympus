@@ -1,8 +1,8 @@
 // Settings → Connect to Claude: one tap makes this profile's connector address, copies it and
 // opens Claude's connectors page; what is left is "Add custom connector", paste, Add. The server
-// makes the address and keeps only its hash (supabase/functions/olympus/connector-token.js), so
-// the address is known here only right after it is made; afterwards this page says when it was
-// made and last used, and makes a new one or removes it.
+// makes the address and keeps its hash plus a copy sealed with its own key
+// (supabase/functions/olympus/connector-token.js), so this page can copy the same address again;
+// it also says when it was made and last used, and makes a new one or removes it.
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
@@ -23,7 +23,7 @@ export function ClaudeConnectorPage() {
   const toast = useUI(s => s.toast)
   // null while asking; { available, on, created, used }; { missing: true } on a server without it.
   const [st, setSt] = useState(null)
-  const [fresh, setFresh] = useState(null)      // the address just made: the only time it is known
+  const [fresh, setFresh] = useState(null)      // the address just made (older servers show it only then)
   const [busy, setBusy] = useState(false)
 
   const load = () => api('/api/connector').then(setSt, e => setSt(e.status === 404 ? { missing: true } : { error: true }))
@@ -42,14 +42,16 @@ export function ClaudeConnectorPage() {
     try {
       const r = await api('/api/connector', { method: 'POST', body: '{}' })
       setFresh(r.url)
-      setSt({ available: true, on: true, created: r.created, used: null })
+      setSt({ available: true, on: true, created: r.created, used: null, url: r.url })
       const copied = await copyText(r.url)
       if (copied) toast(t('Address copied: now finish in Claude.'))
       openClaude()
     } catch { toast(t('Could not make the address. Try again in a moment.')) }
     setBusy(false)
   }
-  const copy = async () => { if (await copyText(fresh)) toast(t('Address copied')) }
+  // The server hands the same address out again (sealed token), so copying never replaces the
+  // one already added in Claude. Only an address made before that has to be made anew.
+  const copy = async () => { if (await copyText(fresh || st?.url)) toast(t('Address copied')) }
   const again = () => confirmSheet({
     title: t('Make a new address?'),
     message: t('The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.'),
@@ -74,6 +76,7 @@ export function ClaudeConnectorPage() {
   // An address Claude has never called is not a connection yet: the steps stay on screen until it is.
   const waiting = ready && st.on && !st.used
   const linked = ready && st.on && st.used
+  const known = !!(fresh || st?.url)
   return <>
     <Section footer={t('Read-only: Claude can read your training but cannot change, add or delete anything.')}>
       <Row icon="sparkles" iconTint="var(--orange)" title={t('Ask Claude about your training')}
@@ -88,8 +91,8 @@ export function ClaudeConnectorPage() {
     {unavailable && <Section><Row icon="info" iconTint="var(--grey)" title={t('This server does not offer the Claude connector.')} /></Section>}
 
     {waiting && <Section title={t('Finish in Claude')}
-      footer={fresh
-        ? t('Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.')
+      footer={known
+        ? t('Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.')
         : t('The address is shown only when it is made. If it is no longer on your clipboard, copy a new one: the old one stops working.')}>
       <Row icon="hourglass" iconTint="var(--orange)" title={t('Not added in Claude yet')}
         subtitle={t('This turns to connected as soon as Claude reaches Olympus for the first time.')} />
@@ -100,7 +103,7 @@ export function ClaudeConnectorPage() {
       <Row icon="chat" iconTint="var(--green)" title={t('3. Ask')}
         subtitle={t('Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”')} />
       <div className="claude-actions">
-        {fresh
+        {known
           ? <Button variant="tinted" icon="copy" onClick={copy}>{t('Copy the address')}</Button>
           : <Button variant="tinted" icon="copy" disabled={busy} onClick={connect}>{t('Copy a new address')}</Button>}
         <Button variant="primary" icon="globe" onClick={openClaude}>{t('Open Claude')}</Button>
@@ -109,6 +112,7 @@ export function ClaudeConnectorPage() {
 
     {ready && st.on && <Section title={t('Connection')} footer={t('Add it once at claude.ai or in the Claude desktop app: it then works in the Claude phone app too.')}>
       {linked && <Row icon="checkCircle" iconTint="var(--green)" title={t('Last used by Claude')} value={day(st.used)} />}
+      {linked && known && <Row icon="copy" iconTint="var(--indigo)" title={t('Copy the address')} accessory="chevron" onClick={copy} />}
       <Row icon="clock" iconTint="var(--blue)" title={t('Address made')} value={st.created ? day(st.created) : null} />
       {linked && <Row icon="reset" iconTint="var(--orange)" title={t('Make a new address')} subtitle={t('If the address got out, or you lost it.')} accessory="chevron" onClick={again} />}
       <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect Claude')} danger onClick={remove} />
