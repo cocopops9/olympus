@@ -3709,7 +3709,7 @@ export default {
   "Not yet": "Ещё нет",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "После подключения Claude читает ваши программы, тренировки, рекорды, вес тела и баланс мышц, с теми же цифрами, что показывает приложение.",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "Только чтение: Claude может читать ваши тренировки, но не может ничего изменить, добавить или удалить.",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "Показывается только сейчас. Любой, у кого есть этот адрес, может читать ваши тренировки: не делитесь им. Потеряли? Создайте новый.",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Любой, у кого есть этот адрес, может читать ваши тренировки: не делитесь им. Добавьте его в Claude только один раз: при повторном копировании адрес тот же.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Адрес, который сейчас у Claude, сразу перестаёт работать. Затем вставьте в Claude новый вместо старого.",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "Адрес сразу перестаёт работать, и Claude больше не может читать ваши тренировки. Подключиться снова можно в любой момент.",
   "This server does not offer the Claude connector.": "Этот сервер не предоставляет коннектор Claude.",

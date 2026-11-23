@@ -25,3 +25,25 @@ export function connectorBase(env) {
   const hosted = project.match(HOSTED);
   return hosted ? `https://${hosted[1]}.functions.supabase.co/olympus-mcp` : project + '/functions/v1/olympus-mcp';
 }
+
+// The address can be copied again from the app at any time, so nobody makes a new one (and
+// breaks the one already in Claude) just because the first copy was lost. The account keeps the
+// token sealed with a key derived from the server's own secret (core.js `secret` document), so a
+// copy of the accounts document alone still hands out no working address; lookups use the hash.
+const sealKey = secret => crypto.createHash('sha256').update('olympus-connector:' + secret).digest();
+export function sealToken(secret, token) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', sealKey(secret), iv);
+  const body = Buffer.concat([c.update(token, 'utf8'), c.final()]);
+  return [iv, c.getAuthTag(), body].map(b => b.toString('base64url')).join('.');
+}
+export function openToken(secret, sealed) {
+  try {
+    const [iv, tag, body] = String(sealed || '').split('.').map(s => Buffer.from(s, 'base64url'));
+    if (!iv?.length || !tag?.length || !body?.length) return null;
+    const d = crypto.createDecipheriv('aes-256-gcm', sealKey(secret), iv);
+    d.setAuthTag(tag);
+    const token = Buffer.concat([d.update(body), d.final()]).toString('utf8');
+    return TOKEN_RE.test(token) ? token : null;
+  } catch { return null; }
+}

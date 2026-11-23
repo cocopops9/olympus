@@ -3705,7 +3705,7 @@ export default {
   "Not yet": "아직 없음",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "연결하면 Claude가 루틴, 운동 기록, 개인 기록, 체중, 근육 균형을 앱에 표시되는 것과 같은 숫자로 읽습니다.",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "읽기 전용: Claude는 운동 기록을 읽을 수 있지만 아무것도 변경, 추가, 삭제할 수 없습니다.",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "지금만 표시됩니다. 이 주소를 가진 누구나 내 운동 기록을 읽을 수 있으니 혼자만 간직하세요. 잃어버렸나요? 새로 만드세요.",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "이 주소가 있는 사람은 누구나 내 운동 기록을 읽을 수 있습니다: 혼자만 보관하세요. Claude에는 한 번만 추가하세요: 다시 복사해도 같은 주소입니다.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude가 지금 가진 주소는 즉시 작동을 멈춥니다. 그다음 Claude에 기존 주소 대신 새 주소를 붙여넣으세요.",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "주소가 즉시 작동을 멈추고 Claude는 더 이상 운동 기록을 읽을 수 없습니다. 언제든 다시 연결할 수 있어요.",
   "This server does not offer the Claude connector.": "이 서버는 Claude 커넥터를 제공하지 않습니다.",

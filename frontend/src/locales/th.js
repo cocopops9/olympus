@@ -3716,7 +3716,7 @@ export default {
   "Not yet": "ยังไม่เคย",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "เมื่อเชื่อมต่อแล้ว Claude จะอ่านรูทีน การฝึก สถิติ น้ำหนักตัว และความสมดุลของกล้ามเนื้อของคุณ ด้วยตัวเลขเดียวกับที่แอปแสดง",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "อ่านอย่างเดียว: Claude อ่านการฝึกของคุณได้ แต่เปลี่ยน เพิ่ม หรือลบสิ่งใดไม่ได้",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "แสดงเฉพาะตอนนี้ ใครก็ตามที่มีที่อยู่นี้อ่านการฝึกของคุณได้ เก็บไว้กับตัว หากทำหาย ให้สร้างใหม่",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "ใครก็ตามที่มีที่อยู่นี้อ่านการฝึกของคุณได้ เก็บไว้กับตัว เพิ่มใน Claude เพียงครั้งเดียว การคัดลอกอีกครั้งจะได้ที่อยู่เดิม",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "ที่อยู่ที่ Claude มีอยู่ตอนนี้จะหยุดทำงานทันที จากนั้นวางที่อยู่ใหม่ใน Claude แทนที่อยู่เดิม",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "ที่อยู่จะหยุดทำงานทันที และ Claude จะอ่านการฝึกของคุณไม่ได้อีก คุณเชื่อมต่อใหม่ได้ทุกเมื่อ",
   "This server does not offer the Claude connector.": "เซิร์ฟเวอร์นี้ไม่มีตัวเชื่อมต่อ Claude",

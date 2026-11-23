@@ -30,7 +30,7 @@ import { stampPut } from './sync-stamps.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
-import { newConnectorToken, tokenHash, connectorBase } from './connector-token.js';
+import { newConnectorToken, tokenHash, connectorBase, sealToken, openToken } from './connector-token.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, startEmailChange, checkEmailChange, emailChangeMail, emailChangedNotice, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
@@ -409,12 +409,17 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       return { status: 200, body: { ok: true } };
     },
 
-    // The Claude connector (connector.js): one address per profile, shown once when it is made.
-    // The account keeps its hash, when it was made and when Claude last used it.
+    // The Claude connector (connector.js): one address per profile. The account keeps its hash
+    // (for lookups), the token sealed with the server's key (so the app can copy the same address
+    // again), when it was made and when Claude last used it. An address made before sealing has
+    // no url here: the app then offers a new one.
     'GET /api/connector': async req => {
       const { user } = await signedIn(req);
       const c = user.connector;
-      return { status: 200, body: { available: !!connectorBase(env), on: !!c?.h, created: c?.at || null, used: c?.used || null } };
+      const base = connectorBase(env);
+      const token = c?.h && c.e && base ? openToken(await key(), c.e) : null;
+      const url = token && tokenHash(token) === c.h ? base + '/' + token : null;
+      return { status: 200, body: { available: !!base, on: !!c?.h, created: c?.at || null, used: c?.used || null, ...(url ? { url } : {}) } };
     },
     'POST /api/connector': async req => {
       const { user } = await signedIn(req);
@@ -422,12 +427,13 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const base = connectorBase(env);
       if (!base) return { status: 503, body: { error: 'the connector is not set up on this server', code: 'no-connector' } };
       const token = newConnectorToken();
+      const sealed = sealToken(await key(), token);
       const at = now();
       await store.update(['db'], ({ get, set }) => {
         const db = get('db'); const u = usersOf(db).find(x => x.id === user.id);
         if (!u) throw new HttpError(401, 'not signed in');
         // A new address replaces the old one, which stops working at once.
-        u.connector = { h: tokenHash(token), at };
+        u.connector = { h: tokenHash(token), e: sealed, at };
         set('db', db);
       });
       return { status: 200, body: { url: base + '/' + token, created: at } };

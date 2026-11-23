@@ -3708,7 +3708,7 @@ export default {
   "Not yet": "Még nem",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "Csatlakozás után a Claude olvassa az edzéstervedet, edzéseidet, rekordjaidat, testsúlyodat és izomegyensúlyodat, ugyanazokkal a számokkal, amiket az app mutat.",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "Csak olvasás: a Claude olvashatja az edzéseidet, de semmit nem módosíthat, adhat hozzá vagy törölhet.",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "Csak most látható. Bárki, akinél ez a cím van, olvashatja az edzéseidet: tartsd meg magadnak. Elvesztetted? Készíts újat.",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Bárki, akinél ez a cím van, olvashatja az edzéseidet: tartsd meg magadnak. Csak egyszer add hozzá a Claude-ban: újramásolva ugyanazt a címet kapod.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "A Claude-nál lévő cím azonnal megszűnik működni. Utána a régi helyett az újat illeszted be a Claude-ba.",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "A cím azonnal megszűnik működni, és a Claude többé nem olvashatja az edzéseidet. Bármikor újra csatlakoztathatod.",
   "This server does not offer the Claude connector.": "Ez a szerver nem kínálja a Claude összekötőt.",

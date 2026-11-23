@@ -3705,7 +3705,7 @@ export default {
   "Not yet": "Jeszcze nie",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "Po połączeniu Claude czyta Twoje plany, treningi, rekordy, masę ciała i balans mięśni, z tymi samymi liczbami, które pokazuje aplikacja.",
   "Read-only: Claude can read your training but cannot change, add or delete anything.": "Tylko odczyt: Claude może czytać Twój trening, ale nie może niczego zmienić, dodać ani usunąć.",
-  "Shown only now. Anyone with this address can read your training: keep it to yourself. Lost it? Make a new one.": "Widoczny tylko teraz. Każdy, kto ma ten adres, może czytać Twój trening: zachowaj go dla siebie. Zgubiony? Utwórz nowy.",
+  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Każdy, kto ma ten adres, może czytać twoje treningi: zachowaj go dla siebie. Dodaj go w Claude tylko raz: ponowne skopiowanie daje ten sam adres.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Adres, który Claude ma teraz, od razu przestaje działać. Potem wklejasz w Claude nowy zamiast starego.",
   "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "Adres od razu przestaje działać i Claude nie może już czytać Twojego treningu. Możesz połączyć ponownie w dowolnej chwili.",
   "This server does not offer the Claude connector.": "Ten serwer nie oferuje łącznika Claude.",
