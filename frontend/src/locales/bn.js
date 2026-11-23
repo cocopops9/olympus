@@ -3368,6 +3368,8 @@ export default {
   "karate": "কারাতে",
   "boxing": "বক্সিং",
   "kickboxing": "কিকবক্সিং",
+  "mixed martial arts (MMA)": "মিক্সড মার্শাল আর্টস (MMA)",
+  "wrestling": "কুস্তি",
   "Downloading update": "আপডেট ডাউনলোড হচ্ছে",
   "Installing…": "ইনস্টল হচ্ছে…",
   "Download failed": "ডাউনলোড ব্যর্থ হয়েছে",

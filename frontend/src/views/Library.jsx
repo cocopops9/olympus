@@ -68,9 +68,11 @@ function LibrarySearch({ onBody }) {
   // Drop the equipment filter if the search narrowed it away, so you never hit a dead end.
   const eqOn = liveEquip(eqOpts, eq)
   // Favourites float to the top of whatever the filters left (issue #6), the rest keeps its order;
-  // while searching, the exercises you have logged or planned follow right after them.
+  // while searching, and on the Sports type, the exercises you have logged or planned follow
+  // right after them (the sports themselves come in order of popularity, lib/sports.js).
   const narrowedList = eqOn ? eqFiltered.filter(e => matchesEquip(e, eqOn)) : eqFiltered
-  const usage = useMemo(() => (q.trim() ? usageOf(S) : null), [q, S.routines, S.workouts])
+  const yoursFirst = !!q.trim() || catOn === 'sport'
+  const usage = useMemo(() => (yoursFirst ? usageOf(S) : null), [yoursFirst, S.routines, S.workouts])
   // Without a search, the well-known movements lead (lib/exercise-guide.js POPULAR), after your
   // favourites: an alphabetical list of 5,600 starts with drills nobody looks for.
   const f = usage ? sortYoursFirst(narrowedList, S, usage)

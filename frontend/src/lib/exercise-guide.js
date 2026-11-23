@@ -50,6 +50,8 @@ const STAPLE_NAMES = {
 }
 const BY_NAME = new Map(CATALOGUE.map(e => [String(e.n).toLowerCase(), e.id]))
 export const STAPLES = Object.fromEntries(Object.entries(STAPLE_NAMES).map(([m, names]) => [m, names.map(n => BY_NAME.get(n)).filter(Boolean)]))
+// The sports in order of popularity (lib/sports.js POPULARITY), after the ones you play.
+STAPLES.sports = CATALOGUE.filter(isSport).map(e => e.id)
 
 // Below this many main-target exercises a muscle also lists the ones that work it on the side:
 // obliques, hip flexors and shins are almost never an exercise's main target.

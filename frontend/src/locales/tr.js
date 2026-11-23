@@ -3289,6 +3289,8 @@ export default {
   "karate": "karate",
   "boxing": "boks",
   "kickboxing": "kickboks",
+  "mixed martial arts (MMA)": "karma dövüş sanatları (MMA)",
+  "wrestling": "güreş",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

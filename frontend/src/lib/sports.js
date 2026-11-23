@@ -110,6 +110,16 @@ const SPORT_LIST = [
     trains: ['Endurance', 'Power', 'Speed', 'Coordination'],
     muscleWeights: { deltoids: 0.8, obliques: 0.7, quadriceps: 0.7, gluteal: 0.7, 'hip-flexors': 0.7, abs: 0.6, calves: 0.6, triceps: 0.5, chest: 0.5, hamstring: 0.5, adductors: 0.4 },
   },
+  {
+    id: 'sport-mma', n: 'mixed martial arts (MMA)', icon: 'figureStrength', min: 60,
+    trains: ['Power', 'Endurance', 'Grip strength', 'Agility'],
+    muscleWeights: { deltoids: 0.8, forearm: 0.7, 'upper-back': 0.7, obliques: 0.7, quadriceps: 0.7, gluteal: 0.7, abs: 0.6, hamstring: 0.6, 'hip-flexors': 0.5, chest: 0.5, triceps: 0.5, biceps: 0.5, neck: 0.5, trapezius: 0.5 },
+  },
+  {
+    id: 'sport-wrestling', n: 'wrestling', icon: 'figureStrength', min: 60,
+    trains: ['Power', 'Grip strength', 'Endurance', 'Core stability'],
+    muscleWeights: { 'upper-back': 0.9, trapezius: 0.8, forearm: 0.8, quadriceps: 0.8, gluteal: 0.8, neck: 0.7, biceps: 0.7, hamstring: 0.6, abs: 0.6, 'lower-back': 0.6, chest: 0.5 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
@@ -121,7 +131,23 @@ const secondariesOf = w => Object.keys(w).filter(k => w[k] > 0 && w[k] < 0.6)
  * `gif` only mark that there is one; the files are found by id in sport-media.js, made by
  * scripts/sports-media).
  */
-export const SPORTS = SPORT_LIST.map(s => ({
+// The order the sports are listed in, most popular first, after the ones you play yourself (the
+// exercise guide puts those on top). Worldwide popularity has no single measure, so this is an
+// estimate blending how many people watch a sport and how many play it: football and basketball
+// lead, water polo and fencing come last. It orders a short list; it is not a ranking to cite.
+// A sport missing here is listed after all of these.
+export const POPULARITY = [
+  'sport-football', 'sport-basketball', 'sport-swimming', 'sport-cycling', 'sport-tennis',
+  'sport-volleyball', 'sport-table-tennis', 'sport-badminton', 'sport-hiking', 'sport-baseball',
+  'sport-boxing', 'sport-golf', 'sport-american-football', 'sport-ice-hockey', 'sport-rugby',
+  'sport-skiing', 'sport-padel', 'sport-handball', 'sport-mma', 'sport-karate', 'sport-judo',
+  'sport-kickboxing', 'sport-muay-thai', 'sport-bjj', 'sport-wrestling', 'sport-gymnastics',
+  'sport-climbing', 'sport-ice-skating', 'sport-skateboarding', 'sport-roller-skating',
+  'sport-surfing', 'sport-snowboarding', 'sport-squash', 'sport-water-polo', 'sport-fencing',
+]
+const rankOf = id => { const i = POPULARITY.indexOf(id); return i < 0 ? POPULARITY.length : i }
+
+export const SPORTS = [...SPORT_LIST].sort((a, b) => rankOf(a.id) - rankOf(b.id)).map(s => ({
   id: s.id,
   n: s.n,
   bp: 'cardio',

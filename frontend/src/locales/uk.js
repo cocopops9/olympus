@@ -3286,6 +3286,8 @@ export default {
   "karate": "карате",
   "boxing": "бокс",
   "kickboxing": "кікбоксинг",
+  "mixed martial arts (MMA)": "змішані єдиноборства (ММА)",
+  "wrestling": "боротьба",
   "Downloading update": "Завантаження оновлення",
   "Installing…": "Встановлення…",
   "Download failed": "Не вдалося завантажити",

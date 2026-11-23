@@ -3292,6 +3292,8 @@ export default {
   "karate": "karate",
   "boxing": "ökölvívás",
   "kickboxing": "kick-box",
+  "mixed martial arts (MMA)": "kevert harcművészetek (MMA)",
+  "wrestling": "birkózás",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

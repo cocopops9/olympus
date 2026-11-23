@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { SPORTS, RETIRED_DRILLS, SPORT_MINUTES_PER_SET, QUALITIES, setsEquivalent } from './sports.js'
+import { SPORTS, POPULARITY, RETIRED_DRILLS, SPORT_MINUTES_PER_SET, QUALITIES, setsEquivalent } from './sports.js'
 import { CATALOGUE, EXIDX, canonicalExId, isCardio, isSport, categoriesOf } from './exercises.js'
 import { modeOf, defaultConfig, setLabel, exLine } from './history.js'
 import { MUSCLES, musclesOf, loadOfWorkouts, loadOfRoutine } from './muscles.js'
-import { GROUPS, exercisesFor, countsFor } from './exercise-guide.js'
+import { GROUPS, exercisesFor, countsFor, arrange, STAPLES } from './exercise-guide.js'
 import { exerciseNameFor, descFor } from './i18n-core.js'
 import { imgSrc, gifSrc } from './exercises.js'
 import { sportStill, sportClip, sportAnimation } from './sport-media.js'
@@ -83,6 +83,23 @@ describe('sports', () => {
     expect(exercisesFor(CATALOGUE, { kind: 'group', id: 'cardio' }).some(isSport)).toBe(false)
     const forearm = exercisesFor(CATALOGUE, { kind: 'muscle', id: 'forearm' })
     expect(forearm.some(e => e.id === 'sport-climbing')).toBe(true)
+  })
+
+  it('are listed by popularity, after the ones you play yourself', () => {
+    // Every sport has a rank, and the list follows it: football first, fencing after basketball.
+    for (const s of SPORTS) expect(POPULARITY, s.id).toContain(s.id)
+    const ids = SPORTS.map(s => s.id)
+    expect(ids).toEqual(POPULARITY.filter(id => ids.includes(id)))
+    expect(ids[0]).toBe('sport-football')
+    const tile = exercisesFor(CATALOGUE, { kind: 'group', id: 'sports' })
+    const plain = arrange(tile, { staples: STAPLES.sports })
+    expect(plain.yours).toEqual([])
+    expect(plain.popular.map(e => e.id)).toEqual(ids)
+    // Someone who plays judo most, then boxing, sees those two first, then the rest by popularity.
+    const usage = { 'sport-judo': 5, 'sport-boxing': 2 }
+    const mine = arrange(tile, { usage, staples: STAPLES.sports })
+    expect(mine.yours.map(e => e.id)).toEqual(['sport-judo', 'sport-boxing'])
+    expect(mine.popular.map(e => e.id)).toEqual(ids.filter(id => !usage[id]))
   })
 
   it('show their name in English', () => {

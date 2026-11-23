@@ -3289,6 +3289,8 @@ export default {
   "karate": "가라테",
   "boxing": "복싱",
   "kickboxing": "킥복싱",
+  "mixed martial arts (MMA)": "종합격투기 (MMA)",
+  "wrestling": "레슬링",
   "Downloading update": "업데이트 다운로드 중",
   "Installing…": "설치 중…",
   "Download failed": "다운로드 실패",

@@ -3344,6 +3344,8 @@ export default {
   "karate": "الكاراتيه",
   "boxing": "الملاكمة",
   "kickboxing": "الكيك بوكسينغ",
+  "mixed martial arts (MMA)": "الفنون القتالية المختلطة (MMA)",
+  "wrestling": "المصارعة",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",
