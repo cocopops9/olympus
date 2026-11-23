@@ -120,6 +120,21 @@ const SPORT_LIST = [
     trains: ['Power', 'Grip strength', 'Endurance', 'Core stability'],
     muscleWeights: { 'upper-back': 0.9, trapezius: 0.8, forearm: 0.8, quadriceps: 0.8, gluteal: 0.8, neck: 0.7, biceps: 0.7, hamstring: 0.6, abs: 0.6, 'lower-back': 0.6, chest: 0.5 },
   },
+  {
+    id: 'sport-fencing', n: 'fencing', icon: 'figureRun', min: 60,
+    trains: ['Speed', 'Reaction time', 'Agility', 'Coordination'],
+    muscleWeights: { quadriceps: 0.8, gluteal: 0.7, adductors: 0.5, calves: 0.5, hamstring: 0.5, deltoids: 0.4, forearm: 0.4, obliques: 0.3 },
+  },
+  {
+    id: 'sport-water-polo', n: 'water polo', icon: 'swim', min: 60,
+    trains: ['Endurance', 'Power', 'Core stability', 'Coordination'],
+    muscleWeights: { deltoids: 0.9, 'upper-back': 0.8, adductors: 0.7, chest: 0.6, triceps: 0.6, quadriceps: 0.6, abs: 0.6, obliques: 0.5, hamstring: 0.4 },
+  },
+  {
+    id: 'sport-baseball', n: 'baseball', icon: 'figureRun', min: 90,
+    trains: ['Power', 'Reaction time', 'Speed', 'Coordination'],
+    muscleWeights: { obliques: 0.7, deltoids: 0.6, forearm: 0.6, gluteal: 0.5, quadriceps: 0.5, triceps: 0.4, hamstring: 0.4, chest: 0.3, calves: 0.3 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
