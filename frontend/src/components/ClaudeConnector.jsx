@@ -60,7 +60,7 @@ export function ClaudeConnectorPage() {
   })
   const remove = () => confirmSheet({
     title: t('Disconnect Claude?'),
-    message: t('The address stops working at once and Claude can no longer read your training. You can connect again at any time.'),
+    message: t('The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.'),
     confirmText: t('Disconnect'), danger: true,
     onConfirm: async () => {
       try {
@@ -78,7 +78,7 @@ export function ClaudeConnectorPage() {
   const linked = ready && st.on && st.used
   const known = !!(fresh || st?.url)
   return <>
-    <Section footer={t('Read-only: Claude can read your training but cannot change, add or delete anything.')}>
+    <Section footer={t('Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.')}>
       <Row icon="sparkles" iconTint="var(--orange)" title={t('Ask Claude about your training')}
         subtitle={t('Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.')} />
       {ready && !st.on && <div className="claude-actions">
@@ -92,7 +92,7 @@ export function ClaudeConnectorPage() {
 
     {waiting && <Section title={t('Finish in Claude')}
       footer={known
-        ? t('Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.')
+        ? t('Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.')
         : t('The address is shown only when it is made. If it is no longer on your clipboard, copy a new one: the old one stops working.')}>
       <Row icon="hourglass" iconTint="var(--orange)" title={t('Not added in Claude yet')}
         subtitle={t('This turns to connected as soon as Claude reaches Olympus for the first time.')} />

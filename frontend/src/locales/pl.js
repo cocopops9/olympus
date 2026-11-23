@@ -3704,10 +3704,10 @@ export default {
   "Make a new address?": "Utworzyć nowy adres?",
   "Not yet": "Jeszcze nie",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "Po połączeniu Claude czyta Twoje plany, treningi, rekordy, masę ciała i balans mięśni, z tymi samymi liczbami, które pokazuje aplikacja.",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "Tylko odczyt: Claude może czytać Twój trening, ale nie może niczego zmienić, dodać ani usunąć.",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Każdy, kto ma ten adres, może czytać twoje treningi: zachowaj go dla siebie. Dodaj go w Claude tylko raz: ponowne skopiowanie daje ten sam adres.",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "Claude czyta twoje treningi i na twoją prośbę zapisuje treningi i wagę, tworzy i edytuje rutyny oraz planuje twój tydzień. Zanim cokolwiek usunie, pyta cię.",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Każdy, kto ma ten adres, może czytać i zmieniać twoje treningi: zachowaj go dla siebie. Dodaj go w Claude tylko raz: ponowne skopiowanie daje ten sam adres.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Adres, który Claude ma teraz, od razu przestaje działać. Potem wklejasz w Claude nowy zamiast starego.",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "Adres od razu przestaje działać i Claude nie może już czytać Twojego treningu. Możesz połączyć ponownie w dowolnej chwili.",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "Adres od razu przestaje działać i Claude nie może już czytać ani zmieniać twoich treningów. Możesz połączyć się ponownie w każdej chwili.",
   "This server does not offer the Claude connector.": "Ten serwer nie oferuje łącznika Claude.",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "Włącz Olympus w narzędziach czatu i zapytaj na przykład: „Jak mi szło wyciskanie na ławce w tym miesiącu?”",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)

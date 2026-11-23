@@ -3715,10 +3715,10 @@ export default {
   "Make a new address?": "สร้างที่อยู่ใหม่ไหม",
   "Not yet": "ยังไม่เคย",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "เมื่อเชื่อมต่อแล้ว Claude จะอ่านรูทีน การฝึก สถิติ น้ำหนักตัว และความสมดุลของกล้ามเนื้อของคุณ ด้วยตัวเลขเดียวกับที่แอปแสดง",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "อ่านอย่างเดียว: Claude อ่านการฝึกของคุณได้ แต่เปลี่ยน เพิ่ม หรือลบสิ่งใดไม่ได้",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "ใครก็ตามที่มีที่อยู่นี้อ่านการฝึกของคุณได้ เก็บไว้กับตัว เพิ่มใน Claude เพียงครั้งเดียว การคัดลอกอีกครั้งจะได้ที่อยู่เดิม",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "Claude อ่านการฝึกของคุณ และเมื่อคุณขอ จะบันทึกการออกกำลังกายและน้ำหนัก สร้างและแก้ไขรูทีน และวางแผนสัปดาห์ของคุณ ก่อนลบสิ่งใดจะถามคุณก่อน",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "ใครก็ตามที่มีที่อยู่นี้อ่านและเปลี่ยนการฝึกของคุณได้ เก็บไว้กับตัว เพิ่มใน Claude เพียงครั้งเดียว การคัดลอกอีกครั้งจะได้ที่อยู่เดิม",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "ที่อยู่ที่ Claude มีอยู่ตอนนี้จะหยุดทำงานทันที จากนั้นวางที่อยู่ใหม่ใน Claude แทนที่อยู่เดิม",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "ที่อยู่จะหยุดทำงานทันที และ Claude จะอ่านการฝึกของคุณไม่ได้อีก คุณเชื่อมต่อใหม่ได้ทุกเมื่อ",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "ที่อยู่หยุดทำงานทันที และ Claude จะอ่านหรือเปลี่ยนการฝึกของคุณไม่ได้อีก คุณเชื่อมต่อใหม่ได้ทุกเมื่อ",
   "This server does not offer the Claude connector.": "เซิร์ฟเวอร์นี้ไม่มีตัวเชื่อมต่อ Claude",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "เปิด Olympus ในเครื่องมือของแชต แล้วถาม เช่น “เดือนนี้เบนช์เพรสของฉันเป็นอย่างไร”",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)

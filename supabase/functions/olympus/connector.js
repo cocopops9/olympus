@@ -1,7 +1,12 @@
 // Olympus on Supabase: the Claude connector. A remote MCP server (Streamable HTTP) that lets
 // Claude, or any MCP client, read one profile's training: routines, workouts, body weight,
-// estimated 1RMs, muscle balance. Read-only; the tools are the stdio server's (mcp/src/tools.js),
-// spoken over HTTP by mcp/src/remote.js.
+// estimated 1RMs, muscle balance; and change it the way the athlete does in the app (log and
+// correct workouts and weigh-ins, routines, the week plan: mcp/src/write-tools.js). The read tools
+// are the stdio server's (mcp/src/tools.js), spoken over HTTP by mcp/src/remote.js.
+//
+// A change is saved the way the app's own push is (core.js PUT /api/data): under the document's
+// lock, stamped as an updated app stamps (stampChange, then stampPut for a writer that stamps),
+// with a new revision and write id. A phone sees the revision move, merges, and keeps both.
 //
 // It runs as its own Edge Function (supabase/functions/olympus-mcp), so the app's function does
 // not load the exercise library and the tools on every cold start, and a fault here cannot take
@@ -13,11 +18,15 @@
 // calendar's private feed address is. Settings shows when it was last used and replaces or
 // removes it in one tap; "Sign out everywhere" removes it too. A client that can send headers
 // may send the token as "Authorization: Bearer <token>" to the bare address instead.
+import crypto from 'node:crypto';
 import { answerBody } from '../../../mcp/src/remote.js';
+import { commitChange } from '../../../mcp/src/write-tools.js';
 import { TOKEN_RE, tokenHash } from './connector-token.js';
+import { stampPut } from './sync-stamps.js';
 
 const MAX_BODY = 1024 * 1024;
 const USED_EVERY_MS = 3600000;      // "last used" is written at most once an hour per profile
+const WID_KEEP = 50;                // core.js WID_KEEP
 
 const usersOf = db => (Array.isArray(db?.users) ? db.users : []);
 // The training document without the sync bookkeeping that only the server reads.
@@ -89,7 +98,25 @@ export function createConnector({ store, now = () => Date.now() }) {
       state: training(await store.read('state:' + user.id)),
       user: { id: user.id, name: user.name, created: user.created || null },
     });
-    const { status, body } = await answerBody(text, { load });
+    const change = async (tool, args) => {
+      const docKey = 'state:' + user.id;
+      let result;
+      await store.update([docKey], ({ get, set }) => {
+        const cur = get(docKey);
+        const at = now();
+        const made = commitChange(cur, tool, args, at);
+        const next = made.next;
+        stampPut(cur, next, { stamped: true, now: at });
+        next._rev = (cur?._rev || 0) + 1;
+        next._wids = [...(Array.isArray(cur?._wids) ? cur._wids : []), ...(cur?._wid ? [cur._wid] : [])]
+          .filter(x => typeof x === 'string').slice(-WID_KEEP);
+        next._wid = crypto.randomBytes(8).toString('hex');
+        set(docKey, next);
+        result = made.result;
+      });
+      return result;
+    };
+    const { status, body } = await answerBody(text, { load, change });
     try { await markUsed(user); } catch (e) { console.error('connector: last used', e); }
     return json(status, body);
   }

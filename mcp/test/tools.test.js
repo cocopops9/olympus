@@ -947,9 +947,12 @@ describe('shared: no-state fallback', () => {
       muscle_balance: { period: 'all' }
     }
     for (const t of TOOLS) {
+      // The library is the app's, not the profile's: searching it needs no synced profile.
+      if (t.name === 'search_exercises') continue
       const r = t.handler(calls[t.name] || {})
       expect(r).toHaveProperty('error')
     }
+    expect(TOOLS.find(t => t.name === 'search_exercises').handler({ query: 'bench press' }).results.length).toBeGreaterThan(0)
   })
 
   // Restore state after the no-state detour so a future test that forgets to seed sees the

@@ -12,6 +12,7 @@
 import { describe, test, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
 import { buildDemoState } from '../../frontend/src/lib/demoSeed.js'
 import { TOOLS } from '../src/tools.js'
+import { WRITE_TOOLS } from '../src/write-tools.js'
 import { withProfile, getState } from '../src/profile.js'
 import { _seedStateForTests } from '../src/state.js'
 import { answerMessage, toolDefinitions, PROTOCOL_VERSIONS } from '../src/remote.js'
@@ -176,7 +177,7 @@ describe('the address (core.js /api/connector and connector.js)', () => {
     expect(init.headers.get('content-type')).toMatch(/application\/json/)
     expect(init.body.result.protocolVersion).toBe('2025-06-18')
     expect((await w.rpc(urlA, 'notifications/initialized', null, { notify: true })).status).toBe(202)
-    expect((await w.rpc(urlA, 'tools/list')).body.result.tools.length).toBe(TOOLS.length)
+    expect((await w.rpc(urlA, 'tools/list')).body.result.tools.length).toBe(TOOLS.length + WRITE_TOOLS.length)
 
     const a = await w.tool(urlA, 'get_bodyweight')
     const b = await w.tool(urlB, 'get_bodyweight')

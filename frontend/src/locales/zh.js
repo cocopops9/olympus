@@ -3704,10 +3704,10 @@ export default {
   "Make a new address?": "生成新地址？",
   "Not yet": "尚未",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "连接后，Claude 可以读取你的训练计划、训练记录、个人纪录、体重和肌肉平衡，数字与应用中显示的一致。",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "只读：Claude 可以读取你的训练，但不能更改、添加或删除任何内容。",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "拥有此地址的人都能读取你的训练：请自行保管。只需在 Claude 中添加一次：再次复制会得到相同的地址。",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "Claude 会读取你的训练，并在你要求时记录训练和体重、创建和编辑计划，以及安排你的一周。删除任何内容前都会先询问你。",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "拥有此地址的人都能读取和更改你的训练：请自行保管。只需在 Claude 中添加一次：再次复制会得到相同的地址。",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude 现在使用的地址会立即失效。之后在 Claude 中用新地址替换旧地址。",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "该地址会立即失效，Claude 将无法再读取你的训练。你可以随时重新连接。",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "该地址会立即失效，Claude 将无法再读取或更改你的训练。你可以随时重新连接。",
   "This server does not offer the Claude connector.": "此服务器不提供 Claude 连接器。",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "在聊天的工具中打开 Olympus，然后提问，例如：“这个月我的卧推练得怎么样？”",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)

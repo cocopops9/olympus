@@ -3704,10 +3704,10 @@ export default {
   "Make a new address?": "Yeni adres oluşturulsun mu?",
   "Not yet": "Henüz değil",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "Bağlandıktan sonra Claude rutinlerini, antrenmanlarını, rekorlarını, vücut ağırlığını ve kas dengeni, uygulamanın gösterdiği sayılarla okur.",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "Salt okunur: Claude antrenmanını okuyabilir ama hiçbir şeyi değiştiremez, ekleyemez veya silemez.",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Bu adrese sahip olan herkes antrenmanını okuyabilir: kendine sakla. Claude’a yalnızca bir kez ekle: yeniden kopyalamak aynı adresi verir.",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "Claude antrenmanını okur ve istediğinde antrenman ve tartı kaydeder, rutin oluşturup düzenler ve haftanı planlar. Bir şey silmeden önce sana sorar.",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "Bu adrese sahip olan herkes antrenmanını okuyup değiştirebilir: kendine sakla. Claude’a yalnızca bir kez ekle: yeniden kopyalamak aynı adresi verir.",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude’daki mevcut adres hemen çalışmayı bırakır. Sonra eskisinin yerine yenisini Claude’a yapıştırırsın.",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "Adres hemen çalışmayı bırakır ve Claude artık antrenmanını okuyamaz. İstediğin zaman yeniden bağlanabilirsin.",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "Adres hemen çalışmayı bırakır ve Claude artık antrenmanını okuyamaz ya da değiştiremez. İstediğin zaman yeniden bağlanabilirsin.",
   "This server does not offer the Claude connector.": "Bu sunucu Claude bağlayıcısını sunmuyor.",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "Bir sohbetin araçlarında Olympus’u aç, sonra örneğin şunu sor: “Bu ay bench press’im nasıl gitti?”",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)

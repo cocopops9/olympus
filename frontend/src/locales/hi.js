@@ -3704,10 +3704,10 @@ export default {
   "Make a new address?": "नया पता बनाएँ?",
   "Not yet": "अभी नहीं",
   "Once connected, Claude reads your routines, workouts, records, body weight and muscle balance, with the same numbers the app shows.": "जुड़ने के बाद Claude आपके रूटीन, वर्कआउट, रिकॉर्ड, शरीर का वज़न और मांसपेशियों का संतुलन पढ़ता है, उन्हीं आँकड़ों के साथ जो ऐप दिखाता है।",
-  "Read-only: Claude can read your training but cannot change, add or delete anything.": "सिर्फ़ पढ़ने के लिए: Claude आपकी ट्रेनिंग पढ़ सकता है, लेकिन कुछ भी बदल, जोड़ या मिटा नहीं सकता।",
-  "Anyone with this address can read your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "जिसके पास यह पता है वह आपकी ट्रेनिंग पढ़ सकता है: इसे अपने पास रखें। इसे Claude में केवल एक बार जोड़ें: दोबारा कॉपी करने पर वही पता मिलता है।",
+  "Claude reads your training and, when you ask, logs workouts and weigh-ins, builds and edits routines and plans your week. It asks you before deleting anything.": "Claude आपकी ट्रेनिंग पढ़ता है और आपके कहने पर वर्कआउट और वज़न दर्ज करता है, रूटीन बनाता और बदलता है और आपका सप्ताह प्लान करता है। कुछ भी मिटाने से पहले वह आपसे पूछता है।",
+  "Anyone with this address can read and change your training: keep it to yourself. Add it in Claude only once: copying it again gives the same address.": "जिसके पास यह पता है वह आपकी ट्रेनिंग पढ़ और बदल सकता है: इसे अपने पास रखें। इसे Claude में केवल एक बार जोड़ें: दोबारा कॉपी करने पर वही पता मिलता है।",
   "The address Claude has now stops working at once. You then paste the new one into Claude in place of the old.": "Claude के पास अभी जो पता है, वह तुरंत काम करना बंद कर देता है। फिर पुराने की जगह नया पता Claude में पेस्ट करें।",
-  "The address stops working at once and Claude can no longer read your training. You can connect again at any time.": "पता तुरंत काम करना बंद कर देता है और Claude आपकी ट्रेनिंग अब नहीं पढ़ सकता। आप कभी भी फिर से जोड़ सकते हैं।",
+  "The address stops working at once and Claude can no longer read or change your training. You can connect again at any time.": "पता तुरंत काम करना बंद कर देता है और Claude अब आपकी ट्रेनिंग पढ़ या बदल नहीं सकता। आप कभी भी फिर से जुड़ सकते हैं।",
   "This server does not offer the Claude connector.": "यह सर्वर Claude कनेक्टर नहीं देता।",
   "Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”": "किसी चैट के टूल में Olympus चालू करें, फिर पूछें, जैसे: “इस महीने मेरा बेंच प्रेस कैसा रहा?”",
   // Olympus: the app guide (lib/app-guide.js, components/AppGuide.jsx)
