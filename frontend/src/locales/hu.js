@@ -3679,7 +3679,7 @@ export default {
   "1. Open claude.ai in your browser": "1. Nyisd meg a claude.ai-t a böngészőben",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Testreszabás, Összekötők, majd + Hozzáadás és Egyéni összekötő hozzáadása. Telefonon a böngészőt használd, ne a Claude appot: összekötőt a weben lehet hozzáadni.",
   "2. Paste the address": "2. Illeszd be a címet",
-  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "Név: Olympus. URL: illeszd be a címet. Koppints a Folytatásra. A Hitelesítésnél válaszd a Bejelentkezés nélkül lehetőséget, akkor is, ha Claude bejelentkezést javasol, majd Hozzáadás.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication leave No sign-in selected (marked Detected): do not pick Sign in now or Sign in when needed. Then Add.": "Név: Olympus. URL: illeszd be a címet. Koppints a Folytatásra. A Hitelesítésnél hagyd kijelölve a Bejelentkezés nélkül lehetőséget (Észlelve jelöléssel): ne válaszd a Bejelentkezés most vagy a Bejelentkezés szükség esetén lehetőséget. Majd Hozzáadás.",
   "Copy a new address": "Új cím másolása",
   "3. Ask": "3. Kérdezz",
   "Address copied: now finish in Claude.": "Cím kimásolva: most fejezd be a Claude-ban.",

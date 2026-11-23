@@ -1994,7 +1994,7 @@ export const PT_BR_OVERRIDES = {
   "1. Open claude.ai in your browser": "1. Abra claude.ai no navegador",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Personalizar, Conectores, depois + Adicionar e Adicionar conector personalizado. No celular use o navegador, não o app do Claude: conectores são adicionados pela web.",
   "2. Paste the address": "2. Cole o endereço",
-  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "Nome: Olympus. URL: cole o endereço. Toque em Continuar. Em Autenticação escolha Sem login, mesmo que o Claude sugira um login, e depois Adicionar.",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication leave No sign-in selected (marked Detected): do not pick Sign in now or Sign in when needed. Then Add.": "Nome: Olympus. URL: cole o endereço. Toque em Continuar. Em Autenticação deixe selecionado Sem login (marcado Detectado): não escolha Entrar agora nem Entrar quando necessário. Depois Adicionar.",
   "Copy a new address": "Copiar um novo endereço",
   "3. Ask": "3. Pergunte",
   "Address copied: now finish in Claude.": "Endereço copiado: agora termine no Claude.",

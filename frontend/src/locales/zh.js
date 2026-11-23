@@ -3676,7 +3676,7 @@ export default {
   "1. Open claude.ai in your browser": "1. 在浏览器中打开 claude.ai",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "自定义、连接器，然后点 + 添加 和 添加自定义连接器。手机上请用浏览器，不要用 Claude 应用：连接器需在网页版添加。",
   "2. Paste the address": "2. 粘贴地址",
-  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "名称：Olympus。URL：粘贴地址。点继续。在身份验证中选择无需登录（即使 Claude 建议登录），然后点添加。",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication leave No sign-in selected (marked Detected): do not pick Sign in now or Sign in when needed. Then Add.": "名称：Olympus。URL：粘贴地址。点继续。在身份验证中保持选中无需登录（标有已检测）：不要选立即登录或需要时登录。然后点添加。",
   "Copy a new address": "复制新地址",
   "3. Ask": "3. 提问",
   "Address copied: now finish in Claude.": "地址已复制：现在去 Claude 中完成。",
