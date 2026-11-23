@@ -38,6 +38,9 @@ import SetChips from './components/SetChips.jsx'
 import { levelLabel, levelValue, levelWhat } from './components/StrengthLevels.jsx'
 import { levelUps, liftOf, strengthLevels } from './lib/strength-level.js'
 import './strength.css'
+import './greek-month.css'
+import GreekMonthBanner from './components/GreekMonth.jsx'
+import { useSwipeNav } from './lib/use-swipe-nav.js'
 import { equipFamilies, liveEquip, matchesEquip, equipmentVariants } from './lib/equipment-groups.js'
 import ExerciseViewToggle from './components/ExerciseViewToggle.jsx'
 import { composeSheet, PostEditor, postEditorSheet } from './components/Social.jsx'
@@ -2821,7 +2824,12 @@ export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w=
 export function Calendar({ start, close }) {
   const st = useStore(s => s.S)
   const [cur, setCur] = useState(() => { const d = start ? new Date(start) : new Date(); d.setDate(1); return d })
+  // Which way the last change of month went, so the new month slides in from that side.
+  const [dir, setDir] = useState(0)
   const y = cur.getFullYear(), mo = cur.getMonth()
+  const step = by => { setDir(by); setCur(new Date(y, mo + by, 1)) }
+  // A sideways swipe on the month turns it, as the arrows do (lib/use-swipe-nav.js).
+  const swipe = useSwipeNav({ onPrev: () => step(-1), onNext: () => step(1) })
   const byDay = {}
   st.workouts.forEach(w => {
     const day = workoutDay(w)
@@ -2852,12 +2860,16 @@ export function Calendar({ start, close }) {
   }
   return <>
     <div className="row between" style={{ marginBottom: 2 }}>
-      <button className="iconbtn" onClick={() => setCur(new Date(y, mo - 1, 1))} aria-label={t('Previous month')}><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={() => step(-1)} aria-label={t('Previous month')}><Icon name="chevronLeft" /></button>
       <h3 style={{ margin: 0 }}>{t(MONTHS_LONG[mo])} {y}</h3>
-      <button className="iconbtn" onClick={() => setCur(new Date(y, mo + 1, 1))} aria-label={t('Next month')}><Icon name="chevronRight" /></button>
+      <button className="iconbtn" onClick={() => step(1)} aria-label={t('Next month')}><Icon name="chevronRight" /></button>
     </div>
-    <div className="small muted" style={{ textAlign: 'center' }}>{monthWs.length ? `${tn('{0} workout', '{0} workouts', monthWs.length)} · ${fmtDur(monthMs)} · ${fmtVol(monthVol, st.unit)}` : t('No workouts this month')}</div>
-    <div className="cal-grid">{weekOrder(ws).map(d => <div key={d} className="cal-h">{t(DAYS[d])}</div>)}{cells}</div>
+    {/* Keyed by month, so each change replays the slide-in. */}
+    <div key={y + '-' + mo} className={'gm-page' + (dir > 0 ? ' from-next' : dir < 0 ? ' from-prev' : '')} {...swipe}>
+      <GreekMonthBanner month={mo} />
+      <div className="small muted" style={{ textAlign: 'center' }}>{monthWs.length ? `${tn('{0} workout', '{0} workouts', monthWs.length)} · ${fmtDur(monthMs)} · ${fmtVol(monthVol, st.unit)}` : t('No workouts this month')}</div>
+      <div className="cal-grid">{weekOrder(ws).map(d => <div key={d} className="cal-h">{t(DAYS[d])}</div>)}{cells}</div>
+    </div>
     <div className="cal-legend">
       <span><i style={{ background: 'var(--acc)' }} />{t('Trained')}</span>
       <span><i style={{ background: 'var(--label-3)' }} />{t('Planned')}</span>
