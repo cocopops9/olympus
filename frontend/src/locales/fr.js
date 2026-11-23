@@ -3297,6 +3297,8 @@ export default {
   "golf": "golf",
   "ice hockey": "hockey sur glace",
   "american football": "football américain",
+  "cycling": "cyclisme",
+  "muay thai": "boxe thaïlandaise",
   "Downloading update": "Téléchargement de la mise à jour",
   "Installing…": "Installation…",
   "Download failed": "Échec du téléchargement",

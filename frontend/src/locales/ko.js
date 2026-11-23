@@ -3297,6 +3297,8 @@ export default {
   "golf": "골프",
   "ice hockey": "아이스하키",
   "american football": "미식축구",
+  "cycling": "사이클",
+  "muay thai": "무에타이",
   "Downloading update": "업데이트 다운로드 중",
   "Installing…": "설치 중…",
   "Download failed": "다운로드 실패",

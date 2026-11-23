@@ -3308,6 +3308,8 @@ export default {
   "golf": "กอล์ฟ",
   "ice hockey": "ฮอกกี้น้ำแข็ง",
   "american football": "อเมริกันฟุตบอล",
+  "cycling": "ปั่นจักรยาน",
+  "muay thai": "มวยไทย",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",

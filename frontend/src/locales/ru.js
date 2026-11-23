@@ -3301,6 +3301,8 @@ export default {
   "golf": "гольф",
   "ice hockey": "хоккей с шайбой",
   "american football": "американский футбол",
+  "cycling": "велоспорт",
+  "muay thai": "тайский бокс",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

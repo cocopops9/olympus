@@ -3376,6 +3376,8 @@ export default {
   "golf": "গলফ",
   "ice hockey": "আইস হকি",
   "american football": "আমেরিকান ফুটবল",
+  "cycling": "সাইক্লিং",
+  "muay thai": "মুয়ে থাই",
   "Downloading update": "আপডেট ডাউনলোড হচ্ছে",
   "Installing…": "ইনস্টল হচ্ছে…",
   "Download failed": "ডাউনলোড ব্যর্থ হয়েছে",

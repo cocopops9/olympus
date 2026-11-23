@@ -1724,6 +1724,8 @@ export const PT_BR_OVERRIDES = {
   "golf": "golfe",
   "ice hockey": "hóquei no gelo",
   "american football": "futebol americano",
+  "cycling": "ciclismo",
+  "muay thai": "muay thai",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",
