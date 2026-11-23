@@ -3300,6 +3300,8 @@ export default {
   "karate": "คาราเต้",
   "boxing": "มวยสากล",
   "kickboxing": "คิกบ็อกซิ่ง",
+  "mixed martial arts (MMA)": "ศิลปะการต่อสู้แบบผสม (MMA)",
+  "wrestling": "มวยปล้ำ",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",

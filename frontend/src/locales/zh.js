@@ -3289,6 +3289,8 @@ export default {
   "karate": "空手道",
   "boxing": "拳击",
   "kickboxing": "踢拳",
+  "mixed martial arts (MMA)": "综合格斗 (MMA)",
+  "wrestling": "摔跤",
   "Downloading update": "正在下载更新",
   "Installing…": "正在安装…",
   "Download failed": "下载失败",

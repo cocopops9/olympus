@@ -3293,6 +3293,8 @@ export default {
   "karate": "карате",
   "boxing": "бокс",
   "kickboxing": "кикбоксинг",
+  "mixed martial arts (MMA)": "смешанные единоборства (ММА)",
+  "wrestling": "борьба",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

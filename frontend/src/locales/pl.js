@@ -3289,6 +3289,8 @@ export default {
   "karate": "karate",
   "boxing": "boks",
   "kickboxing": "kickboxing",
+  "mixed martial arts (MMA)": "mieszane sztuki walki (MMA)",
+  "wrestling": "zapasy",
   "Downloading update": "Pobieranie aktualizacji",
   "Installing…": "Instalowanie…",
   "Download failed": "Pobieranie nie powiodło się",

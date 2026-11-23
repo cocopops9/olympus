@@ -1716,6 +1716,8 @@ export const PT_BR_OVERRIDES = {
   "karate": "caratê",
   "boxing": "boxe",
   "kickboxing": "kickboxing",
+  "mixed martial arts (MMA)": "artes marciais mistas (MMA)",
+  "wrestling": "luta olímpica",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",
