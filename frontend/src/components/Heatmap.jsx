@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fmtVol, isoOf, todayISO, MONTHS, weekStartOf, weekDayOffset } from '../lib/format.js'
+import { fmtVol, isoOf, todayISO, MONTHS, weekStartOf, weekDayOffset, startOfWeek } from '../lib/format.js'
 import { workoutDay, workoutDuration, workoutVolume } from '../lib/history.js'
 import { t, tn } from '../lib/i18n.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
@@ -18,10 +18,21 @@ const volumeOf = w => {
 }
 
 // GitHub-style activity heatmap, shaded by the selected time or volume metric per day.
-export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChange, hideMetric = false }) {
+// Without `year` it is the last 53 weeks up to today; with one (Stats → Activity → Year, which
+// pages back through years) it is that calendar year, January to December, the days of the
+// neighbouring years in its first and last column left blank.
+export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChange, hideMetric = false, year }) {
   const wrapRef = useRef(null)
   const [localMetric, setLocalMetric] = useState(() => normalizeMetric(selectedMetric ?? S?.heatmapMetric))
-  useEffect(() => { if (wrapRef.current) wrapRef.current.scrollLeft = wrapRef.current.scrollWidth }, [])
+  // The strip opens on today when today is in it, otherwise on its latest weeks.
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const now = wrap.querySelector('.hm-c.today')
+    if (!now?.getBoundingClientRect || !wrap.getBoundingClientRect) { wrap.scrollLeft = wrap.scrollWidth; return }
+    const into = now.getBoundingClientRect().left - wrap.getBoundingClientRect().left + wrap.scrollLeft
+    wrap.scrollLeft = Math.max(0, into - wrap.clientWidth + 48)
+  }, [year])
 
   const metric = normalizeMetric(selectedMetric ?? localMetric)
   const metricValue = metric === 'vol' ? 'vol' : 'min'
@@ -47,8 +58,12 @@ export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChan
 
   const today = new Date(); today.setHours(12, 0, 0, 0)
   const ws = weekStartOf(S)
-  const end = new Date(today); end.setDate(today.getDate() - weekDayOffset(today.getDay(), ws))
-  const start = new Date(end); start.setDate(end.getDate() - 52 * 7)
+  const yearMode = Number.isInteger(year)
+  const end = yearMode ? startOfWeek(`${year}-12-31`, ws) : new Date(today)
+  if (!yearMode) end.setDate(today.getDate() - weekDayOffset(today.getDay(), ws))
+  const start = yearMode ? startOfWeek(`${year}-01-01`, ws) : new Date(end)
+  if (!yearMode) start.setDate(end.getDate() - 52 * 7)
+  const lastCol = Math.round((end - start) / (7 * 86400000))
 
   const dayLabels = Array(7).fill(null)
   dayLabels[weekDayOffset(1, ws)] = 'Mon'
@@ -57,16 +72,24 @@ export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChan
 
   const months = [], cols = []
   let lastMonth = -1
-  for (let wk = 0; wk <= 52; wk++) {
+  for (let wk = 0; wk <= lastCol; wk++) {
     const colStart = new Date(start); colStart.setDate(start.getDate() + wk * 7)
     const mo = colStart.getMonth()
-    const showM = mo !== lastMonth && colStart.getDate() <= 7 && wk < 51
-    months.push(<span key={wk}>{showM ? t(MONTHS[mo]) : ''}</span>)
-    if (colStart.getDate() <= 7) lastMonth = mo
+    if (yearMode) {
+      // A month is named over the column holding its first day.
+      const first = Array.from({ length: 7 }, (_, d) => { const x = new Date(colStart); x.setDate(colStart.getDate() + d); return x })
+        .find(x => x.getDate() === 1 && x.getFullYear() === year)
+      months.push(<span key={wk}>{first ? t(MONTHS[first.getMonth()]) : ''}</span>)
+    } else {
+      const showM = mo !== lastMonth && colStart.getDate() <= 7 && wk < 51
+      months.push(<span key={wk}>{showM ? t(MONTHS[mo]) : ''}</span>)
+      if (colStart.getDate() <= 7) lastMonth = mo
+    }
     const cells = []
     for (let d = 0; d < 7; d++) {
       const day = new Date(colStart); day.setDate(colStart.getDate() + d)
       const key = isoOf(day)
+      if (yearMode && day.getFullYear() !== year) { cells.push(<div key={d} className="hm-c out" aria-hidden="true" />); continue }
       const a = agg[key]
       // A day off with a note (#261): outlined, its note in the tooltip, and tappable like a
       // trained day so the note can be read (and changed) on a phone too.
@@ -82,7 +105,7 @@ export default function Heatmap({ S, onDay, metric: selectedMetric, onMetricChan
   return <>
     {!hideMetric && <Segmented value={metric} onChange={changeMetric}
       options={[{ value: 'time', label: t('Time') }, { value: 'vol', label: t('Volume') }]} />}
-    <div className="hm-wrap" ref={wrapRef}>
+    <div className="hm-wrap" ref={wrapRef} data-swipe-ignore>
       <div className="hm-months" style={{ marginInlineStart: 30 }}>{months}</div>
       <div className="hm-body">
         <div className="hm-days">{dayLabels.map((lbl, i) => <span key={i}>{lbl ? t(lbl) : ''}</span>)}</div>

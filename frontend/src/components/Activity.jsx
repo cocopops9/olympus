@@ -1,13 +1,17 @@
 // Olympus: the Activity card of Stats. Three ways to look at the same training, time or volume:
 //   Month  a calendar, each trained day a disc coloured by its third (light, medium, full) with its
 //          minutes or volume inside, a legend with the range of each colour; tap a day to open it;
-//   Weeks  the last twelve weeks as bars, this week lit, the best week marked;
-//   Year   the whole year as the grid it always was (components/Heatmap.jsx).
-// The three numbers on top (days trained, time or volume, best run of weeks) cover the last year.
+//   Weeks  twelve weeks as bars, this week lit, the best week marked;
+//   Year   a calendar year as a grid (components/Heatmap.jsx).
+// Each view pages back through earlier months, twelve-week stretches or years (lib/activity-period.js),
+// with the arrows or a sideways swipe anywhere on the card; each keeps its own place. The three
+// numbers on top (days trained, time or volume, best run of weeks) are those of the period shown.
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { t, tn } from '../lib/i18n.js'
-import { fmtVol, isoOf, todayISO, DAYS, MONTHS, MONTHS_LONG, weekStartOf, weekDayOffset } from '../lib/format.js'
+import { fmtVol, fmtDateRange, isoOf, todayISO, weekKey, DAYS, MONTHS, MONTHS_LONG, weekStartOf, weekDayOffset } from '../lib/format.js'
+import { periodOf, periodSummary, WEEKS_PER_PAGE } from '../lib/activity-period.js'
+import { useSwipeNav } from '../lib/use-swipe-nav.js'
 import { workoutDay, workoutDuration, workoutVolume } from '../lib/history.js'
 import { dayNoteOf } from '../lib/day-notes.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
@@ -73,11 +77,10 @@ function rangeText(r, metric, unit) {
   return metric === 'vol' && r.hi < 1000 ? `${text} ${unit === 'lb' ? 'lb' : 'kg'}` : text
 }
 
-function Month({ S, agg, metric, onDay }) {
-  const [offset, setOffset] = useState(0)
+function Month({ S, agg, metric, onDay, from }) {
   const ws = weekStartOf(S)
   const today = todayISO()
-  const base = new Date(); base.setHours(12, 0, 0, 0); base.setDate(1); base.setMonth(base.getMonth() + offset)
+  const base = new Date(from + 'T12:00:00')
   const y = base.getFullYear(), m = base.getMonth()
   const days = new Date(y, m + 1, 0).getDate()
   const lead = weekDayOffset(new Date(y, m, 1, 12).getDay(), ws)
@@ -86,12 +89,10 @@ function Month({ S, agg, metric, onDay }) {
   const tiers = useMemo(() => tiersFor(Object.values(agg).map(a => a[key])), [agg, key])
   const fmt = v => (metric === 'vol' ? fmtVol(v, S.unit) : fmtMin(v))
   const cells = []
-  let n = 0, min = 0, vol = 0
   for (let i = 0; i < lead; i++) cells.push(<span key={'b' + i} className="am-d blank" />)
   for (let d = 1; d <= days; d++) {
     const iso = isoOf(new Date(y, m, d, 12))
     const a = agg[iso]
-    if (a) { n += a.n; min += a.min; vol += a.vol }
     const note = !a && dayNoteOf(S, iso)
     const lv = a ? tiers.level(a[key]) : 0
     const cls = 'am-d' + (a ? ' on t' + lv : '') + (iso === today ? ' today' : '') + (iso > today ? ' future' : '') + (note ? ' noted' : '')
@@ -101,12 +102,6 @@ function Month({ S, agg, metric, onDay }) {
   }
   const names = Array.from({ length: 7 }, (_, i) => t(DAYS[(ws + i) % 7]))
   return <div className="am">
-    <div className="am-h">
-      <button className="iconbtn sm" onClick={() => setOffset(o => o - 1)} aria-label={t('Previous month')}><Icon name="chevronLeft" /></button>
-      <div className="am-t"><b>{t(MONTHS_LONG[m])} {y}</b>
-        <span className="small dim">{n ? `${tn('{0} workout', '{0} workouts', n)} · ${metric === 'vol' ? fmtVol(vol, S.unit) : fmtMin(min)}` : t('No workouts')}</span></div>
-      <button className="iconbtn sm" onClick={() => setOffset(o => Math.min(0, o + 1))} disabled={offset === 0} aria-label={t('Next month')}><Icon name="chevronRight" /></button>
-    </div>
     <div className="am-g am-names">{names.map((d, i) => <span key={i}>{d}</span>)}</div>
     <div className="am-g">{cells}</div>
     {tiers.ranges.length > 0 && <div className="am-legend">
@@ -118,30 +113,30 @@ function Month({ S, agg, metric, onDay }) {
   </div>
 }
 
-function Weeks({ S, agg, metric }) {
+function Weeks({ S, agg, metric, from }) {
   const [sel, setSel] = useState(null)
   const ws = weekStartOf(S)
   const key = metric === 'vol' ? 'vol' : 'min'
+  const thisWeek = weekKey(todayISO(), ws)
   const weeks = useMemo(() => {
-    const start = new Date(); start.setHours(12, 0, 0, 0); start.setDate(start.getDate() - weekDayOffset(start.getDay(), ws))
     const out = []
-    for (let w = 11; w >= 0; w--) {
-      const s0 = new Date(start); s0.setDate(start.getDate() - w * 7)
+    for (let w = 0; w < WEEKS_PER_PAGE; w++) {
+      const s0 = new Date(from + 'T12:00:00'); s0.setDate(s0.getDate() + w * 7)
       let v = 0, n = 0
       for (let d = 0; d < 7; d++) { const day = new Date(s0); day.setDate(s0.getDate() + d); const a = agg[isoOf(day)]; if (a) { v += a[key]; n += a.n } }
       out.push({ iso: isoOf(s0), v, n, label: s0.getDate() + ' ' + t(MONTHS[s0.getMonth()]) })
     }
     return out
-  }, [agg, key, ws])
+  }, [agg, key, from])
   const max = Math.max(1, ...weeks.map(w => w.v))
   const best = weeks.reduce((b, w, i) => (w.v > (weeks[b]?.v || 0) ? i : b), 0)
   const shown = sel != null ? weeks[sel] : weeks[weeks.length - 1]
   const fmt = v => (metric === 'vol' ? fmtVol(v, S.unit) : fmtMin(v))
   return <div className="aw">
     <div className="aw-cap"><b>{fmt(shown.v)}</b>
-      <span className="small dim">{sel == null || sel === weeks.length - 1 ? t('This week') : t('Week of {0}', shown.label)} · {tn('{0} workout', '{0} workouts', shown.n)}</span></div>
+      <span className="small dim">{shown.iso === thisWeek ? t('This week') : t('Week of {0}', shown.label)} · {tn('{0} workout', '{0} workouts', shown.n)}</span></div>
     <div className="aw-bars">
-      {weeks.map((w, i) => <button key={w.iso} className={'aw-b' + (i === weeks.length - 1 ? ' now' : '') + (i === sel ? ' sel' : '') + (i === best && w.v > 0 ? ' best' : '')}
+      {weeks.map((w, i) => <button key={w.iso} className={'aw-b' + (w.iso === thisWeek ? ' now' : '') + (i === sel ? ' sel' : '') + (i === best && w.v > 0 ? ' best' : '')}
         onClick={() => setSel(i === sel ? null : i)} aria-label={`${w.label}: ${fmt(w.v)}`}>
         <i style={{ height: Math.max(w.v > 0 ? 6 : 2, Math.round(w.v / max * 100)) + '%' }} />
       </button>)}
@@ -152,39 +147,46 @@ function Weeks({ S, agg, metric }) {
 
 export default function Activity({ S, onDay }) {
   const [view, setView] = useState('month')
+  // Where each view is, 0 for the period holding today (lib/activity-period.js).
+  const [offsets, setOffsets] = useState({ month: 0, weeks: 0, year: 0 })
   const metric = S.heatmapMetric === 'vol' ? 'vol' : 'time'
   const setMetric = v => useStore.getState().update(s => { s.heatmapMetric = v })
   const agg = useMemo(() => activityByDay(S.workouts), [S.workouts])
-  // The year in three numbers.
-  const since = isoOf(new Date(Date.now() - 365 * 86400000))
-  const year = Object.entries(agg).filter(([d]) => d >= since)
-  const totalMin = year.reduce((n, [, a]) => n + a.min, 0)
-  const totalVol = year.reduce((n, [, a]) => n + a.vol, 0)
-  const bestRun = useMemo(() => {
-    const ws = weekStartOf(S)
-    const weeks = new Set(year.map(([d]) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() - weekDayOffset(x.getDay(), ws)); return isoOf(x) }))
-    let best = 0
-    for (const w of weeks) {
-      const prev = new Date(w + 'T12:00:00'); prev.setDate(prev.getDate() - 7)
-      if (weeks.has(isoOf(prev))) continue
-      let run = 0; const c = new Date(w + 'T12:00:00')
-      while (weeks.has(isoOf(c))) { run++; c.setDate(c.getDate() + 7) }
-      best = Math.max(best, run)
-    }
-    return best
-  }, [agg])
-  return <>
+  const ws = weekStartOf(S)
+  const offset = offsets[view]
+  const { from, to } = periodOf(view, offset, todayISO(), ws)
+  const sum = useMemo(() => periodSummary(agg, from, to, ws), [agg, from, to, ws])
+  const go = step => setOffsets(o => ({ ...o, [view]: Math.min(0, o[view] + step) }))
+  const prev = () => go(-1)
+  const next = offset < 0 ? () => go(1) : undefined
+  const swipe = useSwipeNav({ onPrev: prev, onNext: next })
+  const y = Number(from.slice(0, 4))
+  const title = view === 'year' ? String(y)
+    : view === 'weeks' ? fmtDateRange(from, to)
+      : `${t(MONTHS_LONG[Number(from.slice(5, 7)) - 1])} ${y}`
+  const [prevLabel, nextLabel] = view === 'year' ? [t('Previous year'), t('Next year')]
+    : view === 'weeks' ? [t('Earlier weeks'), t('Later weeks')] : [t('Previous month'), t('Next month')]
+  const total = metric === 'vol'
+    ? (sum.vol >= 10000 ? `${(Math.round(sum.vol / 100) / 10).toLocaleString()} ${S.unit === 'lb' ? 'k lb' : 't'}` : fmtVol(sum.vol, S.unit))
+    : t('{0} h', Math.round(sum.min / 6) / 10)
+  return <div className="act" {...swipe} data-activity-view={view} data-activity-from={from}>
     <div className="hm-sum">
-      <div><b>{year.length}</b><span>{t('days trained')}</span></div>
-      <div><b>{metric === 'vol' ? (totalVol >= 10000 ? `${(Math.round(totalVol / 100) / 10).toLocaleString()} ${S.unit === 'lb' ? 'k lb' : 't'}` : fmtVol(totalVol, S.unit)) : t('{0} h', Math.round(totalMin / 6) / 10)}</b><span>{metric === 'vol' ? t('lifted') : t('trained')}</span></div>
-      <div><b>{bestRun}</b><span>{t('weeks in a row, best')}</span></div>
+      <div><b>{sum.days}</b><span>{t('days trained')}</span></div>
+      <div><b>{total}</b><span>{metric === 'vol' ? t('lifted') : t('trained')}</span></div>
+      <div><b>{sum.bestRun}</b><span>{t('weeks in a row, best')}</span></div>
     </div>
     <div className="act-tabs">
       <Segmented value={view} onChange={setView} options={[{ value: 'month', label: t('Month') }, { value: 'weeks', label: t('Weeks') }, { value: 'year', label: t('Year') }]} />
       <Segmented value={metric} onChange={setMetric} options={[{ value: 'time', label: t('Time') }, { value: 'vol', label: t('Volume') }]} />
     </div>
-    {view === 'month' ? <Month S={S} agg={agg} metric={metric} onDay={onDay} />
-      : view === 'weeks' ? <Weeks S={S} agg={agg} metric={metric} />
-        : <Heatmap S={S} metric={metric} onMetricChange={setMetric} onDay={onDay} hideMetric />}
-  </>
+    <div className="am-h">
+      <button className="iconbtn sm" onClick={prev} aria-label={prevLabel}><Icon name="chevronLeft" /></button>
+      <div className="am-t" aria-live="polite"><b>{title}</b>
+        <span className="small dim">{sum.n ? tn('{0} workout', '{0} workouts', sum.n) : t('No workouts')}</span></div>
+      <button className="iconbtn sm" onClick={next} disabled={!next} aria-label={nextLabel}><Icon name="chevronRight" /></button>
+    </div>
+    {view === 'month' ? <Month S={S} agg={agg} metric={metric} onDay={onDay} from={from} />
+      : view === 'weeks' ? <Weeks key={from} S={S} agg={agg} metric={metric} from={from} />
+        : <Heatmap key={y} S={S} metric={metric} onMetricChange={setMetric} onDay={onDay} hideMetric year={y} />}
+  </div>
 }
