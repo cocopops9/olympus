@@ -96,7 +96,7 @@ export function ClaudeConnectorPage() {
       <Row icon="globe" iconTint="var(--acc)" title={t('1. Open claude.ai in your browser')}
         subtitle={t('Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.')} />
       <Row icon="copy" iconTint="var(--indigo)" title={t('2. Paste the address')}
-        subtitle={t('Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.')} />
+        subtitle={t('Name: Olympus. URL: paste the address. Tap Continue. Under Authentication leave No sign-in selected (marked Detected): do not pick Sign in now or Sign in when needed. Then Add.')} />
       <Row icon="chat" iconTint="var(--green)" title={t('3. Ask')}
         subtitle={t('Turn Olympus on in a chat’s tools, then ask, for example: “How has my bench press gone this month?”')} />
       <div className="claude-actions">

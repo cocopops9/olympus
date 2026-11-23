@@ -3687,7 +3687,7 @@ export default {
   "1. Open claude.ai in your browser": "1. เปิด claude.ai ในเบราว์เซอร์",
   "Customize, Connectors, then + Add and Add custom connector. On a phone use the browser, not the Claude app: connectors are added on the web.": "Customize, Connectors แล้ว + Add และ Add custom connector บนโทรศัพท์ให้ใช้เบราว์เซอร์ ไม่ใช่แอป Claude: ตัวเชื่อมต่อเพิ่มได้บนเว็บ",
   "2. Paste the address": "2. วางที่อยู่",
-  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication pick No sign in, even if Claude suggests a sign-in, then Add.": "ชื่อ: Olympus URL: วางที่อยู่ แตะ Continue ในส่วน Authentication ให้เลือก No sign in แม้ Claude จะเสนอให้ลงชื่อเข้าใช้ แล้วแตะ Add",
+  "Name: Olympus. URL: paste the address. Tap Continue. Under Authentication leave No sign-in selected (marked Detected): do not pick Sign in now or Sign in when needed. Then Add.": "ชื่อ: Olympus URL: วางที่อยู่ แตะ Continue ในส่วน Authentication ให้คง No sign-in ไว้ (มีป้าย Detected) อย่าเลือก Sign in now หรือ Sign in when needed แล้วแตะ Add",
   "Copy a new address": "คัดลอกที่อยู่ใหม่",
   "3. Ask": "3. ถาม",
   "Address copied: now finish in Claude.": "คัดลอกที่อยู่แล้ว: ไปทำต่อให้เสร็จใน Claude",
