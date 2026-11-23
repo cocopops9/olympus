@@ -45,7 +45,7 @@ import { titleWorkout } from './lib/workout-title.js'
 import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn, holdPost, releasePost } from './lib/auto-post.js'
 import { socialReady } from './lib/social.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
-import { SPORT_MINUTES_PER_SET, drillsOf } from './lib/sports.js'
+import { SPORT_MINUTES_PER_SET } from './lib/sports.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
 import { parseImport, mergeImport, sessionClash } from './lib/import-csv.js'
 import { importText } from './lib/import-file.js'
@@ -1016,29 +1016,6 @@ function EquipVariants({ ex, onOpen }) {
   </div>
 }
 
-// A sport's drills (lib/sports.js), each with its own animation, under the sport; and on a drill,
-// the way back to its sport.
-function SportDrills({ ex, onOpen }) {
-  const list = drillsOf(ex.id)
-  const sport = ex.drillOf ? EXIDX[ex.drillOf] : null
-  if (sport) return <div className="drills">
-    <button className="drill-row" onClick={() => onOpen(sport)}>
-      <Thumb ex={sport} />
-      <span className="drill-n">{t('Training for {0}', exerciseNameFor(sport))}</span>
-      <Icon name="chevronRight" />
-    </button>
-  </div>
-  if (!list.length) return null
-  return <div className="drills">
-    <div className="eqv-h small muted">{t('How to train for it')}</div>
-    {list.map(d => <button key={d.id} className="drill-row" onClick={() => onOpen(d)}>
-      <Thumb ex={d} />
-      <span className={'drill-n ' + exerciseNameClass(d)}>{exerciseNameFor(d)}</span>
-      <Icon name="chevronRight" />
-    </button>)}
-  </div>
-}
-
 function ExerciseDetail({ ex, close }) {
   useLang() // the description and steps arrive in their own chunk the first time a sheet asks
   const st = useStore(s => s.S)
@@ -1065,7 +1042,6 @@ function ExerciseDetail({ ex, close }) {
     {descFor(ex) && <div className="exnote">{descFor(ex)}</div>}
     {isSport(ex) && <div className="exnote">{t('Logged in minutes. The muscles are an estimate from how the sport is played, and every {0} minutes count as one set on the muscle map.', SPORT_MINUTES_PER_SET)}</div>}
     <EquipVariants ex={ex} onOpen={v => { close(); exerciseDetailSheet(v) }} />
-    {isSport(ex) && <SportDrills ex={ex} onOpen={v => { close(); exerciseDetailSheet(v) }} />}
     <LiftLevel ex={ex} />
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target, speedUnitOf(st))).join(', ')}` : ''}</div>}
     <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
