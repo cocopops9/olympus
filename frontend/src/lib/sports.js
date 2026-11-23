@@ -90,6 +90,26 @@ const SPORT_LIST = [
     trains: ['Balance', 'Endurance', 'Power', 'Core stability'],
     muscleWeights: { quadriceps: 1, gluteal: 0.7, hamstring: 0.6, calves: 0.4, adductors: 0.5, abs: 0.5, obliques: 0.4, 'lower-back': 0.4 },
   },
+  {
+    id: 'sport-judo', n: 'judo', icon: 'figureStrength', min: 60,
+    trains: ['Grip strength', 'Power', 'Balance', 'Core stability'],
+    muscleWeights: { forearm: 0.9, 'upper-back': 0.8, gluteal: 0.7, quadriceps: 0.7, biceps: 0.6, trapezius: 0.6, abs: 0.6, hamstring: 0.5, obliques: 0.5, 'lower-back': 0.5, neck: 0.4 },
+  },
+  {
+    id: 'sport-karate', n: 'karate', icon: 'figureStrength', min: 60,
+    trains: ['Speed', 'Coordination', 'Balance', 'Mobility'],
+    muscleWeights: { quadriceps: 0.6, gluteal: 0.6, 'hip-flexors': 0.6, hamstring: 0.5, abs: 0.5, obliques: 0.5, deltoids: 0.5, calves: 0.4, triceps: 0.3, chest: 0.3 },
+  },
+  {
+    id: 'sport-boxing', n: 'boxing', icon: 'figureStrength', min: 45,
+    trains: ['Endurance', 'Speed', 'Power', 'Reaction time'],
+    muscleWeights: { deltoids: 0.9, obliques: 0.7, triceps: 0.6, chest: 0.6, abs: 0.6, calves: 0.6, 'upper-back': 0.5, quadriceps: 0.5, serratus: 0.5, forearm: 0.3 },
+  },
+  {
+    id: 'sport-kickboxing', n: 'kickboxing', icon: 'figureStrength', min: 60,
+    trains: ['Endurance', 'Power', 'Speed', 'Coordination'],
+    muscleWeights: { deltoids: 0.8, obliques: 0.7, quadriceps: 0.7, gluteal: 0.7, 'hip-flexors': 0.7, abs: 0.6, calves: 0.6, triceps: 0.5, chest: 0.5, hamstring: 0.5, adductors: 0.4 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
