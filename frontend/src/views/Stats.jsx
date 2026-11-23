@@ -33,6 +33,7 @@ import { isWarmupRow } from '../lib/workout-model.js'
 import ProgressPicker from '../components/ProgressPicker.jsx'
 import { gymsForExercise, cleanGym } from '../lib/gyms.js'
 import Activity from '../components/Activity.jsx'
+import { useSwipeNav } from '../lib/use-swipe-nav.js'
 import { workoutsSheet, monthSheet, streakSheet, recordsSheet } from '../components/StatSheets.jsx'
 import { useScreenTour } from '../components/Calliope.jsx'
 
@@ -256,6 +257,9 @@ function MuscleBalance({ S, simple }) {
     return t('Weeks since training: {0}', weeks)
   }
   const toggleSel = m => setSel(s => (s === m ? null : m))
+  // The week shown under Week: the arrows or a sideways swipe page back, never past this week.
+  const stepWeek = step => { setWeekOffset(offset => Math.min(0, offset + step)); setSel(null); setWeeklyExpanded(false) }
+  const weekSwipe = useSwipeNav({ onPrev: () => stepWeek(-1), onNext: weekOffset < 0 ? () => stepWeek(1) : undefined })
   const ws = weekStartOf(S)
   const currentWeek = weekKey(todayISO(), ws)
   const selectedWeekDate = new Date(currentWeek + 'T12:00:00')
@@ -354,12 +358,12 @@ function MuscleBalance({ S, simple }) {
       {simple && <div className="muted small" style={{ margin: '-2px 0 10px' }}>{t('Which muscles you trained, and which you missed.')}</div>}
       <Segmented className="seg-range" value={win} onChange={v => { setWin(v); setSel(null); setWeeklyExpanded(false) }}
         options={[{ value: 7, label: t('Week') }, { value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 0, label: t('All') }]} />
-      {weekly ? <div data-weekly-volume-comparison data-week={selectedWeek}>
+      {weekly ? <div data-weekly-volume-comparison data-week={selectedWeek} {...weekSwipe}>
         <div className="row between" style={{ margin: '10px 0 6px' }}>
-          <button className="iconbtn sm" aria-label={t('Previous week')} onClick={() => { setWeekOffset(offset => offset - 1); setSel(null); setWeeklyExpanded(false) }}><Icon name="chevronLeft" /></button>
-          <span className="small" style={{ fontWeight: 600 }}>{t('Week of {0}', fmtDate(selectedWeek))}</span>
+          <button className="iconbtn sm" aria-label={t('Previous week')} onClick={() => stepWeek(-1)}><Icon name="chevronLeft" /></button>
+          <span className="small" style={{ fontWeight: 600 }} aria-live="polite">{weekOffset === 0 ? t('This week') : t('Week of {0}', fmtDate(selectedWeek))}</span>
           <button className="iconbtn sm" aria-label={t('Next week')} disabled={weekOffset === 0}
-            onClick={() => { setWeekOffset(offset => Math.min(0, offset + 1)); setSel(null); setWeeklyExpanded(false) }}><Icon name="chevronRight" /></button>
+            onClick={() => stepWeek(1)}><Icon name="chevronRight" /></button>
         </div>
         <BodyMap className="tappable" load={load} body={S.body} selected={sel} onMuscle={toggleSel} />
         <BodyMapLegend />

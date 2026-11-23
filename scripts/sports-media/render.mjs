@@ -1,7 +1,7 @@
 // Olympus: the earlier, procedural sports animations. The shipped clips now come from Canva key poses
 // (keyframes.mjs, in the exercise GIFs' anatomical style); running this overwrites them, so use it only
 // for a sport or drill that has no key poses yet.
-// Draws the sports animations (engine.mjs, sports.mjs) and the drills' (drills.mjs) into frontend/src/assets/sports/:
+// Draws the sports animations (engine.mjs, sports.mjs) into frontend/src/assets/sports/:
 // <id>.mp4 (180 px, 10 frames a second, 3 s loop, like the exercise clips) and <id>.webp (the still).
 // Run: NODE_PATH=$(npm root -g) node scripts/sports-media/render.mjs [sport-id ...] [--sheet]
 // (Playwright draws the frames, ffmpeg joins them). --sheet writes a contact sheet to look at instead.
@@ -12,11 +12,10 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { SIZE, GROUND, DEFAULT, poseAt, skeleton, figureSvg, partWeights } from './engine.mjs'
 import { SPORTS as SPORT_ONLY } from './sports.mjs'
-import { DRILLS as DRILL_DEFS } from './drills.mjs'
-import { SPORTS, DRILLS } from '../../frontend/src/lib/sports.js'
+import { SPORTS } from '../../frontend/src/lib/sports.js'
 
-const SPORT_DEFS = { ...SPORT_ONLY, ...DRILL_DEFS }
-const CATALOGUE = [...SPORTS, ...DRILLS]
+const SPORT_DEFS = { ...SPORT_ONLY }
+const CATALOGUE = [...SPORTS]
 
 const require = createRequire(import.meta.url)
 const { chromium } = require('playwright')
