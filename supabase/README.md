@@ -30,7 +30,7 @@ server's (`mcp/src/tools.js`), spoken over HTTP by `mcp/src/remote.js`, so its n
 app's.
 
 - **Address:** the app's *Settings → Connect to Claude* asks `POST /api/connector` for one. It is
-  `https://<project>.supabase.co/functions/v1/olympus-mcp/<token>` (or `OLYMPUS_CONNECTOR_URL`
+  `https://<ref>.functions.supabase.co/olympus-mcp/<token>` (or `OLYMPUS_CONNECTOR_URL`
   + `/<token>`), shown once; the account keeps only the token's SHA-256, when it was made and
   when it was last used (written at most once an hour). A new address replaces the old one at
   once; *Disconnect* and *Sign out everywhere* remove it.
@@ -38,7 +38,14 @@ app's.
   OAuth, nothing else; and a Supabase function on the default domain cannot serve the HTML
   sign-in page an OAuth flow needs. A client that can send headers may send
   `Authorization: Bearer <token>` to the bare address instead.
-- **In Claude:** Settings → Connectors → *Add custom connector*, paste the address. In Claude
+- **Why the functions host:** before adding a connector, Claude looks up
+  `/.well-known/oauth-protected-resource/<connector path>` on the connector's host. On
+  `<ref>.supabase.co` the gateway answers any such path containing `/functions/v1/` with 401
+  "No API key", which Claude reads as "sign-in required" before failing to register with a
+  sign-in service that does not exist. On `<ref>.functions.supabase.co` it is a plain 404, so
+  Claude adds the connector with no sign-in. The old form still reaches the function.
+- **In Claude:** claude.ai → Customize → Connectors → *+ Add* → *Add custom connector*, paste the
+  address, *No sign in*. In Claude
   Code: `claude mcp add --transport http olympus <address>`.
 - **Stateless:** every POST is answered with one JSON body; there is no session id and GET is
   405 (no server-to-client stream), which the specification allows.

@@ -17,10 +17,12 @@ import { _seedStateForTests } from '../src/state.js'
 import { answerMessage, toolDefinitions, PROTOCOL_VERSIONS } from '../src/remote.js'
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js'
 import { createConnector } from '../../supabase/functions/olympus/connector.js'
+import { connectorBase } from '../../supabase/functions/olympus/connector-token.js'
 
 const TODAY = '2026-07-27'
 const APP = 'https://proj.supabase.co/functions/v1/olympus'
-const CONNECTOR = 'https://proj.supabase.co/functions/v1/olympus-mcp'
+// The functions host, not /functions/v1 on the project host (connector-token.js, connectorBase).
+const CONNECTOR = 'https://proj.functions.supabase.co/olympus-mcp'
 const PW = 'correct horse battery staple'
 
 beforeAll(() => { vi.useFakeTimers({ now: new Date(TODAY + 'T12:00:00Z'), toFake: ['Date'] }) })
@@ -228,5 +230,20 @@ describe('the address (core.js /api/connector and connector.js)', () => {
     const get = await (await app.handle(new Request(APP + '/api/connector', { headers: { Authorization: 'Bearer ' + s.token } }))).json()
     expect(get.available).toBe(false)
     expect((await app.handle(new Request(APP + '/api/connector', { method: 'POST', headers: { Authorization: 'Bearer ' + s.token }, body: '{}' }))).status).toBe(503)
+  })
+})
+
+describe('connector address host', () => {
+  // On <ref>.supabase.co the gateway answers /.well-known/oauth-protected-resource/functions/v1/...
+  // with 401, which Claude reads as "sign-in required"; the functions host answers it with 404.
+  test('a hosted project gets the functions host, so Claude finds no sign-in', () => {
+    expect(connectorBase({ SUPABASE_URL: 'https://abcdef123.supabase.co' })).toBe('https://abcdef123.functions.supabase.co/olympus-mcp')
+    expect(connectorBase({ SUPABASE_URL: 'https://abcdef123.supabase.co/' })).toBe('https://abcdef123.functions.supabase.co/olympus-mcp')
+  })
+  test('a local or self-hosted project keeps /functions/v1, and OLYMPUS_CONNECTOR_URL wins', () => {
+    expect(connectorBase({ SUPABASE_URL: 'http://127.0.0.1:54321' })).toBe('http://127.0.0.1:54321/functions/v1/olympus-mcp')
+    expect(connectorBase({ SUPABASE_URL: 'https://db.example.org' })).toBe('https://db.example.org/functions/v1/olympus-mcp')
+    expect(connectorBase({ SUPABASE_URL: 'https://abcdef123.supabase.co', OLYMPUS_CONNECTOR_URL: 'https://mcp.example.org/x/' })).toBe('https://mcp.example.org/x')
+    expect(connectorBase({})).toBe(null)
   })
 })
