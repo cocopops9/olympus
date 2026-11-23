@@ -32,7 +32,7 @@ vi.mock('../lib/api.js', () => ({ api: (...a) => mocks.api(...a) }))
 vi.mock('../lib/clipboard.js', () => ({ copyText: (...a) => mocks.copy(...a) }))
 vi.mock('../sheets.jsx', () => ({ confirmSheet: opts => mocks.confirms.push(opts) }))
 
-const URL = 'https://proj.supabase.co/functions/v1/olympus-mcp/' + 'a'.repeat(43)
+const URL = 'https://proj.functions.supabase.co/olympus-mcp/' + 'a'.repeat(43)
 const mounted = []
 function mount() {
   const host = document.createElement('div')
