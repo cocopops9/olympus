@@ -17,8 +17,8 @@
 //      loose here: "how do I grow my chest" must not pick a chest press.
 import { exerciseNameFor } from './i18n.js'
 import { splitActions, isShown } from './coach-actions.js'
-import { CATALOGUE, EXIDX, normalizeStr, searchExercises, priorOf } from './exercises.js'
-import { SPORTS, drillsOf } from './sports.js'
+import { CATALOGUE, normalizeStr, searchExercises, priorOf } from './exercises.js'
+import { SPORTS } from './sports.js'
 
 // The cues, accent-free and lower-case (the question is normalised the same way before
 // matching). Each is a regular-expression fragment; the candidate name is what follows it.
@@ -189,38 +189,34 @@ const indexOfName = (words, name) => {
   return -1
 }
 
-/** The ids of the drills of the sport a question asks how to train for, or []. */
-export function askedSportDrills(question) {
+/** The id of the sport a question asks how to train for, or null. */
+export function askedSportTraining(question) {
   const words = wordsOf(String(question || '').slice(0, 400))
-  if (!words.length) return []
+  if (!words.length) return null
   const cues = words.map((w, i) => (TRAIN_STEMS.some(s => w.startsWith(s)) ? i : -1)).filter(i => i >= 0)
-  if (!cues.length) return []
+  if (!cues.length) return null
   for (const sport of SPORTS) {
     for (const name of sportNames(sport)) {
       const at = indexOfName(words, name)
       if (at < 0) continue
       const end = at + name.length - 1
-      if (cues.some(c => (c < at ? at - c : c - end) <= NEAR)) return drillsOf(sport.id).map(d => d.id)
+      if (cues.some(c => (c < at ? at - c : c - end) <= NEAR)) return sport.id
     }
   }
-  return []
+  return null
 }
 
 /**
  * The exercise to keep on a coach's answer (`demo` on the message) that came without a
- * show_exercise action, when the question asked how to do one, or the drills of a sport (an
- * array of ids) when it asked how to train for that sport; null otherwise. `already`: a
+ * show_exercise action, when the question asked how to do one; null otherwise, and for a question
+ * about how to train for a sport, which no single exercise answers. `already`: a
  * demonstration was shown for this question, by the coach who answered first when both answer,
  * so the second does not repeat it.
  */
 export function demoFor(question, reply, custom = [], already = false) {
   if (already || splitActions(reply).actions.some(isShown)) return null
-  // A drill named by its name is that drill; otherwise a question about training for a sport is
-  // answered with its drills before the exercise search, which would read "how do I train for
-  // football" as the cross trainer.
-  const one = askedExercise(question, custom)
-  if (one && EXIDX[one]?.drillOf) return one
-  const drills = askedSportDrills(question)
-  if (drills.length) return drills
-  return one
+  // A question about training for a sport is caught before the exercise search, which would read
+  // "how do I train for football" as the cross trainer.
+  if (askedSportTraining(question)) return null
+  return askedExercise(question, custom)
 }

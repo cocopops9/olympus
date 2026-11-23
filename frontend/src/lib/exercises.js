@@ -2,7 +2,7 @@ import { EXDB, EXALIAS } from './exercises-data.js'
 import MUSCLE_MAP from './exercise-muscle-map.json' with { type: 'json' }
 import V13_IDS from './catalogue-v13-ids.json' with { type: 'json' }
 import { t, getVersion, exerciseNameSearchText } from './i18n-core.js'
-import { SPORTS, DRILLS, isSportEx } from './sports.js'
+import { SPORTS, RETIRED_DRILLS, isSportEx } from './sports.js'
 import { sportStill, sportClip, sportAnimation } from './sport-media.js'
 
 export { EXDB }
@@ -20,8 +20,8 @@ const catalogueExercise = ex => {
   return out
 }
 
-// The sports and their drills (lib/sports.js) are built in too: they sit after the dataset's exercises.
-export const CATALOGUE = [...EXDB.map(catalogueExercise), ...SPORTS, ...DRILLS]
+// The sports (lib/sports.js) are built in too: they sit after the dataset's exercises.
+export const CATALOGUE = [...EXDB.map(catalogueExercise), ...SPORTS]
 export const isSport = isSportEx
 
 // The generated dataset already supplies secondary muscles for most exercises. Keep the
@@ -48,13 +48,16 @@ CATALOGUE.forEach(e => { EXIDX[e.id] = e })
 // The id of a drawing that is no exercise of its own (the female figure of a male exercise) looks
 // up the exercise it draws. Never stored by the app, but a plan file or an import may carry one.
 // Not enumerable, so anything that walks the index still sees every exercise once.
-for (const [id, to] of Object.entries(EXALIAS)) {
+// A retired sport drill (lib/sports.js) looks up its sport the same way, so a drill in someone's
+// history or routines reads as the sport it trained for.
+const ALIASES = { ...EXALIAS, ...RETIRED_DRILLS }
+for (const [id, to] of Object.entries(ALIASES)) {
   if (EXIDX[to]) Object.defineProperty(EXIDX, id, { value: EXIDX[to], enumerable: false, configurable: true })
 }
 // The exercise a drawing's id stands for; any other id as it is. For ids on their way in (a plan
 // file, an import, the Coach's output), so the app goes on storing only exercise ids. An id
 // already in state is left alone: rewriting it would move history behind the user's back.
-export const canonicalExId = id => (typeof id === 'string' && Object.hasOwn(EXALIAS, id) && EXIDX[EXALIAS[id]] ? EXALIAS[id] : id)
+export const canonicalExId = id => (typeof id === 'string' && Object.hasOwn(ALIASES, id) && EXIDX[ALIASES[id]] ? ALIASES[id] : id)
 export const BODYPARTS = [...new Set(CATALOGUE.map(e => e.bp))].sort()
 
 // Equipment options present in a given list of exercises, most common first (issue #6).
@@ -198,18 +201,13 @@ export const figureOf = S => (S?.exFigure === 'female' || S?.exFigure === 'male'
   ? S.exFigure
   : (S?.body === 'female' ? 'female' : 'male')
 const drawing = (ex, figure) => (figure === 'female' ? ex.fv : figure === 'male' ? ex.mv : null) || null
-// A sport or drill shows the catalogue exercise that draws its movement (`media`, lib/sports.js)
-// when there is one; the others' own drawings come bundled with the app (lib/sport-media.js),
-// whatever the media base is.
-const catalogueDrawing = ex => (ex.media && EXIDX[ex.media] && !EXIDX[ex.media].sport ? EXIDX[ex.media] : null)
+// A sport's drawing comes bundled with the app (lib/sport-media.js), whatever the media base is.
 export const imgSrc = (ex, figure) => ex.sport
-  ? (catalogueDrawing(ex) ? imgSrc(catalogueDrawing(ex), figure) : sportStill(ex.id))
+  ? sportStill(ex.id)
   : IMG_BASE + (drawing(ex, figure) ? drawing(ex, figure) + '.webp' : ex.img)
 const clipFile = f => (CLIP_EXT !== '.mp4' && f.endsWith('.mp4') ? f.slice(0, -4) + CLIP_EXT : f)
 export const gifSrc = (ex, figure) => ex.sport
-  ? (catalogueDrawing(ex)
-      ? gifSrc(catalogueDrawing(ex), figure)
-      : (CLIP_EXT === '.webp' ? sportAnimation(ex.id) : sportClip(ex.id)))
+  ? (CLIP_EXT === '.webp' ? sportAnimation(ex.id) : sportClip(ex.id))
   : GIF_BASE + clipFile(drawing(ex, figure) ? drawing(ex, figure) + '.mp4' : ex.gif)
 // The catalogue's animations are short MP4 loops; a fork's or an older build's may still be GIFs.
 export const isVideoSrc = src => /\.(mp4|webm)(\?|$)/i.test(src || '')

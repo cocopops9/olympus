@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { SPORTS, DRILLS, CATALOGUE_DRAWING, drillsOf, SPORT_MINUTES_PER_SET, QUALITIES, setsEquivalent } from './sports.js'
-import { CATALOGUE, EXIDX, isCardio, isSport, categoriesOf } from './exercises.js'
+import { SPORTS, RETIRED_DRILLS, SPORT_MINUTES_PER_SET, QUALITIES, setsEquivalent } from './sports.js'
+import { CATALOGUE, EXIDX, canonicalExId, isCardio, isSport, categoriesOf } from './exercises.js'
 import { modeOf, defaultConfig, setLabel, exLine } from './history.js'
 import { MUSCLES, musclesOf, loadOfWorkouts, loadOfRoutine } from './muscles.js'
 import { GROUPS, exercisesFor, countsFor } from './exercise-guide.js'
@@ -8,13 +8,8 @@ import { exerciseNameFor, descFor } from './i18n-core.js'
 import { imgSrc, gifSrc } from './exercises.js'
 import { sportStill, sportClip, sportAnimation } from './sport-media.js'
 
-// A sport or drill drawn by the catalogue shows that exercise's files; the others ship their own.
+// Every sport ships its own still, loop and animated loop.
 function expectDrawing(ex) {
-  if (ex.media) {
-    expect(imgSrc(ex), ex.id).toBe(imgSrc(EXIDX[ex.media]))
-    expect(gifSrc(ex), ex.id).toBe(gifSrc(EXIDX[ex.media]))
-    return
-  }
   expect(sportStill(ex.id), ex.id).toMatch(/\.webp/)
   expect(sportClip(ex.id), ex.id).toMatch(/\.mp4/)
   expect(sportAnimation(ex.id), ex.id).toMatch(/anim\.webp/)
@@ -81,10 +76,9 @@ describe('sports', () => {
 
   it('have their own tile in the exercise guide and also list under their muscles', () => {
     expect(GROUPS.map(g => g.id)).toContain('sports')
-    // The sports and their drills.
-    expect(countsFor(CATALOGUE, MUSCLES).sports).toBe(SPORTS.length + DRILLS.length)
+    expect(countsFor(CATALOGUE, MUSCLES).sports).toBe(SPORTS.length)
     const tile = exercisesFor(CATALOGUE, { kind: 'group', id: 'sports' })
-    expect(tile.map(e => e.id).sort()).toEqual([...SPORTS, ...DRILLS].map(s => s.id).sort())
+    expect(tile.map(e => e.id).sort()).toEqual(SPORTS.map(s => s.id).sort())
     // Plain cardio no longer lists them.
     expect(exercisesFor(CATALOGUE, { kind: 'group', id: 'cardio' }).some(isSport)).toBe(false)
     const forearm = exercisesFor(CATALOGUE, { kind: 'muscle', id: 'forearm' })
@@ -94,57 +88,23 @@ describe('sports', () => {
   it('show their name in English', () => {
     expect(exerciseNameFor(EXIDX['sport-basketball'])).toBe('basketball')
   })
-  it('each has a drawing: the catalogue exercise of its movement, or a still, a loop and an animated loop of its own', () => {
+  it('each has a still, a loop and an animated loop of its own', () => {
     for (const s of SPORTS) expectDrawing(s)
   })
 })
 
-describe('sport drills', () => {
-  it('every sport has two, each in the catalogue, tied to its sport and logged in minutes', () => {
-    for (const s of SPORTS) {
-      const list = drillsOf(s.id)
-      expect(list.length, s.id).toBe(2)
-      for (const d of list) {
-        expect(d.drillOf).toBe(s.id)
-        expect(EXIDX[d.id]).toBe(d)
-        expect(isSport(d)).toBe(true)
-        expect(modeOf({ id: d.id })).toBe('cardio')
-        expect(defaultConfig(d.id).min).toBe(d.min)
-      }
+describe('retired sport drills', () => {
+  it('are no longer in the catalogue, but an id in history or a routine reads as its sport', () => {
+    expect(Object.keys(RETIRED_DRILLS).length).toBe(26)
+    for (const [id, sport] of Object.entries(RETIRED_DRILLS)) {
+      expect(CATALOGUE.some(e => e.id === id), id).toBe(false)
+      expect(EXIDX[sport], sport).toBeTruthy()
+      expect(EXIDX[id], id).toBe(EXIDX[sport])
+      expect(canonicalExId(id)).toBe(sport)
+      expect(modeOf({ id })).toBe('cardio')
     }
-    expect(DRILLS.length).toBe(SPORTS.length * 2)
-    expect(new Set([...SPORTS, ...DRILLS].map(e => e.id)).size).toBe(SPORTS.length + DRILLS.length)
-    expect(new Set(DRILLS.map(d => d.n)).size).toBe(DRILLS.length)
-    expect(drillsOf('0001')).toEqual([])
-  })
-
-  it('say how they are done and what they train, with muscles that exist', () => {
-    for (const d of DRILLS) {
-      expect(d.desc.length, d.id).toBeGreaterThan(40)
-      expect(descFor(d)).toBe(d.desc)
-      for (const q of d.trains) expect(QUALITIES, `${d.id} ${q}`).toContain(q)
-      for (const [slug, v] of Object.entries(d.muscleWeights)) { expect(MUSCLES, `${d.id} ${slug}`).toContain(slug); expect(v).toBeGreaterThan(0); expect(v).toBeLessThanOrEqual(1) }
-      expect(d.primaries.length, d.id).toBeGreaterThan(0)
-    }
-    // The ones that are about one thing load it most.
-    expect(musclesOf(EXIDX['drill-climbing-hangboard']).forearm).toBe(1)
-    expect(musclesOf(EXIDX['drill-skiing-wall-sit']).quadriceps).toBe(1)
-  })
-
-  it('each has a drawing: the catalogue exercise of its movement, or a still, a loop and an animated loop of its own', () => {
-    for (const d of DRILLS) expectDrawing(d)
-  })
-
-  it('show the catalogue drawing of the exercise they name, for the chosen figure too', () => {
-    for (const [id, media] of Object.entries(CATALOGUE_DRAWING)) {
-      const ex = EXIDX[id], drawn = EXIDX[media]
-      expect(ex?.media, id).toBe(media)
-      expect(drawn && !drawn.sport, `${id} -> ${media}`).toBe(true)
-      for (const figure of ['male', 'female']) {
-        expect(imgSrc(ex, figure)).toBe(imgSrc(drawn, figure))
-        expect(gifSrc(ex, figure)).toBe(gifSrc(drawn, figure))
-      }
-    }
+    // The index still lists every exercise once.
+    expect(Object.keys(EXIDX).some(id => id.startsWith('drill-'))).toBe(false)
   })
 })
 
