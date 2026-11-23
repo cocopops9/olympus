@@ -1,6 +1,7 @@
 // The Claude connector's address token (connector.js): made by the app's function (core.js),
 // checked by the connector's. A module of its own so core.js does not load the connector's tools.
 import crypto from 'node:crypto';
+import { Buffer } from 'node:buffer';
 
 export const TOKEN_RE = /^[A-Za-z0-9_-]{32,128}$/;
 // 32 random bytes: 256 bits, as base64url (43 characters, safe in a URL path).
