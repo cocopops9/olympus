@@ -3313,6 +3313,7 @@ export default {
   "rhythmic gymnastics": "gimnastyka artystyczna",
   "squash": "squash",
   "surfing": "surfing",
+  "snowboarding": "snowboard",
   "Downloading update": "Pobieranie aktualizacji",
   "Installing…": "Instalowanie…",
   "Download failed": "Pobieranie nie powiodło się",

@@ -3368,6 +3368,7 @@ export default {
   "rhythmic gymnastics": "الجمباز الإيقاعي",
   "squash": "الإسكواش",
   "surfing": "ركوب الأمواج",
+  "snowboarding": "التزلج على الألواح",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",

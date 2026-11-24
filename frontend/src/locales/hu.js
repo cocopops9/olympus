@@ -3316,6 +3316,7 @@ export default {
   "rhythmic gymnastics": "ritmikus gimnasztika",
   "squash": "squash",
   "surfing": "szörfözés",
+  "snowboarding": "snowboard",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

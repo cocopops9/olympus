@@ -3310,6 +3310,7 @@ export default {
   "rhythmic gymnastics": "художня гімнастика",
   "squash": "сквош",
   "surfing": "серфінг",
+  "snowboarding": "сноуборд",
   "Downloading update": "Завантаження оновлення",
   "Installing…": "Встановлення…",
   "Download failed": "Не вдалося завантажити",

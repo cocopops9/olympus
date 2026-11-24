@@ -3313,6 +3313,7 @@ export default {
   "rhythmic gymnastics": "艺术体操",
   "squash": "壁球",
   "surfing": "冲浪",
+  "snowboarding": "单板滑雪",
   "Downloading update": "正在下载更新",
   "Installing…": "正在安装…",
   "Download failed": "下载失败",
