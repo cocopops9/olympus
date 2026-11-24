@@ -1939,6 +1939,7 @@ export default {
   'Order and supersets': 'Sorrend és szupersorozatok',
   'Sets, reps, rest, progression': 'Sorozatok, ismétlések, pihenő, progresszió',
   'This workout': 'Ez az edzés',
+  'Train again': 'Edzés újra',
   'Turn on push notifications first.': 'Előbb kapcsold be a push-értesítéseket.',
   'Remove {0}': '{0} eltávolítása',
   'Delete {0}': '{0} törlése',

@@ -182,6 +182,24 @@ function MenuSheet({ title, titleClass = '', subtitle, items, sections, close })
 export function menuSheet(opts) {
   ui().openSheet(close => <MenuSheet {...opts} close={close} />)
 }
+// One group of a sheet's actions, drawn like a grouped menuSheet: a small header over rows on one
+// card. Rows are real buttons, so a disabled one is disabled and not just dimmed; a falsy item is
+// skipped, and a group left with none is not drawn at all.
+export function ActionGroup({ title, items }) {
+  const rows = items.filter(Boolean)
+  if (!rows.length) return null
+  return <div className="menu-group grouped">
+    {title && <div className="menu-sec">{title}</div>}
+    <div className="list menu-list">
+      {rows.map((it, i) => <button key={i} type="button" disabled={it.disabled || undefined} onClick={it.onClick}
+        className={'item menu-item' + (it.danger ? ' danger' : '') + (it.accent ? ' accent' : '')}>
+        {it.icon && <span className="lrow-i"><Icon name={it.icon} /></span>}
+        <span className="grow"><span className="tt">{it.label}</span></span>
+        {it.chevron && <Icon name="chevronRight" className="menu-chev" />}
+      </button>)}
+    </div>
+  </div>
+}
 
 // Themed replacement for window.confirm — callback-based (no blocking).
 export function confirmSheet(opts) {
@@ -2626,6 +2644,12 @@ function WorkoutDetail({ w, close }) {
   // order, with each section's supersets paired inside it (sessionSections, which "Copy as text"
   // reads the workout through too). A legacy single-routine workout (one routineIds, or no rid
   // anywhere) renders flat.
+  // Writes the note as it stands, and marks it written so the unmount hook leaves it alone.
+  const flush = () => {
+    saveNote()
+    initial.current = latest.current.trim().slice(0, NOTE_MAX)
+  }
+  const posted = ['posted', 'waiting'].includes(postState(S(), w).state)
   const groups = sessionSections(w.entries)
   const grouped = groups.length > 1 || (groups[0] && groups[0].rid && (w.routineIds || []).length > 1)
   return <>
@@ -2654,76 +2678,66 @@ function WorkoutDetail({ w, close }) {
       onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
     <div style={{ height: 14 }} />
     {st.active && <p className="small muted">{t('Finish the current workout first.')}</p>}
+    {/* The actions, in the order they are reached for (2026-11-24: one long column of eleven
+        look-alike buttons read as a jumble): the one main action, then the record's details,
+        then training from it again, then sharing it, and deleting it last, apart. Every action
+        that opens something else flushes the note first (flush). */}
     {/* The editor starts from the record as it is, so a note typed here goes in first — the same
         flush the date row does, and the unmount hook then has nothing left to write over it. */}
-    <Button icon="pencil" disabled={!!st.active} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
+    <Button variant="primary" icon="pencil" disabled={!!st.active} onClick={() => {
+      flush()
       try { update(state => { editCompletedSession(state, w) }); closeThenNav(close, '/workout') }
       catch (error) { toast(t(error.message)) }
     }}>{t('Edit workout')}</Button>
-    <div style={{ height: 8 }} />
-    {/* The same exercises again, today, as a new session (#58): the rows read what was logged
-        in this workout. The record itself stays as it is. */}
-    <GymPicker w={w} />
-    <div style={{ height: 10 }} />
-    {/* Picks this very workout up again, clock and all: finishing it again replaces it. */}
-    <Button icon="play" variant="tinted" disabled={!!st.active} style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      try { update(state => { resumeCompletedSession(state, w) }); useUI.getState().stopRest(); closeThenNav(close, '/workout') }
-      catch (error) { toast(t(error.message)) }
-    }}>{t('Resume workout')}</Button>
-    <Button icon="reset" disabled={!!st.active} style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      repeatWorkout(w, close)
-    }}>{t('Repeat today')}</Button>
-    {/* The note lives in a textarea that only writes on blur, and moving the workout re-keys a
-        legacy record — so flush it first and stop the unmount hook writing it a second time. */}
-    <Button icon="calendar" style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      workoutDateSheet(w, close)
-    }}>{t('Change date & time')}</Button>
-    <Button icon="stopwatch" style={{ marginBottom: 8 }} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      workoutDurationSheet(w, close)
-    }}>{t('Change duration')}</Button>
-    <Button icon="plus" onClick={() => confirmSheet({
-      title: t('Save as routine?'),
-      message: t('Create an independent routine from these exercise targets. Your workout history is kept.'),
-      confirmText: t('Save'),
-      onConfirm: () => {
-        let id
-        try { update(s => { id = saveSessionAsRoutine(s, w, w.name) }) }
-        catch (e) { toast(t(e.message)); return }
-        close()
-        nav('/plan/r/' + id)
-      }
-    })}>{t('Save as routine')}</Button>
-    <div style={{ height: 8 }} />
-    <Button icon="copy" onClick={copyAsText}>{t('Copy as text')}</Button>
-    <div style={{ height: 8 }} />
-    {/* Olympus: the saved workout as a post in the feed (components/Social.jsx). Needs a server profile. */}
-    {socialReady(user) && <><Button icon={postState(S(), w).state === 'posted' || postState(S(), w).state === 'waiting' ? 'pencil' : 'globe'} onClick={() => {
-      saveNote()
-      initial.current = latest.current.trim().slice(0, NOTE_MAX)
-      const rec = S().workouts.find(x => sameWorkout(x, w)) || w
-      close()
-      // A workout that is a post already: its title, description and photos. Any other: a new post.
-      if (rec.id && ['posted', 'waiting'].includes(postState(S(), rec).state)) postEditorSheet(rec)
-      else composeSheet({ workout: rec })
-    }}>{['posted', 'waiting'].includes(postState(S(), w).state) ? t('Edit post') : t('Post to feed')}</Button>
-    <div style={{ height: 8 }} /></>}
-    <Button icon="share" onClick={shareAsImage}>{t('Share as image')}</Button>
-    <div style={{ height: 8 }} />
-    <Button icon="download" onClick={exportFit}>{t('Export as .fit file')}</Button>
-    <div style={{ height: 10 }} />
+    <div className="wd-actions">
+      <GymPicker w={w} />
+      {/* The note lives in a textarea that only writes on blur, and moving the workout re-keys a
+          legacy record — so flush it first and stop the unmount hook writing it a second time. */}
+      <ActionGroup title={t('Details')} items={[
+        { icon: 'calendar', label: t('Change date & time'), chevron: true, onClick: () => { flush(); workoutDateSheet(w, close) } },
+        { icon: 'stopwatch', label: t('Change duration'), chevron: true, onClick: () => { flush(); workoutDurationSheet(w, close) } },
+      ]} />
+      <ActionGroup title={t('Train again')} items={[
+        // Picks this very workout up again, clock and all: finishing it again replaces it.
+        { icon: 'play', label: t('Resume workout'), accent: true, disabled: !!st.active, onClick: () => {
+          flush()
+          try { update(state => { resumeCompletedSession(state, w) }); useUI.getState().stopRest(); closeThenNav(close, '/workout') }
+          catch (error) { toast(t(error.message)) }
+        } },
+        // The same exercises again, today, as a new session (#58): the rows read what was logged
+        // in this workout. The record itself stays as it is.
+        { icon: 'reset', label: t('Repeat today'), disabled: !!st.active, onClick: () => { flush(); repeatWorkout(w, close) } },
+        { icon: 'plus', label: t('Save as routine'), chevron: true, onClick: () => confirmSheet({
+          title: t('Save as routine?'),
+          message: t('Create an independent routine from these exercise targets. Your workout history is kept.'),
+          confirmText: t('Save'),
+          onConfirm: () => {
+            let id
+            try { update(s => { id = saveSessionAsRoutine(s, w, w.name) }) }
+            catch (e) { toast(t(e.message)); return }
+            close()
+            nav('/plan/r/' + id)
+          }
+        }) },
+      ]} />
+      <ActionGroup title={t('Share')} items={[
+        // Olympus: the saved workout as a post in the feed (components/Social.jsx). Needs a server profile.
+        socialReady(user) && { icon: posted ? 'pencil' : 'globe', label: posted ? t('Edit post') : t('Post to feed'), chevron: true, onClick: () => {
+          flush()
+          const rec = S().workouts.find(x => sameWorkout(x, w)) || w
+          close()
+          // A workout that is a post already: its title, description and photos. Any other: a new post.
+          if (rec.id && ['posted', 'waiting'].includes(postState(S(), rec).state)) postEditorSheet(rec)
+          else composeSheet({ workout: rec })
+        } },
+        { icon: 'share', label: t('Share as image'), chevron: true, onClick: shareAsImage },
+        { icon: 'copy', label: t('Copy as text'), onClick: copyAsText },
+        { icon: 'download', label: t('Export as .fit file'), onClick: exportFit },
+      ]} />
+    </div>
     {/* Matched the way the edits above are, not by id: a workout from before ids has none, and
         filtering on `x.id !== undefined` took every other one of them with it. */}
-    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { const gone = s.workouts.find(x => sameWorkout(x, w)); if (gone) forgetPost(s, gone); s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); flushPosts().catch(() => {}); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
+    <Button variant="danger" icon="trash" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.') + mediaGoesToo(S().workouts.find(x => sameWorkout(x, w))), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { const gone = s.workouts.find(x => sameWorkout(x, w)); if (gone) forgetPost(s, gone); s.workouts = s.workouts.filter(x => !sameWorkout(x, w)) }); flushPosts().catch(() => {}); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
   </>
 }
 // "Share as image" (#453): the card lib/workout-card.js lays out, painted in the theme and accent

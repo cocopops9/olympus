@@ -1939,6 +1939,7 @@ export default {
   'Order and supersets': 'Sıra ve süper setler',
   'Sets, reps, rest, progression': 'Setler, tekrarlar, dinlenme, ilerleme',
   'This workout': 'Bu antrenman',
+  'Train again': 'Yeniden antrenman',
   'Turn on push notifications first.': 'Önce anlık bildirimleri aç.',
   'Remove {0}': '{0} çıkar',
   'Delete {0}': '{0} sil',

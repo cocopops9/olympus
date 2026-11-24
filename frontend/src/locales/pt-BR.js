@@ -22,6 +22,7 @@ export const PT_BR_OVERRIDES = {
   'Order and supersets': 'Ordem e supersets',
   'Sets, reps, rest, progression': 'Séries, reps, descanso, progressão',
   'This workout': 'Este treino',
+  'Train again': 'Treinar de novo',
   'Default ({0})': 'Padrão ({0})',
   'Rest for this exercise': 'Descanso deste exercício',
   'All settings': 'Todas as configurações',

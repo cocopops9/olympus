@@ -1943,6 +1943,7 @@ export default {
   'Order and supersets': 'Порядок и суперсеты',
   'Sets, reps, rest, progression': 'Подходы, повторы, отдых, прогрессия',
   'This workout': 'Эта тренировка',
+  'Train again': 'Тренироваться снова',
   'Turn on push notifications first.': 'Сначала включите push-уведомления.',
   'Remove {0}': 'Убрать {0}',
   'Delete {0}': 'Удалить {0}',

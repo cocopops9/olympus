@@ -1939,6 +1939,7 @@ export default {
   'Order and supersets': '순서와 슈퍼세트',
   'Sets, reps, rest, progression': '세트, 반복, 휴식, 진행',
   'This workout': '이번 운동',
+  'Train again': '다시 운동하기',
   'Turn on push notifications first.': '먼저 푸시 알림을 켜세요.',
   'Remove {0}': '{0} 빼기',
   'Delete {0}': '{0} 삭제',

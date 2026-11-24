@@ -1939,6 +1939,7 @@ export default {
   'Order and supersets': 'क्रम और सुपरसेट',
   'Sets, reps, rest, progression': 'सेट, रेप्स, आराम, प्रगति',
   'This workout': 'यह वर्कआउट',
+  'Train again': 'फिर से ट्रेनिंग',
   'Turn on push notifications first.': 'पहले पुश सूचनाएँ चालू करें।',
   'Remove {0}': '{0} हटाएँ',
   'Delete {0}': '{0} मिटाएँ',
