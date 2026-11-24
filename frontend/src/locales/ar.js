@@ -3364,6 +3364,8 @@ export default {
   "zumba": "زومبا",
   "long jump": "الوثب الطويل",
   "classical ballet": "الباليه الكلاسيكي",
+  "pole vault": "القفز بالزانة",
+  "rhythmic gymnastics": "الجمباز الإيقاعي",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",

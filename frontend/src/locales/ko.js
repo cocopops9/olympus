@@ -3309,6 +3309,8 @@ export default {
   "zumba": "줌바",
   "long jump": "멀리뛰기",
   "classical ballet": "클래식 발레",
+  "pole vault": "장대높이뛰기",
+  "rhythmic gymnastics": "리듬체조",
   "Downloading update": "업데이트 다운로드 중",
   "Installing…": "설치 중…",
   "Download failed": "다운로드 실패",

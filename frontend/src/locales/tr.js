@@ -3309,6 +3309,8 @@ export default {
   "zumba": "zumba",
   "long jump": "uzun atlama",
   "classical ballet": "klasik bale",
+  "pole vault": "sırıkla atlama",
+  "rhythmic gymnastics": "ritmik cimnastik",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

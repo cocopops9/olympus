@@ -3312,6 +3312,8 @@ export default {
   "zumba": "zumba",
   "long jump": "távolugrás",
   "classical ballet": "klasszikus balett",
+  "pole vault": "rúdugrás",
+  "rhythmic gymnastics": "ritmikus gimnasztika",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",
