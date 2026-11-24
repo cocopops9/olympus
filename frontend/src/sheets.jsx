@@ -82,7 +82,7 @@ import { finishCompare, finishCardio } from './lib/finish-compare.js'
 import { workoutFit, fitFileName } from './lib/fit-export.js'
 import { joinSessionNoProg } from './lib/session-noprog.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
-import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, sessionHistory, markAllSetsDone } from './lib/backfill.js'
+import { workoutsOn, backfillStart, backfillEnd, completeBackfill, historyAsOf, markAllSetsDone } from './lib/backfill.js'
 import { moveWorkout, sameWorkout, startTimeOf, durationMinOf, setWorkoutDuration, rebuildPrHistory, MAX_DURATION_MIN, endsInFuture } from './lib/workout-date.js'
 import { editCompletedSession, editLeftEmpty, editedRecord, editChangesNothing, resumeCompletedSession, resumedKeyOf } from './lib/session-edit.js'
 import { stampWorkout, mergeWorkoutMedia } from './lib/sync-merge.js'
@@ -93,7 +93,7 @@ import { copyText } from './lib/clipboard.js'
 import { queueRemaining, pinState } from './lib/queue.js'
 import { DAY_NOTE_TAGS, DAY_NOTE_LABEL, DAY_NOTE_ICON, dayNoteOf, dayNoteLine, canNoteDay, withDayNote } from './lib/day-notes.js'
 import GymPicker from './components/GymPicker.jsx'
-import { lastGym, cleanGym, recordHistory } from './lib/gyms.js'
+import { lastGym, cleanGym, recordHistory, historyAtGym, sessionPast } from './lib/gyms.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -1532,7 +1532,7 @@ export function swapActiveWorkoutExercise(index, { to } = {}) {
     // prescription — swapping barbell for dumbbell bench must not start you at an empty bar.
     // Built from what came before the session's day when it is logged into the past (sessionHistory).
     const step = modeOf(full) === 'reps' ? weightIncrement(full, st.unit) : defaultIncrement(ex.id, st.unit)
-    const past = sessionHistory(st)
+    const past = sessionPast(st)
     // A freestyle swap logs dumbbell weights the way the exercise means them now, and starts
     // from last time read in that meaning (lib/dumbbells.js), as a planned one does.
     const built = freestyle
@@ -2949,7 +2949,9 @@ export function beginWorkout(routineIds, bw) {
   track('workout.start')
   if (routineIds && routineIds.length) track('routine.start')
   const st = S()
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  // A new session is in the gym of the latest workout until another is picked (lib/gyms.js
+  // activeGym), so each exercise opens from its last session in that gym.
+  const { entries, routineIds: rids, routines } = buildCombinedEntries(historyAtGym(st, lastGym(st)), routineIds)
   openSession(st, entries, rids, routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'), bw)
 }
 function openSession(st, entries, routineIds, name, bw) {
@@ -2976,7 +2978,7 @@ export function startUnsavedRoutine(routine) {
   const go = bw => {
     track('workout.start')
     const st = S()
-    const { entries } = buildCombinedEntries({ ...st, routines: [...st.routines, routine] }, [routine.id])
+    const { entries } = buildCombinedEntries(historyAtGym({ ...st, routines: [...st.routines, routine] }, lastGym(st)), [routine.id])
     openSession(st, entries.map(({ rid, ...e }) => e), [], routine.name || t('Freestyle'), bw)
   }
   if (S().weighIn === false) go(null)
@@ -3098,7 +3100,7 @@ function beginBackfill({ iso, time, durationMin, routineIds, replaceId }) {
   const st = S()
   const start = backfillStart(iso, time)
   const past = historyAsOf(st, { d: iso, start, replaceId })
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(past, routineIds || [])
+  const { entries, routineIds: rids, routines } = buildCombinedEntries(historyAtGym(past, lastGym(st)), routineIds || [])
   update(s => {
     s.active = {
       id: uid(), d: iso, start,
@@ -3125,7 +3127,7 @@ function AddRoutineToSession({ close }) {
   if (!active) return null
   const inSession = new Set([].concat(active.routineIds || []))
   const add = r => {
-    const entries = buildSessionEntries(sessionHistory(st), r).map(e => ({ ...e, rid: r.id }))
+    const entries = buildSessionEntries(sessionPast(st), r).map(e => ({ ...e, rid: r.id }))
     update(s => {
       if (!s.active) return
       // A session kept out of progression as a whole (the header ⋮) keeps the routine's

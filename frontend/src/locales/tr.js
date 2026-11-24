@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "Tüm salonlar için tek rekor seti",
   "Picture": "Görsel",
   "Preparing the picture…": "Görsel hazırlanıyor…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "Rekorlar salon başına tutulur: bu antrenman aynı salondakilerle ve salonu olmayanlarla karşılaştırılır.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "Rekorlar her salon için ayrı tutulur: bu antrenman yalnızca aynı salondakilerle karşılaştırılır.",
   "Records per gym": "Salon başına rekorlar",
   "Something else…": "Başka bir şey…",
   "Where are you training?": "Nerede antrenman yapıyorsun?",

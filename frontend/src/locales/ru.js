@@ -3531,7 +3531,7 @@ export default {
   "One set of records for all gyms": "Одни рекорды для всех залов",
   "Picture": "Изображение",
   "Preparing the picture…": "Готовлю изображение…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "Рекорды ведутся по залам: эта тренировка сравнивается с тренировками в том же зале и без зала.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "Рекорды ведутся по залам: эта тренировка сравнивается только с тренировками в том же зале.",
   "Records per gym": "Рекорды по залам",
   "Something else…": "Другое…",
   "Where are you training?": "Где вы тренируетесь?",
