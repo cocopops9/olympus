@@ -3303,6 +3303,8 @@ export default {
   "brazilian jiu-jitsu": "Brezilya jiu-jitsu",
   "gymnastics": "artistik cimnastik",
   "ice skating": "buz pateni",
+  "roller skating": "paten",
+  "skateboarding": "kaykay",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

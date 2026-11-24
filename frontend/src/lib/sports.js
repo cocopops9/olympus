@@ -175,6 +175,16 @@ const SPORT_LIST = [
     trains: ['Balance', 'Endurance', 'Coordination'],
     muscleWeights: { quadriceps: 0.8, gluteal: 0.8, adductors: 0.7, hamstring: 0.5, calves: 0.4, abs: 0.4, obliques: 0.4, tibialis: 0.3, 'lower-back': 0.3 },
   },
+  {
+    id: 'sport-roller-skating', n: 'roller skating', icon: 'figureRun', min: 60,
+    trains: ['Endurance', 'Balance', 'Coordination'],
+    muscleWeights: { quadriceps: 0.8, gluteal: 0.8, adductors: 0.6, hamstring: 0.5, calves: 0.4, abs: 0.4, obliques: 0.3, tibialis: 0.3, 'lower-back': 0.3 },
+  },
+  {
+    id: 'sport-skateboarding', n: 'skateboarding', icon: 'figureRun', min: 60,
+    trains: ['Balance', 'Coordination', 'Power'],
+    muscleWeights: { quadriceps: 0.7, gluteal: 0.6, calves: 0.6, hamstring: 0.4, tibialis: 0.4, abs: 0.4, obliques: 0.4 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)

@@ -1730,6 +1730,8 @@ export const PT_BR_OVERRIDES = {
   "brazilian jiu-jitsu": "jiu-jítsu brasileiro",
   "gymnastics": "ginástica artística",
   "ice skating": "patinação no gelo",
+  "roller skating": "patinação sobre rodas",
+  "skateboarding": "skate",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",

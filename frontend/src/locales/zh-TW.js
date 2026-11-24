@@ -3296,6 +3296,8 @@ export default {
   "brazilian jiu-jitsu": "巴西柔術",
   "gymnastics": "體操",
   "ice skating": "溜冰",
+  "roller skating": "輪式溜冰",
+  "skateboarding": "滑板",
   "Downloading update": "正在下載更新",
   "Installing…": "正在安裝…",
   "Download failed": "下載失敗",

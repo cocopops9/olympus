@@ -3300,6 +3300,8 @@ export default {
   "brazilian jiu-jitsu": "бразильське джиу-джитсу",
   "gymnastics": "спортивна гімнастика",
   "ice skating": "катання на ковзанах",
+  "roller skating": "катання на роликах",
+  "skateboarding": "скейтбординг",
   "Downloading update": "Завантаження оновлення",
   "Installing…": "Встановлення…",
   "Download failed": "Не вдалося завантажити",

@@ -3303,6 +3303,8 @@ export default {
   "brazilian jiu-jitsu": "jiu-jitsu brasileño",
   "gymnastics": "gimnasia artística",
   "ice skating": "patinaje sobre hielo",
+  "roller skating": "patinaje sobre ruedas",
+  "skateboarding": "skateboarding",
   "Downloading update": "Descargando la actualización",
   "Installing…": "Instalando…",
   "Download failed": "La descarga ha fallado",
