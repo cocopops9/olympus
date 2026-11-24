@@ -3318,6 +3318,8 @@ export default {
   "skateboarding": "สเก็ตบอร์ด",
   "cricket": "คริกเก็ต",
   "zumba": "ซุมบ้า",
+  "long jump": "กระโดดไกล",
+  "classical ballet": "บัลเลต์คลาสสิก",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",

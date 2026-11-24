@@ -3307,6 +3307,8 @@ export default {
   "skateboarding": "स्केटबोर्डिंग",
   "cricket": "क्रिकेट",
   "zumba": "ज़ुम्बा",
+  "long jump": "लंबी कूद",
+  "classical ballet": "शास्त्रीय बैले",
   "Downloading update": "अपडेट डाउनलोड हो रहा है",
   "Installing…": "इंस्टॉल हो रहा है…",
   "Download failed": "डाउनलोड विफल रहा",

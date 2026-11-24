@@ -3300,6 +3300,8 @@ export default {
   "skateboarding": "滑板",
   "cricket": "板球",
   "zumba": "尊巴",
+  "long jump": "跳遠",
+  "classical ballet": "古典芭蕾",
   "Downloading update": "正在下載更新",
   "Installing…": "正在安裝…",
   "Download failed": "下載失敗",

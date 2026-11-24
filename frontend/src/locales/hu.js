@@ -3310,6 +3310,8 @@ export default {
   "skateboarding": "gördeszkázás",
   "cricket": "krikett",
   "zumba": "zumba",
+  "long jump": "távolugrás",
+  "classical ballet": "klasszikus balett",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

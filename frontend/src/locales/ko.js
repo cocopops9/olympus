@@ -3307,6 +3307,8 @@ export default {
   "skateboarding": "스케이트보드",
   "cricket": "크리켓",
   "zumba": "줌바",
+  "long jump": "멀리뛰기",
+  "classical ballet": "클래식 발레",
   "Downloading update": "업데이트 다운로드 중",
   "Installing…": "설치 중…",
   "Download failed": "다운로드 실패",

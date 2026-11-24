@@ -1734,6 +1734,8 @@ export const PT_BR_OVERRIDES = {
   "skateboarding": "skate",
   "cricket": "críquete",
   "zumba": "zumba",
+  "long jump": "salto em distância",
+  "classical ballet": "balé clássico",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",
