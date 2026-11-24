@@ -3876,4 +3876,6 @@ export default {
   "View once": "한 번만 보기",
   "The photo or video can be opened one time, then it is deleted.": "사진이나 동영상은 한 번만 열 수 있고, 그 후 삭제됩니다.",
   "Send a video": "동영상 보내기",
+  "Start the stopwatch": "스톱워치 시작",
+  "Stop the stopwatch": "스톱워치 정지",
 }

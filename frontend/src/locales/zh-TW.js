@@ -3869,4 +3869,6 @@ export default {
   "View once": "僅檢視一次",
   "The photo or video can be opened one time, then it is deleted.": "照片或影片只能開啟一次，之後就會刪除。",
   "Send a video": "傳送影片",
+  "Start the stopwatch": "開始碼錶",
+  "Stop the stopwatch": "停止碼錶",
 }

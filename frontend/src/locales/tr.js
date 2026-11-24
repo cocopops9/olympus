@@ -3876,4 +3876,6 @@ export default {
   "View once": "Bir kez görüntüle",
   "The photo or video can be opened one time, then it is deleted.": "Fotoğraf veya video yalnızca bir kez açılabilir, sonra silinir.",
   "Send a video": "Video gönder",
+  "Start the stopwatch": "Kronometreyi başlat",
+  "Stop the stopwatch": "Kronometreyi durdur",
 }

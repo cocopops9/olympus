@@ -3879,4 +3879,6 @@ export default {
   "View once": "Egyszeri megtekintés",
   "The photo or video can be opened one time, then it is deleted.": "A fotó vagy videó egyszer nyitható meg, utána törlődik.",
   "Send a video": "Videó küldése",
+  "Start the stopwatch": "Stopper indítása",
+  "Stop the stopwatch": "Stopper leállítása",
 }

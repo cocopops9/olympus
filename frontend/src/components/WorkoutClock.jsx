@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { elapsedOf, fmtClock, isPaused, pauseClock, resumeClock, setElapsed } from '../lib/workout-clock.js'
+import { elapsedOf, fmtClock, isPaused, pauseClock, resumeClock, setElapsed, setStart as setStartOf } from '../lib/workout-clock.js'
 import { Button, Stepper } from './ui.jsx'
 import Icon from './Icon.jsx'
 import Elapsed from './Elapsed.jsx'
@@ -37,7 +37,7 @@ function ClockSheet({ close }) {
     let at = d.getTime()
     const limit = isPaused(A) ? A.pausedAt : Date.now()
     if (at > limit) at -= 86400000
-    edit(a => { a.start = at })
+    edit(a => setStartOf(a, at))
   }
   return <div className="wclock-sheet">
     <h3 style={{ marginBottom: 4 }}>{t('Workout time')}</h3>

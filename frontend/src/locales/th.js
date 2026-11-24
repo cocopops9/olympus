@@ -3887,4 +3887,6 @@ export default {
   "View once": "ดูครั้งเดียว",
   "The photo or video can be opened one time, then it is deleted.": "รูปภาพหรือวิดีโอเปิดได้เพียงครั้งเดียว จากนั้นจะถูกลบ",
   "Send a video": "ส่งวิดีโอ",
+  "Start the stopwatch": "เริ่มนาฬิกาจับเวลา",
+  "Stop the stopwatch": "หยุดนาฬิกาจับเวลา",
 }

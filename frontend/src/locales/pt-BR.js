@@ -2938,4 +2938,6 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "View once": "Ver uma vez",
   "The photo or video can be opened one time, then it is deleted.": "A foto ou o vídeo pode ser aberto uma única vez e depois é apagado.",
   "Send a video": "Enviar um vídeo",
+  "Start the stopwatch": "Iniciar o cronômetro",
+  "Stop the stopwatch": "Parar o cronômetro",
 }
