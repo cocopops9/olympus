@@ -1981,6 +1981,7 @@ export default {
   'Order and supersets': 'ক্রম ও সুপারসেট',
   'Sets, reps, rest, progression': 'সেট, রেপ, বিশ্রাম, প্রগ্রেশন',
   'This workout': 'এই ওয়ার্কআউট',
+  'Train again': 'আবার ট্রেনিং',
   'Turn on push notifications first.': 'আগে পুশ নোটিফিকেশন চালু করুন।',
   'Remove {0}': '{0} সরান',
   'Delete {0}': '{0} মুছুন',

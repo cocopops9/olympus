@@ -1933,6 +1933,7 @@ export default {
   'Order and supersets': 'Порядок і суперсети',
   'Sets, reps, rest, progression': 'Підходи, повтори, відпочинок, прогресія',
   'This workout': 'Це тренування',
+  'Train again': 'Тренуватися знову',
   'Turn on push notifications first.': 'Спершу увімкни push-сповіщення.',
   'Remove {0}': 'Прибрати {0}',
   'Delete {0}': 'Видалити {0}',

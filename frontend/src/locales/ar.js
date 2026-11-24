@@ -1991,6 +1991,7 @@ export default {
   'Order and supersets': 'الترتيب والمجموعات المتتالية',
   'Sets, reps, rest, progression': 'المجموعات، التكرارات، الراحة، التقدم',
   'This workout': 'هذا التمرين',
+  'Train again': 'تمرّن مجددًا',
   'Turn on push notifications first.': 'فعّل الإشعارات الفورية أولًا.',
   'Remove {0}': 'إزالة {0}',
   'Delete {0}': 'حذف {0}',

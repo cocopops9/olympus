@@ -1939,6 +1939,7 @@ export default {
   'Order and supersets': 'Kolejność i superserie',
   'Sets, reps, rest, progression': 'Serie, powt., przerwa, progresja',
   'This workout': 'Ten trening',
+  'Train again': 'Trenuj ponownie',
   'Turn on push notifications first.': 'Najpierw włącz powiadomienia push.',
   'Remove {0}': 'Usuń {0}',
   'Delete {0}': 'Usuń {0}',
