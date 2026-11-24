@@ -9,7 +9,7 @@ const m = vi.hoisted(() => ({ info: { hasUpdate: false }, checks: 0 }))
 vi.mock('../lib/mobile.js', async o => ({ ...(await o()), MOBILE: true, isAndroid: async () => true }))
 vi.mock('../lib/update.js', async o => ({ ...(await o()), UPDATES_ON: true, checkForUpdate: async () => { m.checks++; return m.info } }))
 vi.mock('../lib/update-job.js', () => ({ startUpdate: vi.fn(), resumeUpdate: () => false, updateRunning: () => false }))
-import { useUpdatePrompt, RECHECK_AFTER_MS } from './UpdatePrompt.jsx'
+import { useUpdatePrompt, RECHECK_AFTER_MS, RECHECK_EVERY_MS } from './UpdatePrompt.jsx'
 import { useUI } from '../store/useUI.js'
 
 function Host() { useUpdatePrompt(true); return null }
@@ -28,7 +28,7 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.useRealTimers(); useUI.setState({ sheets: [] }) })
 
 describe('the update prompt', () => {
-  it('checks at the start, and again on coming back after half an hour, then offers the new build', async () => {
+  it('checks at the start, and again on coming back after a few minutes away, then offers the new build', async () => {
     await act(async () => { root.render(<Host />) })
     await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
     await act(async () => { await vi.advanceTimersByTimeAsync(10) })
@@ -41,6 +41,53 @@ describe('the update prompt', () => {
     vi.setSystemTime(Date.now() + RECHECK_AFTER_MS + 1000)
     await setVisible(true)
     expect(m.checks).toBe(2)
+    expect(useUI.getState().sheets).toHaveLength(1)
+  })
+
+  it('asks again while the app stays in front, so a build published after the start is offered', async () => {
+    await act(async () => { root.render(<Host />) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
+    expect(m.checks).toBe(1)
+    m.info = { hasUpdate: true, apkUrl: 'https://x/olympus.apk', build: 78 }
+    await act(async () => { await vi.advanceTimersByTimeAsync(RECHECK_EVERY_MS + 10) })
+    expect(m.checks).toBe(2)
+    expect(useUI.getState().sheets).toHaveLength(1)
+  })
+
+  it('does not ask while the app is in the background', async () => {
+    await act(async () => { root.render(<Host />) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
+    await setVisible(false)
+    await act(async () => { await vi.advanceTimersByTimeAsync(3 * RECHECK_EVERY_MS) })
+    expect(m.checks).toBe(1)
+    await setVisible(true)
+  })
+
+  it('a build found while another sheet is open is offered once that sheet closes', async () => {
+    m.info = { hasUpdate: true, apkUrl: 'https://x/olympus.apk', build: 79 }
+    const other = useUI.getState().openSheet(() => null)
+    await act(async () => { root.render(<Host />) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
+    expect(m.checks).toBe(1)
+    expect(useUI.getState().sheets).toHaveLength(1)   // only the other sheet
+    await act(async () => { other.close() })
+    expect(useUI.getState().sheets).toHaveLength(1)   // now the update
+    expect(m.checks).toBe(1)
+  })
+
+  it('"Later" is not asked again for the same build, a newer one is', async () => {
+    m.info = { hasUpdate: true, apkUrl: 'https://x/olympus.apk', build: 80 }
+    await act(async () => { root.render(<Host />) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(1600) })
+    const [sheet] = useUI.getState().sheets
+    expect(sheet).toBeTruthy()
+    // The sheet's own "Later": its onLater, then close.
+    await act(async () => { sheet.render(() => {}).props.onLater(); useUI.getState().closeSheet(sheet.id) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(RECHECK_EVERY_MS + 10) })
+    expect(m.checks).toBe(2)
+    expect(useUI.getState().sheets).toHaveLength(0)
+    m.info = { hasUpdate: true, apkUrl: 'https://x/olympus.apk', build: 81 }
+    await act(async () => { await vi.advanceTimersByTimeAsync(RECHECK_EVERY_MS + 10) })
     expect(useUI.getState().sheets).toHaveLength(1)
   })
 })
