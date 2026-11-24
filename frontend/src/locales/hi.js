@@ -3301,6 +3301,8 @@ export default {
   "cycling": "साइकिलिंग",
   "muay thai": "मुए थाई",
   "brazilian jiu-jitsu": "ब्राज़ीलियन जिउ-जित्सु",
+  "gymnastics": "जिम्नास्टिक्स",
+  "ice skating": "आइस स्केटिंग",
   "Downloading update": "अपडेट डाउनलोड हो रहा है",
   "Installing…": "इंस्टॉल हो रहा है…",
   "Download failed": "डाउनलोड विफल रहा",
