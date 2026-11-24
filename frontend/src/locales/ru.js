@@ -3880,4 +3880,6 @@ export default {
   "View once": "Просмотр один раз",
   "The photo or video can be opened one time, then it is deleted.": "Фото или видео можно открыть один раз, затем оно удаляется.",
   "Send a video": "Отправить видео",
+  "Start the stopwatch": "Запустить секундомер",
+  "Stop the stopwatch": "Остановить секундомер",
 }

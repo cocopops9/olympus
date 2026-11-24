@@ -3873,4 +3873,6 @@ export default {
   "View once": "Переглянути один раз",
   "The photo or video can be opened one time, then it is deleted.": "Фото або відео можна відкрити один раз, потім його буде видалено.",
   "Send a video": "Надіслати відео",
+  "Start the stopwatch": "Запустити секундомір",
+  "Stop the stopwatch": "Зупинити секундомір",
 }

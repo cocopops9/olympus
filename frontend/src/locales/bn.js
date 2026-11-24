@@ -3955,4 +3955,6 @@ export default {
   "View once": "একবার দেখুন",
   "The photo or video can be opened one time, then it is deleted.": "ছবি বা ভিডিওটি একবারই খোলা যায়, তারপর মুছে ফেলা হয়।",
   "Send a video": "একটি ভিডিও পাঠান",
+  "Start the stopwatch": "স্টপওয়াচ চালু করুন",
+  "Stop the stopwatch": "স্টপওয়াচ থামান",
 }

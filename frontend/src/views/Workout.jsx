@@ -36,6 +36,8 @@ import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import ClockValue from '../components/ClockValue.jsx'
+import { startStopwatch, stopStopwatch, stopwatchRunning, stopwatchSec } from '../lib/stopwatch.js'
+import { fmtClock as fmtCardioClock, minOfSecs } from '../lib/cardio-time.js'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
@@ -88,6 +90,13 @@ const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/
 // The pause between the left and the right side of one timed per-side set (owner's call): long
 // enough to turn over, far shorter than the rest the set earns once both sides are held.
 const SWITCH_SIDES_SEC = 10
+
+// The count of a row's running stopwatch, in the duration cell, ticking every second.
+function RowStopwatch({ row }) {
+  const [, tick] = useState(0)
+  useEffect(() => { const iv = setInterval(() => tick(n => n + 1), 1000); return () => clearInterval(iv) }, [])
+  return <span className="num swlive" role="timer" aria-live="off">{fmtCardioClock(minOfSecs(stopwatchSec(row)))}</span>
+}
 
 function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onCopySetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onRest, onNoProg, routineUpdate, onSwap, onSwapTo, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
@@ -317,7 +326,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const cell = (s, i, col, cls) => (
     <div className={'stp ' + cls + (wc.steppers ? '' : ' plain') + (isSuggested(s, col.f) ? ' sug' : '')}>
       {wc.steppers && <button aria-label={t('Decrease')} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>}
-      <span className="val">{col.clock
+      <span className="val">{col.clock && stopwatchRunning(s)
+        ? <RowStopwatch row={s} />
+        : col.clock
         ? <ClockValue value={s[col.f] || 0} title={t('Duration')} onChange={v => onField(i, col.f, v)} />
         : <NumberField decimal={col.dec} nullable={col.opt} value={viewOf(col, s[col.f]) ?? ''}
           onChange={v => onField(i, col.f, col.store ? col.store(v) : v)} />}</span>
@@ -600,6 +611,15 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // from. The button's own label speaks for it, so a screen reader hears it with the set number.
   const failMark = s => isFailureSet(s) ? <span className="failmark" aria-hidden="true">{t('F')}</span> : null
   const failSay = (s, label) => isFailureSet(s) ? label + ', ' + t('Taken to failure') : label
+  // The stopwatch goes on a plain cardio or sport row; an interval run already counts its
+  // segments down with the play button.
+  const stopwatchable = cardio && !runs && !editing
+  // Stopped, the stopwatch writes its count as the duration and ticks the row (a row ticked by
+  // hand while it runs comes here too, so the time run is not lost).
+  const stopRowStopwatch = i => {
+    mutSet(i, row => stopStopwatch(row))
+    if (!useStore.getState().S.active?.entries?.[entryIdx]?.sets?.[i]?.done) onToggle(i)
+  }
   const plainRow = (s, i) => (
     <div ref={el => onSetRowRef?.(i, el)} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '') + (timed || runs ? ' timed' : '')}>
       <button type="button" className="n" aria-label={failSay(s, sideTagOf(s) ? t('Set {0} ({1})', setNumOf(s, i), sideTagOf(s)) : t('Set {0}', setNumOf(s, i)))} aria-describedby={optsId} title={t('More')} onClick={() => openSetMenu(s, i)}>{setNumOf(s, i)}{failMark(s)}</button>
@@ -614,7 +634,15 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
           set off itself. The checkbox stays for anyone who timed it on their own watch. */}
       {(timed || runs) && !editing && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
         onClick={() => onStartTimed(i)}><Icon name="play" /></button>}
-      <Check checked={s.done} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))} onChange={() => onToggle(i)} />
+      {/* A cardio or sport row can be timed by a stopwatch instead of typed (lib/stopwatch.js):
+          started here, stopped here or by the tick, its count becomes the duration. */}
+      {stopwatchable && <button className={'setgo sw' + (stopwatchRunning(s) ? ' on' : '')}
+        aria-label={stopwatchRunning(s) ? t('Stop the stopwatch') : t('Start the stopwatch')}
+        title={stopwatchRunning(s) ? t('Stop the stopwatch') : t('Start the stopwatch')}
+        disabled={s.done} onClick={() => (stopwatchRunning(s) ? stopRowStopwatch(i) : mutSet(i, row => startStopwatch(row)))}>
+        <Icon name={stopwatchRunning(s) ? 'stopFill' : 'stopwatch'} /></button>}
+      <Check checked={s.done} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))}
+        onChange={() => (stopwatchRunning(s) ? stopRowStopwatch(i) : onToggle(i))} />
     </div>
   )
   // Swipe on sets (v1.3.11, Settings → Workout): a set row swiped toward the start of the line is
@@ -702,7 +730,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
           columns; over L/R rows it also has to skip the side badge that sits in front of the weight cell */}
-      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" />{col1 === loadCol ? unitHead('w-sp') : <span className="w-sp">{col1.hd}</span>}{col2 && (col2 === loadCol ? unitHead('r-sp') : <span className="r-sp">{col2.hd}</span>)}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
+      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" />{col1 === loadCol ? unitHead('w-sp') : <span className="w-sp">{col1.hd}</span>}{col2 && (col2 === loadCol ? unitHead('r-sp') : <span className="r-sp">{col2.hd}</span>)}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{(timed || (cardio && !editing)) && <span className="ck-sp" />}<span className="ck-sp" /></div>
       <span id={optsId} className="vh">{t('Options: copy, remove')}</span>
       {entry.sets.map((s, i) => {
         const warm = isWarmupRow(s)

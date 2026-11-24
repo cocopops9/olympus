@@ -3931,4 +3931,6 @@ export default {
   "View once": "عرض مرة واحدة",
   "The photo or video can be opened one time, then it is deleted.": "يمكن فتح الصورة أو الفيديو مرة واحدة فقط، ثم يُحذف.",
   "Send a video": "إرسال فيديو",
+  "Start the stopwatch": "ابدأ ساعة الإيقاف",
+  "Stop the stopwatch": "أوقف ساعة الإيقاف",
 }

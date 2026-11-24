@@ -3876,4 +3876,6 @@ export default {
   "View once": "Wyświetl raz",
   "The photo or video can be opened one time, then it is deleted.": "Zdjęcie lub film można otworzyć tylko raz, potem zostaje usunięte.",
   "Send a video": "Wyślij film",
+  "Start the stopwatch": "Uruchom stoper",
+  "Stop the stopwatch": "Zatrzymaj stoper",
 }

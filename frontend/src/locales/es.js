@@ -3876,4 +3876,6 @@ export default {
   "View once": "Ver una vez",
   "The photo or video can be opened one time, then it is deleted.": "La foto o el vídeo se puede abrir una sola vez y luego se elimina.",
   "Send a video": "Enviar un vídeo",
+  "Start the stopwatch": "Iniciar el cronómetro",
+  "Stop the stopwatch": "Detener el cronómetro",
 }
