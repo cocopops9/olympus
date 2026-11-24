@@ -3355,6 +3355,8 @@ export default {
   "cycling": "ركوب الدراجات",
   "muay thai": "مواي تاي",
   "brazilian jiu-jitsu": "الجوجيتسو البرازيلي",
+  "gymnastics": "الجمباز",
+  "ice skating": "التزلج على الجليد",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",

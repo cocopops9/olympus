@@ -3303,6 +3303,8 @@ export default {
   "cycling": "kerékpározás",
   "muay thai": "thai box",
   "brazilian jiu-jitsu": "brazil jiu-jitsu",
+  "gymnastics": "torna",
+  "ice skating": "korcsolyázás",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

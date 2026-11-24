@@ -3297,6 +3297,8 @@ export default {
   "cycling": "велоспорт",
   "muay thai": "тайський бокс",
   "brazilian jiu-jitsu": "бразильське джиу-джитсу",
+  "gymnastics": "спортивна гімнастика",
+  "ice skating": "катання на ковзанах",
   "Downloading update": "Завантаження оновлення",
   "Installing…": "Встановлення…",
   "Download failed": "Не вдалося завантажити",

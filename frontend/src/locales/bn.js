@@ -3379,6 +3379,8 @@ export default {
   "cycling": "সাইক্লিং",
   "muay thai": "মুয়ে থাই",
   "brazilian jiu-jitsu": "ব্রাজিলিয়ান জিউ-জিৎসু",
+  "gymnastics": "জিমন্যাস্টিকস",
+  "ice skating": "আইস স্কেটিং",
   "Downloading update": "আপডেট ডাউনলোড হচ্ছে",
   "Installing…": "ইনস্টল হচ্ছে…",
   "Download failed": "ডাউনলোড ব্যর্থ হয়েছে",

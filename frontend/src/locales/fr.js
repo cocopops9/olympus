@@ -3300,6 +3300,8 @@ export default {
   "cycling": "cyclisme",
   "muay thai": "boxe thaïlandaise",
   "brazilian jiu-jitsu": "jiu-jitsu brésilien",
+  "gymnastics": "gymnastique artistique",
+  "ice skating": "patinage sur glace",
   "Downloading update": "Téléchargement de la mise à jour",
   "Installing…": "Installation…",
   "Download failed": "Échec du téléchargement",

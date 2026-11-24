@@ -1727,6 +1727,8 @@ export const PT_BR_OVERRIDES = {
   "cycling": "ciclismo",
   "muay thai": "muay thai",
   "brazilian jiu-jitsu": "jiu-jítsu brasileiro",
+  "gymnastics": "ginástica artística",
+  "ice skating": "patinação no gelo",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",

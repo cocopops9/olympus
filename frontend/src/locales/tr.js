@@ -3300,6 +3300,8 @@ export default {
   "cycling": "bisiklet",
   "muay thai": "Muay Thai",
   "brazilian jiu-jitsu": "Brezilya jiu-jitsu",
+  "gymnastics": "artistik cimnastik",
+  "ice skating": "buz pateni",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

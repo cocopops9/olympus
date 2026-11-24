@@ -3320,6 +3320,8 @@ export default {
   "cycling": "Radfahren",
   "muay thai": "Muay Thai",
   "brazilian jiu-jitsu": "Brazilian Jiu-Jitsu",
+  "gymnastics": "Turnen",
+  "ice skating": "Eislaufen",
   "Downloading update": "Update wird geladen",
   "Installing…": "Wird installiert…",
   "Download failed": "Download fehlgeschlagen",

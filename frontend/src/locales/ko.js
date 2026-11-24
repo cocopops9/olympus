@@ -3300,6 +3300,8 @@ export default {
   "cycling": "사이클",
   "muay thai": "무에타이",
   "brazilian jiu-jitsu": "브라질리언 주짓수",
+  "gymnastics": "체조",
+  "ice skating": "아이스 스케이팅",
   "Downloading update": "업데이트 다운로드 중",
   "Installing…": "설치 중…",
   "Download failed": "다운로드 실패",

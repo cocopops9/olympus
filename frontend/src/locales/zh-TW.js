@@ -3293,6 +3293,8 @@ export default {
   "cycling": "自行車",
   "muay thai": "泰拳",
   "brazilian jiu-jitsu": "巴西柔術",
+  "gymnastics": "體操",
+  "ice skating": "溜冰",
   "Downloading update": "正在下載更新",
   "Installing…": "正在安裝…",
   "Download failed": "下載失敗",
