@@ -3314,6 +3314,8 @@ export default {
   "classical ballet": "klasszikus balett",
   "pole vault": "rúdugrás",
   "rhythmic gymnastics": "ritmikus gimnasztika",
+  "squash": "squash",
+  "surfing": "szörfözés",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

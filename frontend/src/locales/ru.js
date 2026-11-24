@@ -3315,6 +3315,8 @@ export default {
   "classical ballet": "классический балет",
   "pole vault": "прыжки с шестом",
   "rhythmic gymnastics": "художественная гимнастика",
+  "squash": "сквош",
+  "surfing": "сёрфинг",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

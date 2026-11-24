@@ -1738,6 +1738,8 @@ export const PT_BR_OVERRIDES = {
   "classical ballet": "balé clássico",
   "pole vault": "salto com vara",
   "rhythmic gymnastics": "ginástica rítmica",
+  "squash": "squash",
+  "surfing": "surfe",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",

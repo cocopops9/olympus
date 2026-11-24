@@ -3390,6 +3390,8 @@ export default {
   "classical ballet": "ক্লাসিক্যাল ব্যালে",
   "pole vault": "পোল ভল্ট",
   "rhythmic gymnastics": "রিদমিক জিমন্যাস্টিকস",
+  "squash": "স্কোয়াশ",
+  "surfing": "সার্ফিং",
   "Downloading update": "আপডেট ডাউনলোড হচ্ছে",
   "Installing…": "ইনস্টল হচ্ছে…",
   "Download failed": "ডাউনলোড ব্যর্থ হয়েছে",

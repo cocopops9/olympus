@@ -3311,6 +3311,8 @@ export default {
   "classical ballet": "ballet clásico",
   "pole vault": "salto con pértiga",
   "rhythmic gymnastics": "gimnasia rítmica",
+  "squash": "squash",
+  "surfing": "surf",
   "Downloading update": "Descargando la actualización",
   "Installing…": "Instalando…",
   "Download failed": "La descarga ha fallado",

@@ -3366,6 +3366,8 @@ export default {
   "classical ballet": "الباليه الكلاسيكي",
   "pole vault": "القفز بالزانة",
   "rhythmic gymnastics": "الجمباز الإيقاعي",
+  "squash": "الإسكواش",
+  "surfing": "ركوب الأمواج",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",
