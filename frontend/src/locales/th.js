@@ -3320,6 +3320,8 @@ export default {
   "zumba": "ซุมบ้า",
   "long jump": "กระโดดไกล",
   "classical ballet": "บัลเลต์คลาสสิก",
+  "pole vault": "กระโดดค้ำถ่อ",
+  "rhythmic gymnastics": "ยิมนาสติกลีลา",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",

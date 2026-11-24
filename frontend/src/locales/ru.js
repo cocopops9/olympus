@@ -3313,6 +3313,8 @@ export default {
   "zumba": "зумба",
   "long jump": "прыжки в длину",
   "classical ballet": "классический балет",
+  "pole vault": "прыжки с шестом",
+  "rhythmic gymnastics": "художественная гимнастика",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

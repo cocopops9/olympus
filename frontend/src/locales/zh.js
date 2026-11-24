@@ -3309,6 +3309,8 @@ export default {
   "zumba": "尊巴",
   "long jump": "跳远",
   "classical ballet": "古典芭蕾",
+  "pole vault": "撑竿跳高",
+  "rhythmic gymnastics": "艺术体操",
   "Downloading update": "正在下载更新",
   "Installing…": "正在安装…",
   "Download failed": "下载失败",
