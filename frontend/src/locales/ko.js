@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "모든 체육관에 하나의 기록",
   "Picture": "사진",
   "Preparing the picture…": "이미지 준비 중…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "기록은 체육관별입니다: 이 운동은 같은 체육관의 운동, 그리고 체육관이 없는 운동과 비교됩니다.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "기록은 체육관별로 관리됩니다: 이 운동은 같은 체육관의 운동과만 비교됩니다.",
   "Records per gym": "체육관별 기록",
   "Something else…": "다른 것…",
   "Where are you training?": "어디서 운동하나요?",

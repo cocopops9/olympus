@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "Jeden zestaw rekordów dla wszystkich siłowni",
   "Picture": "Obraz",
   "Preparing the picture…": "Przygotowuję obraz…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "Rekordy są osobne dla każdej siłowni: ten trening porównuje się z treningami w tej samej siłowni i z tymi bez siłowni.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "Rekordy są osobne dla każdej siłowni: ten trening porównuje się tylko z treningami w tej samej siłowni.",
   "Records per gym": "Rekordy dla każdej siłowni",
   "Something else…": "Coś innego…",
   "Where are you training?": "Gdzie trenujesz?",

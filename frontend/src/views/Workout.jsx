@@ -19,7 +19,8 @@ import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
 import { newRecords, recordsOf, recordSignature } from '../lib/records.js'
 import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
-import { activeGym, recordHistory } from '../lib/gyms.js'
+import { activeGym, recordHistory, sessionPast } from '../lib/gyms.js'
+import { changeSessionGym } from '../lib/gym-refill.js'
 import { GymIcon, gymChooserSheet } from '../components/Gyms.jsx'
 import { pinState } from '../lib/queue.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
@@ -48,7 +49,7 @@ import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../li
 import { routineChangesFromEntry, updateRoutineFromEntry } from '../lib/routines.js'
 import { sessionNoProg, setSessionNoProg, setEntryNoProg, joinSessionNoProg } from '../lib/session-noprog.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { markAllSetsDone, sessionHistory } from '../lib/backfill.js'
+import { markAllSetsDone } from '../lib/backfill.js'
 import { bestSetFor } from '../lib/exercise-history.js'
 import { isWarmupRow, isFailureSet, toggleFailure, isDropSet, isRestPauseSet, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, makeSideSet, setSideField, toggleSide, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../lib/workout-model.js'
 import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEntry, moveActiveWorkoutEntry } from '../lib/active-workout-order.js'
@@ -174,7 +175,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const runs = cardio && isIntervals(entry.target)
   // The history the rows were built from: before the session's day when it is logged into the
   // past (sessionHistory), so "last time", the best set and the Best chip are not from later on.
-  const H = sessionHistory(S)
+  // In the session's gym only, for an exercise already trained there (lib/gyms.js historyAtGym).
+  const H = sessionPast(S)
   // The routine's own last session of this exercise (or any, for a routine that has none), the
   // same one the rows and the progression line were built from (#216).
   const last = lastEntryFor(H, entry.id, entry.rid)
@@ -1401,7 +1403,7 @@ function ActiveWorkout() {
     // Freestyle has no routine prescription to apply: show the last target in the config
     // sheet and carry its completed rows forward. A planned session uses its configured
     // target when progression is off, while progression-enabled sessions keep their path.
-    const seed = freestyle ? freestyleConfig(sessionHistory(S), { id: ex.id, ...defaultConfig(ex.id) }) : null
+    const seed = freestyle ? freestyleConfig(sessionPast(S), { id: ex.id, ...defaultConfig(ex.id) }) : null
     const commit = cfg => {
       if (focusMode) focusPointerEpoch.current++
       update(s => {
@@ -1409,7 +1411,8 @@ function ActiveWorkout() {
         // A planned session builds the exercise the way its routine would (prescription, reps
         // source, target); freestyle reproduces what you did last time.
         // Read from before the session's day when it is logged into the past (sessionHistory).
-        const past = sessionHistory(s)
+        // In the session's gym, the exercise opens from its last session there (lib/gyms.js).
+        const past = sessionPast(s)
         // Freestyle stamps the meaning of a dumbbell weight and reads last time in it, the way
         // buildPlannedEntry does for a planned exercise (lib/dumbbells.js).
         const built = freestyle
@@ -1532,7 +1535,7 @@ function ActiveWorkout() {
         // kept in place (done warm-ups first, then done work sets, then the fresh remainder).
         // Without a prescription only in a routine kept out of progression: an exercise kept out
         // by hand keeps its prescription, so its Undo leaves the numbers it should count at.
-        const built = buildPlannedEntry(sessionHistory(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
+        const built = buildPlannedEntry(sessionPast(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
         const fresh = built.sets
         const doneWarm = activeEntry.sets.filter(x => x.done && isWarmupRow(x))
         const doneWork = activeEntry.sets.filter(x => x.done && !isWarmupRow(x))
@@ -2051,7 +2054,7 @@ function ActiveWorkout() {
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) + ' · ' : ''}{t('{0} sets', done + '/' + total)}</div>
         {/* The gym of this session (components/Gyms.jsx): the latest one by default, one tap to change. */}
         {!editing && <button type="button" className="whdr-gym" aria-label={t('Gym') + ': ' + (sessionGym || t('No gym'))}
-          onClick={() => gymChooserSheet({ current: sessionGym, onPick: g => update(s => { if (s.active) s.active.gym = g }) })}>
+          onClick={() => gymChooserSheet({ current: sessionGym, onPick: g => update(s => { if (s.active) changeSessionGym(s, g) }) })}>
           <GymIcon name={sessionGym} size={20} /><span>{sessionGym || t('Choose the gym')}</span><Icon name="chevronDown" />
         </button>}
       </div>

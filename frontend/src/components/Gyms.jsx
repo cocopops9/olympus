@@ -135,7 +135,7 @@ function GymChooser({ current, onPick, close }) {
   return <div>
     <h3 style={{ marginBottom: 4 }}>{t('Where are you training?')}</h3>
     <p className="small muted" style={{ marginTop: 0 }}>{S.recordsByGym
-      ? t('Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.')
+      ? t('Records are kept per gym: this workout is held only against the ones in the same gym.')
       : t('Machines can be set up differently in each gym: with a gym on your workouts, progress can be seen per gym.')}</p>
     <div className="list menu-list gym-list">
       {gyms.map(g => <div key={g} className={'item menu-item gym-li' + (g === cur ? ' on' : '')} role="button" tabIndex={0} onClick={() => choose(g)}

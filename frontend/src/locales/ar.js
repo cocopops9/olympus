@@ -3582,7 +3582,7 @@ export default {
   "One set of records for all gyms": "مجموعة واحدة من الأرقام القياسية لكل الصالات",
   "Picture": "صورة",
   "Preparing the picture…": "جارٍ تجهيز الصورة…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "الأرقام القياسية لكل صالة: يُقارن هذا التمرين بتمارين الصالة نفسها وبالتمارين بلا صالة.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "الأرقام القياسية لكل نادٍ على حدة: يُقارن هذا التمرين فقط بالتمارين في النادي نفسه.",
   "Records per gym": "أرقام قياسية لكل صالة",
   "Something else…": "شيء آخر…",
   "Where are you training?": "أين تتمرن؟",

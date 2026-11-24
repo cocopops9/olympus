@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "सभी जिम के लिए एक ही रिकॉर्ड",
   "Picture": "तस्वीर",
   "Preparing the picture…": "तस्वीर तैयार हो रही है…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "रिकॉर्ड जिम के अनुसार हैं: इस वर्कआउट की तुलना उसी जिम और बिना जिम वाले वर्कआउट से होती है।",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "रिकॉर्ड हर जिम के अलग रखे जाते हैं: यह वर्कआउट सिर्फ़ उसी जिम के वर्कआउट से तुलना किया जाता है।",
   "Records per gym": "जिम के अनुसार रिकॉर्ड",
   "Something else…": "कुछ और…",
   "Where are you training?": "आप कहाँ ट्रेनिंग कर रहे हैं?",
