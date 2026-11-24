@@ -3311,6 +3311,8 @@ export default {
   "classical ballet": "klasik bale",
   "pole vault": "sırıkla atlama",
   "rhythmic gymnastics": "ritmik cimnastik",
+  "squash": "squash",
+  "surfing": "sörf",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

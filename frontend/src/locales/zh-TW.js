@@ -3304,6 +3304,8 @@ export default {
   "classical ballet": "古典芭蕾",
   "pole vault": "撐竿跳",
   "rhythmic gymnastics": "韻律體操",
+  "squash": "壁球",
+  "surfing": "衝浪",
   "Downloading update": "正在下載更新",
   "Installing…": "正在安裝…",
   "Download failed": "下載失敗",

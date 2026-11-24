@@ -215,6 +215,16 @@ const SPORT_LIST = [
     trains: ['Mobility', 'Coordination', 'Balance'],
     muscleWeights: { calves: 0.6, abs: 0.6, 'hip-flexors': 0.6, quadriceps: 0.5, gluteal: 0.5, adductors: 0.5, hamstring: 0.5, 'lower-back': 0.4, deltoids: 0.4 },
   },
+  {
+    id: 'sport-squash', n: 'squash', icon: 'figureRun', min: 45,
+    trains: ['Agility', 'Endurance', 'Reaction time', 'Speed'],
+    muscleWeights: { quadriceps: 0.8, gluteal: 0.7, calves: 0.7, hamstring: 0.5, adductors: 0.5, forearm: 0.5, deltoids: 0.4, obliques: 0.4 },
+  },
+  {
+    id: 'sport-surfing', n: 'surfing', icon: 'swim', min: 60,
+    trains: ['Balance', 'Endurance', 'Core stability'],
+    muscleWeights: { 'upper-back': 0.8, deltoids: 0.7, quadriceps: 0.6, 'lower-back': 0.5, abs: 0.5, gluteal: 0.5, triceps: 0.4, chest: 0.4 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)

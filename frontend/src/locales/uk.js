@@ -3308,6 +3308,8 @@ export default {
   "classical ballet": "класичний балет",
   "pole vault": "стрибки з жердиною",
   "rhythmic gymnastics": "художня гімнастика",
+  "squash": "сквош",
+  "surfing": "серфінг",
   "Downloading update": "Завантаження оновлення",
   "Installing…": "Встановлення…",
   "Download failed": "Не вдалося завантажити",

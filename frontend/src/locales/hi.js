@@ -3311,6 +3311,8 @@ export default {
   "classical ballet": "शास्त्रीय बैले",
   "pole vault": "पोल वॉल्ट",
   "rhythmic gymnastics": "रिदमिक जिम्नास्टिक्स",
+  "squash": "स्क्वैश",
+  "surfing": "सर्फ़िंग",
   "Downloading update": "अपडेट डाउनलोड हो रहा है",
   "Installing…": "इंस्टॉल हो रहा है…",
   "Download failed": "डाउनलोड विफल रहा",
