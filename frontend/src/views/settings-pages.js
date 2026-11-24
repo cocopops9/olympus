@@ -17,8 +17,9 @@ export const PAGES = {
   units: { title: 'Units & language', icon: 'ruler', tint: 'var(--teal)' },
   equipment: { title: 'Equipment', icon: 'kettlebell', tint: 'var(--indigo)' },
   look: { title: 'Look & Home', icon: 'palette', tint: 'var(--purple)' },
-  claude: { title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)' },
-  chatgpt: { title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)' },
+  assistants: { title: 'Olympus in Claude and ChatGPT', icon: 'sparkles', tint: 'var(--acc)' },
+  claude: { title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)', parent: 'assistants' },
+  chatgpt: { title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)', parent: 'assistants' },
   coach: { title: 'AI Coach', icon: 'sparkles', tint: 'var(--green)' },
   data: { title: 'Data & backup', icon: 'folder', tint: 'var(--blue)' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
@@ -31,9 +32,11 @@ export const PAGE_IDS = Object.keys(PAGES)
 // The root, top to bottom. Whether a row shows is pageVisible's call.
 // Olympus: the plan-writing AI Coach is not listed; Hercules, Athena and your own coaches live in
 // the AI coach screen (views/CoachAI.jsx).
-// Olympus: the app guide first, where someone new to the app looks for help. Connect to Claude and
-// Connect to ChatGPT read the profile on the server, so they need one (components/ClaudeConnector.jsx).
-export const ROOT_GROUPS = [['guide'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['claude', 'chatgpt'], ['data', 'about']]
+// Olympus: the app guide first, where someone new to the app looks for help. Then the AI
+// assistants, one entry for Claude and ChatGPT together, drawn as a card of its own so it is not
+// lost among the plain rows (views/Settings.jsx AssistantsCard). Both connectors read the profile
+// on the server, so they need one (components/ClaudeConnector.jsx).
+export const ROOT_GROUPS = [['guide'], ['assistants'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['data', 'about']]
 
 /**
  * Whether a page exists for this device and profile. Reminders need a push server (signed in) or
@@ -43,7 +46,7 @@ export const ROOT_GROUPS = [['guide'], ['workout', 'alerts', 'reminders'], ['pla
 export function pageVisible(page, ctx) {
   if (page === 'reminders') return !!(ctx.user || ctx.mobile)
   if (page === 'coach') return false
-  if (page === 'claude' || page === 'chatgpt') return !!ctx.user && !ctx.demo
+  if (page === 'assistants' || page === 'claude' || page === 'chatgpt') return !!ctx.user && !ctx.demo
   return page in PAGES
 }
 
@@ -134,6 +137,9 @@ export const SEARCH = [
   { page: 'data', title: 'Import from Hevy', icon: 'key', tint: 'var(--teal)', kw: 'hevy api import' },
   { page: 'data', title: 'Photos & videos', icon: 'image', tint: 'var(--teal)', kw: 'media storage photos videos upload', when: c => c.hasMedia },
   { page: 'data', title: 'Reset everything', icon: 'trash', tint: 'var(--red)', kw: 'delete wipe reset erase' },
+  // Olympus in Claude and ChatGPT
+  { page: 'assistants', title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)', kw: 'claude ai assistant anthropic mcp connector connect llm', when: c => !!c.user && !c.demo },
+  { page: 'assistants', title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)', kw: 'chatgpt openai gpt ai assistant mcp connector plugin connect llm', when: c => !!c.user && !c.demo },
   // Connect to Claude
   { page: 'claude', title: 'Ask Claude about your training', icon: 'sparkles', tint: 'var(--orange)', kw: 'claude ai assistant anthropic mcp connector connect link llm integration', when: c => !!c.user && !c.demo },
   // Connect to ChatGPT

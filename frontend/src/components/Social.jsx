@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn, exerciseNameFor } from '../lib/i18n.js'
-import { fmtAgo, fmtDate, fmtDur, fmtVol, fmtNum } from '../lib/format.js'
+import { fmtAgo, fmtDate, fmtDur, fmtNum } from '../lib/format.js'
 import { EXIDX } from '../lib/exercises.js'
 import { speedUnitOf } from '../lib/speed.js'
 import {
@@ -19,6 +19,7 @@ import {
 import { preparePhoto, prepareAvatar } from '../lib/social-photo.js'
 import { Button, MediaTile, TextArea, TextField, SelectRow, Section, Row, Switch } from './ui.jsx'
 import Icon from './Icon.jsx'
+import SetValue from './SetValue.jsx'
 import { AccountSection } from './AccountEdit.jsx'
 import { SongBar, SongField } from './Song.jsx'
 import { VideoField, PostVideo } from './Video.jsx'
@@ -183,7 +184,9 @@ export function WorkoutSummary({ workout, limit = 5 }) {
   const shown = open ? ex : ex.slice(0, limit)
   const stats = [
     ...(workout.durMs >= 60000 ? [[t('Duration'), fmtDur(workout.durMs)]] : []),
-    [t('Volume'), fmtVol(workout.vol || 0, workout.unit || 'kg')],
+    // Whole units: the tenth a post stores adds nothing to a total in the tens of thousands, and
+    // the unit sits small behind the number so the row of totals stays one line wide.
+    [t('Volume'), <>{fmtNum(Math.round(workout.vol || 0))}<small>{workout.unit || 'kg'}</small></>],
     [t('Sets'), fmtNum(workout.sets || 0)],
     ...(workout.prs ? [[t('PRs'), fmtNum(workout.prs)]] : []),
   ]
@@ -195,7 +198,7 @@ export function WorkoutSummary({ workout, limit = 5 }) {
       {stats.map(([l, v]) => <div key={l} className="post-stat"><div className="l">{l}</div><div className="v">{v}</div></div>)}
     </div>
     {shown.map((e, i) => <div key={i} className="post-ex">
-      <span className="n">{e.sets} × {e.n}</span><span className="b">{e.best}</span>
+      <span className="n">{e.sets} × {e.n}</span><SetValue className="b" label={e.best} unit={workout.unit || 'kg'} />
     </div>)}
     {ex.length > limit && <button className="post-more btn ghost" style={{ padding: '5px 0' }} onClick={() => setOpen(o => !o)}>
       {open ? t('Show less') : tn('{0} more exercise', '{0} more exercises', ex.length - limit)}

@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { STATS_CARDS, statsCard, statsCardsOf, toggleCard, moveCard } from '../lib/stats-cards.js'
+import { STATS_CARDS, statsCard, statsCardsOf, toggleCard, moveCard, saveStatsCards } from '../lib/stats-cards.js'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../stats-picker.css'
@@ -21,7 +21,7 @@ function Picker({ close }) {
   const shown = statsCardsOf(S)
   const hidden = STATS_CARDS.filter(c => !shown.includes(c.id))
   const [moved, setMoved] = useState(null)
-  const save = list => useStore.getState().update(s => { s.statsCards = list })
+  const save = list => useStore.getState().update(s => saveStatsCards(s, list))
   const move = (from, to) => { save(moveCard(shown, from, to)); setMoved(shown[from]) }
 
   return <div className="sp">

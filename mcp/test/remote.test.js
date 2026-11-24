@@ -92,6 +92,8 @@ describe('the protocol (remote.js)', () => {
       expect(r.result.protocolVersion).toBe(v)
       expect(r.result.capabilities.tools).toBeTruthy()
       expect(r.result.serverInfo.name).toBe('olympus')
+      expect(r.result.serverInfo.icons[0]).toMatchObject({ mimeType: 'image/png', sizes: ['512x512'] })
+      expect(r.result.serverInfo.icons[0].src).toMatch(/^https:\/\/.*icon-512\.png$/)
     }
     const odd = await answerMessage({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '1999-01-01' } }, { load: null })
     expect(odd.result.protocolVersion).toBe(PROTOCOL_VERSIONS[0])

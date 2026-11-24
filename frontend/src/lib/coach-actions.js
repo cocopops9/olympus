@@ -14,7 +14,7 @@ import { EXIDX, CATALOGUE, searchExercises, isCardio } from './exercises.js'
 import { exerciseNameFor, t } from './i18n.js'
 import { uid, exerciseNameText } from './format.js'
 import { defaultConfig } from './history.js'
-import { STATS_IDS, statsCard } from './stats-cards.js'
+import { STATS_IDS, statsCard, saveStatsCards } from './stats-cards.js'
 import { TRAINING_STYLES, PHASES, GOALS_MAX, coachProfileOf, withSince } from './coach-profile.js'
 import { markSuggested } from './suggested.js'
 import { isWarmupRow } from './workout-model.js'
@@ -159,7 +159,7 @@ export function applyAction(s, a) {
       return {}
     }
     case 'set_rest': s.restSec = a.seconds; return {}
-    case 'set_stats_cards': s.statsCards = [...a.cards]; return {}
+    case 'set_stats_cards': saveStatsCards(s, [...a.cards]); return {}
     case 'set_goals': {
       const p = coachProfileOf(s)
       s.coachProfile = withSince(p, { styles: a.styles || p.styles, phase: a.phase || p.phase, goals: a.goals || p.goals })

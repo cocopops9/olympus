@@ -12,6 +12,7 @@ import { tappable } from '../lib/use-sheet-keyboard.js'
 import { Medal } from './RecordMedals.jsx'
 import Icon from './Icon.jsx'
 import WorkoutPicture from './WorkoutPicture.jsx'
+import SetValue from './SetValue.jsx'
 import '../history.css'
 
 const SHOWN = 5
@@ -63,7 +64,7 @@ export default function WorkoutCard({ w, onClick }) {
         const best = bestSet(e)
         return <div key={i} className="wcard-row">
           <span className={'wcard-en ' + (ex ? exerciseNameClass(ex) : '')}>{done} × {ex ? exerciseNameFor(ex) : (e.n || e.id)}</span>
-          {best && <span className="wcard-best">{setLabel(e.id, best, e.target, speedUnitOf(S))}</span>}
+          {best && <SetValue className="wcard-best" label={setLabel(e.id, best, e.target, speedUnitOf(S))} unit={unit} />}
         </div>
       })}
       {entries.length > SHOWN && <div className="wcard-more">{tn('{0} more exercise', '{0} more exercises', entries.length - SHOWN)}</div>}
