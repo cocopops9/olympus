@@ -3317,6 +3317,7 @@ export default {
   "rhythmic gymnastics": "художественная гимнастика",
   "squash": "сквош",
   "surfing": "сёрфинг",
+  "snowboarding": "сноуборд",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

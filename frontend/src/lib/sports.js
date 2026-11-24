@@ -225,6 +225,11 @@ const SPORT_LIST = [
     trains: ['Balance', 'Endurance', 'Core stability'],
     muscleWeights: { 'upper-back': 0.8, deltoids: 0.7, quadriceps: 0.6, 'lower-back': 0.5, abs: 0.5, gluteal: 0.5, triceps: 0.4, chest: 0.4 },
   },
+  {
+    id: 'sport-snowboarding', n: 'snowboarding', icon: 'figureRun', min: 90,
+    trains: ['Balance', 'Core stability', 'Power'],
+    muscleWeights: { quadriceps: 0.9, gluteal: 0.7, hamstring: 0.5, calves: 0.5, abs: 0.5, obliques: 0.5, tibialis: 0.4, 'lower-back': 0.4 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)

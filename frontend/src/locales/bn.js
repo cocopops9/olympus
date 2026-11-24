@@ -3392,6 +3392,7 @@ export default {
   "rhythmic gymnastics": "রিদমিক জিমন্যাস্টিকস",
   "squash": "স্কোয়াশ",
   "surfing": "সার্ফিং",
+  "snowboarding": "স্নোবোর্ডিং",
   "Downloading update": "আপডেট ডাউনলোড হচ্ছে",
   "Installing…": "ইনস্টল হচ্ছে…",
   "Download failed": "ডাউনলোড ব্যর্থ হয়েছে",

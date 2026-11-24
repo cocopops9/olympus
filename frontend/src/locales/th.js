@@ -3324,6 +3324,7 @@ export default {
   "rhythmic gymnastics": "ยิมนาสติกลีลา",
   "squash": "สควอช",
   "surfing": "โต้คลื่น",
+  "snowboarding": "สโนว์บอร์ด",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",
