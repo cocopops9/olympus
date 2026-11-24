@@ -3303,6 +3303,8 @@ export default {
   "brazilian jiu-jitsu": "ब्राज़ीलियन जिउ-जित्सु",
   "gymnastics": "जिम्नास्टिक्स",
   "ice skating": "आइस स्केटिंग",
+  "roller skating": "रोलर स्केटिंग",
+  "skateboarding": "स्केटबोर्डिंग",
   "Downloading update": "अपडेट डाउनलोड हो रहा है",
   "Installing…": "इंस्टॉल हो रहा है…",
   "Download failed": "डाउनलोड विफल रहा",

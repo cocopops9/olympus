@@ -3306,6 +3306,8 @@ export default {
   "brazilian jiu-jitsu": "brazil jiu-jitsu",
   "gymnastics": "torna",
   "ice skating": "korcsolyázás",
+  "roller skating": "görkorcsolyázás",
+  "skateboarding": "gördeszkázás",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",

@@ -3358,6 +3358,8 @@ export default {
   "brazilian jiu-jitsu": "الجوجيتسو البرازيلي",
   "gymnastics": "الجمباز",
   "ice skating": "التزلج على الجليد",
+  "roller skating": "التزلج على العجلات",
+  "skateboarding": "التزلج على اللوح",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",

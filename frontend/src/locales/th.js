@@ -3314,6 +3314,8 @@ export default {
   "brazilian jiu-jitsu": "บราซิลเลียนยิวยิตสู",
   "gymnastics": "ยิมนาสติก",
   "ice skating": "สเก็ตน้ำแข็ง",
+  "roller skating": "โรลเลอร์สเก็ต",
+  "skateboarding": "สเก็ตบอร์ด",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",
