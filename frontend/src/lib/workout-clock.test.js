@@ -1,7 +1,7 @@
 // The workout clock (lib/workout-clock.js), suggested numbers (lib/suggested.js) and picking a
 // finished workout up again (lib/session-edit.js resumeCompletedSession).
 import { describe, expect, it } from 'vitest'
-import { elapsedOf, pauseClock, resumeClock, setElapsed, trainedEnd, fmtClock, isPaused } from './workout-clock.js'
+import { elapsedOf, pauseClock, resumeClock, setElapsed, setStart, trainedEnd, fmtClock, isPaused } from './workout-clock.js'
 import { markSuggested, isSuggested, clearSuggested } from './suggested.js'
 import { resumeCompletedSession } from './session-edit.js'
 import { buildCompletedWorkout } from './finish-workout.js'
@@ -9,33 +9,57 @@ import { buildCompletedWorkout } from './finish-workout.js'
 const MIN = 60000
 
 describe('workout clock', () => {
-  it('a pause stops the time; resuming moves the start later by the pause, so the end is the phone\'s time', () => {
+  it('a pause stops the time; resuming keeps the real start and leaves the pause out', () => {
     const a = { start: 0 }
     expect(elapsedOf(a, 10 * MIN)).toBe(10 * MIN)
     pauseClock(a, 10 * MIN)
     expect(isPaused(a)).toBe(true)
     expect(elapsedOf(a, 25 * MIN)).toBe(10 * MIN)
     resumeClock(a, 25 * MIN)
-    expect(a.start).toBe(15 * MIN)
-    expect(a.pausedMs).toBeUndefined()
+    expect(a.start).toBe(0)
+    expect(a.pausedMs).toBe(15 * MIN)
     expect(elapsedOf(a, 30 * MIN)).toBe(15 * MIN)
-    // finished at 60: saved 15 → 60, 45 minutes trained, ending at the time it really ended
-    expect(trainedEnd(a, 60 * MIN)).toBe(60 * MIN)
+    // finished at 60: saved from 0, 45 minutes trained, so end - start is the trained time
+    expect(trainedEnd(a, 60 * MIN)).toBe(45 * MIN)
   })
   it('two pauses add up the same way', () => {
     const a = { start: 0 }
     pauseClock(a, 10 * MIN); resumeClock(a, 20 * MIN)
     pauseClock(a, 30 * MIN); resumeClock(a, 35 * MIN)
-    expect(a.start).toBe(15 * MIN)
+    expect(a.start).toBe(0)
     expect(elapsedOf(a, 60 * MIN)).toBe(45 * MIN)
   })
-  it('setting the time moves the start, running or paused', () => {
+  it('a pause on top of a picked-up gap adds to it', () => {
+    const a = { start: 0, pausedMs: 30 * MIN }
+    pauseClock(a, 60 * MIN); resumeClock(a, 70 * MIN)
+    expect(a.pausedMs).toBe(40 * MIN)
+    expect(elapsedOf(a, 80 * MIN)).toBe(40 * MIN)
+  })
+  it('setting the time keeps the start, running or paused', () => {
     const a = { start: 0, pausedMs: 5 * MIN }
     setElapsed(a, 40 * MIN, 60 * MIN)
+    expect(a.start).toBe(0)
     expect(elapsedOf(a, 60 * MIN)).toBe(40 * MIN)
     pauseClock(a, 70 * MIN)
     setElapsed(a, 20 * MIN, 90 * MIN)
+    expect(a.start).toBe(0)
     expect(elapsedOf(a, 90 * MIN)).toBe(20 * MIN)
+  })
+  it('setting a time longer than the span since the start moves the start earlier', () => {
+    const a = { start: 30 * MIN, pausedMs: 5 * MIN }
+    setElapsed(a, 60 * MIN, 60 * MIN)
+    expect(a.start).toBe(0)
+    expect(a.pausedMs).toBeUndefined()
+    expect(elapsedOf(a, 60 * MIN)).toBe(60 * MIN)
+  })
+  it('setting the start keeps what was typed and shrinks the time left out to fit', () => {
+    const a = { start: 0, pausedMs: 20 * MIN }
+    setStart(a, 50 * MIN, 60 * MIN)
+    expect(a.start).toBe(50 * MIN)
+    expect(a.pausedMs).toBe(10 * MIN)
+    expect(elapsedOf(a, 60 * MIN)).toBe(0)
+    setStart(a, 10 * MIN, 60 * MIN)
+    expect(elapsedOf(a, 60 * MIN)).toBe(40 * MIN)
   })
   it('the saved end leaves the pauses out and stops at a pause still on', () => {
     expect(trainedEnd({ start: 0, pausedMs: 10 * MIN }, 60 * MIN)).toBe(50 * MIN)

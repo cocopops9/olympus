@@ -3530,7 +3530,7 @@ export default {
   "One set of records for all gyms": "Egy rekordsor minden teremre",
   "Picture": "Kép",
   "Preparing the picture…": "Kép előkészítése…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "A rekordok termenként vannak: ezt az edzést az ugyanabban a teremben végzettekkel és a terem nélküliekkel vetjük össze.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "A rekordok edzőtermenként számítanak: ez az edzés csak az ugyanabban a teremben végzettekkel van összevetve.",
   "Records per gym": "Termenkénti rekordok",
   "Something else…": "Valami más…",
   "Where are you training?": "Hol edzel?",
@@ -3894,4 +3894,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "Minden asszisztens saját címet kap, így az egyiket, a másikat vagy mindkettőt összekapcsolhatod.",
   "Not added yet": "Még nincs hozzáadva",
   "Ask your AI assistant about your training, and let it log for you.": "Kérdezd az MI-asszisztensedet az edzésedről, és hagyd, hogy ő rögzítsen helyetted.",
+  "Start the stopwatch": "Stopper indítása",
+  "Stop the stopwatch": "Stopper leállítása",
 }

@@ -2,6 +2,7 @@
 // exercise the exact shape the UI writes without mounting React or mutating store state.
 import { bestWeightForEntry, cleanupSg } from './history.js'
 import { hasCompletedWork, isSideSet } from './workout-model.js'
+import { withoutStopwatch } from './stopwatch.js'
 
 // planSec is live-session bookkeeping: a hold displaced before it finished puts its plan aside so
 // the row still knows what it is asking for (Workout.startTimed). A finished session keeps only
@@ -18,6 +19,8 @@ import { hasCompletedWork, isSideSet } from './workout-model.js'
 // it always was.
 function finishedRow(set) {
   if (!set) return set
+  // A stopwatch still running on the row (lib/stopwatch.js) is the live session's, not the log's.
+  set = withoutStopwatch(set)
   const sideMarked = isSideSet(set) && (set.sides.L.weightOrigin != null || set.sides.R.weightOrigin != null)
   if (set.planSec == null && set.weightOrigin == null && set.sug == null && !sideMarked) return set
   // `sug` (lib/suggested.js) marks numbers the app offered and nobody changed yet: bookkeeping too.

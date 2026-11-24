@@ -19,7 +19,8 @@ import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
 import { newRecords, recordsOf, recordSignature } from '../lib/records.js'
 import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
-import { activeGym, recordHistory } from '../lib/gyms.js'
+import { activeGym, recordHistory, sessionPast } from '../lib/gyms.js'
+import { changeSessionGym } from '../lib/gym-refill.js'
 import { GymIcon, gymChooserSheet } from '../components/Gyms.jsx'
 import { pinState } from '../lib/queue.js'
 import { t, tn, exerciseNameFor, exerciseNameClass } from '../lib/i18n.js'
@@ -35,6 +36,8 @@ import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import ClockValue from '../components/ClockValue.jsx'
+import { startStopwatch, stopStopwatch, stopwatchRunning, stopwatchSec } from '../lib/stopwatch.js'
+import { fmtClock as fmtCardioClock, minOfSecs } from '../lib/cardio-time.js'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
@@ -48,7 +51,7 @@ import { buildPlannedEntry, plannedConfigOf, builtOutOfProgression } from '../li
 import { routineChangesFromEntry, updateRoutineFromEntry } from '../lib/routines.js'
 import { sessionNoProg, setSessionNoProg, setEntryNoProg, joinSessionNoProg } from '../lib/session-noprog.js'
 import { glyphOf } from '../lib/glyphs.js'
-import { markAllSetsDone, sessionHistory } from '../lib/backfill.js'
+import { markAllSetsDone } from '../lib/backfill.js'
 import { bestSetFor } from '../lib/exercise-history.js'
 import { isWarmupRow, isFailureSet, toggleFailure, isDropSet, isRestPauseSet, dropsOf, clustersOf, addDrop, addCluster, removeDropAt, removeClusterAt, setDropAt, setClusterAt, nextDropWeight, nextBurstReps, isSideSet, makeSideSet, setSideField, toggleSide, addSideDrop, removeSideDropAt, setSideDropAt, addSideCluster, removeSideClusterAt, setSideClusterAt, WEIGHT_ORIGIN_MANUAL } from '../lib/workout-model.js'
 import { canMoveActiveWorkoutUnit, moveActiveWorkoutUnit, canMoveActiveWorkoutEntry, moveActiveWorkoutEntry } from '../lib/active-workout-order.js'
@@ -87,6 +90,13 @@ const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/
 // The pause between the left and the right side of one timed per-side set (owner's call): long
 // enough to turn over, far shorter than the rest the set earns once both sides are held.
 const SWITCH_SIDES_SEC = 10
+
+// The count of a row's running stopwatch, in the duration cell, ticking every second.
+function RowStopwatch({ row }) {
+  const [, tick] = useState(0)
+  useEffect(() => { const iv = setInterval(() => tick(n => n + 1), 1000); return () => clearInterval(iv) }, [])
+  return <span className="num swlive" role="timer" aria-live="off">{fmtCardioClock(minOfSecs(stopwatchSec(row)))}</span>
+}
 
 function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onCopySetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onRest, onNoProg, routineUpdate, onSwap, onSwapTo, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
@@ -174,7 +184,8 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const runs = cardio && isIntervals(entry.target)
   // The history the rows were built from: before the session's day when it is logged into the
   // past (sessionHistory), so "last time", the best set and the Best chip are not from later on.
-  const H = sessionHistory(S)
+  // In the session's gym only, for an exercise already trained there (lib/gyms.js historyAtGym).
+  const H = sessionPast(S)
   // The routine's own last session of this exercise (or any, for a routine that has none), the
   // same one the rows and the progression line were built from (#216).
   const last = lastEntryFor(H, entry.id, entry.rid)
@@ -315,7 +326,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const cell = (s, i, col, cls) => (
     <div className={'stp ' + cls + (wc.steppers ? '' : ' plain') + (isSuggested(s, col.f) ? ' sug' : '')}>
       {wc.steppers && <button aria-label={t('Decrease')} onClick={() => bump(s, i, col, -1)}><Icon name="minus" /></button>}
-      <span className="val">{col.clock
+      <span className="val">{col.clock && stopwatchRunning(s)
+        ? <RowStopwatch row={s} />
+        : col.clock
         ? <ClockValue value={s[col.f] || 0} title={t('Duration')} onChange={v => onField(i, col.f, v)} />
         : <NumberField decimal={col.dec} nullable={col.opt} value={viewOf(col, s[col.f]) ?? ''}
           onChange={v => onField(i, col.f, col.store ? col.store(v) : v)} />}</span>
@@ -598,6 +611,15 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // from. The button's own label speaks for it, so a screen reader hears it with the set number.
   const failMark = s => isFailureSet(s) ? <span className="failmark" aria-hidden="true">{t('F')}</span> : null
   const failSay = (s, label) => isFailureSet(s) ? label + ', ' + t('Taken to failure') : label
+  // The stopwatch goes on a plain cardio or sport row; an interval run already counts its
+  // segments down with the play button.
+  const stopwatchable = cardio && !runs && !editing
+  // Stopped, the stopwatch writes its count as the duration and ticks the row (a row ticked by
+  // hand while it runs comes here too, so the time run is not lost).
+  const stopRowStopwatch = i => {
+    mutSet(i, row => stopStopwatch(row))
+    if (!useStore.getState().S.active?.entries?.[entryIdx]?.sets?.[i]?.done) onToggle(i)
+  }
   const plainRow = (s, i) => (
     <div ref={el => onSetRowRef?.(i, el)} className={'setrow' + (s.done ? ' done' : '') + (col3 ? ' eff3' : '') + (timed || runs ? ' timed' : '')}>
       <button type="button" className="n" aria-label={failSay(s, sideTagOf(s) ? t('Set {0} ({1})', setNumOf(s, i), sideTagOf(s)) : t('Set {0}', setNumOf(s, i)))} aria-describedby={optsId} title={t('More')} onClick={() => openSetMenu(s, i)}>{setNumOf(s, i)}{failMark(s)}</button>
@@ -612,7 +634,15 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
           set off itself. The checkbox stays for anyone who timed it on their own watch. */}
       {(timed || runs) && !editing && <button className="setgo" aria-label={t('Start set')} disabled={s.done || !!working}
         onClick={() => onStartTimed(i)}><Icon name="play" /></button>}
-      <Check checked={s.done} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))} onChange={() => onToggle(i)} />
+      {/* A cardio or sport row can be timed by a stopwatch instead of typed (lib/stopwatch.js):
+          started here, stopped here or by the tick, its count becomes the duration. */}
+      {stopwatchable && <button className={'setgo sw' + (stopwatchRunning(s) ? ' on' : '')}
+        aria-label={stopwatchRunning(s) ? t('Stop the stopwatch') : t('Start the stopwatch')}
+        title={stopwatchRunning(s) ? t('Stop the stopwatch') : t('Start the stopwatch')}
+        disabled={s.done} onClick={() => (stopwatchRunning(s) ? stopRowStopwatch(i) : mutSet(i, row => startStopwatch(row)))}>
+        <Icon name={stopwatchRunning(s) ? 'stopFill' : 'stopwatch'} /></button>}
+      <Check checked={s.done} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))}
+        onChange={() => (stopwatchRunning(s) ? stopRowStopwatch(i) : onToggle(i))} />
     </div>
   )
   // Swipe on sets (v1.3.11, Settings → Workout): a set row swiped toward the start of the line is
@@ -700,7 +730,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
           columns; over L/R rows it also has to skip the side badge that sits in front of the weight cell */}
-      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" />{col1 === loadCol ? unitHead('w-sp') : <span className="w-sp">{col1.hd}</span>}{col2 && (col2 === loadCol ? unitHead('r-sp') : <span className="r-sp">{col2.hd}</span>)}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
+      <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (perSide ? ' per-side' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" />{col1 === loadCol ? unitHead('w-sp') : <span className="w-sp">{col1.hd}</span>}{col2 && (col2 === loadCol ? unitHead('r-sp') : <span className="r-sp">{col2.hd}</span>)}{col3 && <span className={col3.eff ? 'eff-sp' : 'r-sp'}>{col3.hd}</span>}{(timed || (cardio && !editing)) && <span className="ck-sp" />}<span className="ck-sp" /></div>
       <span id={optsId} className="vh">{t('Options: copy, remove')}</span>
       {entry.sets.map((s, i) => {
         const warm = isWarmupRow(s)
@@ -1401,7 +1431,7 @@ function ActiveWorkout() {
     // Freestyle has no routine prescription to apply: show the last target in the config
     // sheet and carry its completed rows forward. A planned session uses its configured
     // target when progression is off, while progression-enabled sessions keep their path.
-    const seed = freestyle ? freestyleConfig(sessionHistory(S), { id: ex.id, ...defaultConfig(ex.id) }) : null
+    const seed = freestyle ? freestyleConfig(sessionPast(S), { id: ex.id, ...defaultConfig(ex.id) }) : null
     const commit = cfg => {
       if (focusMode) focusPointerEpoch.current++
       update(s => {
@@ -1409,7 +1439,8 @@ function ActiveWorkout() {
         // A planned session builds the exercise the way its routine would (prescription, reps
         // source, target); freestyle reproduces what you did last time.
         // Read from before the session's day when it is logged into the past (sessionHistory).
-        const past = sessionHistory(s)
+        // In the session's gym, the exercise opens from its last session there (lib/gyms.js).
+        const past = sessionPast(s)
         // Freestyle stamps the meaning of a dumbbell weight and reads last time in it, the way
         // buildPlannedEntry does for a planned exercise (lib/dumbbells.js).
         const built = freestyle
@@ -1532,7 +1563,7 @@ function ActiveWorkout() {
         // kept in place (done warm-ups first, then done work sets, then the fresh remainder).
         // Without a prescription only in a routine kept out of progression: an exercise kept out
         // by hand keeps its prescription, so its Undo leaves the numbers it should count at.
-        const built = buildPlannedEntry(sessionHistory(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
+        const built = buildPlannedEntry(sessionPast(s), full, activeRoutine, { noProg: builtOutOfProgression(activeEntry, activeRoutine) })
         const fresh = built.sets
         const doneWarm = activeEntry.sets.filter(x => x.done && isWarmupRow(x))
         const doneWork = activeEntry.sets.filter(x => x.done && !isWarmupRow(x))
@@ -2051,7 +2082,7 @@ function ActiveWorkout() {
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{(A.backfill || editing) ? fmtDate(A.d, true) + ' · ' : ''}{t('{0} sets', done + '/' + total)}</div>
         {/* The gym of this session (components/Gyms.jsx): the latest one by default, one tap to change. */}
         {!editing && <button type="button" className="whdr-gym" aria-label={t('Gym') + ': ' + (sessionGym || t('No gym'))}
-          onClick={() => gymChooserSheet({ current: sessionGym, onPick: g => update(s => { if (s.active) s.active.gym = g }) })}>
+          onClick={() => gymChooserSheet({ current: sessionGym, onPick: g => update(s => { if (s.active) changeSessionGym(s, g) }) })}>
           <GymIcon name={sessionGym} size={20} /><span>{sessionGym || t('Choose the gym')}</span><Icon name="chevronDown" />
         </button>}
       </div>

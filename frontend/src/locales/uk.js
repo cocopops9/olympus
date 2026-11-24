@@ -3524,7 +3524,7 @@ export default {
   "One set of records for all gyms": "Одні рекорди для всіх залів",
   "Picture": "Зображення",
   "Preparing the picture…": "Готую зображення…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "Рекорди ведуться за залами: це тренування порівнюється з тренуваннями в тому ж залі та без залу.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "Рекорди ведуться окремо для кожного залу: це тренування порівнюється лише з тренуваннями в тому самому залі.",
   "Records per gym": "Рекорди за залами",
   "Something else…": "Щось інше…",
   "Where are you training?": "Де ви тренуєтеся?",
@@ -3888,4 +3888,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "Кожен асистент має власну адресу, тож можна під’єднати одного, іншого або обох.",
   "Not added yet": "Ще не додано",
   "Ask your AI assistant about your training, and let it log for you.": "Питай ШІ-асистента про свої тренування, і нехай він записує за тебе.",
+  "Start the stopwatch": "Запустити секундомір",
+  "Stop the stopwatch": "Зупинити секундомір",
 }

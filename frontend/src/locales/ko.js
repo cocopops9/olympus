@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "모든 체육관에 하나의 기록",
   "Picture": "사진",
   "Preparing the picture…": "이미지 준비 중…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "기록은 체육관별입니다: 이 운동은 같은 체육관의 운동, 그리고 체육관이 없는 운동과 비교됩니다.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "기록은 체육관별로 관리됩니다: 이 운동은 같은 체육관의 운동과만 비교됩니다.",
   "Records per gym": "체육관별 기록",
   "Something else…": "다른 것…",
   "Where are you training?": "어디서 운동하나요?",
@@ -3891,4 +3891,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "어시스턴트마다 주소가 따로 있어 하나만, 다른 하나만, 또는 둘 다 연결할 수 있습니다.",
   "Not added yet": "아직 추가되지 않음",
   "Ask your AI assistant about your training, and let it log for you.": "AI 어시스턴트에게 운동에 대해 묻고 기록도 맡기세요.",
+  "Start the stopwatch": "스톱워치 시작",
+  "Stop the stopwatch": "스톱워치 정지",
 }

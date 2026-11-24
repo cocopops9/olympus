@@ -3538,7 +3538,7 @@ export default {
   "One set of records for all gyms": "สถิติชุดเดียวสำหรับทุกยิม",
   "Picture": "รูปภาพ",
   "Preparing the picture…": "กำลังเตรียมภาพ…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "สถิติแยกตามยิม: การออกกำลังกายนี้จะเทียบกับครั้งที่อยู่ยิมเดียวกันและครั้งที่ไม่ระบุยิม",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "สถิติแยกตามยิม: การออกกำลังกายนี้จะเทียบเฉพาะกับครั้งที่อยู่ยิมเดียวกัน",
   "Records per gym": "สถิติตามยิม",
   "Something else…": "อย่างอื่น…",
   "Where are you training?": "คุณฝึกที่ไหน?",
@@ -3902,4 +3902,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "ผู้ช่วยแต่ละตัวมีที่อยู่ของตัวเอง คุณจึงเชื่อมต่อตัวใดตัวหนึ่งหรือทั้งสองก็ได้",
   "Not added yet": "ยังไม่ได้เพิ่ม",
   "Ask your AI assistant about your training, and let it log for you.": "ถามผู้ช่วย AI เรื่องการฝึกของคุณ และให้มันบันทึกแทนคุณ",
+  "Start the stopwatch": "เริ่มนาฬิกาจับเวลา",
+  "Stop the stopwatch": "หยุดนาฬิกาจับเวลา",
 }

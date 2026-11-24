@@ -83,12 +83,69 @@ describe('gyms with a picture, the session\'s gym, and records per gym', () => {
     expect(activeGym({ ...base, active: null })).toBe('')
   })
 
-  test('records per gym: the same gym and the workouts with no gym count; off, everything counts', () => {
+  test('records per gym: only the same gym counts; with no gym or the option off, everything counts', () => {
     const S = { workouts: [w('a', 'Home', 1e12), w('b', 'McFit', 2e12), w('c', null, 3e12)] }
     expect(recordHistory(S, 'Home')).toBe(S)
     const on = { ...S, recordsByGym: true }
-    expect(recordHistory(on, 'Home').workouts.map(x => x.id)).toEqual(['a', 'c'])
-    expect(recordHistory(on, 'McFit').workouts.map(x => x.id)).toEqual(['b', 'c'])
+    // A workout with no gym could have been anywhere: it no longer holds every gym to its numbers.
+    expect(recordHistory(on, 'Home').workouts.map(x => x.id)).toEqual(['a'])
+    expect(recordHistory(on, 'McFit').workouts.map(x => x.id)).toEqual(['b'])
     expect(recordHistory(on, '')).toBe(on)
+  })
+
+  test('a saved workout being edited or picked up again is in its own gym, not the latest one', () => {
+    const S = { workouts: [w('a', 'Home', 1e12), w('b', 'McFit', 2e12)] }
+    expect(activeGym({ ...S, active: { editingWorkoutId: 'a' } })).toBe('Home')
+    expect(activeGym({ ...S, active: { resumeOf: 'a' } })).toBe('Home')
+    expect(activeGym({ ...S, active: { editingWorkoutId: 'gone' } })).toBe('McFit')
+  })
+})
+
+import { historyAtGym, sessionPast } from './gyms.js'
+import { lastEntryFor } from './history.js'
+
+// One exercise entry with work sets of [weight, reps], all done.
+const ex = (id, ...sets) => ({ id, sets: sets.map(([wt, r]) => ({ w: wt, r, done: true })) })
+const at = (id, gym, end, ...entries) => ({ ...w(id, gym, end), entries })
+
+describe('each gym opens an exercise from its own last session there', () => {
+  // The case reported: a shoulder press done at 84 kg in one gym and at 50 kg on another
+  // gym's machine; the lateral raise only ever done in the first.
+  const S = {
+    workouts: [
+      at('old', null, 1e12, ex('press', [90, 8]), ex('raise', [40, 12])),
+      at('conde', 'Conde', 2e12, ex('press', [50, 12])),
+      at('cdb', 'CdB', 3e12, ex('press', [84, 9]), ex('raise', [45, 15])),
+    ],
+  }
+
+  test('an exercise trained in the gym reads its last session there, wherever the latest was', () => {
+    expect(lastEntryFor(S, 'press').sets[0].w).toBe(84)
+    expect(lastEntryFor(historyAtGym(S, 'Conde'), 'press').sets[0].w).toBe(50)
+    expect(lastEntryFor(historyAtGym(S, 'CdB'), 'press').sets[0].w).toBe(84)
+  })
+
+  test('an exercise never trained in the gym still opens from its last session anywhere', () => {
+    expect(lastEntryFor(historyAtGym(S, 'Conde'), 'raise').sets[0].w).toBe(45)
+  })
+
+  test('no gym, or a gym with nothing in it yet, leaves the history as it is', () => {
+    expect(historyAtGym(S, '')).toBe(S)
+    expect(historyAtGym(S, 'Somewhere new')).toBe(S)
+  })
+
+  test('a warm-up alone or a deload does not make an exercise "trained here"', () => {
+    const T = { workouts: [
+      at('a', 'X', 1e12, ex('press', [80, 5])),
+      at('b', 'Y', 2e12, { id: 'press', sets: [{ w: 20, r: 10, done: true, warmup: true }] }),
+      { ...at('c', 'Y', 3e12, ex('press', [40, 5])), excludeFromProgression: true },
+    ] }
+    expect(lastEntryFor(historyAtGym(T, 'Y'), 'press').sets[0].w).toBe(80)
+  })
+
+  test('the session in progress reads the history of the gym picked in it', () => {
+    expect(lastEntryFor(sessionPast({ ...S, active: { gym: 'Conde' } }), 'press').sets[0].w).toBe(50)
+    // Nothing picked: the latest workout's gym.
+    expect(lastEntryFor(sessionPast({ ...S, active: {} }), 'press').sets[0].w).toBe(84)
   })
 })

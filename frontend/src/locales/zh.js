@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "所有健身房共用一套纪录",
   "Picture": "图片",
   "Preparing the picture…": "正在准备图片…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "纪录按健身房保存：这次训练与同一健身房以及没有健身房的训练比较。",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "记录按健身房分开：这次训练只与同一家健身房的训练比较。",
   "Records per gym": "按健身房记录",
   "Something else…": "其他…",
   "Where are you training?": "你在哪里训练？",
@@ -3891,4 +3891,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "每个助手都有自己的地址，所以你可以连接其中一个或两个都连。",
   "Not added yet": "尚未添加",
   "Ask your AI assistant about your training, and let it log for you.": "向你的 AI 助手询问训练情况，并让它替你记录。",
+  "Start the stopwatch": "开始秒表",
+  "Stop the stopwatch": "停止秒表",
 }

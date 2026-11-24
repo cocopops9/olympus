@@ -3547,7 +3547,7 @@ export default {
   "One set of records for all gyms": "Ein Rekordsatz für alle Studios",
   "Picture": "Bild",
   "Preparing the picture…": "Bild wird vorbereitet…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "Rekorde gelten pro Studio: dieses Training wird mit denen im selben Studio und denen ohne Studio verglichen.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "Rekorde gelten pro Studio: Dieses Training wird nur mit denen im selben Studio verglichen.",
   "Records per gym": "Rekorde pro Studio",
   "Something else…": "Etwas anderes…",
   "Where are you training?": "Wo trainierst du?",
@@ -3911,4 +3911,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "Jeder Assistent bekommt seine eigene Adresse, du kannst also einen, den anderen oder beide verbinden.",
   "Not added yet": "Noch nicht hinzugefügt",
   "Ask your AI assistant about your training, and let it log for you.": "Frag deinen KI-Assistenten nach deinem Training und lass ihn für dich eintragen.",
+  "Start the stopwatch": "Stoppuhr starten",
+  "Stop the stopwatch": "Stoppuhr anhalten",
 }

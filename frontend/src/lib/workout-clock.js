@@ -3,16 +3,17 @@
 // the duration saved is the time actually trained.
 //
 // On the running session (S.active):
-//   start     when it started, ms (as always)
+//   start     when it started, ms: the wall-clock time the workout began. A pause never moves it,
+//             because pausing the workout does not stop the time of day (2026-11-24).
 //   pausedAt  when the current pause began, ms; absent while running
-//   pausedMs  time left out that is not a pause of this session: the gap before a saved workout
-//             was picked up again (lib/session-edit.js resumeCompletedSession); absent when none
+//   pausedMs  time left out of the clock: every pause that has ended, plus the gap before a saved
+//             workout was picked up again (lib/session-edit.js resumeCompletedSession); absent
+//             when none
 //
-// Elapsed is (now, or the moment of the pause) − start − pausedMs. A pause that ends moves
-// `start` later by its length: the clock keeps the trained time, and the workout ends at the
-// phone's own time, so start, end and duration agree with the clock on the wall (a 30-minute pause
-// in a 18:00 workout finished at 20:00 saves 18:30 to 20:00, not 18:00 to 19:30). Setting the time
-// by hand moves `start` too, so the clock reads what was typed and keeps counting from there.
+// Elapsed is (now, or the moment of the pause) − start − pausedMs. A workout saved from the
+// session keeps its real start and is given end = start + time trained (trainedEnd), so
+// end − start, which every reader of history takes as the duration, is the time trained: a
+// 30-minute pause in an 18:00 workout finished at 20:00 saves start 18:00 and 90 minutes.
 
 /** The session's trained time at `now`, in ms. */
 export function elapsedOf(active, now = Date.now()) {
@@ -29,19 +30,41 @@ export function pauseClock(active, now = Date.now()) {
   active.pausedAt = now
 }
 
-/** Starts the clock of `active` again: the start moves later by the length of the pause. */
+/** Starts the clock of `active` again: the pause is added to the time left out; the start stays. */
 export function resumeClock(active, now = Date.now()) {
   if (!active || !isPaused(active)) return
   const pause = Math.max(0, now - active.pausedAt)
-  if (Number.isFinite(active.start)) active.start += pause
+  if (pause > 0) active.pausedMs = (Number(active.pausedMs) || 0) + pause
   delete active.pausedAt
 }
 
-/** Sets the trained time of `active` to `ms`, by moving its start; a pause stays a pause. */
+/**
+ * Sets the trained time of `active` to `ms`; a pause stays a pause. The start stays where it is
+ * and the time left out takes up the difference. Only a time longer than the whole span since the
+ * start moves the start earlier, since the workout must then have begun before it says.
+ */
 export function setElapsed(active, ms, now = Date.now()) {
   if (!active || !(ms >= 0)) return
   const at = isPaused(active) ? active.pausedAt : now
-  active.start = Math.round(at - (Number(active.pausedMs) || 0) - ms)
+  const left = Math.round(at - active.start - ms)
+  if (Number.isFinite(active.start) && left >= 0) {
+    if (left > 0) active.pausedMs = left; else delete active.pausedMs
+  } else {
+    active.start = Math.round(at - ms)
+    delete active.pausedMs
+  }
+}
+
+/**
+ * Sets when `active` started to `at`, keeping what was typed. The time left out can never exceed
+ * the span from the new start to now (or to the pause still on), so it shrinks to fit.
+ */
+export function setStart(active, at, now = Date.now()) {
+  if (!active || !Number.isFinite(at)) return
+  active.start = at
+  const span = Math.max(0, (isPaused(active) ? active.pausedAt : now) - at)
+  const left = Math.min(Number(active.pausedMs) || 0, span)
+  if (left > 0) active.pausedMs = left; else delete active.pausedMs
 }
 
 /**

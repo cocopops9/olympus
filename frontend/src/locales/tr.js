@@ -3527,7 +3527,7 @@ export default {
   "One set of records for all gyms": "Tüm salonlar için tek rekor seti",
   "Picture": "Görsel",
   "Preparing the picture…": "Görsel hazırlanıyor…",
-  "Records are kept per gym: this workout is held against the ones in the same gym, and the ones with no gym.": "Rekorlar salon başına tutulur: bu antrenman aynı salondakilerle ve salonu olmayanlarla karşılaştırılır.",
+  "Records are kept per gym: this workout is held only against the ones in the same gym.": "Rekorlar her salon için ayrı tutulur: bu antrenman yalnızca aynı salondakilerle karşılaştırılır.",
   "Records per gym": "Salon başına rekorlar",
   "Something else…": "Başka bir şey…",
   "Where are you training?": "Nerede antrenman yapıyorsun?",
@@ -3891,4 +3891,6 @@ export default {
   "Each assistant gets its own address, so you can connect one, the other or both.": "Her asistanın kendi adresi vardır; birini, diğerini ya da ikisini bağlayabilirsin.",
   "Not added yet": "Henüz eklenmedi",
   "Ask your AI assistant about your training, and let it log for you.": "Yapay zekâ asistanına antrenmanını sor, kaydı o tutsun.",
+  "Start the stopwatch": "Kronometreyi başlat",
+  "Stop the stopwatch": "Kronometreyi durdur",
 }

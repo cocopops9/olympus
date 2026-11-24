@@ -8,6 +8,10 @@
 // or deleting a gym changes every workout that carries it, each one stamped so the change syncs.
 import { stampWorkout } from './sync-merge.js'
 import { sameWorkout } from './workout-date.js'
+import { entryExcluded } from './history.js'
+import { isWarmupRow } from './workout-model.js'
+import { sessionHistory } from './backfill.js'
+import { resumedKeyOf } from './session-edit.js'
 
 export const GYM_MAX = 40
 export const cleanGym = v => String(v || '').trim().replace(/\s+/g, ' ').slice(0, GYM_MAX)
@@ -55,27 +59,73 @@ export function saveGym(s, name, { icon, photo } = {}, now = Date.now()) {
 
 // ---- The gym of the session in progress ------------------------------------------------------
 /**
- * The gym of the session in progress: the one picked in it (A.gym, '' for "no gym"), else the
- * workout picked up again keeps its own, else the latest workout's.
+ * The gym of the session in progress: the one picked in it (A.gym, '' for "no gym"), else, for a
+ * saved workout being edited or picked up again, the gym it was saved with, else the latest
+ * workout's.
  */
 export function activeGym(S) {
   const A = S?.active
   if (!A) return ''
   if (typeof A.gym === 'string') return cleanGym(A.gym)
+  const key = A.editingWorkoutId != null ? A.editingWorkoutId : A.resumeOf
+  if (key != null) {
+    const saved = (S.workouts || []).find(w => resumedKeyOf(w) === key)
+    if (saved) return cleanGym(saved.gym)
+  }
   return lastGym(S)
 }
 
 /**
  * The history records are held against. With records per gym on (S.recordsByGym) and a gym on
- * the session, only the workouts in that gym count, and every workout with no gym on it: a
- * workout never labelled could have been anywhere, so it counts for all of them. Off, or with no
- * gym, everything counts, as it always did.
+ * the session, only the workouts in that gym count. A workout with no gym on it counts for no
+ * gym: it could have been anywhere, and most histories began before gyms could be labelled (one
+ * profile had 420 unlabelled workouts against 20 labelled), so counting them for every gym held
+ * each gym to the best of all of them and no gym record could ever show. They still count for a
+ * session with no gym, and with the option off everything counts, as it always did.
  */
 export function recordHistory(S, gym) {
   const g = cleanGym(gym)
   if (!S?.recordsByGym || !g) return S
-  return { ...S, workouts: (S.workouts || []).filter(w => { const wg = cleanGym(w?.gym); return !wg || wg === g }) }
+  return { ...S, workouts: (S.workouts || []).filter(w => cleanGym(w?.gym) === g) }
 }
+
+// An entry a session can open from: it counts (no deload or rehab block) and has a work set done.
+// The same test history.js lastEntryFor applies, so "trained here" means "last time can be here".
+const counts = (w, e) => !!e?.id && !entryExcluded(w, e) && (e.sets || []).some(x => x?.done && !isWarmupRow(x))
+
+/**
+ * The history the rows of a session in gym `gym` are built from. The same machine can be set up
+ * very differently in two gyms, so an exercise already trained in this gym opens from its sessions
+ * here only: every other workout keeps only the exercises never trained in this gym, which still
+ * open from wherever they were last done, since that is a better first guess than an empty bar.
+ * With no gym, or nothing trained in it yet, the history is returned as it is.
+ *
+ * It narrows the history itself rather than one lookup, so everything that reads "last time" from
+ * it (the rows, the progression rule, the "Last time" line) agrees without being told about gyms.
+ */
+export function historyAtGym(S, gym) {
+  const g = cleanGym(gym)
+  if (!g) return S
+  const here = new Set()
+  for (const w of S?.workouts || []) {
+    if (cleanGym(w?.gym) !== g) continue
+    for (const e of w.entries || []) if (counts(w, e)) here.add(e.id)
+  }
+  if (!here.size) return S
+  const workouts = (S.workouts || []).map(w => {
+    if (cleanGym(w?.gym) === g) return w
+    const entries = w?.entries || []
+    const kept = entries.filter(e => !here.has(e?.id))
+    return kept.length === entries.length ? w : { ...w, entries: kept }
+  })
+  return { ...S, workouts }
+}
+
+/**
+ * The history the session in progress builds and reads its rows from: before its day when it is
+ * logged into the past (lib/backfill.js sessionHistory), narrowed to the session's gym.
+ */
+export const sessionPast = S => historyAtGym(sessionHistory(S), activeGym(S))
 
 /** How many saved workouts carry gym `name`. */
 export function gymUseCount(S, name) {
