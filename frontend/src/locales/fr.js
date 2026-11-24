@@ -3305,6 +3305,8 @@ export default {
   "ice skating": "patinage sur glace",
   "roller skating": "patinage à roulettes",
   "skateboarding": "skateboard",
+  "cricket": "cricket",
+  "zumba": "zumba",
   "Downloading update": "Téléchargement de la mise à jour",
   "Installing…": "Installation…",
   "Download failed": "Échec du téléchargement",

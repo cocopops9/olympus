@@ -3305,6 +3305,8 @@ export default {
   "ice skating": "buz pateni",
   "roller skating": "paten",
   "skateboarding": "kaykay",
+  "cricket": "kriket",
+  "zumba": "zumba",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

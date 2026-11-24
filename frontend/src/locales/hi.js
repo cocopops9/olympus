@@ -3305,6 +3305,8 @@ export default {
   "ice skating": "आइस स्केटिंग",
   "roller skating": "रोलर स्केटिंग",
   "skateboarding": "स्केटबोर्डिंग",
+  "cricket": "क्रिकेट",
+  "zumba": "ज़ुम्बा",
   "Downloading update": "अपडेट डाउनलोड हो रहा है",
   "Installing…": "इंस्टॉल हो रहा है…",
   "Download failed": "डाउनलोड विफल रहा",

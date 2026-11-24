@@ -1732,6 +1732,8 @@ export const PT_BR_OVERRIDES = {
   "ice skating": "patinação no gelo",
   "roller skating": "patinação sobre rodas",
   "skateboarding": "skate",
+  "cricket": "críquete",
+  "zumba": "zumba",
   "Back to the text": "Voltar ao texto",
   "Change {0}": "Trocar {0}",
   "Choose an exercise": "Escolha um exercício",

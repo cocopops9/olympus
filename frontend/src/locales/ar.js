@@ -3360,6 +3360,8 @@ export default {
   "ice skating": "التزلج على الجليد",
   "roller skating": "التزلج على العجلات",
   "skateboarding": "التزلج على اللوح",
+  "cricket": "الكريكيت",
+  "zumba": "زومبا",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",
