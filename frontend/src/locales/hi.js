@@ -3299,6 +3299,7 @@ export default {
   "american football": "अमेरिकन फ़ुटबॉल",
   "cycling": "साइकिलिंग",
   "muay thai": "मुए थाई",
+  "brazilian jiu-jitsu": "ब्राज़ीलियन जिउ-जित्सु",
   "Downloading update": "अपडेट डाउनलोड हो रहा है",
   "Installing…": "इंस्टॉल हो रहा है…",
   "Download failed": "डाउनलोड विफल रहा",

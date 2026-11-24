@@ -3354,6 +3354,7 @@ export default {
   "american football": "كرة القدم الأمريكية",
   "cycling": "ركوب الدراجات",
   "muay thai": "مواي تاي",
+  "brazilian jiu-jitsu": "الجوجيتسو البرازيلي",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",
