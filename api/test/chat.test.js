@@ -156,7 +156,7 @@ test('a message can carry a photo, a voice message or a file, checked by what it
   // what is not what it says is refused
   await assert.rejects(chat.send('ada', 'bea', '', { kind: 'image', data: webm.toString('base64') }), e => e.code === 'bad-type');
   await assert.rejects(chat.send('ada', 'bea', '', { kind: 'audio', data: pdf.toString('base64') }), e => e.code === 'bad-type');
-  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'video', data: jpeg.toString('base64') }), e => e.code === 'bad-attachment');
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'sticker', data: jpeg.toString('base64') }), e => e.code === 'bad-attachment');
   await assert.rejects(chat.send('ada', 'bea', '', { kind: 'image', data: Buffer.concat([jpeg, Buffer.alloc(CHAT.imageBytes)]).toString('base64') }), e => e.code === 'file-too-large');
   // taken back: the file goes with the message
   await chat.remove('ada', 'bea', photo.id);
@@ -191,4 +191,81 @@ test('over the server: a photo is fetched by the two people only', async () => {
   const res = await app.handle(new Request(`https://x.test/functions/v1/olympus/api/chat/media?id=${ada.user.id}&m=${file.id}`, { headers: { Authorization: 'Bearer ' + bea.token } }));
   assert.equal(res.headers.get('content-type'), 'application/octet-stream');
   assert.match(res.headers.get('content-disposition'), /^attachment; filename\*=UTF-8''notes\.txt$/);
+});
+
+// A tiny MP4 by its first bytes: a size, then 'ftyp'.
+const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom'), Buffer.alloc(60, 5)]);
+
+test('a video is an MP4 or a WebM, served as a video, with its seconds kept within limits', async () => {
+  const files = memFiles();
+  const chat = createChat({ kv: memoryKv(), now: clock(), files });
+  const v = await chat.send('ada', 'bea', '', { kind: 'video', data: mp4.toString('base64'), secs: 12.4 });
+  assert.deepEqual(v.attachment, { kind: 'video', type: 'video/mp4', size: mp4.length, secs: 12 });
+  const w = await chat.send('ada', 'bea', '', { kind: 'video', data: webm.toString('base64'), secs: 999 });
+  assert.equal(w.attachment.type, 'video/webm');
+  assert.equal(w.attachment.secs, CHAT.videoSeconds);
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'video', data: jpeg.toString('base64') }), e => e.code === 'bad-type' && e.status === 415);
+  const big = Buffer.concat([mp4, Buffer.alloc(CHAT.videoBytes)]);
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'video', data: big.toString('base64') }), e => e.code === 'file-too-large');
+  // Watched again and again: a video not sent to view once stays.
+  for (let i = 0; i < 3; i++) assert.equal((await chat.media('bea', 'ada', v.id)).type, 'video/mp4');
+  assert.equal((await chat.list('bea'))[0].kind, 'video');
+});
+
+test('view once: the one it was sent to opens it one time, its bytes leave the server, the sender never gets them', async () => {
+  const files = memFiles();
+  const chat = createChat({ kv: memoryKv(), now: clock(), files });
+  const m = await chat.send('ada', 'bea', '', { kind: 'image', data: jpeg.toString('base64'), once: true });
+  assert.deepEqual({ once: m.attachment.once, opened: m.attachment.opened }, { once: true, opened: false });
+  const [line] = await chat.list('bea');
+  assert.deepEqual({ kind: line.kind, once: line.once }, { kind: 'image', once: true });
+  assert.equal(files.m.size, 1);
+  // The sender cannot fetch it back.
+  await assert.rejects(chat.media('ada', 'bea', m.id), e => e.code === 'once-sender' && e.status === 403);
+  const got = await chat.media('bea', 'ada', m.id);
+  assert.ok(Buffer.from(got.bytes).equals(jpeg));
+  assert.equal(got.once, true);
+  assert.equal(files.m.size, 0, 'the bytes are gone from the server once given');
+  await assert.rejects(chat.media('bea', 'ada', m.id), e => e.code === 'once-opened' && e.status === 410);
+  // Both see it was opened; the message itself stays.
+  assert.equal((await chat.thread('ada', 'bea')).messages[0].attachment.opened, true);
+  assert.equal((await chat.thread('bea', 'ada')).messages[0].attachment.opened, true);
+  // Taking back an opened one is fine: nothing is left to remove.
+  await chat.remove('ada', 'bea', m.id);
+  assert.deepEqual((await chat.thread('bea', 'ada')).messages, []);
+});
+
+test('view once: two fetches at the same moment give the photo to one of them only', async () => {
+  const files = memFiles();
+  const chat = createChat({ kv: memoryKv(), now: clock(), files });
+  const m = await chat.send('ada', 'bea', '', { kind: 'video', data: mp4.toString('base64'), secs: 5, once: true });
+  const results = await Promise.allSettled([chat.media('bea', 'ada', m.id), chat.media('bea', 'ada', m.id), chat.media('bea', 'ada', m.id)]);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  assert.ok(results.filter(r => r.status === 'rejected').every(r => r.reason.code === 'once-opened'));
+  assert.equal(files.m.size, 0);
+});
+
+test('view once is for photos and videos only', async () => {
+  const chat = createChat({ kv: memoryKv(), now: clock(), files: memFiles() });
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'audio', data: webm.toString('base64'), secs: 3, once: true }), e => e.code === 'bad-attachment');
+  await assert.rejects(chat.send('ada', 'bea', '', { kind: 'file', data: pdf.toString('base64'), name: 'a.pdf', once: true }), e => e.code === 'bad-attachment');
+});
+
+test('over the server: a view-once photo is served once, never cached, then answers 410', async () => {
+  const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env: {} });
+  const call = async (method, path, body, token) => {
+    const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
+    return { status: res.status, cache: res.headers.get('cache-control'), bytes: Buffer.from(await res.arrayBuffer()) };
+  };
+  const sign = async name => JSON.parse((await call('POST', '/api/app/signup', { name, email: name + '@example.com', password: 'correct horse battery staple' })).bytes);
+  const ada = await sign('ada_lifts'); const bea = await sign('bea_runs');
+  const sent = JSON.parse((await call('POST', '/api/chat/send', { id: bea.user.id, attachment: { kind: 'image', data: jpeg.toString('base64'), once: true } }, ada.token)).bytes).message;
+  assert.equal((await call('GET', `/api/chat/media?id=${bea.user.id}&m=${sent.id}`, null, ada.token)).status, 403);
+  const first = await call('GET', `/api/chat/media?id=${ada.user.id}&m=${sent.id}`, null, bea.token);
+  assert.equal(first.status, 200);
+  assert.equal(first.cache, 'no-store');
+  assert.ok(first.bytes.equals(jpeg));
+  const again = await call('GET', `/api/chat/media?id=${ada.user.id}&m=${sent.id}`, null, bea.token);
+  assert.equal(again.status, 410);
+  assert.equal(JSON.parse(again.bytes).code, 'once-opened');
 });

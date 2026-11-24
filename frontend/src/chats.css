@@ -62,7 +62,7 @@
 .chat-attach .t-red{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
 .chat-attach .t-purple{background:color-mix(in srgb,var(--purple,#a463f2) 18%,transparent);color:var(--purple,#a463f2)}
 
-/* A message with a photo, a voice message or a file. */
+/* A message with a photo, a video, a voice message or a file. */
 .chat-m.pending{opacity:.75}
 .chat-m.a-image{padding:4px 4px 6px}
 .chat-m.a-image .chat-m-t{padding:4px 8px 0}
@@ -89,3 +89,40 @@
 .spin.sm{width:10px;height:10px;border-width:1.6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.chat-rec-dot,.spin{animation:none}}
+
+/* Four kinds to attach, and the switch that sends the next photo or video to view once. */
+.chat-attach.four{grid-template-columns:repeat(4,1fr);gap:8px}
+.chat-attach button:disabled{opacity:.4;cursor:default}
+.chat-once-1{display:inline-flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;border-radius:50%;border:2px dashed currentColor;font-size:12px;font-weight:800;line-height:1}
+.chat-once-switch{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--surface-2);cursor:pointer}
+.chat-once-switch.on{background:color-mix(in srgb,var(--acc) 16%,var(--surface-2))}
+.chat-once-switch.on>.chat-once-1{color:var(--acc);border-style:solid}
+.chat-once-switch>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.chat-once-switch small{font-size:12.5px;opacity:.75}
+.chat-once-switch input{flex:none;width:22px;height:22px;accent-color:var(--acc)}
+
+/* A video in a conversation: a cover with its length until it is played. */
+.chat-m.a-video{padding:4px 4px 6px}
+.chat-m.a-video .chat-m-t{padding:4px 8px 0}
+.chat-m.a-video .chat-m-s{padding:0 8px}
+.chat-a-video{position:relative;display:flex;align-items:center;justify-content:center;width:min(240px,62vw);aspect-ratio:9/12;max-height:300px;padding:0;border:0;border-radius:14px;overflow:hidden;background:rgba(0,0,0,.35);color:#fff;font:inherit}
+.chat-a-video.cover{cursor:pointer}
+.chat-a-video video{display:block;width:100%;height:100%;object-fit:contain;background:#000}
+.chat-a-play.big{width:52px;height:52px;font-size:20px;background:rgba(0,0,0,.55);color:#fff}
+.chat-a-len{position:absolute;inset-inline-end:8px;bottom:8px;padding:2px 8px;border-radius:99px;background:rgba(0,0,0,.55);font-size:12px;font-variant-numeric:tabular-nums}
+
+/* A photo or video to view once: a chip until opened, then only a note that it was. */
+.chat-a-once{display:flex;align-items:center;gap:10px;width:min(240px,62vw);padding:6px 4px 4px;border:0;background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.chat-a-once:disabled{cursor:default}
+.chat-a-once-i{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.14);font-size:18px}
+.chat-a-once-i .chat-once-1{width:26px;height:26px;font-size:13px}
+.chat-a-once-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.chat-a-once-m b{font-size:14.5px}
+.chat-a-once-m small{font-size:12px;opacity:.75}
+.chat-a-once-k{flex:none;font-size:18px;opacity:.7}
+.chat-a-once.opened{opacity:.7}
+.chat-a-once.opened .chat-a-once-m b{font-weight:600}
+.mviewer.once .mviewer-stage{align-items:center;justify-content:center}
+.chat-once-t{display:flex;align-items:center;gap:8px;font-weight:600}
+.chat-once-media{width:100%;height:100%;max-height:100%;object-fit:contain;background:#000;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.chat-once-note{flex:none;margin:0;padding:10px 16px 14px;text-align:center;opacity:.7}

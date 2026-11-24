@@ -14,7 +14,8 @@ import EmojiPicker from '../components/EmojiPicker.jsx'
 import { socialReady, fetchChats, fetchThread, sendMessage, markChatRead, deleteMessage, chatErrorText } from '../lib/social.js'
 import { preparePhoto } from '../lib/social-photo.js'
 import { canRecordNote, startVoiceNote, blobToDataUrl, fmtSecs } from '../lib/voice-note.js'
-import { ChatAttachment, attachmentLabel, rememberMedia } from '../components/ChatAttachment.jsx'
+import { ChatAttachment, attachmentLabel, attachmentIcon, rememberMedia } from '../components/ChatAttachment.jsx'
+import { pickChatVideo } from '../components/Video.jsx'
 import Icon from '../components/Icon.jsx'
 import { Avatar, Name, confirmAction } from '../components/Social.jsx'
 import '../social.css'
@@ -65,8 +66,9 @@ export default function Chats() {
               <span className="chat-row-m">
                 <span className="chat-row-n"><Name user={c.user} /><small>{fmtAgo(c.at)}</small></span>
                 <span className="chat-row-t">{(() => {
-                  const what = c.kind ? (c.text ? attachmentLabel(c.kind) + ': ' + c.text : attachmentLabel(c.kind)) : c.text
-                  return <>{c.kind && <Icon name={c.kind === 'image' ? 'image' : c.kind === 'audio' ? 'mic' : 'doc'} className="chat-row-k" />}{c.mine ? t('You: {0}', what) : what}</>
+                  const label = c.kind ? attachmentLabel(c.kind, c.once) : ''
+                  const what = c.kind ? (c.text ? label + ': ' + c.text : label) : c.text
+                  return <>{c.kind && <Icon name={attachmentIcon(c.kind)} className="chat-row-k" />}{c.mine ? t('You: {0}', what) : what}</>
                 })()}</span>
               </span>
               {c.unread > 0 && <span className="chat-row-u" aria-label={t('{0} unread', c.unread)}>{c.unread > 9 ? '9+' : c.unread}</span>}
@@ -130,12 +132,13 @@ export function ChatThread() {
   // A message on screen at once, marked as on its way, replaced by the server's when it arrives.
   const deliver = async ({ text = '', attachment = null, blob = null }) => {
     const temp = { id: 'tmp' + Math.random().toString(36).slice(2), mine: true, text, at: Date.now(), pending: true,
-      ...(attachment ? { attachment: { kind: attachment.kind, size: blob?.size || 0, ...(attachment.name ? { name: attachment.name } : {}), ...(attachment.secs ? { secs: attachment.secs } : {}) } } : {}),
+      ...(attachment ? { attachment: { kind: attachment.kind, size: blob?.size || 0, ...(attachment.name ? { name: attachment.name } : {}), ...(attachment.secs ? { secs: attachment.secs } : {}), ...(attachment.once ? { once: true, opened: false } : {}) } } : {}),
       ...(blob ? { blob } : {}) }
     setMessages(old => [...(old || []), temp]); scrollDown()
     try {
       const r = await sendMessage(id, text, attachment)
-      if (blob) rememberMedia(id, r.message.id, blob)
+      // A view-once photo or video is not kept on the sender's phone either.
+      if (blob && !attachment?.once) rememberMedia(id, r.message.id, blob)
       setMessages(old => (old || []).map(m => (m.id === temp.id ? r.message : m)))
       lastId.current = r.message.id
       return true
@@ -154,12 +157,16 @@ export function ChatThread() {
     if (!ok) setDraft(text)
     setSending(false)
   }
-  const sendPhoto = async file => {
+  const sendPhoto = async (file, once = false) => {
     let data
     try { data = await preparePhoto(file) } catch { useUI.getState().toast(t('That photo could not be read.')); return }
     const blob = await (await fetch(data)).blob()
-    deliver({ attachment: { kind: 'image', data }, blob })
+    deliver({ attachment: { kind: 'image', data, ...(once ? { once: true } : {}) }, blob: once ? null : blob })
   }
+  // A video is cut to 30 seconds and shrunk first, in the same sheet a post's video uses.
+  const sendVideo = (file, once = false) => pickChatVideo(file, async ({ blob, secs }) => {
+    deliver({ attachment: { kind: 'video', data: await blobToDataUrl(blob), secs, ...(once ? { once: true } : {}) }, blob: once ? null : blob })
+  })
   const sendFile = async file => {
     if (file.size > FILE_MAX) { useUI.getState().toast(t('That file is too large to send.')); return }
     if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type)) return sendPhoto(file)
@@ -197,7 +204,7 @@ export function ChatThread() {
               const first = i === 0 || dayOf(messages[i - 1].at) !== day
               return <div key={m.id} className="chat-item">
                 {first && <div className="chat-day">{day}</div>}
-                <div className={'chat-m ' + (m.mine ? 'me' : 'them') + (m.attachment ? ' has-a a-' + m.attachment.kind : '') + (m.pending ? ' pending' : '')} onContextMenu={m.mine && !m.pending ? e => { e.preventDefault(); takeBack(m) } : undefined}>
+                <div className={'chat-m ' + (m.mine ? 'me' : 'them') + (m.attachment ? ' has-a a-' + (m.attachment.once ? 'once' : m.attachment.kind) : '') + (m.pending ? ' pending' : '')} onContextMenu={m.mine && !m.pending ? e => { e.preventDefault(); takeBack(m) } : undefined}>
                   {m.attachment && <ChatAttachment peer={id} message={m} local={m.blob ? localUrl(m) : null} />}
                   {m.text && <span className="chat-m-t">{m.text}</span>}
                   <span className="chat-m-s">{m.pending ? <><i className="spin sm" /> {t('Sending…')}</> : new Date(m.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
@@ -210,7 +217,7 @@ export function ChatThread() {
             <div ref={end} />
           </>}
     </div>
-    {!error && <Composer draft={draft} setDraft={setDraft} sending={sending} onSend={send} onPhoto={sendPhoto} onFile={sendFile} onVoice={sendVoice} />}
+    {!error && <Composer draft={draft} setDraft={setDraft} sending={sending} onSend={send} onPhoto={sendPhoto} onVideo={sendVideo} onFile={sendFile} onVoice={sendVoice} />}
   </div>
 }
 
@@ -219,9 +226,11 @@ export function ChatThread() {
  * plane to send them or, while nothing is written, the microphone for a voice message. Recording
  * shows how long and how loud, with a bin to throw it away and the plane to send it.
  */
-function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }) {
+function Composer({ draft, setDraft, sending, onSend, onPhoto, onVideo, onFile, onVoice }) {
   const [rec, setRec] = useState(null)   // { note, ms, level }
-  const photoIn = useRef(null), camIn = useRef(null), fileIn = useRef(null)
+  const photoIn = useRef(null), camIn = useRef(null), videoIn = useRef(null), fileIn = useRef(null)
+  // Whether the next photo or video goes to view once: chosen in the attach sheet, used once.
+  const once = useRef(false)
   const note = useRef(null)
   const area = useRef(null)
   const [emojis, setEmojis] = useState(false)
@@ -257,17 +266,22 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }
     else if (n) useUI.getState().toast(t('That was too short to send.'))
   }
   const discard = () => { note.current?.cancel(); note.current = null; setRec(null) }
-  const attach = () => useUI.getState().openSheet(close => <div className="chat-attach">
-    <button onClick={() => { close(); photoIn.current?.click() }}><span className="t-green"><Icon name="image" /></span>{t('Photo')}</button>
-    <button onClick={() => { close(); camIn.current?.click() }}><span className="t-blue"><Icon name="camera" /></span>{t('Camera')}</button>
-    <button onClick={() => { close(); fileIn.current?.click() }}><span className="t-orange"><Icon name="doc" /></span>{t('File')}</button>
-  </div>)
-  const picked = (fn, e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) fn(f) }
+  const attach = () => useUI.getState().openSheet(close => <AttachSheet close={close} onPick={(which, viewOnce) => {
+    once.current = viewOnce
+    ;({ photo: photoIn, camera: camIn, video: videoIn, file: fileIn })[which].current?.click()
+  }} />)
+  const picked = (fn, e) => {
+    const f = e.target.files?.[0]; e.target.value = ''
+    const viewOnce = once.current
+    once.current = false
+    if (f) fn(f, viewOnce)
+  }
   const bars = Array.from({ length: 24 }, (_, i) => 0.25 + 0.75 * Math.abs(Math.sin(i * 1.7 + (rec?.ms || 0) / 160)) * (rec?.level || 0.05))
   return <form className={'chat-in' + (emojis ? ' with-emoji' : '')} onSubmit={e => { e.preventDefault(); onSend() }}>
     {emojis && !rec && <EmojiPicker onPick={addEmoji} />}
     <input ref={photoIn} type="file" accept="image/*" hidden onChange={e => picked(onPhoto, e)} data-testid="chat-photo" />
     <input ref={camIn} type="file" accept="image/*" capture="environment" hidden onChange={e => picked(onPhoto, e)} />
+    <input ref={videoIn} type="file" accept="video/*" hidden onChange={e => picked(onVideo, e)} data-testid="chat-video" />
     <input ref={fileIn} type="file" hidden onChange={e => picked(onFile, e)} data-testid="chat-file" />
     {rec ? <>
       <button type="button" className="chat-tool danger" onClick={discard} aria-label={t('Delete recording')}><Icon name="trash" /></button>
@@ -278,7 +292,7 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }
       </div>
       <button type="button" className="chat-send" onClick={finish} aria-label={t('Send voice message')}><Icon name="send" /></button>
     </> : <>
-      <button type="button" className="chat-tool" onClick={attach} aria-label={t('Attach a photo or file')}><Icon name="paperclip" /></button>
+      <button type="button" className="chat-tool" onClick={attach} aria-label={t('Attach a photo, video or file')}><Icon name="paperclip" /></button>
       <button type="button" className={'chat-tool' + (emojis ? ' on' : '')} onClick={() => setEmojis(v => !v)} aria-pressed={emojis} aria-label={t('Emoji')}><Icon name="smile" /></button>
       <textarea ref={area} rows={1} value={draft} maxLength={2000} placeholder={t('Write a message…')} aria-label={t('Write a message…')}
         onChange={e => setDraft(e.target.value)}
@@ -288,4 +302,26 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onFile, onVoice }
         : <button type="submit" className="chat-send" disabled={sending || !draft.trim()} aria-label={t('Send')}><Icon name="send" /></button>}
     </>}
   </form>
+}
+
+/**
+ * What to attach: a photo, the camera, a video or a file. The switch below sends the next photo or
+ * video to view once: the other person can open it one time, then it is gone from the server.
+ */
+function AttachSheet({ close, onPick }) {
+  const [viewOnce, setViewOnce] = useState(false)
+  const pick = which => { close(); onPick(which, which === 'file' ? false : viewOnce) }
+  return <div className="chat-attach-sheet">
+    <div className="chat-attach four">
+      <button onClick={() => pick('photo')}><span className="t-green"><Icon name="image" /></span>{t('Photo')}</button>
+      <button onClick={() => pick('camera')}><span className="t-blue"><Icon name="camera" /></span>{t('Camera')}</button>
+      <button onClick={() => pick('video')}><span className="t-red"><Icon name="video" /></span>{t('Video')}</button>
+      <button onClick={() => pick('file')} disabled={viewOnce}><span className="t-orange"><Icon name="doc" /></span>{t('File')}</button>
+    </div>
+    <label className={'chat-once-switch' + (viewOnce ? ' on' : '')}>
+      <b className="chat-once-1" aria-hidden="true">1</b>
+      <span><b>{t('View once')}</b><small>{t('The photo or video can be opened one time, then it is deleted.')}</small></span>
+      <input type="checkbox" role="switch" checked={viewOnce} onChange={e => setViewOnce(e.target.checked)} data-testid="chat-once" />
+    </label>
+  </div>
 }

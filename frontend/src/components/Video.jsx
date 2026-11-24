@@ -25,8 +25,12 @@ const videoError = e => (e?.code === 'video-file-large' ? t('That video is too l
 // The one video playing anywhere in the app: starting another stops it.
 let playing = null
 
-/** The sheet that cuts and sends a video: `opened` comes from lib/video.js openVideo(file). */
-function VideoSheet({ file, opened, close, onPicked }) {
+/**
+ * The sheet that cuts and sends a video: `opened` comes from lib/video.js openVideo(file). A post's
+ * video is uploaded here and handed to `onPicked`; with `onClip` (a chat) the prepared clip
+ * ({ blob, secs }) is handed over instead, and whoever asked sends it.
+ */
+function VideoSheet({ file, opened, close, onPicked, onClip, title }) {
   const max = Math.floor(opened.duration * 10) / 10
   const [range, setRange] = useState(() => defaultVideoRange(opened.duration))
   const [progress, setProgress] = useState(null)   // null, or 0..1 while the video is prepared
@@ -51,6 +55,7 @@ function VideoSheet({ file, opened, close, onPicked }) {
     try {
       const { blob, secs } = await prepareVideo(file, opened, range, { onProgress: p => alive.current && setProgress(Math.min(0.99, p)) })
       if (alive.current) setProgress(1)
+      if (onClip) { if (alive.current) { onClip({ blob, secs }); close() } return }
       const id = await uploadVideo(blob)
       if (!alive.current) return
       // The workout's lists show a frame of it (lib/video-frame.js), taken now while the phone has the clip.
@@ -62,7 +67,7 @@ function VideoSheet({ file, opened, close, onPicked }) {
   const busy = progress !== null
   const len = range.end - range.start
   return <div className="vid-sheet">
-    <h3>{t('Your workout video')}</h3>
+    <h3>{title || t('Your workout video')}</h3>
     <p className="small muted">{t('Choose the part of the video to share, up to {0} seconds.', MAX_VIDEO_SEC)}</p>
     <div className="vid-view">
       <video ref={view} src={opened.url} playsInline preload="metadata" onTimeUpdate={onTime} onEnded={stopView} onPause={() => setWatching(false)} />
@@ -78,6 +83,18 @@ function VideoSheet({ file, opened, close, onPicked }) {
       <Button variant="primary" icon="check" disabled={busy || len < MIN_VIDEO_SEC} onClick={use}>{!busy ? t('Use this video') : progress >= 1 ? t('Uploading the video…') : t('Preparing the video… {0}%', Math.round(progress * 100))}</Button>
     </div>
   </div>
+}
+
+/**
+ * A video picked in a chat: the same sheet to cut and shrink it, then `onClip({ blob, secs })`.
+ * Resolves when the sheet is open (or the video could not be read, which is said in a toast).
+ */
+export async function pickChatVideo(file, onClip) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) { toast(t('A video needs a connection. Add it once you are back online.')); return }
+  try {
+    const opened = await openVideo(file)
+    useUI.getState().openSheet(close => <VideoSheet file={file} opened={opened} close={close} onClip={onClip} title={t('Send a video')} />)
+  } catch (err) { toast(videoError(err)) }
 }
 
 /** A video of a post that is still being written: its own cover from the phone, and a button to take it off. */

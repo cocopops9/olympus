@@ -6,11 +6,17 @@
 //   chat:<a>|<b>   { n, msgs: [{ i, f, t, at, a? }], read: { <uid>: i } }   a < b; f is who wrote it
 //   chats:<uid>    { <peer>: { at, text, from, unread, k? } }
 //
-// A message may carry one attachment, `a`: { k: 'image' | 'audio' | 'file', id, y: its type,
-// s: bytes, n: a file's name, d: a voice message's seconds }. Its bytes are kept by `files`
-// ({ put(name, bytes, type), get(name), del(name) }) under 'chat-' + id, and only the two people
-// of the conversation can fetch them (media). The inbox line of an attachment carries its kind,
-// `k`, so the app says "Photo" or "Voice message" in the reader's language.
+// A message may carry one attachment, `a`: { k: 'image' | 'video' | 'audio' | 'file', id, y: its
+// type, s: bytes, n: a file's name, d: a voice message's or a video's seconds, o: 1 when it may be
+// opened once, v: when it was opened }. Its bytes are kept by `files` ({ put(name, bytes, type),
+// get(name), del(name) }) under 'chat-' + id, and only the two people of the conversation can
+// fetch them (media). The inbox line of an attachment carries its kind, `k`, and `o` for a
+// view-once one, so the app says "Photo" or "View-once video" in the reader's language.
+//
+// View once: a photo or a video sent so may be fetched one time, by the one it was sent to. That
+// fetch marks it opened under the conversation's lock (two taps at once cannot both win) and
+// removes its bytes from the server before they are sent, so nothing is left to fetch again;
+// the sender never gets them back either. The message stays, saying it was opened.
 //
 // The documents live in whatever keeps documents for the server: `kv` is { read(key),
 // update(keys, fn({ get, set })) }, where update holds every key it names until fn is done, so a
@@ -35,6 +41,9 @@ export const CHAT = Object.freeze({
   imageBytes: 2.5 * 1024 * 1024,
   audioBytes: 2 * 1024 * 1024,
   fileBytes: 3.5 * 1024 * 1024,
+  // A video is cut and shrunk by the app first (frontend lib/video.js): 30 s in 3 MB at most.
+  videoBytes: 3 * 1024 * 1024,
+  videoSeconds: 30,
   audioSeconds: 300,
   filesPerHour: 40,
   fileName: 120,
@@ -66,7 +75,9 @@ export const chatKey = (a, b) => 'chat:' + [String(a), String(b)].sort().join('|
 export const inboxKey = uid => 'chats:' + uid;
 
 const clean = v => String(v ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim();
-const attachmentOut = a => (a ? { kind: a.k, type: a.y, size: a.s, ...(a.n ? { name: a.n } : {}), ...(a.d ? { secs: a.d } : {}) } : null);
+const attachmentOut = a => (a ? { kind: a.k, type: a.y, size: a.s, ...(a.n ? { name: a.n } : {}), ...(a.d ? { secs: a.d } : {}), ...(a.o ? { once: true, opened: !!a.v } : {}) } : null);
+// What a conversation's list says of a message's attachment.
+const lineKind = a => (a ? { k: a.k, ...(a.o ? { o: 1 } : {}) } : {});
 const shown = (m, me) => ({ id: m.i, mine: m.f === me, text: m.t, at: m.at, ...(m.a ? { attachment: attachmentOut(m.a) } : {}) });
 const fileKey = id => 'chat-' + id;
 const lineOf = t => (t.length > CHAT.preview ? t.slice(0, CHAT.preview - 1) + 'â€¦' : t);
@@ -74,23 +85,31 @@ const lineOf = t => (t.length > CHAT.preview ? t.slice(0, CHAT.preview - 1) + 'â
 const safeName = v => clean(v).replace(/[\\/:*?"<>|]/g, '_').slice(0, CHAT.fileName) || 'file';
 
 /**
- * The attachment of a message being sent, checked: { k, y, s, n?, d?, bytes }. `att` is what the
- * app sends: { kind: 'image' | 'audio' | 'file', data: base64, name?, secs? }.
+ * The attachment of a message being sent, checked: { k, y, s, n?, d?, o?, bytes }. `att` is what
+ * the app sends: { kind: 'image' | 'video' | 'audio' | 'file', data: base64, name?, secs?, once? }.
  */
 export function readAttachment(att) {
   const kind = att?.kind;
-  if (!['image', 'audio', 'file'].includes(kind)) throw new ChatError(400, 'unknown kind of attachment', 'bad-attachment');
+  if (!['image', 'video', 'audio', 'file'].includes(kind)) throw new ChatError(400, 'unknown kind of attachment', 'bad-attachment');
+  if (att.once && kind !== 'image' && kind !== 'video') throw new ChatError(400, 'only a photo or a video can be sent to view once', 'bad-attachment');
   const b64 = typeof att.data === 'string' ? att.data.replace(/^data:[^;,]*;base64,/, '') : '';
   if (!b64 || !/^[A-Za-z0-9+/=\s]+$/.test(b64)) throw new ChatError(400, 'send the file as base64', 'bad-attachment');
   const bytes = new Uint8Array(Buffer.from(b64, 'base64'));
-  const max = kind === 'image' ? CHAT.imageBytes : kind === 'audio' ? CHAT.audioBytes : CHAT.fileBytes;
+  const max = kind === 'image' ? CHAT.imageBytes : kind === 'video' ? CHAT.videoBytes : kind === 'audio' ? CHAT.audioBytes : CHAT.fileBytes;
   if (!bytes.length) throw new ChatError(400, 'the file is empty', 'bad-attachment');
   if (bytes.length > max) throw new ChatError(413, 'the file is too large', 'file-too-large');
   const seen = sniff(bytes);
+  // An MP4 or a WebM reads as a sound by its first bytes; sent as a video, it is served as one.
+  const asVideo = { 'audio/mp4': 'video/mp4', 'audio/webm': 'video/webm' }[seen?.y];
+  if (kind === 'video' && !asVideo) throw new ChatError(415, 'that is not a video this app can play', 'bad-type');
   if ((kind === 'image' || kind === 'audio') && seen?.k !== kind) throw new ChatError(415, `that is not ${kind === 'image' ? 'a photo' : 'a sound'} this app can show`, 'bad-type');
-  const out = { k: kind, y: kind === 'file' ? (seen?.y === 'application/pdf' ? 'application/pdf' : 'application/octet-stream') : seen.y, s: bytes.length, bytes };
+  const y = kind === 'file' ? (seen?.y === 'application/pdf' ? 'application/pdf' : 'application/octet-stream') : kind === 'video' ? asVideo : seen.y;
+  const out = { k: kind, y, s: bytes.length, bytes };
   if (kind === 'file') out.n = safeName(att.name);
-  if (kind === 'audio') out.d = Math.max(1, Math.min(CHAT.audioSeconds, Math.round(Number(att.secs) || 0) || 1));
+  const secs = limit => Math.max(1, Math.min(limit, Math.round(Number(att.secs) || 0) || 1));
+  if (kind === 'audio') out.d = secs(CHAT.audioSeconds);
+  if (kind === 'video') out.d = secs(CHAT.videoSeconds);
+  if (att.once) out.o = 1;
   return out;
 }
 
@@ -115,12 +134,34 @@ export function createChat({ kv, now = () => Date.now(), files = null }) {
   // nothing points at it any more).
   const drop = async list => { for (const m of list) if (m?.a?.id && files) { try { await files.del(fileKey(m.a.id)); } catch { /* best effort */ } } };
 
+  // A view-once attachment opened by `me`: marked under the lock first, so of two fetches at once
+  // only one gets past it; then its bytes are read and removed. Should reading them fail after the
+  // mark, the photo is lost rather than shown twice: that is the promise made to the sender.
+  async function openOnce(me, key, i) {
+    let a = null, why = null;
+    await kv.update([key], ({ get, set }) => {
+      const doc = get(key);
+      const m = doc?.msgs?.find(x => x.i === i);
+      if (!m?.a?.o) { why = ['no-file', 404, 'file not found']; return; }
+      if (m.f === me) { why = ['once-sender', 403, 'a photo or video sent to view once is for the other person only']; return; }
+      if (m.a.v) { why = ['once-opened', 410, 'already opened']; return; }
+      m.a.v = now();
+      a = { ...m.a };
+      set(key, doc);
+    });
+    if (why) throw new ChatError(why[1], why[2], why[0]);
+    let bytes = null;
+    try { bytes = await files.get(fileKey(a.id)); } finally { await drop([{ a }]); }
+    if (!bytes) throw new ChatError(410, 'already opened', 'once-opened');
+    return { bytes, type: a.y, name: null, kind: a.k, once: true };
+  }
+
   return {
     /** The inbox of `me`: [{ id (the other profile), at, text, mine, unread }], the latest first. */
     async list(me) {
       const inbox = (await kv.read(inboxKey(me))) || {};
       return Object.entries(inbox)
-        .map(([id, c]) => ({ id, at: c.at, text: c.text, mine: c.from === me, unread: Math.max(0, c.unread | 0), ...(c.k ? { kind: c.k } : {}) }))
+        .map(([id, c]) => ({ id, at: c.at, text: c.text, mine: c.from === me, unread: Math.max(0, c.unread | 0), ...(c.k ? { kind: c.k } : {}), ...(c.o ? { once: true } : {}) }))
         .sort((x, y) => y.at - x.at);
     },
 
@@ -160,7 +201,7 @@ export function createChat({ kv, now = () => Date.now(), files = null }) {
       if (att) allow(me, 'file', CHAT.filesPerHour);
       let a = null;
       if (att) {
-        a = { k: att.k, id: crypto.randomBytes(12).toString('base64url'), y: att.y, s: att.s, ...(att.n ? { n: att.n } : {}), ...(att.d ? { d: att.d } : {}) };
+        a = { k: att.k, id: crypto.randomBytes(12).toString('base64url'), y: att.y, s: att.s, ...(att.n ? { n: att.n } : {}), ...(att.d ? { d: att.d } : {}), ...(att.o ? { o: 1 } : {}) };
         // The bytes first: a message is never there without its file.
         await files.put(fileKey(a.id), att.bytes, a.y);
       }
@@ -179,10 +220,10 @@ export function createChat({ kv, now = () => Date.now(), files = null }) {
           set(key, doc);
           const line = lineOf(t);
           const mine = { ...(get(inboxKey(me)) || {}) };
-          mine[peer] = { at, text: line, from: me, unread: 0, ...(a ? { k: a.k } : {}) };
+          mine[peer] = { at, text: line, from: me, unread: 0, ...lineKind(a) };
           set(inboxKey(me), mine);
           const theirs = { ...(get(inboxKey(peer)) || {}) };
-          theirs[me] = { at, text: line, from: me, unread: Math.max(0, theirs[me]?.unread | 0) + 1, ...(a ? { k: a.k } : {}) };
+          theirs[me] = { at, text: line, from: me, unread: Math.max(0, theirs[me]?.unread | 0) + 1, ...lineKind(a) };
           set(inboxKey(peer), theirs);
           out = shown(m, me);
         });
@@ -196,16 +237,19 @@ export function createChat({ kv, now = () => Date.now(), files = null }) {
 
     /**
      * The bytes of the attachment of message `id` in the conversation of `me` with `peer`:
-     * { bytes, type, name, kind }. Nobody else's conversation can be reached: the key is made
-     * of the two people.
+     * { bytes, type, name, kind, once }. Nobody else's conversation can be reached: the key is
+     * made of the two people. A view-once attachment is given to the one it was sent to, once:
+     * it is marked opened and its bytes leave the server in the same call.
      */
     async media(me, peer, id) {
-      const doc = await kv.read(chatKey(me, peer));
+      const key = chatKey(me, peer);
+      const doc = await kv.read(key);
       const m = doc?.msgs?.find(x => x.i === Number(id));
       if (!m?.a || !files) throw new ChatError(404, 'file not found', 'no-file');
+      if (m.a.o) return openOnce(me, key, m.i);
       const bytes = await files.get(fileKey(m.a.id));
       if (!bytes) throw new ChatError(404, 'file not found', 'no-file');
-      return { bytes, type: m.a.y, name: m.a.n || null, kind: m.a.k };
+      return { bytes, type: m.a.y, name: m.a.n || null, kind: m.a.k, once: false };
     },
 
     /** `me` has read the conversation with `peer` up to now. */
@@ -237,7 +281,7 @@ export function createChat({ kv, now = () => Date.now(), files = null }) {
           if (!inbox?.[other]) continue;
           const unread = who === peer && m.i > (doc.read?.[peer] | 0) ? Math.max(0, (inbox[other].unread | 0) - 1) : inbox[other].unread | 0;
           const line = last ? lineOf(last.t) : '';
-          set(inboxKey(who), { ...inbox, [other]: { at: last ? last.at : inbox[other].at, text: line, from: last ? last.f : inbox[other].from, unread, ...(last?.a ? { k: last.a.k } : {}) } });
+          set(inboxKey(who), { ...inbox, [other]: { at: last ? last.at : inbox[other].at, text: line, from: last ? last.f : inbox[other].from, unread, ...lineKind(last?.a) } });
         }
       });
       if (!found) throw new ChatError(404, 'message not found', 'no-message');

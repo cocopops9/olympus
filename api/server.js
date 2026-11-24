@@ -2721,7 +2721,8 @@ const routes = {
     const user = SOCIAL.messageable(me, String(b.id || ''));
     return { message: await CHATS.send(me.id, user.id, b.text, b.attachment || null) };
   }),
-  // The bytes of a message's photo, voice message or file: only for the two people who wrote.
+  // The bytes of a message's photo, video, voice message or file: only for the two people who wrote
+  // (a view-once one: for the one it was sent to, one time, and never kept by a cache).
   'GET /api/chat/media': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     const q = qs(req);
@@ -2730,7 +2731,7 @@ const routes = {
       const f = await CHATS.media(me.id, user.id, q.get('m'));
       const download = f.kind === 'file' && f.type !== 'application/pdf';
       res.writeHead(200, {
-        'Content-Type': download ? 'application/octet-stream' : f.type, 'Content-Length': f.bytes.length, 'Cache-Control': 'private, max-age=604800', 'X-Content-Type-Options': 'nosniff',
+        'Content-Type': download ? 'application/octet-stream' : f.type, 'Content-Length': f.bytes.length, 'Cache-Control': f.once ? 'no-store' : 'private, max-age=604800', 'X-Content-Type-Options': 'nosniff',
         ...(f.name ? { 'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(f.name)}` } : {}),
       });
       res.end(Buffer.from(f.bytes));

@@ -57,9 +57,10 @@ export const fetchNotifications = () => api('/api/social/notifications')
 export const fetchChats = () => api('/api/chat')
 export const fetchChatUnread = () => api('/api/chat/unread').then(r => r?.unread | 0, () => 0)
 export const fetchThread = (id, before) => api('/api/chat/thread?id=' + encodeURIComponent(id) + (before ? '&before=' + before : ''))
-// `attachment`: { kind: 'image' | 'audio' | 'file', data (a data URL or base64), name?, secs? }.
+// `attachment`: { kind: 'image' | 'video' | 'audio' | 'file', data (a data URL or base64), name?, secs?, once? }.
 export const sendMessage = (id, text, attachment = null) => api('/api/chat/send', { method: 'POST', body: JSON.stringify({ id, text, ...(attachment ? { attachment } : {}) }), ...(attachment ? { timeout: 60000 } : {}) })
-// A message's photo, voice message or file (only the two people can fetch it): 3.5 MB at most.
+// A message's photo, video, voice message or file (only the two people can fetch it): 3.5 MB at most.
+// A view-once one is given one time only (api/chat.js openOnce).
 export const chatMedia = (id, message) => apiBlob('/api/chat/media?id=' + encodeURIComponent(id) + '&m=' + message, { expectSize: 3.6 * 1024 * 1024 })
 export const markChatRead = id => api('/api/chat/read', { method: 'POST', body: JSON.stringify({ id }) })
 export const deleteMessage = (id, message) => api('/api/chat/delete', { method: 'POST', body: JSON.stringify({ id, message }) })
@@ -70,10 +71,13 @@ export function chatErrorText(e, t) {
   if (code === 'chat-limit') return t('You are sending messages too fast. Wait a little.')
   if (code === 'too-long') return t('That message is too long.')
   if (code === 'file-too-large') return t('That file is too large to send.')
-  if (code === 'bad-type') return t('That file cannot be sent as a photo or voice message.')
+  if (code === 'bad-type') return t('That file cannot be sent as a photo, video or voice message.')
   if (code === 'no-files') return t('This server cannot keep files yet.')
   if (code === 'blocked') return t('You blocked this person. Unblock them to write.')
   if (code === 'no-profile') return t('This person cannot be reached.')
+  if (code === 'once-opened') return t('It was already opened.')
+  if (code === 'once-sender') return t('Only the person you sent it to can open it.')
+  if (code === 'no-file') return t('It is no longer there.')
   if (e?.status === 404) return t('Messages are not available on this server yet.')
   return socialErrorText(e, t)
 }
