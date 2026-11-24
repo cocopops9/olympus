@@ -3309,6 +3309,8 @@ export default {
   "ice skating": "катание на коньках",
   "roller skating": "катание на роликах",
   "skateboarding": "скейтбординг",
+  "cricket": "крикет",
+  "zumba": "зумба",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

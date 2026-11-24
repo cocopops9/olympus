@@ -3305,6 +3305,8 @@ export default {
   "ice skating": "滑冰",
   "roller skating": "轮滑",
   "skateboarding": "滑板",
+  "cricket": "板球",
+  "zumba": "尊巴",
   "Downloading update": "正在下载更新",
   "Installing…": "正在安装…",
   "Download failed": "下载失败",

@@ -3384,6 +3384,8 @@ export default {
   "ice skating": "আইস স্কেটিং",
   "roller skating": "রোলার স্কেটিং",
   "skateboarding": "স্কেটবোর্ডিং",
+  "cricket": "ক্রিকেট",
+  "zumba": "জুম্বা",
   "Downloading update": "আপডেট ডাউনলোড হচ্ছে",
   "Installing…": "ইনস্টল হচ্ছে…",
   "Download failed": "ডাউনলোড ব্যর্থ হয়েছে",

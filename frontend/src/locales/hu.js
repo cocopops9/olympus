@@ -3308,6 +3308,8 @@ export default {
   "ice skating": "korcsolyázás",
   "roller skating": "görkorcsolyázás",
   "skateboarding": "gördeszkázás",
+  "cricket": "krikett",
+  "zumba": "zumba",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",
