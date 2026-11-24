@@ -3310,6 +3310,7 @@ export default {
   "american football": "อเมริกันฟุตบอล",
   "cycling": "ปั่นจักรยาน",
   "muay thai": "มวยไทย",
+  "brazilian jiu-jitsu": "บราซิลเลียนยิวยิตสู",
   "Downloading update": "กำลังดาวน์โหลดอัปเดต",
   "Installing…": "กำลังติดตั้ง…",
   "Download failed": "ดาวน์โหลดไม่สำเร็จ",

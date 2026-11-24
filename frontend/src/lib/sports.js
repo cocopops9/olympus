@@ -160,6 +160,11 @@ const SPORT_LIST = [
     trains: ['Endurance', 'Power', 'Coordination', 'Balance'],
     muscleWeights: { deltoids: 0.7, obliques: 0.7, quadriceps: 0.7, gluteal: 0.7, 'hip-flexors': 0.7, abs: 0.7, calves: 0.6, neck: 0.5, trapezius: 0.5, triceps: 0.5, hamstring: 0.5, chest: 0.4, forearm: 0.4 },
   },
+  {
+    id: 'sport-bjj', n: 'brazilian jiu-jitsu', icon: 'figureStrength', min: 60,
+    trains: ['Grip strength', 'Mobility', 'Endurance', 'Core stability'],
+    muscleWeights: { forearm: 0.9, biceps: 0.7, 'upper-back': 0.7, adductors: 0.7, abs: 0.7, 'hip-flexors': 0.6, gluteal: 0.6, hamstring: 0.5, neck: 0.5, 'lower-back': 0.5, obliques: 0.5 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
@@ -173,17 +178,17 @@ const secondariesOf = w => Object.keys(w).filter(k => w[k] > 0 && w[k] < 0.6)
  */
 // The order the sports are listed in, most popular first, after the ones you play yourself (the
 // exercise guide puts those on top). Worldwide popularity has no single measure, so this is an
-// estimate blending how many people watch a sport and how many play it: football and basketball
+// estimate blending how many people watch a sport and how many play it: football, cricket and basketball
 // lead, water polo and fencing come last. It orders a short list; it is not a ranking to cite.
 // A sport missing here is listed after all of these.
 export const POPULARITY = [
-  'sport-football', 'sport-basketball', 'sport-swimming', 'sport-cycling', 'sport-tennis',
+  'sport-football', 'sport-cricket', 'sport-basketball', 'sport-swimming', 'sport-cycling', 'sport-tennis',
   'sport-volleyball', 'sport-table-tennis', 'sport-badminton', 'sport-hiking', 'sport-baseball',
   'sport-boxing', 'sport-golf', 'sport-american-football', 'sport-ice-hockey', 'sport-rugby',
-  'sport-skiing', 'sport-padel', 'sport-handball', 'sport-mma', 'sport-karate', 'sport-judo',
+  'sport-skiing', 'sport-zumba', 'sport-padel', 'sport-handball', 'sport-mma', 'sport-karate', 'sport-judo',
   'sport-kickboxing', 'sport-muay-thai', 'sport-bjj', 'sport-wrestling', 'sport-gymnastics',
-  'sport-climbing', 'sport-ice-skating', 'sport-skateboarding', 'sport-roller-skating',
-  'sport-surfing', 'sport-snowboarding', 'sport-squash', 'sport-water-polo', 'sport-fencing',
+  'sport-rhythmic-gymnastics', 'sport-ballet', 'sport-climbing', 'sport-ice-skating', 'sport-skateboarding', 'sport-roller-skating',
+  'sport-long-jump', 'sport-pole-vault', 'sport-surfing', 'sport-snowboarding', 'sport-squash', 'sport-water-polo', 'sport-fencing',
 ]
 const rankOf = id => { const i = POPULARITY.indexOf(id); return i < 0 ? POPULARITY.length : i }
 

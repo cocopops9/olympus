@@ -3303,6 +3303,7 @@ export default {
   "american football": "американский футбол",
   "cycling": "велоспорт",
   "muay thai": "тайский бокс",
+  "brazilian jiu-jitsu": "бразильское джиу-джитсу",
   "Downloading update": "Загрузка обновления",
   "Installing…": "Установка…",
   "Download failed": "Не удалось загрузить",

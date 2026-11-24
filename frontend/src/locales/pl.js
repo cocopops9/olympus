@@ -3299,6 +3299,7 @@ export default {
   "american football": "futbol amerykański",
   "cycling": "kolarstwo",
   "muay thai": "muay thai",
+  "brazilian jiu-jitsu": "brazylijskie jiu-jitsu",
   "Downloading update": "Pobieranie aktualizacji",
   "Installing…": "Instalowanie…",
   "Download failed": "Pobieranie nie powiodło się",

@@ -3299,6 +3299,7 @@ export default {
   "american football": "美式橄榄球",
   "cycling": "自行车",
   "muay thai": "泰拳",
+  "brazilian jiu-jitsu": "巴西柔术",
   "Downloading update": "正在下载更新",
   "Installing…": "正在安装…",
   "Download failed": "下载失败",

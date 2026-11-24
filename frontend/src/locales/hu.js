@@ -3302,6 +3302,7 @@ export default {
   "american football": "amerikai futball",
   "cycling": "kerékpározás",
   "muay thai": "thai box",
+  "brazilian jiu-jitsu": "brazil jiu-jitsu",
   "Downloading update": "Frissítés letöltése",
   "Installing…": "Telepítés…",
   "Download failed": "A letöltés nem sikerült",
