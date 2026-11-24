@@ -2349,3 +2349,26 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   font:inherit;font-size:16px;font-weight:600;color:var(--acc);background:transparent;
   border:1.5px solid color-mix(in srgb,var(--acc) 45%,transparent)}
 .fin-resume:active{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+
+/* Settings → Olympus in Claude and ChatGPT (components/ClaudeConnector.jsx AssistantsCard and
+   AssistantsPage): the one entry for both AI assistants, a gold-edged card rather than a plain row
+   so a feature people would not think to look for is seen. */
+.ai-hero{display:flex;align-items:center;gap:14px;width:100%;text-align:start;color:var(--label);
+  border-radius:var(--r-card);padding:14px;margin-bottom:22px;position:relative;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 18%,var(--surface)) 0%,var(--surface) 62%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 45%,transparent),0 6px 22px color-mix(in srgb,var(--acc) 12%,transparent)}
+.ai-hero-card:active{filter:brightness(1.08)}
+.ai-hero-icon{flex:none;width:54px;height:54px;border-radius:14px;object-fit:cover;background:#fff;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 70%,transparent),0 4px 12px rgba(0,0,0,.25)}
+.ai-hero-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ai-hero-t{font-size:17.5px;font-weight:700;letter-spacing:-.015em;line-height:1.2;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ai-hero-s{font-size:13.5px;color:var(--label-2);line-height:1.35}
+.ai-hero-badge{align-self:flex-start;display:inline-flex;align-items:center;gap:3px;margin-bottom:2px;font-size:11px;font-weight:800;letter-spacing:.06em;
+  padding:2px 7px;border-radius:999px;background:var(--acc);color:var(--on-acc)}
+.ai-hero-badge .icn{font-size:11px}
+.ai-hero-card .lrow-c{opacity:.5}
+.ai-hero-page{flex-direction:column;text-align:center;padding:22px 18px 18px;gap:8px}
+.ai-hero-page .ai-hero-icon{width:72px;height:72px;border-radius:18px;margin-bottom:4px}
+.ai-hero-page .ai-hero-t{font-size:20px;justify-content:center}
+.ai-hero-page .ai-hero-s{font-size:14px}
+.sp-root .ai-hero{margin-bottom:18px}

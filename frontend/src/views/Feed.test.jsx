@@ -67,7 +67,8 @@ describe('Feed with a server profile', () => {
     await flush()
     expect(text()).toContain('Leg day p1')
     expect(text()).toContain('Squat')
-    expect(text()).toContain('100×5')
+    // The best set reads with its units: "100 kg × 5 reps" (components/SetValue.jsx).
+    expect(text()).toContain('100kg×5reps')
     await act(async () => button('Discover').click())
     await flush()
     expect(mocks.discover).toHaveBeenCalled()

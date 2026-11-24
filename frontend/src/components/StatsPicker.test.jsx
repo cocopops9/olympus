@@ -13,6 +13,7 @@ vi.mock('../store/useStore.js', () => {
 })
 vi.mock('../store/useUI.js', () => ({ useUI: { getState: () => ({ openSheet: render => { mocks.sheet = render } }) } }))
 import { statsPickerSheet } from './StatsPicker.jsx'
+import { STATS_IDS } from '../lib/stats-cards.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 let root, host
@@ -31,7 +32,7 @@ const click = label => act(() => host.querySelector(`[aria-label="${label}"]`).c
 
 describe('stats picker', () => {
   it('moves, hides and adds cards, saving the order', () => {
-    open({ statsCards: ['summary', 'activity', 'recent'] })
+    open({ statsCards: ['summary', 'activity', 'recent'], statsCardsSeen: STATS_IDS })
     expect(shown()).toEqual(['Summary', 'Activity', 'Recent workouts'])
     click('Move Recent workouts up')
     expect(mocks.S.statsCards).toEqual(['summary', 'recent', 'activity'])

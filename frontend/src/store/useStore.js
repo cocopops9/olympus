@@ -115,6 +115,7 @@ export const DEF = {
   telemetry: null,
   // Which cards the Stats page shows, in order (lib/stats-cards.js); null = never chosen, the default set.
   statsCards: null,
+  statsCardsSeen: null,
   // How much each Stats card shows — 'simple' or 'detailed' (lib/stats-cards.js statsDetailOf);
   // null = never chosen, read as simple.
   statsDetail: null,

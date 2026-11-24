@@ -5,6 +5,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Stats from './Stats.jsx'
+import { STATS_IDS } from '../lib/stats-cards.js'
 import { useUI } from '../store/useUI.js'
 
 const mocks = vi.hoisted(() => ({ S: null }))
@@ -22,7 +23,7 @@ const workout = { id: 'w1', d: new Date(start).toISOString().slice(0, 10), start
 let root, host
 afterEach(() => { act(() => root.unmount()); host.remove() })
 function mount(extra) {
-  mocks.S = { body: 'male', effort: 'none', unit: 'kg', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts: [workout], ...extra }
+  mocks.S = { statsCardsSeen: STATS_IDS, body: 'male', effort: 'none', unit: 'kg', targetW: null, bodyweight: [], routines: [], exWeights: {}, workouts: [workout], ...extra }
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -43,7 +44,7 @@ describe('Stats: chosen cards', () => {
     expect(host.querySelector('.tiles')).toBe(null)
   })
   it('every card chosen: no invitation', () => {
-    mount({ statsCards: ['highlights', 'summary', 'activity', 'progress', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent'] })
+    mount({ statsCards: ['highlights', 'summary', 'activity', 'progress', 'distribution', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent'] })
     expect(host.querySelector('.stats-more')).toBe(null)
     expect(headings()).toContain('Progress photos')
   })
@@ -52,7 +53,7 @@ describe('Stats: chosen cards', () => {
 // Three chapters, one for each question a person comes to Stats with, so the page never stacks
 // every card: only the chapter chosen is on screen, the others wait, mounted, behind their tab.
 describe('Stats: chapters', () => {
-  const all = ['highlights', 'summary', 'activity', 'progress', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent']
+  const all = ['highlights', 'summary', 'activity', 'progress', 'distribution', 'muscles', 'weekly', 'effort', 'structural', 'photos', 'recent']
   const tabs = () => [...host.querySelectorAll('[role=tab]')]
   const shown = () => [...host.querySelectorAll('[data-stats-chapter]')].filter(p => !p.hidden).map(p => p.dataset.statsChapter)
   const click = el => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })) })

@@ -109,6 +109,16 @@ const pluralCategory = n => {
 }
 
 /**
+ * A word that means two things in English: "Back" is both the button and the body region. The
+ * pack keys the second as "<context>|<word>" ("muscle|Back"); English, which has no pack, shows
+ * the word itself.
+ */
+export const tc = (context, s) => {
+  const v = dict[context + '|' + s]
+  return typeof v === 'string' && v ? v : s
+}
+
+/**
  * A translated count. `one` and `other` are the English source strings, as written at
  * the call site today; `n` picks the form. A pack entry that is an object supplies the
  * forms of the target language, falling back through `other` to the English pair.

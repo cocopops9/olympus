@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { EXIDX, matchExercise, betterWeight, isAssisted, isSport } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf, entriesForExercise, metricEntriesForExercise, metricModeForEntry, bestWeightForEntry, completedRepsOf, workoutDay, workoutAt } from '../lib/history.js'
-import { fmtNum, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
+import { fmtNum, fmtDur, fmtDate, fmtVol, todayISO, isoOf, weekKey, weekStartOf, exerciseNameText } from '../lib/format.js'
 import { speedUnitOf, speedLabel, toSpeed } from '../lib/speed.js'
 import { t, tn, exerciseNameFor, exerciseNameClass, getLang } from '../lib/i18n.js'
 import { STATS_CARDS, statsCardsOf, statsDetailOf, chaptersOf } from '../lib/stats-cards.js'
@@ -31,6 +31,8 @@ import { Button, Segmented } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { isWarmupRow } from '../lib/workout-model.js'
 import ProgressPicker from '../components/ProgressPicker.jsx'
+import MuscleRadar from '../components/MuscleRadar.jsx'
+import { muscleDistribution } from '../lib/muscle-distribution.js'
 import { gymsForExercise, cleanGym } from '../lib/gyms.js'
 import Activity from '../components/Activity.jsx'
 import { useSwipeNav } from '../lib/use-swipe-nav.js'
@@ -145,6 +147,12 @@ const HELP = {
       t('Hard sets counts only sets rated close to failure, so the map shows where the effort went rather than the volume.'),
       t('Fatigue rises with every set, more for heavy and hard ones, and fades over the following days. Strength fades slowly after weeks without training, down to a floor of {0}.', Math.round(STRENGTH_FLOOR * 100) + '%')],
   }),
+  distribution: () => ({
+    title: t('Muscle distribution'),
+    simple: [t('The gold shape shows where your sets went: the further a corner reaches, the more sets that body region got. The grey outline is the period before, to compare.'),
+      t('The tiles below compare your totals with the period before.')],
+    expert: t('A set counts fully for the muscle it targets and partly for the muscles that help, so totals can have decimals.'),
+  }),
   weekly: () => ({
     title: t('Weekly muscle volume'),
     simple: [t('How many sets each muscle gets in one week of your plan, if you do every planned workout.'),
@@ -165,6 +173,62 @@ function CardTitle({ id, children, sub, style }) {
   const help = HELP[id]
   return <h2 style={style}>{children}{sub && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {sub}</span>}
     {help && <InfoButton label={help().title} onClick={helpFor(id)} />}</h2>
+}
+
+// Where a period's sets went by body region, against the period before (lib/muscle-distribution.js).
+const DIST_PERIODS = () => [
+  { value: 7, label: '1W', name: t('Last 7 days') }, { value: 30, label: '1M', name: t('Last 30 days') },
+  { value: 90, label: '3M', name: t('Last 3 months') }, { value: 365, label: '1Y', name: t('Last 12 months') },
+]
+
+// One total of the period with its change from the period before: an arrow, the difference, and
+// the earlier figure for whoever wants it.
+function DistTile({ icon, label, cur, prev, fmt }) {
+  const diff = cur - prev
+  const dir = Math.abs(diff) < 1e-9 ? 0 : diff > 0 ? 1 : -1
+  return <div className="tile mdist-tile">
+    <div className="l"><Icon name={icon} />{label}</div>
+    <div className="v">{fmt(cur)}</div>
+    <div className={'mdist-d' + (dir > 0 ? ' up' : dir < 0 ? ' down' : '')} aria-label={t('Previous period') + ': ' + fmt(prev)}>
+      {dir === 0 ? <span>= {fmt(prev)}</span> : <>
+        <Icon name={dir > 0 ? 'arrowUp' : 'arrowDown'} />
+        <span>{fmt(Math.abs(diff))}</span>
+        <span className="mdist-was">· {fmt(prev)}</span>
+      </>}
+    </div>
+  </div>
+}
+
+function MuscleDistribution({ S }) {
+  const [days, setDays] = useState(30)
+  // To the minute, as useNow ticks, so the sums are not redone on every render.
+  const minute = Math.floor(useNow() / 60000) * 60000
+  const d = useMemo(() => muscleDistribution(S.workouts, days, minute), [S.workouts, days, minute])
+  const periods = DIST_PERIODS()
+  const unit = S.unit || 'kg'
+  const empty = !d.current.totals.workouts && !d.previous.totals.workouts
+  const c = d.current.totals, p = d.previous.totals
+  return <>
+    <div className="card mdist">
+      <CardTitle id="distribution" sub={periods.find(o => o.value === days)?.name}>{t('Muscle distribution')}</CardTitle>
+      <Segmented className="seg-range" value={days} onChange={setDays} options={periods} />
+      {empty
+        ? <div className="empty small" style={{ marginTop: 12 }}>{t('No workouts in this period or the one before.')}</div>
+        : <>
+          <MuscleRadar current={d.current.regions} previous={d.previous.regions} scale={d.scale} />
+          <div className="mdist-legend small">
+            <span><i className="cur" />{t('This period')}</span>
+            <span><i className="prev" />{t('Previous period')}</span>
+          </div>
+        </>}
+    </div>
+    {!empty && <div className="tiles mdist-tiles">
+      <DistTile icon="dumbbell" label={t('Workouts')} cur={c.workouts} prev={p.workouts} fmt={n => fmtNum(n)} />
+      <DistTile icon="timer" label={t('Duration')} cur={c.duration} prev={p.duration} fmt={ms => fmtDur(ms)} />
+      <DistTile icon="barbell" label={t('Volume')} cur={c.volume} prev={p.volume} fmt={v => fmtNum(Math.round(v)) + ' ' + unit} />
+      <DistTile icon="check" label={t('Sets')} cur={c.sets} prev={p.sets} fmt={n => fmtNum(n)} />
+    </div>}
+  </>
 }
 
 // The effort card's figure, in words: where the average set ends, and what that means for
@@ -874,6 +938,9 @@ export default function Stats({ embedded = false } = {}) {
         </> : <div className="muted small">{t('Finish your first workout and your progress curves will show up here.')}</div>}
       </div>
     </div>
+    </>,
+    distribution: () => <>
+    {workouts.length > 0 && <MuscleDistribution S={S} />}
     </>,
     muscles: () => <>
     {(workouts.length > 0 || Object.keys(loadOfWeeklyPlan(S)).length > 0) && <MuscleBalance S={S} simple={simple} />}

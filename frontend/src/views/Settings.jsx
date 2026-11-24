@@ -54,7 +54,7 @@ import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../compone
 import AccountHero, { useFace } from '../components/AccountHero.jsx'
 import { SignInSection } from '../components/AccountEdit.jsx'
 import { GymsManager } from '../components/Gyms.jsx'
-import { ClaudeConnectorPage, ChatGPTConnectorPage } from '../components/ClaudeConnector.jsx'
+import { ClaudeConnectorPage, ChatGPTConnectorPage, AssistantsPage, AssistantsCard } from '../components/ClaudeConnector.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
@@ -423,8 +423,6 @@ export default function Settings({ page = null, find = null, via = null }) {
     look: () => themeLabel + ' · ' + accentLabel(S),
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
-    claude: () => '',
-    chatgpt: () => '',
     about: () => 'v' + __APP_VERSION__,
     guide: () => { const g = guideProgress(S); return g.done ? g.done + '/' + g.total : t('Start here') },
   }
@@ -888,6 +886,8 @@ export default function Settings({ page = null, find = null, via = null }) {
       </div>
     </>,
 
+    assistants: () => <AssistantsPage onOpen={id => nav('/settings/' + id)} />,
+
     claude: () => <ClaudeConnectorPage />,
 
     chatgpt: () => <ChatGPTConnectorPage />,
@@ -1031,8 +1031,9 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
           <Icon name="chevronRight" className="lrow-c" />
         </button>
       </Section>
-      {ROOT_GROUPS.map(g => g.filter(id => pageVisible(id, ctx))).filter(g => g.length).map(g => (
-        <Section key={g[0]}>
+      {ROOT_GROUPS.map(g => g.filter(id => pageVisible(id, ctx))).filter(g => g.length).map(g => (g[0] === 'assistants'
+        ? <AssistantsCard key="assistants" onClick={() => open('assistants')} />
+        : <Section key={g[0]}>
           {g.map(id => <Row key={id} icon={PAGES[id].icon} iconTint={PAGES[id].tint} title={t(PAGES[id].title)}
             value={preview[id]?.() || null} accessory="chevron" onClick={() => open(id)} className="sp-root-row" />)}
         </Section>
@@ -1421,7 +1422,7 @@ function AccountIdRow({ id }) {
   const toast = useUI(s => s.toast)
   if (!id) return null
   const copy = async () => { if (await copyText(id)) toast(t('Account ID copied')) }
-  return <Row icon="personCircle" iconTint="var(--grey)" title={t('Account ID')} subtitle={<span className="acct-id">{id}</span>} onClick={copy} />
+  return <Row title={t('Account ID')} subtitle={<span className="acct-id">{id}</span>} onClick={copy} />
 }
 
 // Lets the mobile app's "connect to my server" mode (lib/remote.js) authenticate without a

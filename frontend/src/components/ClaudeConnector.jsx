@@ -13,6 +13,8 @@ import { t, dateLocale } from '../lib/i18n.js'
 import { useUI } from '../store/useUI.js'
 import { confirmSheet } from '../sheets.jsx'
 import { Section, Row, Button } from './ui.jsx'
+import Icon from './Icon.jsx'
+import appIcon from '../assets/logo.png'
 
 // Claude's own page for adding a custom connector (claude.ai, signed in). Adding one is done on
 // the web (claude.ai or the desktop app); once added it works in every Claude app of that account,
@@ -84,6 +86,50 @@ const CLIENTS = {
       disconnect: t('Disconnect ChatGPT'),
     }),
   },
+}
+
+/**
+ * Settings → Olympus in Claude and ChatGPT: the one menu for both assistants. A short pitch under
+ * the app's icon, then each assistant with how its connection stands; a tap opens its own page
+ * (ConnectorPage). `onOpen(client)` navigates there.
+ */
+export function AssistantsPage({ onOpen }) {
+  // { claude, chatgpt }: undefined while asking, else the server's answer (or null on any error).
+  const [st, setSt] = useState({})
+  useEffect(() => {
+    let live = true
+    for (const [client, c] of Object.entries(CLIENTS)) {
+      api('/api/connector' + c.query)
+        .then(r => (client === 'claude' || r?.for === client ? r : null), () => null)
+        .then(r => { if (live) setSt(prev => ({ ...prev, [client]: r })) })
+    }
+    return () => { live = false }
+  }, [])
+  const status = r => (!r ? null : r.on && r.used ? t('Connected') : r.on ? t('Not added yet') : null)
+  return <>
+    <div className="ai-hero ai-hero-page">
+      <img src={appIcon} alt="" className="ai-hero-icon" draggable={false} />
+      <div className="ai-hero-t">{t('Your training, in your AI assistant')}</div>
+      <div className="ai-hero-s">{t('Connect Olympus to Claude or ChatGPT and ask about your workouts in plain words. It reads the same numbers the app shows and, when you ask, logs workouts and plans your week.')}</div>
+    </div>
+    <Section footer={t('Each assistant gets its own address, so you can connect one, the other or both.')}>
+      <Row icon="sparkles" iconTint="var(--orange)" title={t('Connect to Claude')} value={status(st.claude)} accessory="chevron" onClick={() => onOpen('claude')} />
+      <Row icon="chat" iconTint="var(--green)" title={t('Connect to ChatGPT')} value={status(st.chatgpt)} accessory="chevron" onClick={() => onOpen('chatgpt')} />
+    </Section>
+  </>
+}
+
+/** The root's card for the assistants menu: drawn apart from the plain rows so it is noticed. */
+export function AssistantsCard({ onClick }) {
+  return <button className="ai-hero ai-hero-card" onClick={onClick}>
+    <img src={appIcon} alt="" className="ai-hero-icon" draggable={false} />
+    <span className="ai-hero-m">
+      <span className="ai-hero-badge"><Icon name="sparkles" />AI</span>
+      <span className="ai-hero-t">{t('Olympus in Claude and ChatGPT')}</span>
+      <span className="ai-hero-s">{t('Ask your AI assistant about your training, and let it log for you.')}</span>
+    </span>
+    <Icon name="chevronRight" className="lrow-c" />
+  </button>
 }
 
 const day = ms => new Date(ms).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long', year: 'numeric' })

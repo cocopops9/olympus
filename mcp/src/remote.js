@@ -20,7 +20,16 @@ import { withProfile } from './profile.js'
 // the specification leaves it to the client to disconnect if it cannot speak that one.
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']
 
-export const SERVER_INFO = { name: 'olympus', title: 'Olympus', version: '1.0.0' }
+// The app's own icon, so an assistant that shows server icons shows Olympus's (specification
+// 2025-11-25, Implementation.icons). Without one, Claude and ChatGPT fall back to the icon of the
+// host the connector runs on, which is Supabase's. A public https address, the one file the app
+// installs as its home-screen icon.
+export const SERVER_ICON = 'https://raw.githubusercontent.com/cocopops9/olympus/main/frontend/public/icon-512.png'
+export const SERVER_INFO = {
+  name: 'olympus', title: 'Olympus', version: '1.0.0',
+  icons: [{ src: SERVER_ICON, mimeType: 'image/png', sizes: ['512x512'] }],
+  websiteUrl: 'https://github.com/cocopops9/olympus',
+}
 
 const READ_INTRO = 'Read-only access to one Olympus profile: routines, the week plan, logged workouts set by set, body weight, estimated one-rep maxes and muscle balance.'
 const WRITE_INTRO = 'Access to one Olympus profile, the athlete\'s own: read routines, the week plan, logged workouts set by set, body weight, estimated one-rep maxes and muscle balance, and do what the athlete does in the app by hand: log, correct or remove workouts and weigh-ins, create, change or delete routines, plan the week. Changes reach the athlete\'s phone within a minute. Only change what the athlete asked for; before any delete tool, ask them and pass confirm: true only after they agree. Find exercise ids with search_exercises.'

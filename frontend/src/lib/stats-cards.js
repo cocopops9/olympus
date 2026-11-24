@@ -10,6 +10,7 @@ export const STATS_CARDS = [
   { id: 'summary', icon: 'trophy', tone: 'orange', name: () => t('Summary'), desc: () => t('Workouts, this month, week streak and PRs') },
   { id: 'activity', icon: 'calendar', tone: 'green', name: () => t('Activity'), desc: () => t('A year of training, day by day') },
   { id: 'progress', icon: 'chartLine', tone: 'blue', name: () => t('Exercise progress'), desc: () => t('Top set, estimated 1RM and every set, per exercise') },
+  { id: 'distribution', icon: 'target', tone: 'yellow', name: () => t('Muscle distribution'), desc: () => t('Where your sets went by body region, against the period before') },
   { id: 'muscles', icon: 'figureStrength', tone: 'pink', name: () => t('Muscle balance'), desc: () => t('Which muscles you train, their fatigue and strength') },
   { id: 'weekly', icon: 'chart', tone: 'purple', name: () => t('Weekly muscle volume'), desc: () => t('Sets per muscle in your weekly plan') },
   { id: 'effort', icon: 'gauge', tone: 'yellow', name: () => t('Effort'), desc: () => t('How close to failure you train') },
@@ -26,7 +27,7 @@ export const STATS_IDS = STATS_CARDS.map(c => c.id)
 export const STATS_CHAPTERS = [
   { id: 'overview', icon: 'chart', name: () => t('Overview'), ask: () => t('How am I doing?'), cards: ['highlights', 'summary', 'activity', 'recent'] },
   { id: 'progress', icon: 'chartLine', name: () => t('Progress'), ask: () => t('Am I getting stronger?'), cards: ['progress', 'structural', 'effort', 'photos'] },
-  { id: 'muscles', icon: 'figureStrength', name: () => t('Muscles'), ask: () => t('What am I training?'), cards: ['muscles', 'weekly'] },
+  { id: 'muscles', icon: 'figureStrength', name: () => t('Muscles'), ask: () => t('What am I training?'), cards: ['distribution', 'muscles', 'weekly'] },
 ]
 export const chapterOfCard = id => STATS_CHAPTERS.find(c => c.cards.includes(id))?.id || 'overview'
 
@@ -39,7 +40,7 @@ export const statsCard = id => STATS_CARDS.find(c => c.id === id) || null
 /** The cards shown when nothing was chosen. Effort joins when the profile logs effort at all. */
 export function defaultStatsCards(S) {
   const logsEffort = S?.effort === 'rir' || S?.effort === 'rpe' || (S?.effort == null && S?.showRir === true)
-  return ['highlights', 'summary', 'activity', 'progress', 'muscles', 'weekly', ...(logsEffort ? ['effort'] : []), 'structural', 'recent']
+  return ['highlights', 'summary', 'activity', 'progress', 'distribution', 'muscles', 'weekly', ...(logsEffort ? ['effort'] : []), 'structural', 'recent']
 }
 
 // How much each card shows (S.statsDetail): 'simple' — the headline figure, one chart and what it
@@ -48,11 +49,29 @@ export function defaultStatsCards(S) {
 export const STATS_DETAIL = ['simple', 'detailed']
 export const statsDetailOf = S => (S?.statsDetail === 'detailed' ? 'detailed' : 'simple')
 
+// Cards that arrived after people had already chosen theirs. A saved choice was made without
+// them, so leaving them out of it is not a "no": each one is shown, in front of `before`, until
+// the person saves a choice that knows it (S.statsCardsSeen, written with every save).
+export const LATER_CARDS = [{ id: 'distribution', before: 'muscles' }]
+
 /** The ids the Stats page shows, in order: the saved choice (unknown ids dropped), or the default. */
 export function statsCardsOf(S) {
   const saved = S?.statsCards
   if (!Array.isArray(saved)) return defaultStatsCards(S)
-  return [...new Set(saved.filter(id => STATS_IDS.includes(id)))]
+  const list = [...new Set(saved.filter(id => STATS_IDS.includes(id)))]
+  const seen = Array.isArray(S?.statsCardsSeen) ? S.statsCardsSeen : []
+  for (const { id, before } of LATER_CARDS) {
+    if (list.includes(id) || seen.includes(id)) continue
+    const at = list.indexOf(before)
+    list.splice(at < 0 ? list.length : at, 0, id)
+  }
+  return list
+}
+
+/** Saves `list` as the person's choice of cards (null: back to the default), as one that knows every card. */
+export function saveStatsCards(s, list) {
+  s.statsCards = list
+  s.statsCardsSeen = Array.isArray(list) ? [...STATS_IDS] : null
 }
 
 /** `list` with `id` switched on (added at the end) or off. */
