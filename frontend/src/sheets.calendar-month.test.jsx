@@ -54,7 +54,7 @@ describe('workout calendar months', () => {
   it('names every scene picture after a month\'s emblem', () => {
     const files = Object.keys(import.meta.glob('./assets/greek-months/*.webp'))
     const arts = new Set(ATTIC_MONTHS.map(m => m.art))
-    expect(files.length).toBeGreaterThan(0)
+    expect(files.length).toBe(12) // every month has its scene
     for (const f of files) expect(arts.has(f.split('/').pop().replace('.webp', '')), f).toBe(true)
   })
 

@@ -23,4 +23,4 @@ seed 7, 8 steps, shift 3. Every prompt is the scene below wrapped in the shared 
 | owl | Skirophorion | the Skira procession, priests and a priestess of Athena walking under a large white parasol held over them, the goddess Athena with helmet and an owl perched on an olive tree, the Acropolis temple in the background |
 
 `python3 scripts/greek-scenes/build.py` crops and compresses `src/*.webp` into
-`frontend/src/assets/greek-months/`. A month whose file is missing shows its banner without a scene.
+`frontend/src/assets/greek-months/`. All 12 months have a scene; a missing file would show the banner without one.
