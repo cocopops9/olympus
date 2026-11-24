@@ -826,7 +826,8 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const user = await chatPeer(me, b.id);
       return { message: await chat.send(me.id, user.id, b.text, b.attachment || null) };
     }),
-    // The bytes of a message's photo, voice message or file: only for the two people who wrote.
+    // The bytes of a message's photo, video, voice message or file: only for the two people who wrote
+    // (a view-once one: for the one it was sent to, one time, and never kept by a cache).
     'GET /api/chat/media': async (req, q) => {
       const { user: me } = await signedIn(req);
       try {
@@ -834,7 +835,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         const f = await chat.media(me.id, user.id, q.get('m'));
         const download = f.kind === 'file' && f.type !== 'application/pdf';
         return { status: 200, raw: f.bytes, headers: {
-          'Content-Type': download ? 'application/octet-stream' : f.type, 'Cache-Control': 'private, max-age=604800', 'X-Content-Type-Options': 'nosniff',
+          'Content-Type': download ? 'application/octet-stream' : f.type, 'Cache-Control': f.once ? 'no-store' : 'private, max-age=604800', 'X-Content-Type-Options': 'nosniff',
           ...(f.name ? { 'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(f.name)}` } : {}),
         } };
       } catch (e) { if (e instanceof ChatError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }

@@ -1,13 +1,19 @@
-// Olympus: what a message carries besides words (api/chat.js attachments): a photo, a voice
-// message or a file. The bytes are fetched with the session when the message is on screen and
-// kept for the visit, so the conversation asking again every few seconds never downloads twice.
+// Olympus: what a message carries besides words (api/chat.js attachments): a photo, a video, a
+// voice message or a file. The bytes are fetched with the session when the message is on screen
+// (a video when it is played) and kept for the visit, so the conversation asking again every few
+// seconds never downloads twice.
+//
+// A photo or a video sent to view once is never fetched by itself and never kept: the one it was
+// sent to taps it, it opens full screen, and when it is closed its copy in the phone's memory is
+// let go. The server gives it one time only (api/chat.js openOnce), so it cannot come back.
 import { useEffect, useRef, useState } from 'react'
 import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
-import { chatMedia } from '../lib/social.js'
+import { chatMedia, chatErrorText } from '../lib/social.js'
 import { MOBILE, shareExportBlob } from '../lib/mobile.js'
 import { fmtSecs, fmtBytes } from '../lib/voice-note.js'
 import Icon from './Icon.jsx'
+import { clock } from './Song.jsx'
 
 const urls = new Map()   // 'peer|message' -> Promise<{ url, blob }>
 export function mediaOf(peer, id) {
@@ -116,16 +122,101 @@ function File({ peer, id, name, size, local }) {
   </button>
 }
 
+// One video playing at a time here too.
+let playingVideo = null
+function ChatVideo({ peer, id, secs, local }) {
+  const [load, setLoad] = useState(false)
+  const { m, failed } = useMedia(peer, id, load && !local)
+  const el = useRef(null)
+  const url = local || (load ? m?.url : null)
+  useEffect(() => () => { if (playingVideo === el.current) playingVideo = null }, [])
+  const onPlay = () => { if (playingVideo && playingVideo !== el.current) { try { playingVideo.pause() } catch { /* gone */ } } playingVideo = el.current }
+  if (url && (load || local)) {
+    return <div className="chat-a-video">
+      <video ref={el} src={url} controls playsInline preload="metadata" autoPlay={load} onPlay={onPlay} />
+    </div>
+  }
+  return <button type="button" className="chat-a-video cover" onClick={() => setLoad(true)} aria-label={t('Play video')}>
+    <span className="chat-a-play big">{load && !failed ? <i className="spin" /> : <Icon name={failed ? 'reset' : 'playFill'} />}</span>
+    <span className="chat-a-len">{failed ? t('Tap to try again') : clock(secs || 0)}</span>
+  </button>
+}
+
+// Fetched here, never through mediaOf: a view-once photo or video must not stay in a cache. Its
+// copy in memory is let go when the viewer goes, however it is closed.
+function openOnce(peer, message, onOpened) {
+  useUI.getState().openSheet(close => <OnceViewer peer={peer} id={message.id} kind={message.attachment.kind} onOpened={onOpened} close={close} />, { kind: 'viewer' })
+}
+
+function OnceViewer({ peer, id, kind, onOpened, close }) {
+  const [url, setUrl] = useState(null)
+  const [error, setError] = useState(null)
+  useEffect(() => {
+    let live = true, made = null
+    chatMedia(peer, id).then(blob => {
+      onOpened()
+      if (!live) return
+      made = URL.createObjectURL(blob)
+      setUrl(made)
+    }, e => {
+      if ((e?.data?.code || e?.code) === 'once-opened') onOpened()
+      if (live) setError(chatErrorText(e, t))
+    })
+    return () => { live = false; if (made) URL.revokeObjectURL(made) }
+  }, [])
+  // Not offered to be saved or dragged out: a long press on it does nothing.
+  const guard = { onContextMenu: e => e.preventDefault(), draggable: false }
+  return <div className="mviewer once" role="dialog" aria-modal="true" aria-label={kind === 'video' ? t('View-once video') : t('View-once photo')}>
+    <div className="mviewer-bar">
+      <button type="button" className="iconbtn" aria-label={t('Close')} onClick={close}><Icon name="xmark" /></button>
+      <span className="chat-once-t"><b className="chat-once-1">1</b>{kind === 'video' ? t('View-once video') : t('View-once photo')}</span><span style={{ width: 36 }} />
+    </div>
+    <div className="mviewer-stage">
+      {error ? <div className="empty">{error}</div>
+        : !url ? <i className="spin" />
+          : kind === 'video'
+            ? <video src={url} autoPlay playsInline controls controlsList="nodownload noplaybackrate" disablePictureInPicture {...guard} className="chat-once-media" />
+            : <img src={url} alt="" {...guard} className="chat-once-media" />}
+    </div>
+    <p className="chat-once-note small">{t('It can be opened once. When you close it, it is gone.')}</p>
+  </div>
+}
+
+/**
+ * A photo or video sent to view once. The sender sees whether it was opened; the one it was sent to
+ * taps it once to open it.
+ */
+function Once({ peer, message }) {
+  const a = message.attachment
+  const [openedHere, setOpenedHere] = useState(false)
+  const opened = a.opened || openedHere
+  const label = a.kind === 'video' ? t('View-once video') : t('View-once photo')
+  const canOpen = !message.mine && !opened && !message.pending
+  const state = message.pending ? t('Sending…') : opened ? t('Opened') : message.mine ? t('Not opened yet') : t('Tap to open')
+  return <button type="button" className={'chat-a-once' + (opened ? ' opened' : '')} disabled={!canOpen}
+    onClick={() => canOpen && openOnce(peer, message, () => setOpenedHere(true))} aria-label={label + ', ' + state}>
+    <span className="chat-a-once-i">{opened ? <Icon name="check" /> : <b className="chat-once-1">1</b>}</span>
+    <span className="chat-a-once-m"><b>{label}</b><small>{state}</small></span>
+    <Icon name={a.kind === 'video' ? 'video' : 'image'} className="chat-a-once-k" />
+  </button>
+}
+
 /** A message's attachment. `local` is the phone's own copy of what it just sent (a URL or a blob). */
 export function ChatAttachment({ peer, message, local }) {
   const a = message.attachment
   if (!a) return null
+  if (a.once) return <Once peer={peer} message={message} />
   if (a.kind === 'image') return <Photo peer={peer} id={message.id} local={local} />
+  if (a.kind === 'video') return <ChatVideo peer={peer} id={message.id} secs={a.secs} local={local} />
   if (a.kind === 'audio') return <Voice peer={peer} id={message.id} secs={a.secs} mine={message.mine} local={local} />
   return <File peer={peer} id={message.id} name={a.name} size={a.size} local={local instanceof Blob ? local : null} />
 }
 
 /** How the list of conversations words the latest message when it is an attachment. */
-export function attachmentLabel(kind) {
-  return kind === 'image' ? t('Photo') : kind === 'audio' ? t('Voice message') : kind === 'file' ? t('File') : ''
+export function attachmentLabel(kind, once = false) {
+  if (once) return kind === 'video' ? t('View-once video') : t('View-once photo')
+  return kind === 'image' ? t('Photo') : kind === 'video' ? t('Video') : kind === 'audio' ? t('Voice message') : kind === 'file' ? t('File') : ''
 }
+
+/** The icon of an attachment's kind, in the list of conversations. */
+export const attachmentIcon = kind => (kind === 'image' ? 'image' : kind === 'video' ? 'video' : kind === 'audio' ? 'mic' : 'doc')

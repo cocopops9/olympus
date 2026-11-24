@@ -194,4 +194,80 @@ describe('one conversation', () => {
     await show(<Chats />)
     expect(host.querySelector('.chat-row-t').textContent).toBe('Voice message')
   })
+
+  // The sheets live in the app's frame, not in the view: the last one opened, rendered on its own.
+  const showSheet = async () => {
+    const sheets = useUI.getState().sheets
+    const el = document.createElement('div'); document.body.appendChild(el)
+    const r = createRoot(el)
+    const close = () => useUI.getState().closeSheet(sheets[sheets.length - 1].id)
+    await act(async () => r.render(sheets[sheets.length - 1].render(close)))
+    await flush()
+    return { el, done: () => { act(() => r.unmount()); el.remove() } }
+  }
+
+  it('sends a photo to view once: the switch in the attach sheet, and nothing kept on the phone', async () => {
+    mocks.thread.mockResolvedValue({ user: ben, messages: [], more: false, seen: 0 })
+    mocks.send.mockResolvedValue({ message: { id: 9, mine: true, text: '', at: Date.now(), attachment: { kind: 'image', type: 'image/jpeg', size: 9, once: true, opened: false } } })
+    await show(<ChatThread />)
+    await act(async () => host.querySelector('[aria-label="Attach a photo, video or file"]').click())
+    const sheet = await showSheet()
+    const input = host.querySelector('[data-testid="chat-photo"]')
+    input.click = vi.fn()
+    await act(async () => { sheet.el.querySelector('[data-testid="chat-once"]').click() })
+    expect(sheet.el.querySelector('.chat-once-switch.on')).toBeTruthy()
+    // A file cannot be sent to view once.
+    expect([...sheet.el.querySelectorAll('.chat-attach button')].find(b => b.textContent === 'File').disabled).toBe(true)
+    await act(async () => [...sheet.el.querySelectorAll('.chat-attach button')].find(b => b.textContent === 'Photo').click())
+    sheet.done()
+    expect(input.click).toHaveBeenCalled()
+    Object.defineProperty(input, 'files', { configurable: true, value: [new File(['abc'], 'gym.jpg', { type: 'image/jpeg' })] })
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })) })
+    await flush()
+    expect(mocks.send).toHaveBeenCalledWith('u_b', '', { kind: 'image', data: 'data:image/jpeg;base64,/9j/AAAA', once: true })
+    expect(host.querySelector('.chat-a-photo')).toBeNull()
+    expect(host.querySelector('.chat-a-once').textContent).toContain('Not opened yet')
+    expect(host.querySelector('.chat-a-once').disabled).toBe(true)
+    // The next photo is an ordinary one again.
+    Object.defineProperty(input, 'files', { configurable: true, value: [new File(['abc'], 'gym.jpg', { type: 'image/jpeg' })] })
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })) })
+    await flush()
+    expect(mocks.send.mock.calls[1][2].once).toBeUndefined()
+  })
+
+  it('opens a view-once photo sent to you one time, full screen, then says it was opened', async () => {
+    mocks.thread.mockResolvedValue({ user: ben, messages: [{ ...msg(3, false, ''), attachment: { kind: 'image', type: 'image/jpeg', size: 9, once: true, opened: false } }], more: false, seen: 0 })
+    globalThis.URL.createObjectURL = () => 'blob:once'
+    globalThis.URL.revokeObjectURL = vi.fn()
+    await show(<ChatThread />)
+    const chip = host.querySelector('.chat-a-once')
+    expect(chip.textContent).toContain('View-once photo')
+    expect(chip.textContent).toContain('Tap to open')
+    await act(async () => chip.click())
+    const sheet = await showSheet()
+    expect(sheet.el.querySelector('.chat-once-media').getAttribute('src')).toBe('blob:once')
+    expect(host.querySelector('.chat-a-once').textContent).toContain('Opened')
+    expect(host.querySelector('.chat-a-once').disabled).toBe(true)
+    // Closed: the copy in memory is let go.
+    sheet.done()
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:once')
+  })
+
+  it('shows a video with its length, fetched only when played', async () => {
+    mocks.thread.mockResolvedValue({ user: ben, messages: [{ ...msg(4, false, ''), attachment: { kind: 'video', type: 'video/mp4', size: 9, secs: 14 } }], more: false, seen: 0 })
+    await show(<ChatThread />)
+    expect(host.querySelector('.chat-m.a-video .chat-a-len').textContent).toBe('0:14')
+    expect(host.querySelector('.chat-a-video video')).toBeNull()
+  })
+
+  it('words a view-once photo and a video in the list', async () => {
+    mocks.chats.mockResolvedValue({ chats: [
+      { id: 'u_b', user: ben, at: NOW, text: '', mine: false, unread: 1, kind: 'image', once: true },
+      { id: 'u_c', user: { id: 'u_c', name: 'Cal' }, at: NOW - 1000, text: 'look', mine: true, unread: 0, kind: 'video' },
+    ] })
+    await show(<Chats />)
+    const rows = host.querySelectorAll('.chat-row-t')
+    expect(rows[0].textContent).toBe('View-once photo')
+    expect(rows[1].textContent).toBe('You: Video: look')
+  })
 })
