@@ -3307,6 +3307,8 @@ export default {
   "skateboarding": "kaykay",
   "cricket": "kriket",
   "zumba": "zumba",
+  "long jump": "uzun atlama",
+  "classical ballet": "klasik bale",
   "Downloading update": "Güncelleme indiriliyor",
   "Installing…": "Yükleniyor…",
   "Download failed": "İndirme başarısız oldu",

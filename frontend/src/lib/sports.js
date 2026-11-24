@@ -195,6 +195,16 @@ const SPORT_LIST = [
     trains: ['Endurance', 'Coordination', 'Mobility'],
     muscleWeights: { quadriceps: 0.6, gluteal: 0.6, calves: 0.6, hamstring: 0.4, abs: 0.4, obliques: 0.4, 'hip-flexors': 0.4, adductors: 0.3, deltoids: 0.3 },
   },
+  {
+    id: 'sport-long-jump', n: 'long jump', icon: 'figureRun', min: 60,
+    trains: ['Speed', 'Power'],
+    muscleWeights: { quadriceps: 0.8, gluteal: 0.8, hamstring: 0.8, calves: 0.7, 'hip-flexors': 0.6, abs: 0.4, adductors: 0.3 },
+  },
+  {
+    id: 'sport-ballet', n: 'classical ballet', icon: 'figureRun', min: 60,
+    trains: ['Balance', 'Mobility', 'Core stability', 'Coordination'],
+    muscleWeights: { calves: 0.8, gluteal: 0.7, quadriceps: 0.6, adductors: 0.6, abs: 0.6, 'hip-flexors': 0.5, hamstring: 0.5, 'lower-back': 0.4, tibialis: 0.4 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)

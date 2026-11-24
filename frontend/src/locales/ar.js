@@ -3362,6 +3362,8 @@ export default {
   "skateboarding": "التزلج على اللوح",
   "cricket": "الكريكيت",
   "zumba": "زومبا",
+  "long jump": "الوثب الطويل",
+  "classical ballet": "الباليه الكلاسيكي",
   "Downloading update": "جارٍ تنزيل التحديث",
   "Installing…": "جارٍ التثبيت…",
   "Download failed": "فشل التنزيل",

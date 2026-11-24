@@ -3307,6 +3307,8 @@ export default {
   "skateboarding": "skateboard",
   "cricket": "cricket",
   "zumba": "zumba",
+  "long jump": "salto in lungo",
+  "classical ballet": "danza classica",
   "Downloading update": "Download dell'aggiornamento",
   "Installing…": "Installazione…",
   "Download failed": "Download non riuscito",

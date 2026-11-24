@@ -3304,6 +3304,8 @@ export default {
   "skateboarding": "скейтбординг",
   "cricket": "крикет",
   "zumba": "зумба",
+  "long jump": "стрибки в довжину",
+  "classical ballet": "класичний балет",
   "Downloading update": "Завантаження оновлення",
   "Installing…": "Встановлення…",
   "Download failed": "Не вдалося завантажити",
