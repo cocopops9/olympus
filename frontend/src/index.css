@@ -329,11 +329,8 @@ h4.sec{
 .lrow-m{flex:1;min-width:auto;display:flex;flex-direction:column;gap:1px}
 .lrow-t{font-size:17px;letter-spacing:-.012em;line-height:1.25}
 .lrow-s{font-size:13px;color:var(--label-2);line-height:1.3}
-/* Settings → Account ID: a machine string, so a machine face, small, and free to break anywhere
-   rather than push the row past a phone's edge. */
 .claude-actions{padding:12px 16px;display:flex;gap:10px;flex-wrap:wrap}
 .claude-actions .btn{flex:1}
-.acct-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
 /* flex:none would let a long value ("Follow the routine (Linear progression)") run straight
    through the title next to it, since the title's column only holds out for its longest word.
    Letting the value shrink and ellipsise instead keeps the two out of each other's way.
@@ -1416,11 +1413,14 @@ body.chips-dragging *{cursor:inherit}
 }
 .setrow .setgo:disabled{opacity:.3;cursor:default}
 .setrow .setgo:not(:disabled):active{background:var(--surface-3)}
-/* the stopwatch of a cardio or sport row (lib/stopwatch.js): quiet until started, then filled in
-   the accent while it counts, the count itself in the duration cell */
+/* the stopwatch of a cardio or sport row (lib/stopwatch.js): quiet until started, filled in the
+   accent while it counts, outlined in the accent while paused; the count itself sits in the
+   duration cell, dimmed while it is held */
 .setrow .setgo.sw.on{background:var(--acc);color:var(--on-acc)}
 .setrow .setgo.sw.on:not(:disabled):active{background:var(--acc);opacity:.85}
+.setrow .setgo.sw.held{color:var(--acc);box-shadow:inset 0 0 0 1.5px var(--acc)}
 .setrow .swlive{display:inline-block;min-width:var(--num);text-align:center;font-variant-numeric:tabular-nums;color:var(--acc);font-weight:600}
+.setrow .swlive.held{opacity:.55}
 /* exercise-config sheet: three steppers side by side on narrow phones */
 .cfgrow{gap:8px}
 .cfgrow>div{flex:1;min-width:0}
@@ -2200,6 +2200,50 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .sp-root .sp-version span{font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
 .sp-empty{color:var(--label-2);text-align:center;padding:28px 12px;line-height:1.4}
 
+/* ---- Settings → Workout, in the gold on black of Olympus (Settings.jsx pages.workout) ----
+   The cards of the Settings root, every glyph gold on a dark tile (as in a workout's actions),
+   gold section heads, the rest times as big tiles and the layouts as pictures to pick from. */
+.wset .sect{margin-bottom:20px}
+.wset .sect-t{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);padding-bottom:8px}
+.wset .sect-b{border-radius:22px;background:linear-gradient(180deg,color-mix(in srgb,var(--label) 4%,var(--surface)),var(--surface));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--label) 8%,transparent),0 6px 18px rgba(0,0,0,.14)}
+.wset .lrow{padding:12px 14px;gap:14px;min-height:58px}
+.wset .lrow:has(.lrow-i)+.lrow:has(.lrow-i)::before{inset-inline-start:64px;background:color-mix(in srgb,var(--label) 9%,transparent)}
+.wset .lrow-i{width:36px;height:36px;border-radius:11px;font-size:19px;color:var(--acc);
+  background:linear-gradient(150deg,color-mix(in srgb,var(--acc) 16%,var(--surface-2)),var(--surface-2));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 30%,transparent)}
+.wset .lrow-t{font-weight:600}
+.wset .lrow-v{color:var(--acc)}
+.wset .lrow-c{opacity:.4;font-size:14px}
+.wset .lrow.tap:active{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+/* A row whose control sits under its title, as wide as the text column. */
+.wset .lrow.wset-stack{flex-wrap:wrap;row-gap:10px}
+.wset .wset-stack .lrow-m{flex:1 1 0}
+.wset .wset-seg{flex:0 0 calc(100% - 50px);margin-inline-start:50px}
+.wset .wset-seg .seg-sel{background:var(--acc);box-shadow:0 3px 10px color-mix(in srgb,var(--acc) 35%,transparent)}
+.wset .wset-seg button.on{color:var(--on-acc);font-weight:700}
+/* The two rest times: big gold numbers, the main one lit. */
+.wset-rest{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;padding:10px}
+.wset-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border-radius:16px;text-align:start;
+  background:var(--surface-2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--label) 7%,transparent);color:var(--label);min-width:0}
+.wset-tile.main{background:radial-gradient(130% 150% at 0% 0%,color-mix(in srgb,var(--acc) 28%,transparent),transparent 65%),var(--surface-2);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 45%,transparent)}
+.wset-tile:active{transform:scale(.98)}
+.wset-k{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--label-2);line-height:1.2}
+.wset-k .icn{color:var(--acc);font-size:16px;flex:none}
+.wset-big{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--acc);font-variant-numeric:tabular-nums}
+.wset-tile:not(.main) .wset-big{font-size:28px;color:var(--label)}
+/* The four layouts as tiles: a picture and a name, the chosen one ringed in gold. */
+.wset-layouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px 10px 4px}
+.wset-lay{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 4px 10px;border-radius:14px;
+  background:var(--surface-2);color:var(--label-2);font-size:13px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--label) 7%,transparent);min-width:0}
+.wset-lay .icn{font-size:24px}
+.wset-lay span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wset-lay.on{color:var(--acc);font-weight:700;background:color-mix(in srgb,var(--acc) 12%,var(--surface-2));box-shadow:inset 0 0 0 1.5px var(--acc)}
+.wset-lay:active{transform:scale(.97)}
+.wset-layouts+.lrow::before{display:none}
+.wset-tile.sp-flash,.wset-layouts.sp-flash{animation:spflash 1.8s ease}
+
 /* ----------------------------------------------------------- RTL (Arabic) -- */
 /* Directional icons flip: back chevrons point right, trailing chevrons point left. */
 [dir="rtl"] [data-icon="chevronLeft"],
@@ -2372,3 +2416,30 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .ai-hero-page .ai-hero-t{font-size:20px;justify-content:center}
 .ai-hero-page .ai-hero-s{font-size:14px}
 .sp-root .ai-hero{margin-bottom:18px}
+
+/* Settings → Strava (components/StravaConnect.jsx): the Strava tile and its pitch, then the
+   "Connect with STRAVA" button in Strava's own colours (white, the word in Strava orange). */
+.strava-hero{display:flex;align-items:center;gap:14px;padding:14px;margin-bottom:22px;border-radius:var(--r-card);background:var(--surface)}
+.strava-tile{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:14px;background:#FC5200;
+  box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.strava-hero-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.strava-hero-t{font-size:17.5px;font-weight:700;letter-spacing:-.015em}
+.strava-hero-s{font-size:13.5px;color:var(--label-2);line-height:1.35}
+.strava-actions{padding:12px 16px;display:flex}
+.strava-connect{flex:1;min-height:48px;border-radius:6px;background:#fff;color:#5f5f5f;font-size:16px;font-weight:600;letter-spacing:.02em;
+  border:1px solid #d9d9d9;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.strava-connect b{font-weight:900;font-style:italic;letter-spacing:.02em}
+.strava-connect:active{filter:brightness(.95)}
+.strava-connect:disabled{opacity:.6}
+/* --- calendar: week streak and rest days --- */
+.cal-stats{display:flex;justify-content:center;gap:8px;margin:2px 0 6px}
+.cal-stat{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface)}
+.cal-stat .icn{width:15px;height:15px}
+.cal-stat.streak{color:var(--orange)}
+.cal-stat.streak.cold{color:var(--label-3)}
+.cal-stat.rest{color:var(--indigo)}
+.cal-d.rest{color:var(--label-3)}
+.cal-d .cal-rest{width:9px;height:9px;color:var(--indigo);fill:currentColor;opacity:.8}
+.cal-legend .cal-rest{width:9px;height:9px;color:var(--indigo);fill:currentColor;margin-inline-end:4px;vertical-align:-1px}
+.cal-legend{flex-wrap:wrap;row-gap:6px}
+.cal-legend span{display:inline-flex;align-items:center;white-space:nowrap}

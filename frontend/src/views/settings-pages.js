@@ -20,6 +20,7 @@ export const PAGES = {
   assistants: { title: 'Olympus in Claude and ChatGPT', icon: 'sparkles', tint: 'var(--acc)' },
   claude: { title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)', parent: 'assistants' },
   chatgpt: { title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)', parent: 'assistants' },
+  strava: { title: 'Strava', icon: 'share', tint: '#FC5200' },
   coach: { title: 'AI Coach', icon: 'sparkles', tint: 'var(--green)' },
   data: { title: 'Data & backup', icon: 'folder', tint: 'var(--blue)' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
@@ -36,7 +37,7 @@ export const PAGE_IDS = Object.keys(PAGES)
 // assistants, one entry for Claude and ChatGPT together, drawn as a card of its own so it is not
 // lost among the plain rows (views/Settings.jsx AssistantsCard). Both connectors read the profile
 // on the server, so they need one (components/ClaudeConnector.jsx).
-export const ROOT_GROUPS = [['guide'], ['assistants'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['data', 'about']]
+export const ROOT_GROUPS = [['guide'], ['assistants'], ['strava'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['data', 'about']]
 
 /**
  * Whether a page exists for this device and profile. Reminders need a push server (signed in) or
@@ -46,7 +47,7 @@ export const ROOT_GROUPS = [['guide'], ['assistants'], ['workout', 'alerts', 're
 export function pageVisible(page, ctx) {
   if (page === 'reminders') return !!(ctx.user || ctx.mobile)
   if (page === 'coach') return false
-  if (page === 'assistants' || page === 'claude' || page === 'chatgpt') return !!ctx.user && !ctx.demo
+  if (page === 'assistants' || page === 'claude' || page === 'chatgpt' || page === 'strava') return !!ctx.user && !ctx.demo
   return page in PAGES
 }
 
@@ -163,7 +164,6 @@ export const SEARCH = [
   { page: 'account', title: 'Password', icon: 'key', tint: 'var(--orange)', kw: 'password login', when: c => signedInWeb(c) && c.pwOn },
   { page: 'account', title: 'Sign out', icon: 'signOut', tint: 'var(--red)', kw: 'log out logout sign out', when: signedInWeb },
   { page: 'account', title: 'Sign out everywhere', icon: 'shield', tint: 'var(--red)', kw: 'log out all devices sessions', when: signedInWeb },
-  { page: 'account', title: 'Account ID', icon: 'personCircle', tint: 'var(--grey)', kw: 'id uid admin account', when: c => !!c.user && !c.demo },
   { page: 'account', title: 'Admin dashboard', icon: 'crown', tint: 'var(--indigo)', kw: 'admin users dashboard', when: c => !!c.user?.admin && !c.demo },
   { page: 'account', title: 'Name', icon: 'person', tint: 'var(--blue)', kw: 'name username rename change sign in', when: c => c.mobile && !!c.user },
   { page: 'account', title: 'E-mail', icon: 'envelope', tint: 'var(--indigo)', kw: 'email e-mail mail address change', when: c => c.mobile && !!c.user },
