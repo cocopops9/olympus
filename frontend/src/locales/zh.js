@@ -3907,4 +3907,6 @@ export default {
   "Workouts posted": "已发布的训练",
   "Disconnect Strava": "断开 Strava",
   "Strava": "Strava",
+  "{0} rest day": "{0} 天休息日",
+  "{0} rest days": "{0} 天休息日",
 }

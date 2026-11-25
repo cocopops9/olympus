@@ -3907,4 +3907,6 @@ export default {
   "Workouts posted": "게시된 운동",
   "Disconnect Strava": "Strava 연결 해제",
   "Strava": "Strava",
+  "{0} rest day": "휴식일 {0}일",
+  "{0} rest days": "휴식일 {0}일",
 }

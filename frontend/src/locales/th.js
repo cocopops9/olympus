@@ -3918,4 +3918,6 @@ export default {
   "Workouts posted": "การออกกำลังกายที่โพสต์แล้ว",
   "Disconnect Strava": "ยกเลิกการเชื่อมต่อ Strava",
   "Strava": "Strava",
+  "{0} rest day": "พัก {0} วัน",
+  "{0} rest days": "พัก {0} วัน",
 }

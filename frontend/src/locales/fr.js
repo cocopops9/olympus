@@ -3907,4 +3907,6 @@ export default {
   "Workouts posted": "Séances publiées",
   "Disconnect Strava": "Déconnecter Strava",
   "Strava": "Strava",
+  "{0} rest day": "{0} jour de repos",
+  "{0} rest days": "{0} jours de repos",
 }

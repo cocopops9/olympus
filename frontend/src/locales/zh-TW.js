@@ -3900,4 +3900,6 @@ export default {
   "Workouts posted": "已發佈的訓練",
   "Disconnect Strava": "中斷 Strava 連結",
   "Strava": "Strava",
+  "{0} rest day": "{0} 天休息日",
+  "{0} rest days": "{0} 天休息日",
 }

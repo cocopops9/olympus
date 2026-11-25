@@ -3907,4 +3907,6 @@ export default {
   "Workouts posted": "पोस्ट किए गए वर्कआउट",
   "Disconnect Strava": "Strava डिस्कनेक्ट करें",
   "Strava": "Strava",
+  "{0} rest day": "{0} आराम का दिन",
+  "{0} rest days": "{0} आराम के दिन",
 }

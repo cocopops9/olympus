@@ -3986,4 +3986,6 @@ export default {
   "Workouts posted": "পোস্ট করা ওয়ার্কআউট",
   "Disconnect Strava": "Strava সংযোগ বিচ্ছিন্ন করুন",
   "Strava": "Strava",
+  "{0} rest day": "{0} বিশ্রামের দিন",
+  "{0} rest days": "{0} বিশ্রামের দিন",
 }

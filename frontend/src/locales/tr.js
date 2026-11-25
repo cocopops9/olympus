@@ -3907,4 +3907,6 @@ export default {
   "Workouts posted": "Paylaşılan antrenmanlar",
   "Disconnect Strava": "Strava bağlantısını kes",
   "Strava": "Strava",
+  "{0} rest day": "{0} dinlenme günü",
+  "{0} rest days": "{0} dinlenme günü",
 }

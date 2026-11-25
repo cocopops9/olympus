@@ -3910,4 +3910,6 @@ export default {
   "Workouts posted": "Közzétett edzések",
   "Disconnect Strava": "Strava leválasztása",
   "Strava": "Strava",
+  "{0} rest day": "{0} pihenőnap",
+  "{0} rest days": "{0} pihenőnap",
 }
