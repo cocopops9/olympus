@@ -3893,4 +3893,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "अपने AI सहायक से अपनी ट्रेनिंग के बारे में पूछें, और उसे आपके लिए दर्ज करने दें।",
   "Start the stopwatch": "स्टॉपवॉच शुरू करें",
   "Stop the stopwatch": "स्टॉपवॉच रोकें",
+  "Edit message": "संदेश संपादित करें",
+  "Editing message": "संदेश संपादित हो रहा है",
+  "Stop editing": "संपादन रोकें",
+  "edited": "संपादित",
+  "A message can be edited for 5 hours after it is sent.": "संदेश भेजने के 5 घंटे बाद तक उसे संपादित किया जा सकता है।",
 }

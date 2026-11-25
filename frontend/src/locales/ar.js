@@ -3948,4 +3948,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "اسأل مساعد الذكاء الاصطناعي عن تمرينك ودعه يسجّل نيابة عنك.",
   "Start the stopwatch": "ابدأ ساعة الإيقاف",
   "Stop the stopwatch": "أوقف ساعة الإيقاف",
+  "Edit message": "تعديل الرسالة",
+  "Editing message": "تعديل الرسالة",
+  "Stop editing": "إيقاف التعديل",
+  "edited": "معدّلة",
+  "A message can be edited for 5 hours after it is sent.": "يمكن تعديل الرسالة خلال 5 ساعات من إرسالها.",
 }

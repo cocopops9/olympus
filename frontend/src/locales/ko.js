@@ -3893,4 +3893,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "AI 어시스턴트에게 운동에 대해 묻고 기록도 맡기세요.",
   "Start the stopwatch": "스톱워치 시작",
   "Stop the stopwatch": "스톱워치 정지",
+  "Edit message": "메시지 수정",
+  "Editing message": "메시지 수정 중",
+  "Stop editing": "수정 취소",
+  "edited": "수정됨",
+  "A message can be edited for 5 hours after it is sent.": "메시지는 보낸 후 5시간 동안 수정할 수 있습니다.",
 }

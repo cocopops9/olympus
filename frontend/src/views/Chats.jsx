@@ -11,7 +11,7 @@ import { useUI } from '../store/useUI.js'
 import { t } from '../lib/i18n.js'
 import { fmtAgo } from '../lib/format.js'
 import EmojiPicker from '../components/EmojiPicker.jsx'
-import { socialReady, fetchChats, fetchThread, sendMessage, markChatRead, deleteMessage, chatErrorText } from '../lib/social.js'
+import { socialReady, fetchChats, fetchThread, sendMessage, markChatRead, deleteMessage, editMessage, canEditMessage, chatErrorText } from '../lib/social.js'
 import { preparePhoto } from '../lib/social-photo.js'
 import { canRecordNote, startVoiceNote, blobToDataUrl, fmtSecs } from '../lib/voice-note.js'
 import { ChatAttachment, attachmentLabel, attachmentIcon, rememberMedia } from '../components/ChatAttachment.jsx'
@@ -90,6 +90,9 @@ export function ChatThread() {
   const [error, setError] = useState(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  // The message whose words are being changed, and the draft it put aside.
+  const [editing, setEditing] = useState(null)
+  const shelved = useRef('')
   const end = useRef(null)
   const lastId = useRef(0)
 
@@ -148,7 +151,27 @@ export function ChatThread() {
       return false
     }
   }
+  const startEdit = m => {
+    if (!editing) shelved.current = draft
+    setEditing(m)
+    setDraft(m.text || '')
+  }
+  const stopEdit = () => { setEditing(null); setDraft(shelved.current); shelved.current = '' }
+  const saveEdit = async () => {
+    const m = editing
+    const text = draft.trim()
+    if (sending || (!text && !m.attachment)) return
+    if (text === (m.text || '')) { stopEdit(); return }
+    setSending(true)
+    try {
+      const r = await editMessage(id, m.id, text)
+      setMessages(old => (old || []).map(x => (x.id === m.id ? { ...x, ...r.message } : x)))
+      stopEdit()
+    } catch (e) { useUI.getState().toast(chatErrorText(e, t)) }
+    setSending(false)
+  }
   const send = async () => {
+    if (editing) return saveEdit()
     const text = draft.trim()
     if (!text || sending) return
     setSending(true)
@@ -178,7 +201,10 @@ export function ChatThread() {
   const takeBack = m => confirmAction({
     title: t('Delete this message?'), message: t('It disappears for both of you.'), confirmText: t('Delete'),
     onConfirm: async () => {
-      try { await deleteMessage(id, m.id); setMessages(old => (old || []).filter(x => x.id !== m.id)) }
+      try {
+        await deleteMessage(id, m.id); setMessages(old => (old || []).filter(x => x.id !== m.id))
+        if (editing?.id === m.id) stopEdit()
+      }
       catch (e) { useUI.getState().toast(chatErrorText(e, t)) }
     },
   })
@@ -204,11 +230,12 @@ export function ChatThread() {
               const first = i === 0 || dayOf(messages[i - 1].at) !== day
               return <div key={m.id} className="chat-item">
                 {first && <div className="chat-day">{day}</div>}
-                <div className={'chat-m ' + (m.mine ? 'me' : 'them') + (m.attachment ? ' has-a a-' + (m.attachment.once ? 'once' : m.attachment.kind) : '') + (m.pending ? ' pending' : '')} onContextMenu={m.mine && !m.pending ? e => { e.preventDefault(); takeBack(m) } : undefined}>
+                <div className={'chat-m ' + (m.mine ? 'me' : 'them') + (editing?.id === m.id ? ' editing' : '') + (m.attachment ? ' has-a a-' + (m.attachment.once ? 'once' : m.attachment.kind) : '') + (m.pending ? ' pending' : '')} onContextMenu={m.mine && !m.pending ? e => { e.preventDefault(); takeBack(m) } : undefined}>
                   {m.attachment && <ChatAttachment peer={id} message={m} local={m.blob ? localUrl(m) : null} />}
                   {m.text && <span className="chat-m-t">{m.text}</span>}
-                  <span className="chat-m-s">{m.pending ? <><i className="spin sm" /> {t('Sending…')}</> : new Date(m.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                  <span className="chat-m-s">{m.edited && !m.pending && <span className="chat-m-ed">{t('edited')}</span>}{m.pending ? <><i className="spin sm" /> {t('Sending…')}</> : new Date(m.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                     {m.mine && !m.pending && m.id <= seen && <Icon name="check" className="chat-seen" aria-label={t('Seen')} />}
+                    {canEditMessage(m) && <button className="chat-m-x" onClick={() => startEdit(m)} aria-label={t('Edit message')}><Icon name="pencil" /></button>}
                     {m.mine && !m.pending && <button className="chat-m-x" onClick={() => takeBack(m)} aria-label={t('Delete')}><Icon name="trash" /></button>}
                   </span>
                 </div>
@@ -217,7 +244,7 @@ export function ChatThread() {
             <div ref={end} />
           </>}
     </div>
-    {!error && <Composer draft={draft} setDraft={setDraft} sending={sending} onSend={send} onPhoto={sendPhoto} onVideo={sendVideo} onFile={sendFile} onVoice={sendVoice} />}
+    {!error && <Composer draft={draft} setDraft={setDraft} sending={sending} onSend={send} editing={editing} onStopEdit={stopEdit} onPhoto={sendPhoto} onVideo={sendVideo} onFile={sendFile} onVoice={sendVoice} />}
   </div>
 }
 
@@ -226,7 +253,7 @@ export function ChatThread() {
  * plane to send them or, while nothing is written, the microphone for a voice message. Recording
  * shows how long and how loud, with a bin to throw it away and the plane to send it.
  */
-function Composer({ draft, setDraft, sending, onSend, onPhoto, onVideo, onFile, onVoice }) {
+function Composer({ draft, setDraft, sending, onSend, editing = null, onStopEdit, onPhoto, onVideo, onFile, onVoice }) {
   const [rec, setRec] = useState(null)   // { note, ms, level }
   const photoIn = useRef(null), camIn = useRef(null), videoIn = useRef(null), fileIn = useRef(null)
   // Whether the next photo or video goes to view once: chosen in the attach sheet, used once.
@@ -242,7 +269,15 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onVideo, onFile, 
     setDraft(next)
     requestAnimationFrame(() => { if (el) { el.focus(); const c = Math.min(next.length, at[0] + e.length); el.setSelectionRange(c, c) } })
   }
-  const canVoice = canRecordNote()
+  const canVoice = canRecordNote() && !editing
+  // Editing a message puts its words in the line, with the cursor at their end.
+  useEffect(() => {
+    const el = area.current
+    if (!editing || !el) return
+    el.focus()
+    const c = el.value.length
+    el.setSelectionRange?.(c, c)
+  }, [editing?.id])
   useEffect(() => () => note.current?.cancel(), [])
   useEffect(() => {
     if (!rec) return
@@ -277,8 +312,13 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onVideo, onFile, 
     if (f) fn(f, viewOnce)
   }
   const bars = Array.from({ length: 24 }, (_, i) => 0.25 + 0.75 * Math.abs(Math.sin(i * 1.7 + (rec?.ms || 0) / 160)) * (rec?.level || 0.05))
-  return <form className={'chat-in' + (emojis ? ' with-emoji' : '')} onSubmit={e => { e.preventDefault(); onSend() }}>
+  return <form className={'chat-in' + (emojis ? ' with-emoji' : '') + (editing ? ' is-editing' : '')} onSubmit={e => { e.preventDefault(); onSend() }}>
     {emojis && !rec && <EmojiPicker onPick={addEmoji} />}
+    {editing && !rec && <div className="chat-editing">
+      <Icon name="pencil" />
+      <span><b>{t('Editing message')}</b><small>{editing.text || (editing.attachment ? attachmentLabel(editing.attachment.kind, editing.attachment.once) : '')}</small></span>
+      <button type="button" className="chat-tool" onClick={onStopEdit} aria-label={t('Stop editing')}><Icon name="xmark" /></button>
+    </div>}
     <input ref={photoIn} type="file" accept="image/*" hidden onChange={e => picked(onPhoto, e)} data-testid="chat-photo" />
     <input ref={camIn} type="file" accept="image/*" capture="environment" hidden onChange={e => picked(onPhoto, e)} />
     <input ref={videoIn} type="file" accept="video/*" hidden onChange={e => picked(onVideo, e)} data-testid="chat-video" />
@@ -292,14 +332,19 @@ function Composer({ draft, setDraft, sending, onSend, onPhoto, onVideo, onFile, 
       </div>
       <button type="button" className="chat-send" onClick={finish} aria-label={t('Send voice message')}><Icon name="send" /></button>
     </> : <>
-      <button type="button" className="chat-tool" onClick={attach} aria-label={t('Attach a photo, video or file')}><Icon name="paperclip" /></button>
+      {!editing && <button type="button" className="chat-tool" onClick={attach} aria-label={t('Attach a photo, video or file')}><Icon name="paperclip" /></button>}
       <button type="button" className={'chat-tool' + (emojis ? ' on' : '')} onClick={() => setEmojis(v => !v)} aria-pressed={emojis} aria-label={t('Emoji')}><Icon name="smile" /></button>
       <textarea ref={area} rows={1} value={draft} maxLength={2000} placeholder={t('Write a message…')} aria-label={t('Write a message…')}
         onChange={e => setDraft(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend() } }} />
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend() }
+          else if (e.key === 'Escape' && editing) { e.preventDefault(); onStopEdit() }
+        }} />
       {!draft.trim() && canVoice
         ? <button type="button" className="chat-send voice" onClick={record} aria-label={t('Record a voice message')}><Icon name="mic" /></button>
-        : <button type="submit" className="chat-send" disabled={sending || !draft.trim()} aria-label={t('Send')}><Icon name="send" /></button>}
+        : editing
+          ? <button type="submit" className="chat-send" disabled={sending || (!draft.trim() && !editing.attachment)} aria-label={t('Save')}><Icon name="check" /></button>
+          : <button type="submit" className="chat-send" disabled={sending || !draft.trim()} aria-label={t('Send')}><Icon name="send" /></button>}
     </>}
   </form>
 }

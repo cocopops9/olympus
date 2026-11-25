@@ -3897,4 +3897,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Спроси ИИ-ассистента о своих тренировках, и пусть он записывает за тебя.",
   "Start the stopwatch": "Запустить секундомер",
   "Stop the stopwatch": "Остановить секундомер",
+  "Edit message": "Изменить сообщение",
+  "Editing message": "Изменение сообщения",
+  "Stop editing": "Отменить изменение",
+  "edited": "изменено",
+  "A message can be edited for 5 hours after it is sent.": "Сообщение можно изменить в течение 5 часов после отправки.",
 }

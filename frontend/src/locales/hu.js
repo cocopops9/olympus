@@ -3896,4 +3896,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Kérdezd az MI-asszisztensedet az edzésedről, és hagyd, hogy ő rögzítsen helyetted.",
   "Start the stopwatch": "Stopper indítása",
   "Stop the stopwatch": "Stopper leállítása",
+  "Edit message": "Üzenet szerkesztése",
+  "Editing message": "Üzenet szerkesztése folyamatban",
+  "Stop editing": "Szerkesztés befejezése",
+  "edited": "szerkesztve",
+  "A message can be edited for 5 hours after it is sent.": "Az üzenet az elküldése után 5 óráig szerkeszthető.",
 }

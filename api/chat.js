@@ -2,7 +2,7 @@
 // messages of two people), and each profile has an inbox document that lists its conversations
 // with the latest line and how many messages wait unread, so the list never opens a conversation.
 //
-//   chat:<a>|<b>   { n, msgs: [{ i, f, t, at, a? }], read: { <uid>: i } }   a < b; f is who wrote it
+//   chat:<a>|<b>   { n, msgs: [{ i, f, t, at, a?, e? }], read: { <uid>: i } }   a < b; f is who wrote it
 //   chats:<uid>    { <peer>: { at, text, from, unread, k? } }
 //
 // A message may carry one attachment, `a`: { k: 'image' | 'video' | 'audio' | 'file', id, y: its
@@ -22,6 +22,10 @@
 // message, the two inboxes and the counter move together. Who may write to whom is not decided
 // here: the caller passes the other profile as the social layer shows it (someone who blocked
 // you is not there at all), so a block stops messages both ways.
+//
+// Editing: whoever wrote a message may change its words for CHAT.editHours after sending it
+// (`at`, the server's clock; an edit does not extend the window). `e` is when it was last edited,
+// so both people see it marked as edited. An attachment cannot be swapped, only its caption.
 //
 // Messages are private to the two people. Nothing here is offered to the owner's dashboard but
 // counts. Shared by api/server.js and the Supabase function (a test keeps the copies identical).
@@ -46,7 +50,12 @@ export const CHAT = Object.freeze({
   audioSeconds: 300,
   filesPerHour: 40,
   fileName: 120,
+  editHours: 5,    // how long after sending a message its writer may still change its words
+  editsPerHour: 240,
 });
+
+/** Whether a message sent at `at` may still be edited at `t` (both in ms, the server's clock). */
+export const editable = (at, t) => Number(at) > 0 && t - Number(at) <= CHAT.editHours * 3600000;
 
 // What an attachment's first bytes say it is. A photo or a voice message must be one of these;
 // any other file is kept, and served as a download, never shown.
@@ -77,7 +86,7 @@ const clean = v => String(v ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u00
 const attachmentOut = a => (a ? { kind: a.k, type: a.y, size: a.s, ...(a.n ? { name: a.n } : {}), ...(a.d ? { secs: a.d } : {}), ...(a.o ? { once: true, opened: !!a.v } : {}) } : null);
 // What a conversation's list says of a message's attachment.
 const lineKind = a => (a ? { k: a.k, ...(a.o ? { o: 1 } : {}) } : {});
-const shown = (m, me) => ({ id: m.i, mine: m.f === me, text: m.t, at: m.at, ...(m.a ? { attachment: attachmentOut(m.a) } : {}) });
+const shown = (m, me) => ({ id: m.i, mine: m.f === me, text: m.t, at: m.at, ...(m.e ? { edited: m.e } : {}), ...(m.a ? { attachment: attachmentOut(m.a) } : {}) });
 const fileKey = id => 'chat-' + id;
 const lineOf = t => (t.length > CHAT.preview ? t.slice(0, CHAT.preview - 1) + '…' : t);
 // A file's name as it may be shown and saved: no folders, no control characters, not too long.
@@ -260,6 +269,42 @@ export function createChat({ kv, now = () => Date.now(), files = null }) {
         if (doc && (doc.read?.[me] | 0) !== (doc.n | 0)) set(key, { ...doc, read: { ...(doc.read || {}), [me]: doc.n | 0 } });
         if (inbox?.[peer]?.unread) set(inboxKey(me), { ...inbox, [peer]: { ...inbox[peer], unread: 0 } });
       });
+    },
+
+    /**
+     * Changes the words of message `id`, which `me` wrote to `peer`, to `text`, within
+     * CHAT.editHours of sending it. A message with an attachment may lose its words; one without
+     * may not. Returns the message as the sender sees it. The lists show the new words when it is
+     * the latest message, without counting it as unread again.
+     */
+    async edit(me, peer, id, text) {
+      const t = clean(text);
+      if (t.length > CHAT.text) throw new ChatError(413, 'the message is too long', 'too-long');
+      allow(me, 'edit', CHAT.editsPerHour);
+      const key = chatKey(me, peer);
+      let out = null, why = null;
+      await kv.update([key, inboxKey(me), inboxKey(peer)], ({ get, set }) => {
+        const doc = get(key);
+        const m = doc?.msgs?.find(x => x.i === Number(id));
+        if (!m || m.f !== me) { why = [404, 'message not found', 'no-message']; return; }
+        const at = now();
+        if (!editable(m.at, at)) { why = [403, `a message can be edited for ${CHAT.editHours} hours after it is sent`, 'edit-expired']; return; }
+        if (!t && !m.a) { why = [400, 'the message is empty', 'empty']; return; }
+        if (t === m.t) { out = shown(m, me); return; }
+        m.t = t;
+        m.e = at;
+        set(key, doc);
+        const last = doc.msgs[doc.msgs.length - 1];
+        if (last === m) {
+          for (const [who, other] of [[me, peer], [peer, me]]) {
+            const inbox = get(inboxKey(who));
+            if (inbox?.[other]) set(inboxKey(who), { ...inbox, [other]: { ...inbox[other], text: lineOf(t) } });
+          }
+        }
+        out = shown(m, me);
+      });
+      if (why) throw new ChatError(...why);
+      return out;
     },
 
     /** Takes back message `id`, which `me` wrote to `peer`. */

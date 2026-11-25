@@ -3886,4 +3886,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "向你的 AI 助理詢問訓練情況，並讓它替你記錄。",
   "Start the stopwatch": "開始碼錶",
   "Stop the stopwatch": "停止碼錶",
+  "Edit message": "編輯訊息",
+  "Editing message": "正在編輯訊息",
+  "Stop editing": "停止編輯",
+  "edited": "已編輯",
+  "A message can be edited for 5 hours after it is sent.": "訊息在傳送後 5 小時內可以編輯。",
 }

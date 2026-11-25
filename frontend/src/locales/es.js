@@ -3893,4 +3893,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Pregunta a tu asistente de IA por tu entrenamiento y deja que registre por ti.",
   "Start the stopwatch": "Iniciar el cronómetro",
   "Stop the stopwatch": "Detener el cronómetro",
+  "Edit message": "Editar mensaje",
+  "Editing message": "Editando el mensaje",
+  "Stop editing": "Dejar de editar",
+  "edited": "editado",
+  "A message can be edited for 5 hours after it is sent.": "Un mensaje se puede editar hasta 5 horas después de enviarlo.",
 }

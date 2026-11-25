@@ -3972,4 +3972,9 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "তোমার AI সহকারীকে ট্রেনিং নিয়ে জিজ্ঞেস করো, আর তাকে তোমার হয়ে লিখতে দাও।",
   "Start the stopwatch": "স্টপওয়াচ চালু করুন",
   "Stop the stopwatch": "স্টপওয়াচ থামান",
+  "Edit message": "বার্তা সম্পাদনা করুন",
+  "Editing message": "বার্তা সম্পাদনা করা হচ্ছে",
+  "Stop editing": "সম্পাদনা বন্ধ করুন",
+  "edited": "সম্পাদিত",
+  "A message can be edited for 5 hours after it is sent.": "পাঠানোর পর 5 ঘণ্টা পর্যন্ত একটি বার্তা সম্পাদনা করা যায়।",
 }
