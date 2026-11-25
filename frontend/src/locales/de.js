@@ -3913,4 +3913,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Frag deinen KI-Assistenten nach deinem Training und lass ihn für dich eintragen.",
   "Start the stopwatch": "Stoppuhr starten",
   "Stop the stopwatch": "Stoppuhr anhalten",
+  "{0} rest day": "{0} Ruhetag",
+  "{0} rest days": "{0} Ruhetage",
 }

@@ -3886,4 +3886,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "向你的 AI 助理詢問訓練情況，並讓它替你記錄。",
   "Start the stopwatch": "開始碼錶",
   "Stop the stopwatch": "停止碼錶",
+  "{0} rest day": "{0} 天休息日",
+  "{0} rest days": "{0} 天休息日",
 }

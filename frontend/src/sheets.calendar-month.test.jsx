@@ -79,4 +79,22 @@ describe('workout calendar months', () => {
     swipe(host, -30)
     expect(title(host)).toBe('November 2026')
   })
+
+  it('shows the week streak, and marks this month\'s rest days with a moon', () => {
+    // Today is Monday 16 November. Workouts on the 10th, 12th and 16th (this week and last), and
+    // on 2 November (the week before), so the streak is 3 weeks with the default Monday start.
+    const w = (id, d) => ({ id, d, start: Date.parse(d + 'T18:00:00'), end: Date.parse(d + 'T19:00:00'), entries: [], vol: 0 })
+    useStore.setState(s => ({ S: { ...s.S, workouts: [w('a', '2026-11-02'), w('b', '2026-11-10'), w('c', '2026-11-12'), w('d', '2026-11-16')] } }))
+    calendarSheet()
+    const host = mountTopSheet()
+    expect(host.querySelector('.cal-stat.streak').textContent).toBe('3 week streak')
+    // Rest: 3-9, 11, 13-15 (the 1st is before the first workout, the 16th is trained).
+    const rest = [...host.querySelectorAll('.cal-d.rest')].map(b => b.querySelector('span').textContent)
+    expect(rest).toEqual(['3', '4', '5', '6', '7', '8', '9', '11', '13', '14', '15'])
+    expect(host.querySelector('.cal-stat.rest').textContent).toBe('11 rest days')
+    // October was before the first workout: no rest days there.
+    act(() => { host.querySelector('[aria-label="Previous month"]').click() })
+    expect(host.querySelectorAll('.cal-d.rest').length).toBe(0)
+    expect(host.querySelector('.cal-stat.rest').textContent).toBe('0 rest days')
+  })
 })

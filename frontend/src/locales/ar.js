@@ -3948,4 +3948,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "اسأل مساعد الذكاء الاصطناعي عن تمرينك ودعه يسجّل نيابة عنك.",
   "Start the stopwatch": "ابدأ ساعة الإيقاف",
   "Stop the stopwatch": "أوقف ساعة الإيقاف",
+  "{0} rest day": "{0} يوم راحة",
+  "{0} rest days": "{0} أيام راحة",
 }

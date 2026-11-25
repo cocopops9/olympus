@@ -2413,3 +2413,16 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .ai-hero-page .ai-hero-t{font-size:20px;justify-content:center}
 .ai-hero-page .ai-hero-s{font-size:14px}
 .sp-root .ai-hero{margin-bottom:18px}
+
+/* --- calendar: week streak and rest days --- */
+.cal-stats{display:flex;justify-content:center;gap:8px;margin:2px 0 6px}
+.cal-stat{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface)}
+.cal-stat .icn{width:15px;height:15px}
+.cal-stat.streak{color:var(--orange)}
+.cal-stat.streak.cold{color:var(--label-3)}
+.cal-stat.rest{color:var(--indigo)}
+.cal-d.rest{color:var(--label-3)}
+.cal-d .cal-rest{width:9px;height:9px;color:var(--indigo);fill:currentColor;opacity:.8}
+.cal-legend .cal-rest{width:9px;height:9px;color:var(--indigo);fill:currentColor;margin-inline-end:4px;vertical-align:-1px}
+.cal-legend{flex-wrap:wrap;row-gap:6px}
+.cal-legend span{display:inline-flex;align-items:center;white-space:nowrap}
