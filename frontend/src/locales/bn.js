@@ -3972,4 +3972,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "তোমার AI সহকারীকে ট্রেনিং নিয়ে জিজ্ঞেস করো, আর তাকে তোমার হয়ে লিখতে দাও।",
   "Start the stopwatch": "স্টপওয়াচ চালু করুন",
   "Stop the stopwatch": "স্টপওয়াচ থামান",
+  "{0} rest day": "{0} বিশ্রামের দিন",
+  "{0} rest days": "{0} বিশ্রামের দিন",
 }

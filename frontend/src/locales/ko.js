@@ -3893,4 +3893,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "AI 어시스턴트에게 운동에 대해 묻고 기록도 맡기세요.",
   "Start the stopwatch": "스톱워치 시작",
   "Stop the stopwatch": "스톱워치 정지",
+  "{0} rest day": "휴식일 {0}일",
+  "{0} rest days": "휴식일 {0}일",
 }

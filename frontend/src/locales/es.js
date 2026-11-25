@@ -3893,4 +3893,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Pregunta a tu asistente de IA por tu entrenamiento y deja que registre por ti.",
   "Start the stopwatch": "Iniciar el cronómetro",
   "Stop the stopwatch": "Detener el cronómetro",
+  "{0} rest day": "{0} día de descanso",
+  "{0} rest days": "{0} días de descanso",
 }

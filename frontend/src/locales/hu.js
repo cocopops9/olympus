@@ -3896,4 +3896,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Kérdezd az MI-asszisztensedet az edzésedről, és hagyd, hogy ő rögzítsen helyetted.",
   "Start the stopwatch": "Stopper indítása",
   "Stop the stopwatch": "Stopper leállítása",
+  "{0} rest day": "{0} pihenőnap",
+  "{0} rest days": "{0} pihenőnap",
 }
