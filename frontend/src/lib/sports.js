@@ -230,6 +230,46 @@ const SPORT_LIST = [
     trains: ['Balance', 'Core stability', 'Power'],
     muscleWeights: { quadriceps: 0.9, gluteal: 0.7, hamstring: 0.5, calves: 0.5, abs: 0.5, obliques: 0.5, tibialis: 0.4, 'lower-back': 0.4 },
   },
+  {
+    id: 'sport-beach-volleyball', n: 'beach volleyball', icon: 'figureRun', min: 60,
+    trains: ['Power', 'Agility', 'Endurance', 'Reaction time'],
+    muscleWeights: { quadriceps: 0.8, calves: 0.8, gluteal: 0.7, deltoids: 0.7, hamstring: 0.5, abs: 0.4, 'upper-back': 0.4, triceps: 0.4, chest: 0.3 },
+  },
+  {
+    id: 'sport-canoe-kayak', n: 'canoe and kayak', icon: 'figureStrength', min: 60,
+    trains: ['Endurance', 'Core stability', 'Power'],
+    muscleWeights: { 'upper-back': 0.9, deltoids: 0.8, obliques: 0.7, biceps: 0.6, forearm: 0.6, abs: 0.6, triceps: 0.5, chest: 0.4, 'lower-back': 0.4 },
+  },
+  {
+    id: 'sport-sailing', n: 'sailing', icon: 'figureStrength', min: 120,
+    trains: ['Balance', 'Grip strength', 'Core stability'],
+    muscleWeights: { quadriceps: 0.6, abs: 0.6, forearm: 0.6, 'upper-back': 0.5, biceps: 0.4, 'lower-back': 0.4, deltoids: 0.4, 'hip-flexors': 0.4 },
+  },
+  {
+    id: 'sport-triathlon', n: 'triathlon', icon: 'figureRun', min: 120,
+    trains: ['Endurance', 'Power', 'Coordination'],
+    muscleWeights: { quadriceps: 0.9, calves: 0.8, gluteal: 0.7, hamstring: 0.6, 'upper-back': 0.6, deltoids: 0.6, 'hip-flexors': 0.4, abs: 0.4, triceps: 0.3 },
+  },
+  {
+    id: 'sport-taekwondo', n: 'taekwondo', icon: 'figureStrength', min: 60,
+    trains: ['Speed', 'Mobility', 'Balance', 'Power'],
+    muscleWeights: { 'hip-flexors': 0.8, quadriceps: 0.7, gluteal: 0.7, hamstring: 0.6, adductors: 0.6, obliques: 0.6, abs: 0.5, calves: 0.5, deltoids: 0.3 },
+  },
+  {
+    id: 'sport-sumo', n: 'sumo', icon: 'figureStrength', min: 45,
+    trains: ['Power', 'Balance', 'Grip strength', 'Core stability'],
+    muscleWeights: { quadriceps: 0.9, gluteal: 0.9, adductors: 0.7, 'lower-back': 0.6, forearm: 0.6, abs: 0.6, trapezius: 0.5, 'upper-back': 0.5, calves: 0.5, chest: 0.4, neck: 0.4 },
+  },
+  {
+    id: 'sport-capoeira', n: 'capoeira', icon: 'figureRun', min: 60,
+    trains: ['Mobility', 'Coordination', 'Agility', 'Balance'],
+    muscleWeights: { quadriceps: 0.7, gluteal: 0.7, deltoids: 0.6, 'hip-flexors': 0.6, abs: 0.6, obliques: 0.6, triceps: 0.5, hamstring: 0.5, adductors: 0.5, calves: 0.4 },
+  },
+  {
+    id: 'sport-hip-hop-dance', n: 'hip hop dance', icon: 'figureRun', min: 60,
+    trains: ['Coordination', 'Endurance', 'Agility', 'Power'],
+    muscleWeights: { quadriceps: 0.7, gluteal: 0.6, calves: 0.6, abs: 0.5, obliques: 0.5, hamstring: 0.4, deltoids: 0.4, 'hip-flexors': 0.4, triceps: 0.3 },
+  },
 ]
 
 const primariesOf = w => Object.keys(w).filter(k => w[k] >= 0.6)
@@ -242,18 +282,29 @@ const secondariesOf = w => Object.keys(w).filter(k => w[k] > 0 && w[k] < 0.6)
  * scripts/sports-media).
  */
 // The order the sports are listed in, most popular first, after the ones you play yourself (the
-// exercise guide puts those on top). Worldwide popularity has no single measure, so this is an
-// estimate blending how many people watch a sport and how many play it: football, cricket and basketball
-// lead, water polo and fencing come last. It orders a short list; it is not a ranking to cite.
+// exercise guide puts those on top). Worldwide popularity has no single measure, so the order follows
+// one published ranking: Topend Sports, "World's Most Popular Sports Top-10 List Analysis"
+// (https://www.topendsports.com/world/lists/popular-sport/analysis.htm, revised 2025-12), which
+// averages 13 independent top-10 lists (fans, players, TV audience, reach). Its ratings, highest
+// first: football 9.7, basketball 7.8, cricket 7.2, baseball 5.1, tennis 5.0, volleyball 3.8,
+// american football 2.7, rugby 2.2, table tennis 1.6, golf 1.5, ice hockey 1.2, badminton 1.1,
+// track and field 0.8 (long jump, pole vault), boxing 0.7, swimming 0.5, handball 0.2.
+// The other sports appear on none of the 13 lists, so the source cannot order them; they follow,
+// in an order that is an estimate of worldwide participation, not a measurement.
 // A sport missing here is listed after all of these.
 export const POPULARITY = [
-  'sport-football', 'sport-cricket', 'sport-basketball', 'sport-swimming', 'sport-cycling', 'sport-tennis',
-  'sport-volleyball', 'sport-table-tennis', 'sport-badminton', 'sport-hiking', 'sport-baseball',
-  'sport-boxing', 'sport-golf', 'sport-american-football', 'sport-ice-hockey', 'sport-rugby',
-  'sport-skiing', 'sport-zumba', 'sport-padel', 'sport-handball', 'sport-mma', 'sport-karate', 'sport-judo',
-  'sport-kickboxing', 'sport-muay-thai', 'sport-bjj', 'sport-wrestling', 'sport-gymnastics',
-  'sport-rhythmic-gymnastics', 'sport-ballet', 'sport-climbing', 'sport-ice-skating', 'sport-skateboarding', 'sport-roller-skating',
-  'sport-long-jump', 'sport-pole-vault', 'sport-surfing', 'sport-snowboarding', 'sport-squash', 'sport-water-polo', 'sport-fencing',
+  // ranked by the source
+  'sport-football', 'sport-basketball', 'sport-cricket', 'sport-baseball', 'sport-tennis',
+  'sport-volleyball', 'sport-american-football', 'sport-rugby', 'sport-table-tennis', 'sport-golf',
+  'sport-ice-hockey', 'sport-badminton', 'sport-long-jump', 'sport-pole-vault', 'sport-boxing',
+  'sport-swimming', 'sport-handball',
+  // not on the source's lists: estimated participation
+  'sport-cycling', 'sport-hiking', 'sport-skiing', 'sport-gymnastics', 'sport-mma', 'sport-karate',
+  'sport-taekwondo', 'sport-judo', 'sport-zumba', 'sport-climbing', 'sport-padel', 'sport-beach-volleyball',
+  'sport-kickboxing', 'sport-muay-thai', 'sport-bjj', 'sport-wrestling', 'sport-hip-hop-dance',
+  'sport-ice-skating', 'sport-ballet', 'sport-skateboarding', 'sport-surfing', 'sport-snowboarding',
+  'sport-roller-skating', 'sport-squash', 'sport-canoe-kayak', 'sport-triathlon', 'sport-rhythmic-gymnastics',
+  'sport-water-polo', 'sport-sailing', 'sport-fencing', 'sport-capoeira', 'sport-sumo',
 ]
 const rankOf = id => { const i = POPULARITY.indexOf(id); return i < 0 ? POPULARITY.length : i }
 
