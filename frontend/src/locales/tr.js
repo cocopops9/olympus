@@ -3892,5 +3892,6 @@ export default {
   "Not added yet": "Henüz eklenmedi",
   "Ask your AI assistant about your training, and let it log for you.": "Yapay zekâ asistanına antrenmanını sor, kaydı o tutsun.",
   "Start the stopwatch": "Kronometreyi başlat",
-  "Stop the stopwatch": "Kronometreyi durdur",
+  "Pause the stopwatch": "Kronometreyi duraklat",
+  "Resume the stopwatch": "Kronometreye devam et",
 }

@@ -3912,5 +3912,6 @@ export default {
   "Not added yet": "Noch nicht hinzugefügt",
   "Ask your AI assistant about your training, and let it log for you.": "Frag deinen KI-Assistenten nach deinem Training und lass ihn für dich eintragen.",
   "Start the stopwatch": "Stoppuhr starten",
-  "Stop the stopwatch": "Stoppuhr anhalten",
+  "Pause the stopwatch": "Stoppuhr pausieren",
+  "Resume the stopwatch": "Stoppuhr fortsetzen",
 }

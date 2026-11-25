@@ -2954,5 +2954,6 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Not added yet": "Ainda não adicionado",
   "Ask your AI assistant about your training, and let it log for you.": "Pergunte ao seu assistente de IA sobre seu treino e deixe que ele registre por você.",
   "Start the stopwatch": "Iniciar o cronômetro",
-  "Stop the stopwatch": "Parar o cronômetro",
+  "Pause the stopwatch": "Pausar o cronômetro",
+  "Resume the stopwatch": "Retomar o cronômetro",
 }

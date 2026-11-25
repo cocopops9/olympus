@@ -3892,5 +3892,6 @@ export default {
   "Not added yet": "아직 추가되지 않음",
   "Ask your AI assistant about your training, and let it log for you.": "AI 어시스턴트에게 운동에 대해 묻고 기록도 맡기세요.",
   "Start the stopwatch": "스톱워치 시작",
-  "Stop the stopwatch": "스톱워치 정지",
+  "Pause the stopwatch": "스톱워치 일시정지",
+  "Resume the stopwatch": "스톱워치 재개",
 }

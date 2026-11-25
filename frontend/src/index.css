@@ -1416,11 +1416,14 @@ body.chips-dragging *{cursor:inherit}
 }
 .setrow .setgo:disabled{opacity:.3;cursor:default}
 .setrow .setgo:not(:disabled):active{background:var(--surface-3)}
-/* the stopwatch of a cardio or sport row (lib/stopwatch.js): quiet until started, then filled in
-   the accent while it counts, the count itself in the duration cell */
+/* the stopwatch of a cardio or sport row (lib/stopwatch.js): quiet until started, filled in the
+   accent while it counts, outlined in the accent while paused; the count itself sits in the
+   duration cell, dimmed while it is held */
 .setrow .setgo.sw.on{background:var(--acc);color:var(--on-acc)}
 .setrow .setgo.sw.on:not(:disabled):active{background:var(--acc);opacity:.85}
+.setrow .setgo.sw.held{color:var(--acc);box-shadow:inset 0 0 0 1.5px var(--acc)}
 .setrow .swlive{display:inline-block;min-width:var(--num);text-align:center;font-variant-numeric:tabular-nums;color:var(--acc);font-weight:600}
+.setrow .swlive.held{opacity:.55}
 /* exercise-config sheet: three steppers side by side on narrow phones */
 .cfgrow{gap:8px}
 .cfgrow>div{flex:1;min-width:0}

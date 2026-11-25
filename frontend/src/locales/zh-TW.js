@@ -3885,5 +3885,6 @@ export default {
   "Not added yet": "尚未新增",
   "Ask your AI assistant about your training, and let it log for you.": "向你的 AI 助理詢問訓練情況，並讓它替你記錄。",
   "Start the stopwatch": "開始碼錶",
-  "Stop the stopwatch": "停止碼錶",
+  "Pause the stopwatch": "暫停碼錶",
+  "Resume the stopwatch": "繼續碼錶",
 }

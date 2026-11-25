@@ -3903,5 +3903,6 @@ export default {
   "Not added yet": "ยังไม่ได้เพิ่ม",
   "Ask your AI assistant about your training, and let it log for you.": "ถามผู้ช่วย AI เรื่องการฝึกของคุณ และให้มันบันทึกแทนคุณ",
   "Start the stopwatch": "เริ่มนาฬิกาจับเวลา",
-  "Stop the stopwatch": "หยุดนาฬิกาจับเวลา",
+  "Pause the stopwatch": "หยุดนาฬิกาจับเวลาชั่วคราว",
+  "Resume the stopwatch": "เดินนาฬิกาจับเวลาต่อ",
 }

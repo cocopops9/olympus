@@ -3947,5 +3947,6 @@ export default {
   "Not added yet": "لم يُضف بعد",
   "Ask your AI assistant about your training, and let it log for you.": "اسأل مساعد الذكاء الاصطناعي عن تمرينك ودعه يسجّل نيابة عنك.",
   "Start the stopwatch": "ابدأ ساعة الإيقاف",
-  "Stop the stopwatch": "أوقف ساعة الإيقاف",
+  "Pause the stopwatch": "أوقف ساعة الإيقاف مؤقتًا",
+  "Resume the stopwatch": "استأنف ساعة الإيقاف",
 }

@@ -3896,5 +3896,6 @@ export default {
   "Not added yet": "Ещё не добавлено",
   "Ask your AI assistant about your training, and let it log for you.": "Спроси ИИ-ассистента о своих тренировках, и пусть он записывает за тебя.",
   "Start the stopwatch": "Запустить секундомер",
-  "Stop the stopwatch": "Остановить секундомер",
+  "Pause the stopwatch": "Поставить секундомер на паузу",
+  "Resume the stopwatch": "Продолжить секундомер",
 }

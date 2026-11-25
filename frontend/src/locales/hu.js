@@ -3895,5 +3895,6 @@ export default {
   "Not added yet": "Még nincs hozzáadva",
   "Ask your AI assistant about your training, and let it log for you.": "Kérdezd az MI-asszisztensedet az edzésedről, és hagyd, hogy ő rögzítsen helyetted.",
   "Start the stopwatch": "Stopper indítása",
-  "Stop the stopwatch": "Stopper leállítása",
+  "Pause the stopwatch": "Stopper szüneteltetése",
+  "Resume the stopwatch": "Stopper folytatása",
 }

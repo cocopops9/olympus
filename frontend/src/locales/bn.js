@@ -3971,5 +3971,6 @@ export default {
   "Not added yet": "এখনো যোগ করা হয়নি",
   "Ask your AI assistant about your training, and let it log for you.": "তোমার AI সহকারীকে ট্রেনিং নিয়ে জিজ্ঞেস করো, আর তাকে তোমার হয়ে লিখতে দাও।",
   "Start the stopwatch": "স্টপওয়াচ চালু করুন",
-  "Stop the stopwatch": "স্টপওয়াচ থামান",
+  "Pause the stopwatch": "স্টপওয়াচ বিরতি দিন",
+  "Resume the stopwatch": "স্টপওয়াচ আবার চালু করুন",
 }

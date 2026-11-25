@@ -3892,5 +3892,6 @@ export default {
   "Not added yet": "Jeszcze nie dodano",
   "Ask your AI assistant about your training, and let it log for you.": "Pytaj asystenta AI o swój trening i pozwól mu zapisywać za ciebie.",
   "Start the stopwatch": "Uruchom stoper",
-  "Stop the stopwatch": "Zatrzymaj stoper",
+  "Pause the stopwatch": "Wstrzymaj stoper",
+  "Resume the stopwatch": "Wznów stoper",
 }

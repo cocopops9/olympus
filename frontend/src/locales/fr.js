@@ -3892,5 +3892,6 @@ export default {
   "Not added yet": "Pas encore ajouté",
   "Ask your AI assistant about your training, and let it log for you.": "Interroge ton assistant IA sur ton entraînement et laisse-le enregistrer pour toi.",
   "Start the stopwatch": "Démarrer le chronomètre",
-  "Stop the stopwatch": "Arrêter le chronomètre",
+  "Pause the stopwatch": "Mettre le chronomètre en pause",
+  "Resume the stopwatch": "Reprendre le chronomètre",
 }
