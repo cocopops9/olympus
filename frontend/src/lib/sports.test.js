@@ -91,6 +91,12 @@ describe('sports', () => {
     const ids = SPORTS.map(s => s.id)
     expect(ids).toEqual(POPULARITY.filter(id => ids.includes(id)))
     expect(ids[0]).toBe('sport-football')
+    // The cited ranking (Topend Sports meta-analysis): basketball 7.8 is above cricket 7.2, and
+    // every sport it rates comes before the ones it does not.
+    const at = id => ids.indexOf(id)
+    expect(at('sport-basketball')).toBe(1)
+    expect(at('sport-basketball')).toBeLessThan(at('sport-cricket'))
+    expect(at('sport-handball')).toBeLessThan(at('sport-cycling'))
     const tile = exercisesFor(CATALOGUE, { kind: 'group', id: 'sports' })
     const plain = arrange(tile, { staples: STAPLES.sports })
     expect(plain.yours).toEqual([])
