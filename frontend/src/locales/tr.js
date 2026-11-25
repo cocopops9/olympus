@@ -3893,4 +3893,6 @@ export default {
   "Ask your AI assistant about your training, and let it log for you.": "Yapay zekâ asistanına antrenmanını sor, kaydı o tutsun.",
   "Start the stopwatch": "Kronometreyi başlat",
   "Stop the stopwatch": "Kronometreyi durdur",
+  "{0} rest day": "{0} dinlenme günü",
+  "{0} rest days": "{0} dinlenme günü",
 }
