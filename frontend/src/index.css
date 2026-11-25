@@ -2376,6 +2376,20 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .ai-hero-page .ai-hero-s{font-size:14px}
 .sp-root .ai-hero{margin-bottom:18px}
 
+/* Settings → Strava (components/StravaConnect.jsx): the Strava tile and its pitch, then the
+   "Connect with STRAVA" button in Strava's own colours (white, the word in Strava orange). */
+.strava-hero{display:flex;align-items:center;gap:14px;padding:14px;margin-bottom:22px;border-radius:var(--r-card);background:var(--surface)}
+.strava-tile{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:14px;background:#FC5200;
+  box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.strava-hero-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.strava-hero-t{font-size:17.5px;font-weight:700;letter-spacing:-.015em}
+.strava-hero-s{font-size:13.5px;color:var(--label-2);line-height:1.35}
+.strava-actions{padding:12px 16px;display:flex}
+.strava-connect{flex:1;min-height:48px;border-radius:6px;background:#fff;color:#5f5f5f;font-size:16px;font-weight:600;letter-spacing:.02em;
+  border:1px solid #d9d9d9;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.strava-connect b{font-weight:900;font-style:italic;letter-spacing:.02em}
+.strava-connect:active{filter:brightness(.95)}
+.strava-connect:disabled{opacity:.6}
 /* --- calendar: week streak and rest days --- */
 .cal-stats{display:flex;justify-content:center;gap:8px;margin:2px 0 6px}
 .cal-stat{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface)}

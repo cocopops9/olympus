@@ -55,6 +55,7 @@ import AccountHero, { useFace } from '../components/AccountHero.jsx'
 import { SignInSection } from '../components/AccountEdit.jsx'
 import { GymsManager } from '../components/Gyms.jsx'
 import { ClaudeConnectorPage, ChatGPTConnectorPage, AssistantsPage, AssistantsCard } from '../components/ClaudeConnector.jsx'
+import { StravaPage } from '../components/StravaConnect.jsx'
 import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkeySignIn } from '../components/ServerSync.jsx'
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
@@ -424,6 +425,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
     about: () => 'v' + __APP_VERSION__,
+    strava: () => (S.stravaOn ? t('Connected') : ''),
     guide: () => { const g = guideProgress(S); return g.done ? g.done + '/' + g.total : t('Start here') },
   }
 
@@ -891,6 +893,8 @@ export default function Settings({ page = null, find = null, via = null }) {
     claude: () => <ClaudeConnectorPage />,
 
     chatgpt: () => <ChatGPTConnectorPage />,
+
+    strava: () => <StravaPage />,
 
     account: () => <>
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's
