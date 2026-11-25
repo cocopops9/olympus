@@ -3891,4 +3891,6 @@ export default {
   "Start the stopwatch": "Запустити секундомір",
   "Pause the stopwatch": "Призупинити секундомір",
   "Resume the stopwatch": "Продовжити секундомір",
+  "{0} rest day": "{0} день відпочинку",
+  "{0} rest days": { one: '{0} день відпочинку', few: '{0} дні відпочинку', many: '{0} днів відпочинку' },
 }

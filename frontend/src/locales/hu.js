@@ -3897,4 +3897,6 @@ export default {
   "Start the stopwatch": "Stopper indítása",
   "Pause the stopwatch": "Stopper szüneteltetése",
   "Resume the stopwatch": "Stopper folytatása",
+  "{0} rest day": "{0} pihenőnap",
+  "{0} rest days": "{0} pihenőnap",
 }

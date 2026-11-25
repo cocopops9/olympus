@@ -3949,4 +3949,6 @@ export default {
   "Start the stopwatch": "ابدأ ساعة الإيقاف",
   "Pause the stopwatch": "أوقف ساعة الإيقاف مؤقتًا",
   "Resume the stopwatch": "استأنف ساعة الإيقاف",
+  "{0} rest day": "{0} يوم راحة",
+  "{0} rest days": "{0} أيام راحة",
 }

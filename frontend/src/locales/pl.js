@@ -3894,4 +3894,6 @@ export default {
   "Start the stopwatch": "Uruchom stoper",
   "Pause the stopwatch": "Wstrzymaj stoper",
   "Resume the stopwatch": "Wznów stoper",
+  "{0} rest day": "{0} dzień odpoczynku",
+  "{0} rest days": { one: '{0} dzień odpoczynku', few: '{0} dni odpoczynku', many: '{0} dni odpoczynku' },
 }

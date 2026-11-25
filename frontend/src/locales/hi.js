@@ -3894,4 +3894,6 @@ export default {
   "Start the stopwatch": "स्टॉपवॉच शुरू करें",
   "Pause the stopwatch": "स्टॉपवॉच को विराम दें",
   "Resume the stopwatch": "स्टॉपवॉच फिर से शुरू करें",
+  "{0} rest day": "{0} आराम का दिन",
+  "{0} rest days": "{0} आराम के दिन",
 }

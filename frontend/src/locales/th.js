@@ -3905,4 +3905,6 @@ export default {
   "Start the stopwatch": "เริ่มนาฬิกาจับเวลา",
   "Pause the stopwatch": "หยุดนาฬิกาจับเวลาชั่วคราว",
   "Resume the stopwatch": "เดินนาฬิกาจับเวลาต่อ",
+  "{0} rest day": "พัก {0} วัน",
+  "{0} rest days": "พัก {0} วัน",
 }

@@ -3973,4 +3973,6 @@ export default {
   "Start the stopwatch": "স্টপওয়াচ চালু করুন",
   "Pause the stopwatch": "স্টপওয়াচ বিরতি দিন",
   "Resume the stopwatch": "স্টপওয়াচ আবার চালু করুন",
+  "{0} rest day": "{0} বিশ্রামের দিন",
+  "{0} rest days": "{0} বিশ্রামের দিন",
 }

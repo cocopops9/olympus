@@ -3894,4 +3894,6 @@ export default {
   "Start the stopwatch": "Kronometreyi başlat",
   "Pause the stopwatch": "Kronometreyi duraklat",
   "Resume the stopwatch": "Kronometreye devam et",
+  "{0} rest day": "{0} dinlenme günü",
+  "{0} rest days": "{0} dinlenme günü",
 }

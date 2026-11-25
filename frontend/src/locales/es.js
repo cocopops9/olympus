@@ -3894,4 +3894,6 @@ export default {
   "Start the stopwatch": "Iniciar el cronómetro",
   "Pause the stopwatch": "Pausar el cronómetro",
   "Resume the stopwatch": "Reanudar el cronómetro",
+  "{0} rest day": "{0} día de descanso",
+  "{0} rest days": "{0} días de descanso",
 }

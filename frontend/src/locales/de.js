@@ -3914,4 +3914,6 @@ export default {
   "Start the stopwatch": "Stoppuhr starten",
   "Pause the stopwatch": "Stoppuhr pausieren",
   "Resume the stopwatch": "Stoppuhr fortsetzen",
+  "{0} rest day": "{0} Ruhetag",
+  "{0} rest days": "{0} Ruhetage",
 }

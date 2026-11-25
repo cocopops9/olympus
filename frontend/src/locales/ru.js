@@ -3898,4 +3898,6 @@ export default {
   "Start the stopwatch": "Запустить секундомер",
   "Pause the stopwatch": "Поставить секундомер на паузу",
   "Resume the stopwatch": "Продолжить секундомер",
+  "{0} rest day": "{0} день отдыха",
+  "{0} rest days": { one: '{0} день отдыха', few: '{0} дня отдыха', many: '{0} дней отдыха' },
 }

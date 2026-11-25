@@ -3894,4 +3894,6 @@ export default {
   "Start the stopwatch": "스톱워치 시작",
   "Pause the stopwatch": "스톱워치 일시정지",
   "Resume the stopwatch": "스톱워치 재개",
+  "{0} rest day": "휴식일 {0}일",
+  "{0} rest days": "휴식일 {0}일",
 }

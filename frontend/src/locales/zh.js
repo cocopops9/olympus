@@ -3894,4 +3894,6 @@ export default {
   "Start the stopwatch": "开始秒表",
   "Pause the stopwatch": "暂停秒表",
   "Resume the stopwatch": "继续秒表",
+  "{0} rest day": "{0} 天休息日",
+  "{0} rest days": "{0} 天休息日",
 }
