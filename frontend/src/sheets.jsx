@@ -47,6 +47,8 @@ import { composeSheet, PostEditor, postEditorSheet } from './components/Social.j
 import { titleWorkout } from './lib/workout-title.js'
 import { queuePost, forgetPost, flushPosts, postState, unpost, repost, autoPostOn, holdPost, releasePost } from './lib/auto-post.js'
 import { socialReady } from './lib/social.js'
+import { queueStrava } from './lib/strava.js'
+import { flushStrava } from './lib/strava-post.js'
 import { sameMuscleFirst, swapMuscleOf } from './lib/similar-exercises.js'
 import { SPORT_MINUTES_PER_SET } from './lib/sports.js'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWeightsOf, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
@@ -3727,8 +3729,12 @@ function doFinishWorkout() {
     if (socialReady(useStore.getState().user) && (resumed == null || s.wposts?.[shown.id] === undefined)) queuePost(s, shown)
     // Its post waits for the finish screen, where photos and a song can go on it first.
     if (s.wposts?.[shown.id] === '') holdPost(shown.id)
+    // Olympus: to Strava as well, when the account is connected (lib/strava-post.js). A workout
+    // picked up again is already there: the server answers with the activity it made the first time.
+    if (resumed == null) queueStrava(s, shown)
   })
   flushPosts().catch(() => {})
+  flushStrava().catch(() => {})
   useStore.getState().autoBackupNow()
   useUI.getState().stopRest()
   // A hold still counting (a plank left unchecked, then Finish early) goes with the workout, as

@@ -7,6 +7,7 @@ import { startMediaSync } from './lib/media-sync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
 import { startSplash } from './lib/splash.js'
 import { startAutoPost } from './lib/auto-post.js'
+import { startStrava } from './lib/strava-post.js'
 import { captureInvite } from './lib/referral.js'
 import './index.css'
 
@@ -25,6 +26,9 @@ startSplash(useStore)
 
 // Olympus: finished workouts go to the feed, also the ones finished offline (lib/auto-post.js).
 startAutoPost()
+
+// Olympus: finished workouts go to Strava too, once the account is connected (lib/strava-post.js).
+startStrava()
 
 // The photos and videos of custom exercises, in every build (the phone and the demo included):
 // uploads of what the server lacks, the local clean-up, and the plan's files kept offline.
