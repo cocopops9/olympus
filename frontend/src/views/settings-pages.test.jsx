@@ -75,6 +75,9 @@ afterEach(() => {
 const mount = (page = null, find = null, via = null) => act(() => root.render(<Settings page={page} find={find} via={via} />))
 const rowTitled = title => [...host.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
 const titles = () => [...host.querySelectorAll('.lrow .lrow-t')].map(e => e.textContent)
+// What a search can land on besides a row: the rest tiles and the layout picker (data-find).
+const found = () => [...host.querySelectorAll('[data-find]')].map(e => e.dataset.find)
+const tile = title => host.querySelector(`[data-find="${title}"]`)
 
 // This test's guest in a browser, as the page itself sees it.
 const guestWeb = {
@@ -215,7 +218,7 @@ describe('the search lands on a row', () => {
       if (page === 'coach') continue
       mount(page)
       await act(async () => {})   // the passkey list, asked of the server on open
-      const have = [...titles(), ...[...host.querySelectorAll('.btn')].map(b => b.textContent.trim())]
+      const have = [...titles(), ...found(), ...[...host.querySelectorAll('.btn')].map(b => b.textContent.trim())]
       for (const title of want) expect(have, `${page}: ${title}`).toContain(title)
     }
   })
@@ -291,16 +294,17 @@ describe('the pages', () => {
     expect(Object.keys(byPage).sort()).toEqual(['about', 'advanced', 'alerts', 'data', 'equipment', 'look', 'plan', 'units', 'workout'])
     for (const [page, want] of Object.entries(byPage)) {
       mount(page)
-      const have = titles()
+      const have = [...titles(), ...found()]
       for (const title of want) expect(have, `${page}: ${title}`).toContain(title)
     }
   })
 
   it('every old row has a home: the Workout page holds the rest, logging and the before/during rows', () => {
     mount('workout')
-    expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['Rest', 'Logging', 'Before and during', 'Gyms'])
-    expect(titles()).toEqual(['Rest timer', 'Rest-pause rest', 'Effort per set', 'Shown under each exercise', 'Layout',
-      'Collapse completed exercises', 'Weigh in before workouts', 'Keep screen awake', 'Exercise animations', 'Records per gym', 'Fine-tuning'])
+    expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['Rest', 'Layout', 'Logging', 'Before and during', 'Gyms'])
+    // The rest times are tiles and the layouts a picker, found by search through data-find.
+    expect(found()).toEqual(['Rest timer', 'Rest-pause rest', 'Layout'])
+    expect(titles()).toEqual(['Collapse completed exercises', 'Effort per set', 'Shown under each exercise', 'Weigh in before workouts', 'Keep screen awake', 'Exercise animations', 'Records per gym', 'Fine-tuning'])
     // QA 10-05: the "screen stays on" line is the awake row's own subtitle, not a section footer
     // that read as if it explained the animations above it.
     expect(rowTitled('Keep screen awake').querySelector('.lrow-s').textContent).toMatch(/^The screen stays on/)
@@ -359,8 +363,8 @@ describe('the rest wheels', () => {
   }
   it('Rest timer opens the wheel and stores any value as seconds in restSec', () => {
     mount('workout')
-    expect(rowTitled('Rest timer').querySelector('.lrow-v').textContent).toBe('1:30')
-    act(() => rowTitled('Rest timer').click())
+    expect(tile('Rest timer').querySelector('.wset-big').textContent).toBe('1:30')
+    act(() => tile('Rest timer').click())
     const { h, r } = doneIn(mocks.sheets.at(-1))
     expect(h.querySelector('h3').textContent).toBe('Rest timer')
     const [min, sec] = h.querySelectorAll('[role="spinbutton"]')
@@ -371,18 +375,18 @@ describe('the rest wheels', () => {
     expect(mocks.S.restSec).toBe(101)
     act(() => r.unmount()); h.remove()
     mount('workout')
-    expect(rowTitled('Rest timer').querySelector('.lrow-v').textContent).toBe('1:41')
+    expect(tile('Rest timer').querySelector('.wset-big').textContent).toBe('1:41')
   })
 
   it('0:00 is the timer off', () => {
     mocks.S.restSec = 0
     mount('workout')
-    expect(rowTitled('Rest timer').querySelector('.lrow-v').textContent).toBe('Off')
+    expect(tile('Rest timer').querySelector('.wset-big').textContent).toBe('Off')
   })
 
   it('Rest-pause rest uses the wheel too, 5 s to 5 minutes', () => {
     mount('workout')
-    act(() => rowTitled('Rest-pause rest').click())
+    act(() => tile('Rest-pause rest').click())
     const { h, r } = doneIn(mocks.sheets.at(-1))
     const [min, sec] = h.querySelectorAll('[role="spinbutton"]')
     expect(min.getAttribute('aria-valuemax')).toBe('5')

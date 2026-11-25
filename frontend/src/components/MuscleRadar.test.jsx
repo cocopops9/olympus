@@ -30,11 +30,16 @@ describe('muscle distribution radar', () => {
 })
 
 describe('set value', () => {
-  it('reads weight×reps with its units, and leaves other labels as they are', () => {
-    act(() => root.render(<><SetValue label="30×16" unit="kg" /><SetValue label="45 s" /></>))
-    const [a, b] = host.querySelectorAll('.setv')
-    expect(a.textContent).toBe('30kg×16reps')
-    expect(a.querySelectorAll('b')).toHaveLength(2)
-    expect(b.textContent).toBe('45 s')
+  const read = label => { act(() => root.render(<SetValue label={label} unit="kg" />)); return host.querySelector('.setv').textContent }
+  it('gives every number of a set its unit', () => {
+    expect(read('30×16')).toBe('30kg×16reps')
+    expect(host.querySelectorAll('.setv b')).toHaveLength(2)
+    expect(read('4')).toBe('4reps')
+    expect(read('+10 × 10')).toBe('+10kg×10reps')
+    expect(read('5 min @ 12 km/h')).toBe('5min·12km/h')
+    expect(read('20 each × 8')).toBe('20kgeach×8reps')
+    // Two sets of reps: the units of weight stay, the word "reps" would crowd the chip.
+    expect(read('100×8 ↘ 80×6')).toBe('100kg×8 ↘ 80kg×6')
+    expect(read('45 s')).toBe('45 s')
   })
 })

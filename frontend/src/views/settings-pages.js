@@ -164,7 +164,6 @@ export const SEARCH = [
   { page: 'account', title: 'Password', icon: 'key', tint: 'var(--orange)', kw: 'password login', when: c => signedInWeb(c) && c.pwOn },
   { page: 'account', title: 'Sign out', icon: 'signOut', tint: 'var(--red)', kw: 'log out logout sign out', when: signedInWeb },
   { page: 'account', title: 'Sign out everywhere', icon: 'shield', tint: 'var(--red)', kw: 'log out all devices sessions', when: signedInWeb },
-  { page: 'account', title: 'Account ID', icon: 'personCircle', tint: 'var(--grey)', kw: 'id uid admin account', when: c => !!c.user && !c.demo },
   { page: 'account', title: 'Admin dashboard', icon: 'crown', tint: 'var(--indigo)', kw: 'admin users dashboard', when: c => !!c.user?.admin && !c.demo },
   { page: 'account', title: 'Name', icon: 'person', tint: 'var(--blue)', kw: 'name username rename change sign in', when: c => c.mobile && !!c.user },
   { page: 'account', title: 'E-mail', icon: 'envelope', tint: 'var(--indigo)', kw: 'email e-mail mail address change', when: c => c.mobile && !!c.user },

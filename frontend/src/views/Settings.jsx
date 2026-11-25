@@ -6,7 +6,6 @@ import { healthStatus, loadHealth, enableHealth, disableHealth, openHealthConnec
 import { workoutControls } from '../lib/workout-controls.js'
 import { speedUnitOf } from '../lib/speed.js'
 import { formulaOf, FORMULA_NAMES } from '../lib/onerm.js'
-import { copyText } from '../lib/clipboard.js'
 import { useUI } from '../store/useUI.js'
 import { guideLevelOf, withGuideLevel, withTipsReset } from '../lib/guide.js'
 import { calliopeSheet, replayGuide } from '../components/Calliope.jsx'
@@ -193,6 +192,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     const el = body.current
     const named = label => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === label)
       || [...el.querySelectorAll('.btn')].find(b => b.textContent.trim() === label)
+      || [...el.querySelectorAll('[data-find]')].find(b => b.dataset.find === label)
     let tm = null
     const flash = row => {
       row.classList.add('sp-flash')
@@ -442,73 +442,87 @@ export default function Settings({ page = null, find = null, via = null }) {
   }
 
   /* ---------------- the pages ---------------- */
-  const restRow = <Row icon="timer" iconTint="var(--orange)" title={t('Rest timer')} value={fmtRest(S.restSec)} accessory="chevron"
-    onClick={() => durationSheet({
-      title: t('Rest timer'), value: S.restSec, max: REST_MAX, off: t('Off'),
-      footer: t('Scroll to 0:00 to turn the rest timer off.'),
-      onDone: v => update(s => { s.restSec = v }),
-    })} />
+  const openRest = () => durationSheet({
+    title: t('Rest timer'), value: S.restSec, max: REST_MAX, off: t('Off'),
+    footer: t('Scroll to 0:00 to turn the rest timer off.'),
+    onDone: v => update(s => { s.restSec = v }),
+  })
   // Default for a rest-pause burst added live on a plain set. A planned exercise's own "Rest (s)"
   // (in its drop set / burst config) overrides it, the same way the main rest timer is the
   // fallback for an exercise without a rest of its own. On the wheel too, 5 s to 5 min: the
   // burst's rest is never 0 (lib/history.js keeps it at 5 s at least), so the wheel stops there.
-  const restPauseRow = <Row icon="bolt" iconTint="var(--orange)" title={t('Rest-pause rest')} value={fmtDuration(S.restPauseSec || 15)} accessory="chevron"
-    onClick={() => durationSheet({
-      title: t('Rest-pause rest'), value: S.restPauseSec || 15, min: REST_PAUSE_MIN, max: REST_PAUSE_MAX,
-      footer: t('The short break between the bursts of a rest-pause set.'),
-      onDone: v => update(s => { s.restPauseSec = v }),
-    })} />
+  const openRestPause = () => durationSheet({
+    title: t('Rest-pause rest'), value: S.restPauseSec || 15, min: REST_PAUSE_MIN, max: REST_PAUSE_MAX,
+    footer: t('The short break between the bursts of a rest-pause set.'),
+    onDone: v => update(s => { s.restPauseSec = v }),
+  })
 
   const pages = {
     guide: () => <AppGuide />,
-    workout: () => <>
+    // Olympus: the workout settings in the app's gold on black (.wset, index.css): the two rest
+    // times as the page's head, since they are what gets changed most, the layouts as pictures
+    // to pick from, and every row's glyph in gold on a dark tile, as in a workout's actions.
+    workout: () => <div className="wset">
       <Section title={t('Rest')} footer={t('Each exercise can have its own rest too. Set it in the exercise settings of a routine.')}>
-        {restRow}
-        {restPauseRow}
+        <div className="wset-rest">
+          <button className="wset-tile main" data-find={t('Rest timer')} onClick={openRest}>
+            <span className="wset-k"><Icon name="timer" />{t('Rest timer')}</span>
+            <b className="wset-big">{fmtRest(S.restSec)}</b>
+          </button>
+          <button className="wset-tile" data-find={t('Rest-pause rest')} onClick={openRestPause}>
+            <span className="wset-k"><Icon name="bolt" />{t('Rest-pause rest')}</span>
+            <b className="wset-big">{fmtDuration(S.restPauseSec || 15)}</b>
+          </button>
+        </div>
       </Section>
-      <Section title={t('Logging')}>
-        {/* Two names for the same judgement, so the column asks in the scale you already think in.
-            The (i) sits before the control: you read it on the way to the choice, not after it. */}
-        <Row icon="gauge" iconTint="var(--purple)" title={t('Effort per set')}>
-          <button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>
-          <Segmented className="seg-inline"
-            options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
-            value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })} />
-        </Row>
-        {/* The line under each exercise that the rows are held against (#173). Tapping the line in
-            a workout switches it too; this is where the choice can be found without knowing that. */}
-        <SelectRow icon="history" iconTint="var(--blue)" title={t('Shown under each exercise')}
-          value={S.logRef === 'best' ? 'best' : 'last'} onChange={v => update(s => { s.logRef = v })}
-          options={[
-            { value: 'last', label: t('Last time'), subtitle: t('What you did the last time, in that routine.') },
-            { value: 'best', label: t('Best set'), subtitle: t('Your heaviest set of the exercise, from any workout.') },
-          ]} />
+      <Section title={t('Layout')}>
         {/* One exercise at a time (cards with Prev/Next), the whole session stacked as a
             scrollable list, or that list stripped to just names and set rows (compact). Legacy or
             unknown values read as cards. The workout's ⋯ menu can override it for one session. */}
-        <Row icon="layout" iconTint="var(--blue)" title={t('Layout')}>
-          <Segmented className="seg-inline"
-            options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }, { value: 'focus', label: t('Focus') }]}
-            value={layout} onChange={v => update(s => { s.workoutView = v })} />
-        </Row>
+        <div className="wset-layouts" role="radiogroup" aria-label={t('Layout')} data-find={t('Layout')}>
+          {[['cards', 'layout', t('Cards')], ['list', 'list', t('List')], ['compact', 'compact', t('Compact')], ['focus', 'target', t('Focus')]].map(([v, icon, label]) => (
+            <button key={v} role="radio" aria-checked={layout === v} className={'wset-lay' + (layout === v ? ' on' : '')}
+              onClick={() => update(s => { s.workoutView = v })}>
+              <Icon name={icon} /><span>{label}</span>
+            </button>
+          ))}
+        </div>
         {/* The saved side of the Layout menu's "Collapse completed exercises" (#241): on here, every
             session starts with it, and the menu still flips it for one session. Setting it here
             also drops a running session's own choice, so the switch does what it says right away. */}
-        <Row icon="minimize" iconTint="var(--teal)" title={t('Collapse completed exercises')}
+        <Row icon="minimize" title={t('Collapse completed exercises')}
           subtitle={t('In List and Compact, a finished exercise folds into one line.')}>
           <Switch aria-label={t('Collapse completed exercises')} checked={!!S.collapseCompleted}
             onChange={v => update(s => { s.collapseCompleted = v; if (s.active) delete s.active.collapseCompleted })} />
         </Row>
       </Section>
+      <Section title={t('Logging')}>
+        {/* Two names for the same judgement, so the column asks in the scale you already think in.
+            The (i) sits before the control: you read it on the way to the choice, not after it. */}
+        <Row icon="gauge" title={t('Effort per set')} className="wset-stack">
+          <button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>
+          <Segmented className="wset-seg"
+            options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
+            value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })} />
+        </Row>
+        {/* The line under each exercise that the rows are held against (#173). Tapping the line in
+            a workout switches it too; this is where the choice can be found without knowing that. */}
+        <SelectRow icon="history" title={t('Shown under each exercise')}
+          value={S.logRef === 'best' ? 'best' : 'last'} onChange={v => update(s => { s.logRef = v })}
+          options={[
+            { value: 'last', label: t('Last time'), subtitle: t('What you did the last time, in that routine.') },
+            { value: 'best', label: t('Best set'), subtitle: t('Your heaviest set of the exercise, from any workout.') },
+          ]} />
+      </Section>
       <Section title={t('Before and during')}>
         {/* The quick weigh-in that opens on Start (sheets.jsx startFlow, issue #137); off skips
             straight to the session. Home and Stats still log weight by hand. */}
-        <Row icon="scale" iconTint="var(--green)" title={t('Weigh in before workouts')}
+        <Row icon="scale" title={t('Weigh in before workouts')}
           subtitle={t('Asks for your body weight when a workout starts. Off starts the session straight away.')}>
           <Switch checked={S.weighIn !== false} onChange={v => update(s => { s.weighIn = v })} />
         </Row>
         {(wakeOK || !MOBILE) && (
-          <Row icon="phoneScreen" iconTint="var(--yellow)" title={t('Keep screen awake')}
+          <Row icon="phoneScreen" title={t('Keep screen awake')}
             subtitle={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : t('Not supported in this browser.')}>
             <Switch checked={wakeOK && S.keepAwake !== false} disabled={!wakeOK}
               onChange={v => update(s => { s.keepAwake = v })} />
@@ -517,8 +531,8 @@ export default function Settings({ page = null, find = null, via = null }) {
         {/* 'full'/'mini' is also what the tap-toggle on the workout animation writes; 'off' hides
             workout media entirely (library, detail sheet and picker thumbs are unaffected).
             Legacy/unknown values read as 'full'. */}
-        <Row icon="image" iconTint="var(--teal)" title={t('Exercise animations')}>
-          <Segmented className="seg-inline"
+        <Row icon="image" title={t('Exercise animations')} className="wset-stack">
+          <Segmented className="wset-seg"
             options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]}
             value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
             onChange={v => update(s => { s.gifSize = v })} />
@@ -527,7 +541,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       {/* Gyms (components/Gyms.jsx): their pictures, and whether a record is a record everywhere or
           in the gym it was set in. A workout with no gym counts for every gym. */}
       <Section title={t('Gyms')} footer={t('Machines differ from gym to gym. With records per gym, a workout is held against the ones in the same gym; a workout with no gym on it counts for every gym.')}>
-        <Row icon="trophy" iconTint="var(--orange)" title={t('Records per gym')}
+        <Row icon="trophy" title={t('Records per gym')}
           subtitle={S.recordsByGym ? t('Each gym keeps its own records') : t('One set of records for all gyms')}>
           <Switch aria-label={t('Records per gym')} checked={!!S.recordsByGym} onChange={v => update(s => { s.recordsByGym = v })} />
         </Row>
@@ -535,9 +549,9 @@ export default function Settings({ page = null, find = null, via = null }) {
       <GymsManager />
       <div style={{ height: 18 }} />
       <Section>
-        <Row icon="wrench" iconTint="var(--grey)" title={t('Fine-tuning')} subtitle={t('Buttons, timed sets')} accessory="chevron" onClick={() => open('advanced')} />
+        <Row icon="wrench" title={t('Fine-tuning')} subtitle={t('Buttons, timed sets')} accessory="chevron" onClick={() => open('advanced')} />
       </Section>
-    </>,
+    </div>,
 
     advanced: () => {
       // S.wc overlays DEF.wc, so a profile from before these switches existed reads as the lean default.
@@ -903,12 +917,12 @@ export default function Settings({ page = null, find = null, via = null }) {
       {user && !DEMO && <ServerSyncSection />}
       {/* Olympus: name, e-mail and password, where people look for them (also in Edit profile). */}
       {user && !DEMO && MOBILE && <SignInSection />}
-      {/* The phone's account block: its dashboard, its ID, and the way out. */}
-      {user && !DEMO && MOBILE && <Section title={t('Your account')} footer={t('Your account ID names you on the server. Tap it to copy.')}>
+      {/* The phone's account block: the owner's or admin's dashboard. The account's id is the
+          server's business, not something a person needs to see or copy. */}
+      {user && !DEMO && MOBILE && (user.founder || user.admin) && <Section title={t('Your account')}>
         {/* Olympus: the Supabase server has the owner's dashboard instead of the Node server's admin pages. */}
         {user.founder ? <Row icon="chartLine" iconTint="var(--indigo)" title={t('Owner dashboard')} accessory="chevron" onClick={() => nav('/owner')} />
-          : user.admin && <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-        <AccountIdRow id={user.id} />
+          : <Row icon="crown" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
       </Section>}
 
       {user && !DEMO && <Section title={t('Privacy')} footer={TELEMETRY_WHAT()}>
@@ -946,7 +960,6 @@ export default function Settings({ page = null, find = null, via = null }) {
           {pwOn && <PasswordRow version={credsV} />}
           <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={signOutHere} />
           <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
-          <AccountIdRow id={user.id} />
         </> : webauthnOK() ? <>
           <Row icon="plusCircle" iconTint="var(--acc)" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />
           <Row icon="fingerprint" iconTint="var(--blue)" title={t('Sign in with passkey')} accessory="chevron" onClick={passkeySignIn} />
@@ -1374,11 +1387,6 @@ function EquipmentCard({ S, update }) {
   </Section>
 }
 
-// The account's id, small and one tap to copy (#219). It is what an admin puts in ADMIN_UIDS,
-// and the one thing that names an account beyond doubt when someone asks their admin for help:
-// display names are free text and need not be unique. copyText also reaches the clipboard on a
-// plain-http LAN address, where the Clipboard API is missing and password sign-in (#118) is the
-// usual way in; where no copy works at all the id is still on screen to read out.
 /* After "Reset everything": the photos and videos go too. Signed in, the empty state is pushed
    first and, once the server holds it, the server is asked to drop every file that state no
    longer refers to (POST /api/media/sweep) — asked before the push landed, it would still see the
@@ -1420,13 +1428,6 @@ function MediaRow() {
     : t('Kept on this device only. Export with photos & videos keeps a copy.')
   return <Row icon="image" iconTint="var(--teal)" title={t('Photos & videos')} subtitle={sub}
     onClick={remote ? () => syncMedia({ force: true, retryRejected: true }) : undefined} />
-}
-
-function AccountIdRow({ id }) {
-  const toast = useUI(s => s.toast)
-  if (!id) return null
-  const copy = async () => { if (await copyText(id)) toast(t('Account ID copied')) }
-  return <Row title={t('Account ID')} subtitle={<span className="acct-id">{id}</span>} onClick={copy} />
 }
 
 // Lets the mobile app's "connect to my server" mode (lib/remote.js) authenticate without a
