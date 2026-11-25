@@ -112,3 +112,20 @@ same key. She is on whenever Hercules is, and these secrets are optional:
 
 If the deploy fails with jsDelivr answering 403 for one of the files, it is passing: GitHub is
 limiting jsDelivr for a moment. Deploy again a few minutes later.
+
+## Strava
+
+*Settings → Strava* posts every finished workout to the athlete's Strava feed
+(`functions/olympus/strava.js`, routes `/api/strava*` in `core.js`; the app side is
+`frontend/src/lib/strava.js` and `strava-post.js`).
+
+- **Setup, once:** create an API application at <https://www.strava.com/settings/api>.
+  *Authorization Callback Domain:* `jmhvabcwzrnzscbtqblk.supabase.co`. Then set the function
+  secrets `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` on `olympus`. Without them the app says
+  Strava is not set up on this server.
+- **Callback:** `https://<ref>.supabase.co/functions/v1/olympus/api/strava/callback`
+  (`STRAVA_REDIRECT_URI` overrides it). It answers in plain text: a function on the default
+  domain may not serve HTML.
+- **Limits:** a new Strava application accepts only its owner's account until Strava reviews it
+  (Strava "athlete capacity"); ask for the review in the application's settings to open it to
+  everyone. Rate limits are Strava's defaults per application.
