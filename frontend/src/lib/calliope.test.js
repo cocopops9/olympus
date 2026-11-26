@@ -12,11 +12,11 @@ beforeEach(() => { api.mockReset() })
 describe('the tours', () => {
   const has = present => sel => present.includes(sel)
 
-  it('each screen has a short tour of its own, in a few bubbles', () => {
+  it('each screen has a short tour of its own, in at most four bubbles', () => {
     for (const [id, tour] of Object.entries(SCREEN_TOURS)) {
       const steps = tour.steps()
       expect(steps.length, id).toBeGreaterThanOrEqual(2)
-      expect(steps.length, id).toBeLessThanOrEqual(7)
+      expect(steps.length, id).toBeLessThanOrEqual(4)
       expect(new Set(steps.map(s => s.id)).size, id).toBe(steps.length)
       for (const step of steps) {
         expect(step.target, id + '/' + step.id).toBeTruthy()
@@ -29,7 +29,7 @@ describe('the tours', () => {
 
   it('leaves out a step whose button is not on screen, and keeps the others', () => {
     const home = tourFor('home', { has: has(['#tabbar .start', '#tabbar > button:last-child', '.cal-help']) })
-    expect(home.map(s => s.id)).toEqual(['start', 'profile', 'me'])
+    expect(home.map(s => s.id)).toEqual(['start', 'me'])
     const withCoach = tourFor('home', { has: () => true })
     expect(withCoach.map(s => s.id)).toContain('coach')
   })
@@ -37,7 +37,7 @@ describe('the tours', () => {
   it('waits for a screen that has nothing to show yet', () => {
     expect(tourFor('stats', { has: has([]) })).toEqual([])
     expect(tourFor('workout', { has: has(['.whdr-finish']) })).toEqual([])
-    expect(tourFor('workout', { has: has(['.setrow', '.setrow .n', '.exhd .iconbtn:last-child', '.whdr-finish']) }).map(s => s.id)).toEqual(['set', 'kind', 'menu', 'finish'])
+    expect(tourFor('workout', { has: has(['.setrow', '.setrow .n', '.exhd .iconbtn:last-child', '.whdr-finish']) }).map(s => s.id)).toEqual(['set', 'kind', 'finish'])
     expect(tourFor('nowhere')).toEqual([])
   })
 

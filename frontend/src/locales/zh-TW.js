@@ -3930,4 +3930,16 @@ export default {
   "Yes, log {0}": "是的，記錄 {0}",
   "No, correct it": "不，修改",
   "check the weight": "檢查重量",
+  // Calliope: the shorter welcome and her moments (lib/calliope-moments.js).
+  "The ! in place of the tick means that weight is far above anything you have lifted on this exercise. An extra zero is easy to type. Tap ! to log it as it is, or correct it.": "勾號變成 ! 表示這個重量遠高於你在這個動作上舉過的任何重量。多打一個零很常見。點 ! 可以照原樣記錄，或者改正它。",
+  "The weight went down on purpose. You missed your reps a few sessions in a row, so Olympus lowers it a little and lets you build back up. This is normal, and it works.": "重量是刻意降低的。你連續幾次訓練沒完成目標次數，所以 Olympus 稍微降低重量，讓你重新往上練。這很正常，而且有效。",
+  "You have reached your heaviest dumbbell, so the weight stays. Add heavier dumbbells in Settings, Equipment, and progression moves on.": "你已經用到最重的啞鈴了，所以重量維持不變。在 設定、器材 中新增更重的啞鈴，進階就會繼續。",
+  "This exercise starts from the routine’s own target, not from your last session: the plan changed, or the exercise is new to this routine. Progression picks up from here.": "這個動作從課表本身的目標開始，而不是從你上次的訓練：計畫改了，或這個動作是這份課表新加的。進階從這裡繼續。",
+  "This is a superset: one set of each exercise in a row, then the rest. Olympus moves you from one to the next by itself.": "這是超級組：每個動作各做一組，連著做完再休息。Olympus 會自動帶你從一個動作到下一個。",
+  "You are logging a past workout: there is no rest timer, and Mark all sets done ticks every set at once.": "你正在記錄一次過去的訓練：沒有休息計時器，將所有組數標記為已完成 會一次勾選所有組數。",
+  "Rest time: the timer counts down and tells you when to go again. Meanwhile Chiron sleeps at the top: tap him three times to ask him anything.": "休息時間：計時器會倒數，並提醒你何時繼續。同時凱隆在上方睡覺：點他三下，就能問他任何問題。",
+  "Your first workout is saved. Find it in Profile, History. Next time Olympus suggests what to lift from what you did today.": "你的第一次訓練已儲存。在 個人檔案、歷史紀錄 中可以找到。下次 Olympus 會根據你今天的訓練建議該舉多重。",
+  "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "我不會一次把所有東西都給你看。你第一次打開 App 的每個部分時，我會用幾個對話框介紹它；遇到新情況時，我會用幾秒鐘解釋。我們從這裡開始吧。",
+  "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "我是卡利俄佩。你第一次打開每個畫面時，我會用幾個對話框介紹它。遇到不太常見的情況，例如一個看起來像打錯的重量，我會出現幾秒鐘來解釋。",
+  "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "每則說明只會出現一次。點一下可以讓它留在畫面上，也可以關閉。在 設定、關於與更新 中可以關閉提示，或重新顯示全部提示。",
 }
