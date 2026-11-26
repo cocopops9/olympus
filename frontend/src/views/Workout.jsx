@@ -1708,12 +1708,12 @@ function ActiveWorkout() {
     if (!e) return
     if (!checked) {
       if (!e.rec?.length) return
-      const still = new Set(recordsOf(recordHistory(st, activeGym(st)), e))
+      const still = new Set(recordsOf(recordHistory(st, activeGym(st), e.id), e))
       if (e.rec.every(k => still.has(k))) return
       update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = (en.rec || []).filter(k => still.has(k)) })
       return
     }
-    const fresh = newRecords(recordHistory(st, activeGym(st)), e)
+    const fresh = newRecords(recordHistory(st, activeGym(st), e.id), e)
     if (!fresh.length) return
     update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = [...new Set([...(en.rec || []), ...fresh])] })
     triumph(st.sound)
@@ -1756,7 +1756,7 @@ function ActiveWorkout() {
     const st = useStore.getState().S
     const e = st.active?.entries?.[idx]
     if (!e) return
-    const now = recordsOf(recordHistory(st, activeGym(st)), e)
+    const now = recordsOf(recordHistory(st, activeGym(st), e.id), e)
     const had = Array.isArray(e.rec) ? e.rec : []
     const fresh = now.filter(k => !had.includes(k))
     const kept = had.filter(k => now.includes(k))

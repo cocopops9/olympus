@@ -189,6 +189,19 @@ export function MedalCelebration() {
   </div>
 }
 
+const pageVisible = () => typeof document === 'undefined' || document.visibilityState !== 'hidden'
+
+/** Whether the page is on screen now (the Page Visibility API), kept up to date. */
+function usePageVisible() {
+  const [on, setOn] = useState(pageVisible)
+  useEffect(() => {
+    const sync = () => setOn(pageVisible())
+    document.addEventListener('visibilitychange', sync)
+    return () => document.removeEventListener('visibilitychange', sync)
+  }, [])
+  return on
+}
+
 /**
  * Watches the training and the counters for medals not celebrated yet and celebrates them. The
  * first time it runs on a device with history, what was earned before is marked without a show.
@@ -197,10 +210,18 @@ export function useMedalWatcher(ready) {
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
   const timer = useRef(null)
+  const visible = usePageVisible()
   useEffect(() => {
-    if (!ready || S.active) return
+    // A screen nobody looks at (the app in the background, a browser tab behind another, the
+    // phone locked after the last set) celebrates nothing and marks nothing: the medals wait
+    // until it is seen again. Until 2026-11-26 the copy of the app that looked first marked the
+    // medal as celebrated wherever it was, so a tab left open on a computer, or the phone app
+    // in the background when a workout synced in, could play the show to nobody, and the
+    // medal then sat in the list without ever having burst onto the screen.
+    if (!ready || S.active || !visible) return
     clearTimeout(timer.current)
     timer.current = setTimeout(() => {
+      if (!pageVisible()) return
       const groups = medalsFor(S, user?.id)
       const got = S.medals?.got
       const fresh = newlyEarned(groups, got || {})
@@ -217,7 +238,7 @@ export function useMedalWatcher(ready) {
       if (got) showCelebration?.(fresh.filter(m => recent(m.at)).slice(0, 4))
     }, 1500)
     return () => clearTimeout(timer.current)
-  }, [ready, S.workouts, S.medals, S.active, S.bodyweight, S.birth, S.body, S.coachProfile, S.unit, user?.id])
+  }, [ready, visible, S.workouts, S.medals, S.active, S.bodyweight, S.birth, S.body, S.coachProfile, S.unit, user?.id])
   // The friends who joined: the server's count, asked once per start.
   useEffect(() => {
     if (!ready || !socialReady(user)) return

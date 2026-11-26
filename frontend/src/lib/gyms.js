@@ -82,11 +82,18 @@ export function activeGym(S) {
  * profile had 420 unlabelled workouts against 20 labelled), so counting them for every gym held
  * each gym to the best of all of them and no gym record could ever show. They still count for a
  * session with no gym, and with the option off everything counts, as it always did.
+ *
+ * With `exId`, the history is for that one exercise: when it was never trained in this gym, its
+ * records are held against all of its history instead. An empty gym history has nothing to beat,
+ * so until 2026-11-26 an exercise's first session in a gym could set no record at all, not even
+ * one heavier than anything it had ever lifted anywhere (a 2,000 kg test set included).
  */
-export function recordHistory(S, gym) {
+export function recordHistory(S, gym, exId) {
   const g = cleanGym(gym)
   if (!S?.recordsByGym || !g) return S
-  return { ...S, workouts: (S.workouts || []).filter(w => cleanGym(w?.gym) === g) }
+  const here = (S.workouts || []).filter(w => cleanGym(w?.gym) === g)
+  if (exId != null && !here.some(w => (w.entries || []).some(e => e?.id === exId && counts(w, e)))) return S
+  return { ...S, workouts: here }
 }
 
 // An entry a session can open from: it counts (no deload or rehab block) and has a work set done.
