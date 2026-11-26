@@ -3949,4 +3949,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "한꺼번에 다 보여 드리지 않을게요. 앱의 각 부분을 처음 열 때 몇 개의 말풍선으로 보여 드리고, 새로운 일이 생기면 몇 초 안에 설명해 드릴게요. 여기서 시작해요.",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "저는 칼리오페예요. 각 화면을 처음 열 때 몇 개의 말풍선으로 보여 드려요. 오타처럼 보이는 무게처럼 흔치 않은 일이 생기면 몇 초 동안 나타나 설명해 드려요.",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "각 설명은 한 번만 나와요. 탭하면 화면에 계속 남고, 닫을 수도 있어요. 설정, 정보와 업데이트에서 팁을 끄거나 모두 다시 볼 수 있어요.",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "다이아몬드",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "나만의 목표: 시작한 지점에서 나이와 체격에 맞춰 약 {0}주 동안 꾸준히 운동하면 얻을 수 있는 수준이에요. 이 운동을 {1}주 동안 해야 해요.",
+  "Strength kept for {0} year": "{0}년 동안 근력 유지",
+  "Strength kept for {0} years": "{0}년 동안 근력 유지",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "40세부터: 그만큼의 해 전 최고 기록의 5% 이내인 세트. 세월이 흘러도 근력을 지키는 것 자체가 업적이에요.",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "개인 메달: 첫 세션들, 나이, 성별, 체격을 바탕으로 내가 도달할 수 있는 수준에 맞춰 측정돼요. 각 등급은 누구에게나 비슷한 노력이 필요하고, 올림피언은 몇 년이 걸려요.",
+  "Add your date of birth and body weight to unlock them.": "잠금을 해제하려면 생년월일과 체중을 추가하세요.",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "레벨을 파악하는 중: {0}. 한 운동을 2주에 걸쳐 3번 하면 개인 메달이 나타나요.",
 }

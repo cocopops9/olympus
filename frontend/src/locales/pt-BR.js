@@ -3005,4 +3005,13 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Trend": "Tendência",
   "{0} per week": "{0} por semana",
   "{0} per month": "{0} por mês",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "Diamante",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "Sua meta pessoal: o que cerca de {0} semanas de treino constante devem te dar, a partir de onde você começou, para sua idade e seu corpo. Também são necessárias {1} semanas treinando este exercício.",
+  "Strength kept for {0} year": "Força mantida por {0} ano",
+  "Strength kept for {0} years": "Força mantida por {0} anos",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "A partir dos 40: uma série a menos de 5% do seu melhor de tantos anos atrás. Manter a força com o passar dos anos é uma conquista por si só.",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "Medalhas pessoais: medidas pelo que você pode alcançar, a partir das primeiras sessões, da idade, do sexo e do corpo. Cada nível exige mais ou menos o mesmo esforço de todos; Olímpico leva anos.",
+  "Add your date of birth and body weight to unlock them.": "Adicione sua data de nascimento e seu peso corporal para desbloqueá-las.",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "Conhecendo seu nível: {0}. As medalhas pessoais aparecem após 3 sessões de um exercício em duas semanas.",
 }

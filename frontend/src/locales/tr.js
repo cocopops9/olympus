@@ -3949,4 +3949,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "Sana her şeyi bir anda göstermeyeceğim. Uygulamanın her bölümünü ilk açtığında onu birkaç balonla gösteririm, yeni bir şey olduğunda da birkaç saniyede açıklarım. Buradan başlayalım.",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "Ben Kalliope. Her ekranı ilk açtığında onu birkaç balonla gösteririm. Daha az rastlanan bir şey olduğunda, örneğin yazım hatasına benzeyen bir ağırlık, açıklamak için birkaç saniyeliğine görünürüm.",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "Her açıklama yalnızca bir kez gelir. Ekranda kalması için dokun ya da kapat. Ayarlar, Hakkında ve güncellemeler ipuçlarını kapatır ya da hepsini yeniden gösterir.",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "Elmas",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "Kişisel hedefin: başladığın yerden, yaşına ve vücuduna göre yaklaşık {0} haftalık düzenli antrenmanın sana kazandırması gereken. Ayrıca bu egzersizi {1} hafta çalışman gerekir.",
+  "Strength kept for {0} year": "Güç {0} yıl korundu",
+  "Strength kept for {0} years": "Güç {0} yıl korundu",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "40 yaşından itibaren: o kadar yıl önceki en iyi derecenin %5 yakınında bir set. Yıllar geçerken gücünü korumak başlı başına bir başarıdır.",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "Kişisel madalyalar: ilk antrenmanlarına, yaşına, cinsiyetine ve vücuduna göre ulaşabileceğin seviyeye göre ölçülür. Her kademe herkese aşağı yukarı aynı emeği gerektirir; Olimpiyatçı yıllar alır.",
+  "Add your date of birth and body weight to unlock them.": "Kilidini açmak için doğum tarihini ve vücut ağırlığını ekle.",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "Seviyeni tanıyoruz: {0}. Kişisel madalyalar, bir egzersizde iki hafta içinde 3 antrenmandan sonra görünür.",
 }

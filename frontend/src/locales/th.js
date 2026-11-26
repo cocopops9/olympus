@@ -3960,4 +3960,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "ฉันจะไม่แสดงทุกอย่างในคราวเดียว ครั้งแรกที่คุณเปิดแต่ละส่วนของแอป ฉันจะแสดงให้ดูในไม่กี่ข้อความ และเมื่อมีอะไรใหม่เกิดขึ้น ฉันจะอธิบายในไม่กี่วินาที เริ่มที่นี่กันเลย",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "ฉันคือคัลลิโอพี ครั้งแรกที่คุณเปิดแต่ละหน้าจอ ฉันจะแสดงให้ดูในไม่กี่ข้อความ เมื่อมีอะไรที่ไม่ค่อยเกิดขึ้น เช่น น้ำหนักที่ดูเหมือนพิมพ์ผิด ฉันจะปรากฏสักครู่เพื่ออธิบาย",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "คำอธิบายแต่ละอันจะมาเพียงครั้งเดียว แตะเพื่อให้ค้างบนหน้าจอ หรือปิดไป ตั้งค่า, เกี่ยวกับและอัปเดต ใช้ปิดคำแนะนำหรือแสดงทั้งหมดอีกครั้ง",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "เพชร",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "เป้าหมายส่วนตัวของคุณ: สิ่งที่การฝึกสม่ำเสมอราว {0} สัปดาห์ควรให้คุณ จากจุดที่คุณเริ่ม ตามอายุและร่างกายของคุณ และต้องฝึกท่านี้ {1} สัปดาห์ด้วย",
+  "Strength kept for {0} year": "รักษาความแข็งแรงได้ {0} ปี",
+  "Strength kept for {0} years": "รักษาความแข็งแรงได้ {0} ปี",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "ตั้งแต่อายุ 40: เซตที่ห่างจากสถิติดีที่สุดของคุณเมื่อหลายปีก่อนไม่เกิน 5% การรักษาความแข็งแรงไว้เมื่อเวลาผ่านไปคือความสำเร็จในตัวเอง",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "เหรียญส่วนตัว: วัดจากสิ่งที่คุณทำได้ จากเซสชันแรก ๆ อายุ เพศ และร่างกายของคุณ แต่ละระดับใช้ความพยายามพอ ๆ กันสำหรับทุกคน ส่วนโอลิมเปียนใช้เวลาหลายปี",
+  "Add your date of birth and body weight to unlock them.": "เพิ่มวันเกิดและน้ำหนักตัวเพื่อปลดล็อก",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "กำลังทำความรู้จักระดับของคุณ: {0} เหรียญส่วนตัวจะปรากฏหลังฝึกท่าหนึ่ง 3 ครั้งในสองสัปดาห์",
 }

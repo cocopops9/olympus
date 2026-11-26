@@ -3949,4 +3949,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "Não te vou mostrar tudo de uma vez. Da primeira vez que abrires cada parte da app, mostro-ta em poucos balões, e quando acontecer algo novo, explico-to em poucos segundos. Vamos começar aqui.",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "Sou a Calíope. Da primeira vez que abres cada ecrã, mostro-to em poucos balões. Quando acontece algo menos comum, como um peso que parece um erro de escrita, apareço uns segundos para o explicar.",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "Cada explicação aparece uma só vez. Toca nela para a manter no ecrã, ou fecha-a. Definições, Sobre e atualizações desliga as dicas ou volta a mostrá-las todas.",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "Diamante",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "O teu objetivo pessoal: o que cerca de {0} semanas de treino constante te devem dar, a partir de onde começaste, para a tua idade e o teu corpo. Também são precisas {1} semanas a treinar este exercício.",
+  "Strength kept for {0} year": "Força mantida durante {0} ano",
+  "Strength kept for {0} years": "Força mantida durante {0} anos",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "A partir dos 40: uma série a menos de 5% do teu melhor de há tantos anos. Manter a força com o passar dos anos é um feito por si só.",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "Medalhas pessoais: medidas pelo que podes alcançar, a partir das primeiras sessões, da idade, do sexo e do corpo. Cada nível custa mais ou menos o mesmo esforço a todos; Olímpico leva anos.",
+  "Add your date of birth and body weight to unlock them.": "Adiciona a data de nascimento e o peso corporal para as desbloquear.",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "A conhecer o teu nível: {0}. As medalhas pessoais aparecem após 3 sessões de um exercício em duas semanas.",
 }

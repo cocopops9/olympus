@@ -44,11 +44,32 @@ describe('medals', () => {
     expect(squats.some(m => !m.earned)).toBe(true)
   })
 
-  it('strength level medals are personal and come from the level reached', () => {
-    const S = person({ workouts: [workout(0, { sets: [[105, 5]] })] })   // e1RM about 122: intermediate for 80 kg
-    const lv = allMedals(medalsOf(S, {}, NOW)).filter(m => m.id.startsWith('level:squat:'))
-    expect(lv.find(m => m.id.endsWith(':intermediate'))?.earned).toBe(true)
-    expect(lv.find(m => m.id.endsWith(':advanced'))?.earned).toBe(false)
+  it('personal strength medals wait for three sessions over two weeks, then start from where the athlete began', () => {
+    const early = person({ workouts: [0, 1].map(i => workout(i, { sets: [[100, 5]] })) })
+    const g0 = medalsOf(early, {}, NOW)
+    expect(ids(g0).some(i => i.startsWith('pt:squat:'))).toBe(false)
+    expect(g0.find(g => g.key === 'strength').pending.map(p => p.key)).toContain('squat')
+    // Three weeks of sessions, then steady progress: 2.5 kg a session for ten weeks.
+    const ws = Array.from({ length: 36 }, (_, i) => workout(i, { sets: [[100 + Math.max(0, i - 6) * 2.5, 5]] }))
+    const pt = allMedals(medalsOf(person({ workouts: ws }), {}, NOW)).filter(m => m.id.startsWith('pt:squat:'))
+    expect(pt.find(m => m.tier === 'bronze')?.earned).toBe(true)
+    expect(pt.find(m => m.tier === 'olympian')?.earned ?? false).toBe(false)
+    // Targets rise with the tier.
+    const vals = pt.map(m => m.value)
+    expect([...vals].sort((a, b) => a - b)).toEqual(vals)
+  })
+
+  it('shows no personal strength medal without a birth date and a body weight, and says what is missing', () => {
+    const ws = Array.from({ length: 10 }, (_, i) => workout(i, { sets: [[100, 5]] }))
+    const g = medalsOf(person({ birth: '', workouts: ws }), {}, NOW)
+    expect(ids(g).some(i => i.startsWith('pt:'))).toBe(false)
+    expect(g.find(x => x.key === 'strength').missing).toContain('birth')
+  })
+
+  it('keeps a celebrated medal won when its target moves', () => {
+    const ws = Array.from({ length: 12 }, (_, i) => workout(i, { sets: [[100, 5]] }))
+    const g = medalsOf(person({ workouts: ws, medals: { got: { 'pt:squat:bronze': T0 } } }), {}, NOW)
+    expect(allMedals(g).find(m => m.id === 'pt:squat:bronze')?.earned).toBe(true)
   })
 
   it('social medals come first and count invites, invitations, stories and posts', () => {
@@ -89,11 +110,14 @@ describe('medals', () => {
 })
 
 describe('medals: starting above a level', () => {
-  it('a lifter who began at Advanced is not shown the Intermediate medal', () => {
-    const S = person({ workouts: [workout(0, { sets: [[130, 5]] })] })
-    const lv = allMedals(medalsOf(S, {}, NOW)).filter(m => m.id.startsWith('level:squat:'))
-    expect(lv.map(m => m.id)).not.toContain('level:squat:intermediate')
-    expect(lv.find(m => m.id.endsWith(':advanced'))?.earned).toBe(true)
-    expect(lv.find(m => m.id.endsWith(':elite'))?.earned).toBe(false)
+  it('a strong lifter and a beginner both have a bronze still to earn, the strong one by a smaller step', () => {
+    const steady = w => Array.from({ length: 8 }, (_, i) => workout(i, { sets: [[w, 5]] }))
+    const bronze = S => allMedals(medalsOf(S, {}, NOW)).find(m => m.id === 'pt:squat:bronze')
+    const strong = bronze(person({ workouts: steady(180) })), weak = bronze(person({ workouts: steady(50) }))
+    expect(strong.earned).toBe(false)
+    expect(weak.earned).toBe(false)
+    const e1 = w => w * (1 + 5 / 30)
+    expect(strong.value / e1(180)).toBeGreaterThan(1.01)
+    expect(strong.value / e1(180)).toBeLessThan(weak.value / e1(50))
   })
 })

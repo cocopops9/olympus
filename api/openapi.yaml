@@ -1321,8 +1321,10 @@ paths:
         Updates the two memories every coach reads, both kept on the device: `notes`, what the
         person said about themselves (they can read and edit them in the app), and `insights`,
         what the app reads between the lines of their chats and data (used by the coaches, not
-        shown). Runs on Chiron's model, 4 times a day per profile; with no `messages` the lists
-        come back as sent and nothing is counted. An answer the model got wrong is not counted.
+        shown). Also reads `athlete`, what the personal medals need: the years the person has
+        trained and whether they are coming back after a long break. Runs on Chiron's model, 4
+        times a day per profile; with no `messages` the lists come back as sent and nothing is
+        counted. An answer the model got wrong is not counted.
       requestBody:
         required: true
         content:
@@ -1336,6 +1338,7 @@ paths:
                   items: { type: object, properties: { coach: { type: string }, content: { type: string, maxLength: 400 } } }
                 notes: { type: array, items: { type: string, maxLength: 220 }, maxItems: 25 }
                 insights: { type: array, items: { type: string, maxLength: 220 }, maxItems: 20 }
+                athlete: { $ref: '#/components/schemas/AthleteFacts' }
                 data: { type: string, maxLength: 6000, description: A short summary of their training data. }
                 lang: { type: string }
       responses:
@@ -1348,6 +1351,7 @@ paths:
                 properties:
                   notes: { type: array, items: { type: string } }
                   insights: { type: array, items: { type: string } }
+                  athlete: { $ref: '#/components/schemas/AthleteFacts' }
                   left: { type: [integer, 'null'] }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { description: The memory was updated enough for today. }
@@ -4607,6 +4611,14 @@ components:
           example: { error: "that code is wrong, used or expired", code: "link-invalid" }
 
   schemas:
+    AthleteFacts:
+      type: object
+      description: >-
+        What the coaches' memory read about the person as an athlete, for the personal medal
+        targets (frontend lib/athlete-profile.js). Keys are left out when not known.
+      properties:
+        trainingYears: { type: number, minimum: 0, maximum: 60 }
+        returning: { type: boolean }
     Error:
       type: object
       required: [error]

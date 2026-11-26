@@ -4028,4 +4028,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "আমি সব কিছু একসাথে দেখাব না। অ্যাপের প্রতিটি অংশ প্রথমবার খুললে আমি সেটা কয়েকটি বাবলে দেখাব, আর নতুন কিছু ঘটলে কয়েক সেকেন্ডে বুঝিয়ে দেব। চলুন এখান থেকে শুরু করি।",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "আমি ক্যালিওপি। প্রতিটি স্ক্রিন প্রথমবার খুললে আমি সেটা কয়েকটি বাবলে দেখাই। কম সাধারণ কিছু ঘটলে, যেমন টাইপের ভুল মনে হওয়া কোনো ওজন, আমি কয়েক সেকেন্ডের জন্য এসে বুঝিয়ে দিই।",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "প্রতিটি ব্যাখ্যা একবারই আসে। স্ক্রিনে রাখতে ট্যাপ করুন, বা বন্ধ করুন। সেটিংস, পরিচিতি ও আপডেট থেকে টিপস বন্ধ করা বা আবার সব দেখানো যায়।",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "হীরা",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "আপনার ব্যক্তিগত লক্ষ্য: আপনি যেখান থেকে শুরু করেছেন সেখান থেকে, আপনার বয়স ও শরীর অনুযায়ী, প্রায় {0} সপ্তাহের নিয়মিত অনুশীলন যা দেওয়া উচিত। এই ব্যায়ামটি {1} সপ্তাহ অনুশীলন করাও লাগবে।",
+  "Strength kept for {0} year": "{0} বছর শক্তি ধরে রাখা",
+  "Strength kept for {0} years": "{0} বছর শক্তি ধরে রাখা",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "৪০ বছর বয়স থেকে: ততো বছর আগের আপনার সেরার ৫%-এর মধ্যে একটি সেট। বছরের পর বছর শক্তি ধরে রাখা নিজেই এক কৃতিত্ব।",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "ব্যক্তিগত পদক: আপনি যা অর্জন করতে পারেন তার ভিত্তিতে মাপা, আপনার প্রথম সেশন, বয়স, লিঙ্গ ও শরীর থেকে। প্রতিটি স্তরে সবার প্রায় একই পরিশ্রম লাগে; অলিম্পিয়ান পেতে বছর লাগে।",
+  "Add your date of birth and body weight to unlock them.": "এগুলো খুলতে আপনার জন্মতারিখ ও শরীরের ওজন যোগ করুন।",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "আপনার স্তর বোঝা হচ্ছে: {0}। দুই সপ্তাহে একটি ব্যায়ামের ৩টি সেশনের পর ব্যক্তিগত পদক দেখা যাবে।",
 }
