@@ -60,3 +60,6 @@
   .focus-extra{grid-template-columns:1fr 1fr}
   .focus-extra>span:first-child{grid-column:1/-1}
 }
+
+/* Complete with a weight that is probably a typo: "!" and the warning colour (lib/plausible-load.js). */
+.btn.primary.focus-check-load{background:var(--orange);color:#fff}

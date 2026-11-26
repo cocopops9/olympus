@@ -3944,4 +3944,8 @@ export default {
   "Connect to Strava": "เชื่อมต่อกับ Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} สูงกว่าสถิติดีที่สุดของคุณมาก (1RM โดยประมาณ {1}) พิมพ์ผิดหรือเปล่า?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} มากกว่าที่ใครเคยยกได้ พิมพ์ผิดหรือเปล่า?",
+  "Is {0} right?": "{0} ถูกต้องไหม?",
+  "Yes, log {0}": "ใช่ บันทึก {0}",
+  "No, correct it": "ไม่ แก้ไข",
+  "check the weight": "ตรวจสอบน้ำหนัก",
 }

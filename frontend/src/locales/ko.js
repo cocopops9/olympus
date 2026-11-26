@@ -3933,4 +3933,8 @@ export default {
   "Connect to Strava": "Strava에 연결",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0}은(는) 최고 기록(추정 1RM {1})보다 훨씬 높습니다. 오타인가요?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0}은(는) 지금까지 누구도 들어 올린 적 없는 무게입니다. 오타인가요?",
+  "Is {0} right?": "{0}이(가) 맞나요?",
+  "Yes, log {0}": "네, {0} 기록",
+  "No, correct it": "아니요, 수정할게요",
+  "check the weight": "무게를 확인하세요",
 }

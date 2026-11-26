@@ -853,6 +853,14 @@ body.chips-dragging *{cursor:inherit}
    without painting it; the left side stays shorter so the stepper's + button keeps its edge */
 .chk::before,.ck::before{content:'';position:absolute;inset:-7px -7px -7px -4px}
 .chk.on{background:var(--acc);box-shadow:none;color:var(--on-acc)}
+/* A weight that is probably a typo (lib/plausible-load.js): "!" in place of the tick, asks on tap. */
+.chk.warn{background:var(--orange);box-shadow:none;color:#fff}
+.chk-warn{font-size:17px;font-weight:800;line-height:1}
+.load-confirm{text-align:center}
+.load-confirm h3{margin:10px 0 6px}
+.load-confirm p{margin:0 0 16px}
+.load-confirm-mark{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;
+  background:var(--orange);color:#fff;font-size:30px;font-weight:800}
 .chk:active,.ck:active{transform:scale(.9)}
 .ck svg{
   width:16px;height:16px;stroke:transparent;fill:none;stroke-width:2.6;
@@ -1402,10 +1410,6 @@ body.chips-dragging *{cursor:inherit}
 /* an exercise kept out of progression for this session, with its undo */
 .noprog{display:flex;align-items:center;gap:7px;margin:0 0 6px;font-size:13px;line-height:1.38;color:var(--orange)}
 .noprog svg{flex:none}
-/* A weight far above anything lifted on the exercise: probably a typo (lib/plausible-load.js). */
-.load-warn{display:flex;align-items:flex-start;gap:7px;margin:0 0 8px;padding:8px 10px;border-radius:12px;font-size:13px;line-height:1.38;
-  color:var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent)}
-.load-warn svg{flex:none;margin-top:1px}
 .noprog .chip{margin-inline-start:auto;padding:3px 11px;font-size:13px;color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent)}
 
 /* start a timed set (issue #16) — sits where you'd otherwise reach for the checkbox */

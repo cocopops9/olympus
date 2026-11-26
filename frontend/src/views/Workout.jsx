@@ -19,7 +19,7 @@ import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
 import { newRecords, recordsOf, recordSignature } from '../lib/records.js'
 import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
-import { implausibleLoad } from '../lib/plausible-load.js'
+import { loadReference, setNeedsConfirm } from '../lib/plausible-load.js'
 import { activeGym, recordHistory, sessionPast } from '../lib/gyms.js'
 import { changeSessionGym } from '../lib/gym-refill.js'
 import { GymIcon, gymChooserSheet } from '../components/Gyms.jsx'
@@ -214,8 +214,9 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // with the logged sets, so a 10,000 kg test long since gone still read "Best: 10,000 kg" on a
   // dumbbell bench press whose heaviest logged set was 76 kg.
   // A weight far above anything this person has lifted is probably a typo (lib/plausible-load.js),
-  // held against all of the exercise's history, every gym included.
-  const odd = cardio ? null : implausibleLoad(S, entry)
+  // held against all of the exercise's history, every gym included: its tick shows "!" and asks.
+  const loadRef = useMemo(() => (cardio ? null : loadReference(S, entry)),
+    [cardio, S.workouts, S.unit, S.oneRmFormula, S.dbLoad, S.dumbbells, entry.id, entry.target?.dbLoad])   // eslint-disable-line react-hooks/exhaustive-deps
   const best = cardio ? 0 : bestHist > 0 ? bestHist : bestKept
   // What the progression policy decided for this session, and why (issue #17). Computed when
   // the session was built so the reason matches the numbers already in the rows.
@@ -583,7 +584,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       {sideCell(sd, i, side, col1, 'w')}
       {col2 && sideCell(sd, i, side, col2, 'r')}
       {col3 && sideEffortCell(sd, i, side, col3)}
-      <Check checked={sd.done} label={t('Set {0} ({1}) done', setNumOf(s, i), side === 'L' ? t('Left') : t('Right'))} onChange={() => onToggleSide(i, side)} />
+      <Check checked={sd.done} warn={!sd.done && !!setNeedsConfirm(loadRef, s)} label={t('Set {0} ({1}) done', setNumOf(s, i), side === 'L' ? t('Left') : t('Right'))} onChange={() => onToggleSide(i, side)} />
     </div>
   }
   // A side's own drop-set/rest-pause sub-rows (issue #60): the intensifier is logged per limb, so
@@ -659,7 +660,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       {stopwatchable && (sw => <button className={'setgo sw' + sw.cls} aria-label={sw.label} title={sw.label}
         disabled={s.done} onClick={() => mutSet(i, sw.act)}>
         <Icon name={sw.icon} /></button>)(swButton(s))}
-      <Check checked={s.done} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))}
+      <Check checked={s.done} warn={!s.done && !!setNeedsConfirm(loadRef, s)} label={sideTagOf(s) ? t('Set {0} ({1}) done', setNumOf(s, i), sideTagOf(s)) : t('Set {0} done', setNumOf(s, i))}
         onChange={() => (stopwatchActive(s) ? stopRowStopwatch(i) : onToggle(i))} />
     </div>
   )
@@ -702,11 +703,6 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
         or by a deload or rehab routine, which owns that choice and offers no undo. On in every
         view, compact included: it changes what the next session is built from. */}
     {entry.rec?.length > 0 && <RecordMedals kinds={entry.rec} />}
-    {odd && <div className="load-warn" role="alert">
-      <Icon name="warning" /><span>{odd.kind === 'rm'
-        ? t('{0} is far above your best (estimated 1RM {1}). Is it a typo?', `${fmtNum(odd.w)} ${S.unit}`, `${fmtNum(odd.ref)} ${S.unit}`)
-        : t('{0} is more than anyone has ever lifted. Is it a typo?', `${fmtNum(odd.w)} ${S.unit}`)}</span>
-    </div>}
     {entry.noProg === true && <div className="noprog">
       <Icon name="chartLineSlash" /><span>{t('Not counted for progression')}</span>
       {onNoProg && <button type="button" className="chip" onClick={() => onNoProg(false)}>{t('Undo')}</button>}
@@ -1754,7 +1750,26 @@ function ActiveWorkout() {
     vibrate([30, 50, 30, 50, 80])
     useUI.getState().toast(t('New record: {0}', fresh.map(recordLabel).join(', ')))
   }
-  const toggle = (idx, i, side, { quiet = false, onFocusProgress } = {}) => {
+  const toggle = (idx, i, side, opts = {}) => {
+    // A set about to be ticked with a weight far above anything lifted on the exercise is asked
+    // about first (lib/plausible-load.js): logged as it is, it is not asked again at that weight.
+    if (!editing) {
+      const st = useStore.getState().S
+      const e = st.active?.entries?.[idx]
+      const row = e?.sets?.[i]
+      const ticking = row && !(side ? row.sides?.[side]?.done : row.done)
+      const hit = ticking && setNeedsConfirm(loadReference(st, e), row)
+      if (hit) {
+        confirmLoadSheet(hit, st.unit, () => {
+          update(s => { const r = s.active?.entries?.[idx]?.sets?.[i]; if (r) r.loadOk = hit.w })
+          tick(idx, i, side, opts)
+        })
+        return
+      }
+    }
+    tick(idx, i, side, opts)
+  }
+  const tick = (idx, i, side, { quiet = false, onFocusProgress } = {}) => {
     // Ticking a set ends the typing in that row: drop the keyboard before the rest timer, the
     // effort sheet or the next exercise moves in. WebKit keeps the input focused across the
     // button tap, and a focused input with its keyboard gone is what leaves the tab bar
@@ -2262,4 +2277,22 @@ function ActiveWorkout() {
 export default function Workout() {
   const active = useStore(s => s.S.active)
   return active ? <ActiveWorkout /> : <WorkoutStart />
+}
+
+/**
+ * Asks about a weight that is probably a typo (lib/plausible-load.js): log it as it is, or go back
+ * and correct it. `hit` is { w, ref, kind }; `onLog` ticks the set.
+ */
+function confirmLoadSheet(hit, unit, onLog) {
+  const kg = v => `${fmtNum(v)} ${unit}`
+  useUI.getState().openSheet(close => <div className="load-confirm">
+    <span className="load-confirm-mark" aria-hidden="true">!</span>
+    <h3>{t('Is {0} right?', kg(hit.w))}</h3>
+    <p className="muted">{hit.kind === 'rm'
+      ? t('{0} is far above your best (estimated 1RM {1}). Is it a typo?', kg(hit.w), kg(hit.ref))
+      : t('{0} is more than anyone has ever lifted. Is it a typo?', kg(hit.w))}</p>
+    <Button variant="primary" onClick={() => { close(); onLog() }}>{t('Yes, log {0}', kg(hit.w))}</Button>
+    <div style={{ height: 8 }} />
+    <Button onClick={close}>{t('No, correct it')}</Button>
+  </div>, { kind: 'center' })
 }

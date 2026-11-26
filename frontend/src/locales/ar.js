@@ -3988,4 +3988,8 @@ export default {
   "Connect to Strava": "الاتصال بـ Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} أعلى بكثير من أفضل ما رفعته (1RM المقدّر {1}). هل هو خطأ في الكتابة؟",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} أكثر مما رفعه أي إنسان على الإطلاق. هل هو خطأ في الكتابة؟",
+  "Is {0} right?": "هل {0} صحيح؟",
+  "Yes, log {0}": "نعم، سجّل {0}",
+  "No, correct it": "لا، صحّحه",
+  "check the weight": "تحقق من الوزن",
 }
