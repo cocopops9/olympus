@@ -3933,4 +3933,8 @@ export default {
   "Connect to Strava": "Ligar ao Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} está muito acima do teu melhor (1RM estimado {1}). É um erro de escrita?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} é mais do que alguém alguma vez levantou. É um erro de escrita?",
+  "Is {0} right?": "{0} está certo?",
+  "Yes, log {0}": "Sim, registar {0}",
+  "No, correct it": "Não, corrigir",
+  "check the weight": "verifica o peso",
 }

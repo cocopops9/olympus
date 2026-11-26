@@ -102,3 +102,6 @@
   font-weight:600;box-shadow:inset 0 0 0 1px var(--sep)}
 .focus-skip:disabled{opacity:.35}
 .focus-extras:empty{display:none}
+/* Complete with a weight that is probably a typo: "!" and the warning colour (lib/plausible-load.js). */
+.btn.primary.focus-check-load{background:var(--orange);color:#fff}
+.focus-card>.btn.primary.focus-check-load{box-shadow:0 8px 22px -10px color-mix(in srgb,var(--orange) 70%,transparent)}
