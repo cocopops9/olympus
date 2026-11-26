@@ -431,20 +431,22 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const openMore = () => menuSheet({
     title: exerciseNameFor(ex),
     titleClass: exerciseNameClass(ex),
+    subtitle: [ex.tg || ex.bp ? t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp) : null, ex.eq ? t(ex.eq) : null].filter(Boolean).map(capFirst).join(' · ') || undefined,
+    look: 'gold',
     sections: [
       { title: t('Today'), items: [
-        onSwap && { icon: 'swap', label: t('Swap exercise'), onClick: onSwap, disabled: busy },
+        onSwap && { icon: 'swap', label: t('Swap exercise'), onClick: onSwap, disabled: busy, tile: true },
         onSwapTo && variants.length > 0 && { icon: 'barbell', label: t('Change equipment'), sub: capFirst(variants.map(v => t(v.eq)).slice(0, 4).join(', ')), disabled: busy, onClick: () => setTimeout(() => menuSheet({
           title: t('Change equipment'), subtitle: exerciseNameFor(ex),
           items: variants.map(v => ({ label: capFirst(t(v.eq)), sub: capFirst(exerciseNameFor(v)), onClick: () => onSwapTo(v) })),
         }), 0) },
         { icon: 'sunrise', label: t('Add warm-up set'), onClick: onAddWarmup },
-        { icon: 'note', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet(entryIdx) },
+        { icon: 'note', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet(entryIdx), tile: true },
         onNoProg && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('This exercise, this session only'), on: entry.noProg === true, onClick: () => onNoProg(entry.noProg !== true) },
       ] },
       { title: t('Look it up'), items: [
-        { icon: 'history', label: t('History'), sub: last ? t('Last time') + ' ' + fmtDate(last.d) : undefined, onClick: () => exerciseHistorySheet(entry.id) },
-        { icon: 'info', label: t('How to do it'), onClick: () => exerciseDetailSheet(ex) },
+        { icon: 'history', label: t('History'), sub: last ? t('Last time') + ' ' + fmtDate(last.d) : undefined, onClick: () => exerciseHistorySheet(entry.id), tile: true },
+        { icon: 'info', label: t('How to do it'), onClick: () => exerciseDetailSheet(ex), tile: true },
       ] },
       { title: t('Settings'), items: [
         mode === 'reps' && { icon: 'scale', label: bw ? t('Added ({0})', S.unit) : t('Weight ({0})', S.unit), sub: t('Switch to {0}', otherUnit) + ' · ' + t('Converts every stored weight'), onClick: switchUnit },
@@ -477,6 +479,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     menuSheet({
       title: warm ? t('Warm-up') : sideTag ? t('Set {0} ({1})', setNumOf(s, i), sideTag) : t('Set {0}', setNumOf(s, i)),
       subtitle: setLabel(entry.id, s, entry.target, speedUnit),
+      look: 'gold',
       sections: [
         // A warm-up logged as a work set (or the other way round) changes phase here. Reps sets
         // only, the kind a warm-up is added as; one work set always stays, and a per-side
@@ -696,6 +699,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="note" /></button>}
+        {/* Remove sits on the exercise itself, as in Focus: in the ⋯ list it was the last row of
+            five groups, and people did not find it. The confirm sheet behind it says what is lost. */}
+        {onRemoveExercise && <button className="iconbtn ex-remove" aria-label={t('Remove exercise')} title={t('Remove exercise')}
+          disabled={busy} onClick={onRemoveExercise}><Icon name="trash" /></button>}
         <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>
       </div>
     </div>
@@ -820,11 +827,15 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
         </div>
       })}
       <div style={{ height: 8 }} />
-      {wc.setShortcuts ? <div className="row" style={{ flexWrap: 'wrap' }}>
-        <Button size="sm" icon="sunrise" onClick={onAddWarmup}>{t('Add warm-up set')}</Button>
-        <Button size="sm" icon="minus" disabled={entry.sets.length <= setSpanAt(entry.sets, entry.sets.length - 1)[1]} onClick={onRemoveSet}>{t('Remove set')}</Button>
-        <Button size="sm" icon="plus" onClick={onAddSet}>{t('Add set')}</Button>
-      </div> : <Button size="sm" icon="plus" onClick={onAddSet}>{t('Add set')}</Button>}
+      {/* The number of sets, in every layout: − takes the last set away, + adds one after it
+          (Focus has the same pair on its set rail). The warm-up stays with the shortcuts. */}
+      {wc.setShortcuts && <Button size="sm" icon="sunrise" className="sets-warm" onClick={onAddWarmup}>{t('Add warm-up set')}</Button>}
+      <div className="sets-edit">
+        <button type="button" className="sets-edit-b" disabled={entry.sets.length <= setSpanAt(entry.sets, entry.sets.length - 1)[1]} onClick={onRemoveSet}>
+          <Icon name="minus" />{t('Remove set')}
+        </button>
+        <button type="button" className="sets-edit-b add" onClick={onAddSet}><Icon name="plus" />{t('Add set')}</button>
+      </div>
     </div>
   </>
 }

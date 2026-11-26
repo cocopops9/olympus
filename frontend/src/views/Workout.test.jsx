@@ -2750,6 +2750,29 @@ describe('workout controls: the more menu and the set menu', () => {
     expect(mocks.confirmSheet).toHaveBeenCalled()
   })
 
+  it('shows the bin and − / + for sets on the card itself, in the gold menu look', async () => {
+    await mount([exercise('plain-bench', [true, false, false]), exercise('plain-row', [false])], 0)
+    const named = text => [...container.querySelectorAll('button')].find(b => b.textContent.trim() === text)
+    expect(named('Remove set').disabled).toBe(false)
+    await click(named('Add set'))
+    expect(mocks.S.active.entries[0].sets.length).toBe(4)
+    await click(named('Remove set'))
+    expect(mocks.S.active.entries[0].sets.length).toBe(3)
+    expect(mocks.S.active.entries[0].sets[0].done).toBe(true)
+
+    await click(buttonNamed('Remove exercise'))
+    expect(mocks.confirmSheet).toHaveBeenCalled()
+
+    await act(async () => { container.querySelector('button[aria-label="More"]').dispatchEvent(new dom.Event('click', { bubbles: true })) })
+    expect(lastMenu().look).toBe('gold')
+    expect(menuItemsOf(lastMenu()).filter(it => it.tile).map(it => it.label)).toEqual(['Swap exercise', 'Add note', 'History', 'How to do it'])
+  })
+
+  it('keeps one set: Remove set is off on the card when only one is left', async () => {
+    await mount([exercise('plain-bench', [false])], 0)
+    expect([...container.querySelectorAll('button')].find(b => b.textContent.trim() === 'Remove set').disabled).toBe(true)
+  })
+
   it('adds an in-session warm-up at the bar, never under it', async () => {
     const bench = exercise('0025', [false], { target: { mode: 'reps', reps: 10, weight: 55 }, sets: [{ w: 55, r: 10, done: false }] })
     await mount([bench], 0, { unit: 'lb' })

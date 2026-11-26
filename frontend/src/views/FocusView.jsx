@@ -226,22 +226,24 @@ export default function FocusView({
 
   const openExerciseMenu = () => menuSheet({
     title: exerciseNameFor(exOr(entry.id)),
+    look: 'gold',
     items: [
-      { icon: 'pencil', label: entry.note ? t('Edit note') : t('Add note'), onClick: () => exerciseNoteSheet(entryIdx) },
-      { icon: 'info', label: t('Details'), onClick: () => exerciseDetailSheet(exOr(entry.id)) },
-      { icon: 'history', label: t('History'), onClick: () => exerciseHistorySheet(entry.id) },
+      { icon: 'shuffle', label: t('Swap exercise'), onClick: onSwap, disabled: busy, tile: true },
+      { icon: 'info', label: t('Details'), onClick: () => exerciseDetailSheet(exOr(entry.id)), tile: true },
+      { icon: 'history', label: t('History'), onClick: () => exerciseHistorySheet(entry.id), tile: true },
+      { icon: 'pencil', label: entry.note ? t('Edit note') : t('Add note'), onClick: () => exerciseNoteSheet(entryIdx), tile: true },
       { icon: 'chartLine', label: t('Progression settings'), onClick: onProgressionSettings },
       onNoProg && { icon: 'pause', label: t('Don’t count for progression'), sub: t('This exercise, this session only'), on: entry.noProg === true, onClick: () => onNoProg(entry.noProg !== true) },
       mode === 'reps' && { icon: 'plate', label: t('Plate loading'), onClick: () => barWeightSheet(entry.id, { ...(entry.target || {}), id: entry.id }) },
       onPairPrev && { icon: 'link', label: t('Make superset with previous'), onClick: onPairPrev },
       onPairNext && { icon: 'link', label: t('Make superset with next'), onClick: onPairNext },
-      { icon: 'shuffle', label: t('Swap exercise'), onClick: onSwap, disabled: busy },
       { icon: 'trash', label: t('Remove exercise'), onClick: onRemoveExercise, danger: true, disabled: busy },
     ],
   })
 
   const openSetMenu = () => menuSheet({
     title: t('Set {0}', setIdx + 1),
+    look: 'gold',
     items: [
       { icon: 'flame', label: isWarmupRow(set) ? t('Mark as work set') : t('Mark as warm-up'), onClick: () => onMutateSet(setIdx, toggleWarmup) },
       { icon: 'arrowDown', label: t('Add drop set'), onClick: () => onMutateSet(setIdx, row => addDropTo(row, entry.target)) },

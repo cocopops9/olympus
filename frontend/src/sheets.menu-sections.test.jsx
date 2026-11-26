@@ -48,4 +48,26 @@ describe('menuSheet sections', () => {
     expect([...host.querySelectorAll('.menu-item .tt')].map(e => e.textContent)).toEqual(['One', 'Two'])
     expect(host.querySelector('.menu-sec')).toBeNull()
   })
+
+  it('gold look: tiles first, groups as cards, Remove as a red button at the end, disabled rows inert', () => {
+    const swap = vi.fn(), remove = vi.fn(), move = vi.fn()
+    menuSheet({ title: 'Bench', subtitle: 'Chest · Barbell', look: 'gold', sections: [
+      { title: 'Today', items: [{ icon: 'swap', label: 'Swap exercise', onClick: swap, tile: true }, { icon: 'sunrise', label: 'Add warm-up set' }] },
+      { title: 'Order', items: [{ icon: 'chevronUp', label: 'Move up', disabled: true, onClick: move }] },
+      { items: [{ icon: 'trash', label: 'Remove exercise', danger: true, onClick: remove }] },
+    ] })
+    show()
+    expect(host.querySelector('.xmenu-name').textContent).toBe('Bench')
+    expect([...host.querySelectorAll('.xmenu-tile .tt')].map(e => e.textContent)).toEqual(['Swap exercise'])
+    expect([...host.querySelectorAll('.sect-t')].map(e => e.textContent)).toEqual(['Today', 'Order'])
+    expect([...host.querySelectorAll('.xmenu-row .tt')].map(e => e.textContent)).toEqual(['Add warm-up set', 'Move up'])
+    act(() => host.querySelector('.xmenu-row.disabled').click())
+    expect(move).not.toHaveBeenCalled()
+    const danger = host.querySelector('.xmenu-danger')
+    expect(danger.textContent).toBe('Remove exercise')
+    expect(danger.parentElement.lastElementChild).toBe(danger)
+    act(() => danger.click())
+    expect(remove).toHaveBeenCalledOnce()
+    expect(useUI.getState().sheets).toEqual([])
+  })
 })
