@@ -3929,4 +3929,8 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "พัก {0} วัน",
   "{0} rest days": "พัก {0} วัน",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "แนวโน้ม",
+  "{0} per week": "{0} ต่อสัปดาห์",
+  "{0} per month": "{0} ต่อเดือน",
 }

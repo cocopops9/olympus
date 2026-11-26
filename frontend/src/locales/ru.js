@@ -3922,4 +3922,8 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} день отдыха",
   "{0} rest days": { one: '{0} день отдыха', few: '{0} дня отдыха', many: '{0} дней отдыха' },
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Тренд",
+  "{0} per week": "{0} в неделю",
+  "{0} per month": "{0} в месяц",
 }

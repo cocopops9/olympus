@@ -3921,4 +3921,8 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} pihenőnap",
   "{0} rest days": "{0} pihenőnap",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Trend",
+  "{0} per week": "heti {0}",
+  "{0} per month": "havi {0}",
 }

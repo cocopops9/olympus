@@ -3918,4 +3918,8 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "휴식일 {0}일",
   "{0} rest days": "휴식일 {0}일",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "추세",
+  "{0} per week": "주당 {0}",
+  "{0} per month": "월 {0}",
 }

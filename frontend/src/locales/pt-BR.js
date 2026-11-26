@@ -2978,4 +2978,8 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Start the stopwatch": "Iniciar o cronômetro",
   "Pause the stopwatch": "Pausar o cronômetro",
   "Resume the stopwatch": "Retomar o cronômetro",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Tendência",
+  "{0} per week": "{0} por semana",
+  "{0} per month": "{0} por mês",
 }

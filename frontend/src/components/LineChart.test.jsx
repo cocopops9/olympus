@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import LineChart from './LineChart.jsx'
 import { fmtDate, isoOf } from '../lib/format.js'
+import { useStore } from '../store/useStore.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -109,5 +110,45 @@ describe('LineChart y axis', () => {
     const labels = [...container.querySelectorAll('text')].map(n => n.textContent)
     expect(labels).toContain('0')
     expect(labels.some(l => /^[-\u2212]0$/.test(l))).toBe(false)
+  })
+})
+
+describe('LineChart time axis', () => {
+  it('places points by date and marks each new year on a multi-year history', () => {
+    // A June 2024 session, then nothing until September 2025: the gap must take its real width.
+    const pts = [point(2024, 6, 10, 100), point(2024, 6, 24, 102), point(2025, 9, 15, 110)]
+    act(() => root.render(<LineChart points={pts} axes unit="kg" />))
+    const labels = [...container.querySelectorAll('text')].map(n => n.textContent)
+    expect(labels).toContain('2025')
+    const coords = container.querySelector('polyline').getAttribute('points').split(' ').map(s => +s.split(',')[0])
+    const frac = (coords[1] - coords[0]) / (coords[2] - coords[0])
+    const expected = (pts[1].t - pts[0].t) / (pts[2].t - pts[0].t)
+    expect(frac).toBeCloseTo(expected, 2)
+  })
+})
+
+describe('LineChart trend line', () => {
+  const pts = [point(2026, 1, 1, 80), point(2026, 1, 8, 79.6), point(2026, 1, 15, 79.1), point(2026, 1, 22, 78.8)]
+  afterEach(() => act(() => useStore.getState().update(s => { s.chartTrend = false }, false)))
+
+  it('is off by default and turns on for every chart from its chip', () => {
+    act(() => root.render(<LineChart points={pts} axes unit="kg" />))
+    expect(container.querySelector('[data-trend-line]')).toBeNull()
+    const chip = container.querySelector('.chart-trend button')
+    expect(chip.getAttribute('aria-pressed')).toBe('false')
+    act(() => chip.click())
+    expect(useStore.getState().S.chartTrend).toBe(true)
+    expect(container.querySelector('[data-trend-line]')).toBeTruthy()
+    // About -0.41 kg a week by least squares over the four weigh-ins.
+    expect(container.querySelector('[data-trend-rate]').textContent).toMatch(/−0\.4 kg/)
+  })
+
+  it('is not offered without axes, with fewer than three points, or on a per-set chart', () => {
+    act(() => root.render(<LineChart points={pts} axes={false} unit="kg" />))
+    expect(container.querySelector('.chart-trend')).toBeNull()
+    act(() => root.render(<LineChart points={pts.slice(0, 2)} axes unit="kg" />))
+    expect(container.querySelector('.chart-trend')).toBeNull()
+    act(() => root.render(<LineChart points={pts} series={[{ points: pts, color: 'red' }]} axes unit="kg" />))
+    expect(container.querySelector('.chart-trend')).toBeNull()
   })
 })

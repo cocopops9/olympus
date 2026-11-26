@@ -3973,4 +3973,8 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} يوم راحة",
   "{0} rest days": "{0} أيام راحة",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "الاتجاه",
+  "{0} per week": "{0} أسبوعيًا",
+  "{0} per month": "{0} شهريًا",
 }
