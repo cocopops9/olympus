@@ -1,10 +1,15 @@
-// The top of Settings → Account: who is signed in, picture and name. How sync stands is the block
-// right below it (components/ServerSync.jsx).
+// The top of Settings → Account: who is signed in, the picture in a gold ring and the name over a
+// strip of Greek key, in the gold on black of the Workout pages (.wset). Where the name can be
+// changed (the phone app's account), the name is the button that changes it, with a pencil, as
+// the workout's name is in its ⋯ menu. How sync stands is the block right below it
+// (components/ServerSync.jsx).
 import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { t } from '../lib/i18n.js'
 import { socialReady, fetchProfile } from '../lib/social.js'
 import { Avatar } from './Social.jsx'
+import Icon from './Icon.jsx'
+import Meander from './Meander.jsx'
 
 export const FACE_KEY = 'olympus_settings_face'
 
@@ -25,7 +30,7 @@ export function useFace(user) {
   return face
 }
 
-export default function AccountHero() {
+export default function AccountHero({ onRename }) {
   const user = useStore(s => s.user)
   const face = useFace(user)
   if (!user) return null
@@ -33,6 +38,11 @@ export default function AccountHero() {
   return <div className="acc-hero">
     {socialReady(user) ? <span className="acc-av acc-face"><Avatar user={{ ...user, avatar: face }} /></span>
       : <span className="acc-av" aria-hidden="true">{initial}</span>}
-    <div className="acc-name">{user.name}</div>
+    {onRename
+      ? <button type="button" className="acc-name acc-rename" data-find={t('Name')} aria-label={t('Change name') + ': ' + user.name} onClick={onRename}>
+          <span>{user.name}</span><Icon name="pencil" className="acc-pen" />
+        </button>
+      : <div className="acc-name">{user.name}</div>}
+    <Meander id="acc-key" className="acc-key" />
   </div>
 }

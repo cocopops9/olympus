@@ -51,7 +51,7 @@ import { showsConnection, showsLocalLine } from '../components/SyncBanner.jsx'
 import { VoiceSetupRow, NaturalVoiceRow, VoicePreviewRow } from '../components/VoiceSetup.jsx'
 import BackupFolderRow, { useBackupFolder, autoBackupSubtitle } from '../components/BackupFolderRow.jsx'
 import AccountHero, { useFace } from '../components/AccountHero.jsx'
-import { SignInSection } from '../components/AccountEdit.jsx'
+import { SignInSection, openNameSheet } from '../components/AccountEdit.jsx'
 import { GymsManager } from '../components/Gyms.jsx'
 import { ClaudeConnectorPage, ChatGPTConnectorPage, AssistantsPage, AssistantsCard } from '../components/ClaudeConnector.jsx'
 import { StravaPage } from '../components/StravaConnect.jsx'
@@ -909,10 +909,13 @@ export default function Settings({ page = null, find = null, via = null }) {
 
     strava: () => <StravaPage />,
 
-    account: () => <>
+    // Olympus: the account in the gold on black of Settings → Workout (.wset): the picture and the
+    // name (tap to change it, on the phone) over a Greek key, how sync stands and "Sync now" as
+    // two tiles, then the rows, and Disconnect as a red link at the foot, away from the rest.
+    account: () => <div className="wset acct">
       {/* The server: which one, which account, how that stands, "Sync now". A paired phone's
           Admin and Disconnect sit in the same block; a browser's account rows follow in their own. */}
-      {user && !DEMO && <AccountHero />}
+      {user && !DEMO && <AccountHero onRename={MOBILE ? () => openNameSheet() : null} />}
       {user && !DEMO && <ServerSyncSection />}
       {/* Olympus: name, e-mail and password, where people look for them (also in Edit profile). */}
       {user && !DEMO && MOBILE && <SignInSection />}
@@ -930,9 +933,12 @@ export default function Settings({ page = null, find = null, via = null }) {
           <Switch aria-label={t('Share usage statistics')} checked={S.telemetry === true} onChange={setTelemetry} />
         </Row>
       </Section>}
-      {user && !DEMO && MOBILE && <Section footer={t('This phone goes back to local-only. Before it does, it checks that your server has every change.')}>
-        <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} subtitle={t('Stop syncing with this server')} danger onClick={disconnect} />
-      </Section>}
+      {user && !DEMO && MOBILE && <div className="acct-out">
+        <button type="button" className="wmenu-discard" data-find={t('Disconnect')} onClick={disconnect}>
+          <Icon name="signOut" />{t('Disconnect')}
+        </button>
+        <p className="sect-f">{t('This phone goes back to local-only. Before it does, it checks that your server has every change.')}</p>
+      </div>}
 
       {/* account (demo and mobile builds have nothing to sign in to) */}
       {!(MOBILE && user) && <Section title={MOBILE ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
@@ -980,7 +986,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       {/* The connection banner already says this to a guest; the line is for when it is switched
           off, or its × hid it (#454). */}
       {!user && !DEMO && !MOBILE && !(showsConnection(S) && showsLocalLine(S)) && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode: your data lives only in this browser.')}</p>}
-    </>,
+    </div>,
   }
 
   /* ---------------- a page ---------------- */

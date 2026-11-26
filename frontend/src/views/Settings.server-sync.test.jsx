@@ -86,7 +86,9 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach(({ root, host }) => { root.unmount(); host.remove() }) }) })
 
 const block = page => [...page.querySelectorAll('.sect')].find(s => s.querySelector('.sect-t')?.textContent === 'Server & sync')
-const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow')].find(r => r.querySelector('.lrow-t')?.textContent === title)
+// A row, a tile (how sync stands, Sync now) or the Disconnect link, by what it says.
+const rowByTitle = (el, title) => [...el.querySelectorAll('.lrow, .wset-tile, .wmenu-discard')]
+  .find(r => (r.querySelector('.lrow-t, .acc-line')?.textContent ?? r.dataset.find) === title)
 const buttonByText = (el, text) => [...el.querySelectorAll('button')].find(b => b.textContent === text)
 const openSheet = (i = -1) => mount(mocks.sheets.at(i).render(() => {}))
 
@@ -104,6 +106,23 @@ describe('Server & sync', () => {
     await act(async () => { rowByTitle(b, 'Sync now').click() })
     expect(mocks.syncNow).toHaveBeenCalledTimes(1)
     expect(mocks.toast).toHaveBeenCalledWith('All synced')
+  })
+
+  it('on the phone the name under the picture changes it, and is not repeated as a row', () => {
+    const page = mount(<Settings page="account" />)
+    const name = page.querySelector('.acc-hero button.acc-rename')
+    expect(name.textContent).toBe('andi')
+    expect(rowByTitle(page, 'Name')).toBeUndefined()
+    act(() => name.click())
+    expect(mocks.sheets).toHaveLength(1)
+    expect(openSheet().querySelector('h3').textContent).toBe('Change name')
+  })
+
+  it('in a browser the name is a title only (it is changed elsewhere there)', () => {
+    mocks.MOBILE = false
+    const page = mount(<Settings page="account" />)
+    expect(page.querySelector('.acc-hero .acc-name').textContent).toBe('andi')
+    expect(page.querySelector('.acc-hero button')).toBeNull()
   })
 
   it('refused by the server: says so, how much is waiting, and offers "Pair again" with the address filled in', async () => {
@@ -130,7 +149,7 @@ describe('Server & sync', () => {
     mocks.sync = sync('auth', { auth: true, pending: true, server: null, lastError: { status: 0, code: 'not-paired' } })
     const page = mount(<Settings page="account" />)
     const b = block(page)
-    expect([...b.querySelectorAll('.lrow-t')].filter(el => el.textContent === 'This phone is not connected to a server.')).toHaveLength(1)
+    expect([...b.querySelectorAll('.lrow-t, .acc-line')].filter(el => el.textContent === 'This phone is not connected to a server.')).toHaveLength(1)
     expect(rowByTitle(b, 'Pair again')).toBeTruthy()
   })
 

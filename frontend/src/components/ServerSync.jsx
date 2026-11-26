@@ -15,6 +15,7 @@ import { askAddDeviceData, menuSheet } from '../sheets.jsx'
 import { ConnectSheet, CfAccessSheet, openAccountSheet } from '../views/MobileOnboarding.jsx'
 import { passwordOn, openPasswordSignIn } from './PasswordAuth.jsx'
 import { Section, Row, Button } from './ui.jsx'
+import Icon from './Icon.jsx'
 
 const ui = () => useUI.getState()
 const toast = m => ui().toast(m)
@@ -267,9 +268,23 @@ export function ServerSyncSection({ children }) {
     setBusy(true)
     try { await syncNowWithToast() } finally { setBusy(false) }
   }
+  // How it stands and "Sync now" as two tiles side by side (.acc-sync, index.css): a light in the
+  // colour of the state, and the one action lit in gold. Anything wrong takes the whole width, as
+  // its line says what is waiting.
+  const calm = sync.status === 'ok'
   return <Section title={t('Server & sync')}>
-    <Row icon={view.icon} iconTint={TINT[view.tone]} title={view.line} subtitle={sub} className="sync-status" />
-    <Row icon="reset" iconTint="var(--acc)" title={busy ? t('Syncing…') : t('Sync now')} subtitle={t('Send and receive changes right now')} onClick={now} />
+    <div className={'acc-sync' + (calm ? '' : ' wide')}>
+      <div className="wset-tile acc-state sync-status" role="status" style={{ '--tone': TINT[view.tone] }}>
+        <span className="acc-light" aria-hidden="true"><Icon name={view.icon} /></span>
+        <b className="acc-line">{view.line}</b>
+        <span className="acc-sub">{sub}</span>
+      </div>
+      <button type="button" className={'wset-tile main acc-now' + (busy ? ' busy' : '')} data-find={t('Sync now')} onClick={now} aria-busy={busy}>
+        <span className="acc-well" aria-hidden="true"><Icon name="reset" /></span>
+        <b className="acc-line">{busy ? t('Syncing…') : t('Sync now')}</b>
+        <span className="acc-sub">{t('Send and receive changes right now')}</span>
+      </button>
+    </div>
     {MOBILE && <Row icon="key" iconTint="var(--orange)" title={t('Cloudflare Access')} subtitle={t('Only if your server asks for a service token')} accessory="chevron"
       onClick={() => ui().openSheet(close => <CfAccessSheet close={close} server={sync.server || ''} />)} />}
     {sync.status === 'auth' && (MOBILE
