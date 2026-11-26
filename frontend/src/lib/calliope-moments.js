@@ -33,7 +33,7 @@ const hintsOf = S => (S?.hints && typeof S.hints === 'object' ? S.hints : {})
  * anywhere); `text` what she says. The texts are functions, read in the app's language now.
  */
 export const MOMENTS = {
-  oddLoad: { where: 'workout', text: () => t('That weight is far above anything you have lifted on this exercise. An extra zero is easy to type, so check it. If it is real, log it as usual: nothing is blocked.') },
+  oddLoad: { where: 'workout', text: () => t('The ! in place of the tick means that weight is far above anything you have lifted on this exercise. An extra zero is easy to type. Tap ! to log it as it is, or correct it.') },
   deload: { where: 'workout', text: () => t('The weight went down on purpose. You missed your reps a few sessions in a row, so Olympus lowers it a little and lets you build back up. This is normal, and it works.') },
   toppedOut: { where: 'workout', text: () => t('You have reached your heaviest dumbbell, so the weight stays. Add heavier dumbbells in Settings, Equipment, and progression moves on.') },
   planChanged: { where: 'workout', text: () => t('This exercise starts from the routine’s own target, not from your last session: the plan changed, or the exercise is new to this routine. Progression picks up from here.') },
@@ -67,34 +67,45 @@ export function withMomentsReset(hints) {
 const OUTGROWN = 'You’ve outgrown the rack: {0} {1} is your heaviest dumbbell, so the weight stays.'
 const NEW_PLAN = ['Plan changed, so starting from your new target.', 'First time in this routine, so starting from its own target.']
 
-/**
- * The situations true now, in MOMENTS order. `screen` is the first part of the route open now
- * ('workout', 'home'…); `resting` whether a rest timer is counting down in a live workout.
- * Pure: the component asks it after the state has settled and shows the first one still due.
- */
-export function situationsOf(S, { screen = '', resting = false } = {}) {
-  const out = []
-  const A = S?.active
-  const live = !!A && !A.editingWorkoutId
-  const entries = live && screen === 'workout' ? (A.entries || []) : []
-  const why = e => (Array.isArray(e?.plan?.why) ? e.plan.why[0] : '')
-  if (entries.some(e => !isCardio(e) && implausibleLoad(S, e))) out.push('oddLoad')
-  if (entries.some(e => e?.plan?.kind === 'deload')) out.push('deload')
-  if (entries.some(e => why(e) === OUTGROWN)) out.push('toppedOut')
-  if (entries.some(e => NEW_PLAN.includes(why(e)))) out.push('planChanged')
-  if (entries.some(e => e?.sg)) out.push('superset')
-  if (entries.length && A.backfill) out.push('backfill')
-  if (entries.length && resting && !A.backfill) out.push('firstRest')
-  if (!A && (S?.workouts?.length || 0) === 1) out.push('firstFinish')
-  return out
+// Each situation, by moment id: whether it is true now. `x` is { S, A, entries, resting }, with
+// `entries` the exercises of a live workout while its screen is open (none otherwise).
+const CHECKS = {
+  oddLoad: x => x.entries.some(e => !isCardio(e) && implausibleLoad(x.S, e)),
+  deload: x => x.entries.some(e => e?.plan?.kind === 'deload'),
+  toppedOut: x => x.entries.some(e => whyOf(e) === OUTGROWN),
+  planChanged: x => x.entries.some(e => NEW_PLAN.includes(whyOf(e))),
+  superset: x => x.entries.some(e => e?.sg),
+  backfill: x => x.entries.length > 0 && !!x.A.backfill,
+  firstRest: x => x.entries.length > 0 && x.resting && !x.A.backfill,
+  firstFinish: x => !x.A && (x.S?.workouts?.length || 0) === 1,
 }
 
+const whyOf = e => (Array.isArray(e?.plan?.why) ? e.plan.why[0] : '')
 // Cardio and sports log distance and time, not a load (views/Workout.jsx gives them no warning).
 const isCardio = e => modeOf({ ...(e?.target || {}), id: e?.id }) === 'cardio'
 
-/** The moment to show now: the first situation that is due, or null. */
+function contextOf(S, { screen = '', resting = false } = {}) {
+  const A = S?.active || null
+  const live = !!A && !A.editingWorkoutId
+  return { S, A, resting, entries: live && screen === 'workout' ? (A.entries || []) : [] }
+}
+
+/**
+ * The situations true now, in MOMENTS order. `screen` is the first part of the route open now
+ * ('workout', 'home'…); `resting` whether a rest timer is counting down in a live workout.
+ */
+export function situationsOf(S, ctx) {
+  const x = contextOf(S, ctx)
+  return MOMENT_IDS.filter(id => CHECKS[id](x))
+}
+
+/**
+ * The moment to show now: the first situation that is true and still due, or null. A moment
+ * already shown is not even looked for (the weight check reads the exercise's whole history).
+ */
 export function momentFor(S, ctx) {
-  return situationsOf(S, ctx).find(id => momentDue(S, id)) || null
+  const x = contextOf(S, ctx)
+  return MOMENT_IDS.find(id => momentDue(S, id) && CHECKS[id](x)) || null
 }
 
 /*

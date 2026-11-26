@@ -3992,4 +3992,16 @@ export default {
   "Yes, log {0}": "نعم، سجّل {0}",
   "No, correct it": "لا، صحّحه",
   "check the weight": "تحقق من الوزن",
+  // Calliope: the shorter welcome and her moments (lib/calliope-moments.js).
+  "The ! in place of the tick means that weight is far above anything you have lifted on this exercise. An extra zero is easy to type. Tap ! to log it as it is, or correct it.": "علامة ! مكان علامة الصح تعني أن هذا الوزن أعلى بكثير من أي شيء رفعته في هذا التمرين. من السهل كتابة صفر زائد. انقر على ! لتسجيله كما هو، أو صحّحه.",
+  "The weight went down on purpose. You missed your reps a few sessions in a row, so Olympus lowers it a little and lets you build back up. This is normal, and it works.": "انخفض الوزن عن قصد. لم تُكمل تكراراتك عدة حصص متتالية، لذا يخففه Olympus قليلًا ليتيح لك البناء من جديد. هذا طبيعي، وهو ينجح.",
+  "You have reached your heaviest dumbbell, so the weight stays. Add heavier dumbbells in Settings, Equipment, and progression moves on.": "وصلت إلى أثقل دمبل لديك، لذا يبقى الوزن كما هو. أضف دمبلات أثقل في الإعدادات، المعدات، فيستمر التقدم.",
+  "This exercise starts from the routine’s own target, not from your last session: the plan changed, or the exercise is new to this routine. Progression picks up from here.": "يبدأ هذا التمرين من هدف الروتين نفسه لا من حصتك الأخيرة: تغيّرت الخطة أو أن التمرين جديد في هذا الروتين. يستمر التقدم من هنا.",
+  "This is a superset: one set of each exercise in a row, then the rest. Olympus moves you from one to the next by itself.": "هذه مجموعة مركّبة: مجموعة واحدة من كل تمرين على التوالي ثم الراحة. ينقلك Olympus من تمرين إلى آخر تلقائيًا.",
+  "You are logging a past workout: there is no rest timer, and Mark all sets done ticks every set at once.": "أنت تسجّل تمرينًا سابقًا: لا يوجد مؤقت راحة، وزر تحديد كل المجموعات كمكتملة يحدد كل المجموعات دفعة واحدة.",
+  "Rest time: the timer counts down and tells you when to go again. Meanwhile Chiron sleeps at the top: tap him three times to ask him anything.": "وقت الراحة: يعدّ المؤقت تنازليًا ويخبرك متى تعود. وفي الأثناء ينام خيرون في الأعلى: انقر عليه ثلاث مرات لتسأله أي شيء.",
+  "Your first workout is saved. Find it in Profile, History. Next time Olympus suggests what to lift from what you did today.": "تم حفظ تمرينك الأول. تجده في الملف الشخصي، السجل. في المرة القادمة يقترح Olympus ما ترفعه بناءً على ما فعلته اليوم.",
+  "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "لن أريك كل شيء دفعة واحدة. في أول مرة تفتح فيها كل جزء من التطبيق سأريك إياه في فقاعات قليلة، وعندما يحدث شيء جديد سأشرحه في ثوانٍ. لنبدأ من هنا.",
+  "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "أنا كاليوبي. في أول مرة تفتح فيها كل شاشة أريك إياها في فقاعات قليلة. وعندما يحدث شيء أقل شيوعًا، مثل وزن يبدو خطأً في الكتابة، أظهر لبضع ثوانٍ لأشرحه.",
+  "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "كل شرح يظهر مرة واحدة. انقر عليه لإبقائه على الشاشة أو أغلقه. من الإعدادات، حول التطبيق والتحديثات يمكنك إيقاف النصائح أو إظهارها كلها من جديد.",
 }

@@ -3937,4 +3937,16 @@ export default {
   "Yes, log {0}": "네, {0} 기록",
   "No, correct it": "아니요, 수정할게요",
   "check the weight": "무게를 확인하세요",
+  // Calliope: the shorter welcome and her moments (lib/calliope-moments.js).
+  "The ! in place of the tick means that weight is far above anything you have lifted on this exercise. An extra zero is easy to type. Tap ! to log it as it is, or correct it.": "체크 대신 보이는 !는 이 무게가 이 운동에서 들어 본 어떤 무게보다 훨씬 무겁다는 뜻입니다. 0을 하나 더 입력하기 쉽습니다. 그대로 기록하려면 !를 탭하고, 아니면 고치세요.",
+  "The weight went down on purpose. You missed your reps a few sessions in a row, so Olympus lowers it a little and lets you build back up. This is normal, and it works.": "무게가 일부러 내려갔습니다. 몇 세션 연속으로 목표 반복 수를 채우지 못해서 Olympus가 무게를 조금 낮추고 다시 올라가게 합니다. 정상이고, 효과가 있습니다.",
+  "You have reached your heaviest dumbbell, so the weight stays. Add heavier dumbbells in Settings, Equipment, and progression moves on.": "가장 무거운 덤벨에 도달해서 무게가 그대로입니다. 설정, 장비에서 더 무거운 덤벨을 추가하면 진행이 계속됩니다.",
+  "This exercise starts from the routine’s own target, not from your last session: the plan changed, or the exercise is new to this routine. Progression picks up from here.": "이 운동은 지난 세션이 아니라 루틴 자체의 목표에서 시작합니다. 계획이 바뀌었거나 이 루틴에 새로 들어온 운동입니다. 진행은 여기서부터 이어집니다.",
+  "This is a superset: one set of each exercise in a row, then the rest. Olympus moves you from one to the next by itself.": "이것은 슈퍼세트입니다. 각 운동을 한 세트씩 연달아 한 뒤 휴식합니다. Olympus가 알아서 다음 운동으로 넘겨 줍니다.",
+  "You are logging a past workout: there is no rest timer, and Mark all sets done ticks every set at once.": "지난 운동을 기록하고 있습니다. 휴식 타이머는 없고, 모든 세트 완료로 표시를 누르면 모든 세트가 한 번에 체크됩니다.",
+  "Rest time: the timer counts down and tells you when to go again. Meanwhile Chiron sleeps at the top: tap him three times to ask him anything.": "휴식 시간입니다. 타이머가 카운트다운하고 다시 시작할 때를 알려 줍니다. 그동안 위쪽에서 케이론이 자고 있어요. 세 번 탭하면 무엇이든 물어볼 수 있습니다.",
+  "Your first workout is saved. Find it in Profile, History. Next time Olympus suggests what to lift from what you did today.": "첫 운동이 저장되었습니다. 프로필, 기록에서 볼 수 있습니다. 다음에는 오늘 한 운동을 바탕으로 Olympus가 들 무게를 제안합니다.",
+  "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "한꺼번에 다 보여 드리지 않을게요. 앱의 각 부분을 처음 열 때 몇 개의 말풍선으로 보여 드리고, 새로운 일이 생기면 몇 초 안에 설명해 드릴게요. 여기서 시작해요.",
+  "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "저는 칼리오페예요. 각 화면을 처음 열 때 몇 개의 말풍선으로 보여 드려요. 오타처럼 보이는 무게처럼 흔치 않은 일이 생기면 몇 초 동안 나타나 설명해 드려요.",
+  "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "각 설명은 한 번만 나와요. 탭하면 화면에 계속 남고, 닫을 수도 있어요. 설정, 정보와 업데이트에서 팁을 끄거나 모두 다시 볼 수 있어요.",
 }
