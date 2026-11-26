@@ -3933,4 +3933,8 @@ export default {
   "Connect to Strava": "Strava'ya bağlan",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0}, en iyinin çok üzerinde (tahmini 1RM {1}). Yazım hatası mı?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0}, bugüne kadar kimsenin kaldırdığından fazla. Yazım hatası mı?",
+  "Is {0} right?": "{0} doğru mu?",
+  "Yes, log {0}": "Evet, {0} kaydet",
+  "No, correct it": "Hayır, düzelt",
+  "check the weight": "ağırlığı kontrol et",
 }

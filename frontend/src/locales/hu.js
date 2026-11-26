@@ -3936,4 +3936,8 @@ export default {
   "Connect to Strava": "Csatlakozás a Stravához",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} jóval meghaladja a legjobbadat (becsült 1RM {1}). Elírás?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} több, mint amennyit valaha bárki felemelt. Elírás?",
+  "Is {0} right?": "Biztosan {0}?",
+  "Yes, log {0}": "Igen, {0} rögzítése",
+  "No, correct it": "Nem, javítom",
+  "check the weight": "ellenőrizd a súlyt",
 }

@@ -3933,4 +3933,8 @@ export default {
   "Connect to Strava": "连接 Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} 远高于你的最佳成绩（估算 1RM {1}）。是输入错误吗？",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} 超过了人类举起过的最大重量。是输入错误吗？",
+  "Is {0} right?": "{0} 正确吗？",
+  "Yes, log {0}": "是的，记录 {0}",
+  "No, correct it": "不，修改",
+  "check the weight": "检查重量",
 }

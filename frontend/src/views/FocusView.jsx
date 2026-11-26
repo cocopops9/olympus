@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { exOr, isSport } from '../lib/exercises.js'
 import { clampIncline, hasIncline, inclineFits, INCLINE_MAX, INCLINE_STEP } from '../lib/incline.js'
@@ -7,6 +7,7 @@ import { fmtDate, fmtNum, fmtPlate } from '../lib/format.js'
 import { EFFORT, effortOf, modeOf } from '../lib/history.js'
 import { lastEntryFor, pinnedNoteFor, setsRepsOf } from '../lib/history.js'
 import { sessionPast } from '../lib/gyms.js'
+import { loadReference, setNeedsConfirm } from '../lib/plausible-load.js'
 import { effortColor, rirOf } from '../lib/effort.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
 import {
@@ -127,6 +128,9 @@ export default function FocusView({
   const stored = pointers.get(entryIdx)
   const setIdx = clampSet(entry, Number.isInteger(stored) ? stored : firstIncomplete(entry))
   const set = entry.sets[setIdx]
+  // A weight that is probably a typo (lib/plausible-load.js): Complete shows "!" and asks first.
+  const loadRef = useMemo(() => loadReference(S, entry), [S.workouts, S.unit, S.oneRmFormula, entry.id])   // eslint-disable-line react-hooks/exhaustive-deps
+  const checkLoad = !!set && !set.done && !!setNeedsConfirm(loadRef, set)
   const firstOpenSet = firstIncomplete(entry)
   const locked = !set.done && setIdx > firstOpenSet
   const readOnly = set.done || locked
@@ -336,7 +340,7 @@ export default function FocusView({
           style={effortTint ? { color: effortTint, borderColor: effortTint, background: `color-mix(in srgb, ${effortTint} 20%, var(--surface-2))` } : undefined}
           aria-label={t(EFFORT[effort].hd)} disabled={readOnly} onClick={openEffort}>{effortValue == null ? t(EFFORT[effort].hd) : fmtNum(effortValue)}</button>}
       </div>
-      <Button variant="primary" icon="check" aria-label={t('Complete set')} onClick={complete}>{set.done ? t('Completed') : t('Complete')}</Button>
+      <Button variant="primary" icon={checkLoad ? 'warning' : 'check'} className={checkLoad ? 'focus-check-load' : ''} aria-label={t('Complete set')} onClick={complete}>{set.done ? t('Completed') : t('Complete')}</Button>
       <div className="focus-secondary">
         <button className="focus-skip" aria-label={t('Skip set')} disabled={setIdx >= entry.sets.length - 1} onClick={() => selectSet(setIdx + 1)}>
           <Icon name="play" />{t('Skip')}
