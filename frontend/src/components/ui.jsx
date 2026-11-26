@@ -286,17 +286,20 @@ export function Slider({ value, min = 0, max = 100, step = 1, onChange, classNam
 
 /* ============================ checkbox ============================ */
 
-export function Check({ checked, onChange, className = '', size, label }) {
+// `warn`: the row holds something to look at before it is ticked (a weight that is probably a
+// typo, lib/plausible-load.js). The box shows "!" instead of the tick; tapping it still calls
+// onChange, and the caller asks before ticking.
+export function Check({ checked, onChange, className = '', size, label, warn = false }) {
   return (
     <button
       role="checkbox"
       aria-checked={!!checked}
-      aria-label={label}
-      className={'chk' + (checked ? ' on' : '') + ' ' + className}
+      aria-label={warn ? `${label}: ${t('check the weight')}` : label}
+      className={'chk' + (checked ? ' on' : '') + (warn ? ' warn' : '') + ' ' + className}
       style={size ? { width: size, height: size } : null}
       onClick={() => onChange(!checked)}
     >
-      <Icon name="check" />
+      {warn ? <span className="chk-warn" aria-hidden="true">!</span> : <Icon name="check" />}
     </button>
   )
 }

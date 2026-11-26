@@ -4012,4 +4012,8 @@ export default {
   "Connect to Strava": "Strava-র সাথে সংযোগ করুন",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} আপনার সেরার চেয়ে অনেক বেশি (আনুমানিক 1RM {1})। এটা কি টাইপের ভুল?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} এ পর্যন্ত কেউ যা তুলেছে তার চেয়েও বেশি। এটা কি টাইপের ভুল?",
+  "Is {0} right?": "{0} কি সঠিক?",
+  "Yes, log {0}": "হ্যাঁ, {0} লিখুন",
+  "No, correct it": "না, ঠিক করুন",
+  "check the weight": "ওজন দেখে নিন",
 }

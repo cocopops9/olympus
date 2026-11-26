@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // The case reported on 2026-11-26: 760 kg typed on a dumbbell bench press whose heaviest logged set
-// was 76 kg, with a stale kept weight of 10,000 kg. The card warns of a likely typo, and its Best
-// chip reads the logged history, not the kept weight.
+// was 76 kg, with a stale kept weight of 10,000 kg. The set's tick shows "!", and tapping it asks
+// before logging; the Best chip reads the logged history, not the kept weight.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
@@ -35,15 +35,59 @@ beforeEach(() => { localStorage.clear(); useUI.setState({ sheets: [], toastMsg: 
 afterEach(() => { act(() => root?.unmount()); container?.remove() })
 
 describe('a likely typo on the workout card', () => {
-  it('760 kg after a best of 76 x 12 warns, and Best is the logged 76 kg, not the kept 10,000 kg', () => {
+  const tick = () => container.querySelector('button[role="checkbox"]')
+  const sheet = () => useUI.getState().sheets.at(-1)
+  function renderSheet(which = sheet()) {
+    const box = document.createElement('div')
+    document.body.appendChild(box)
+    const r = createRoot(box)
+    act(() => r.render(which.render(() => useUI.getState().closeSheet(which.id))))
+    return { box, r }
+  }
+
+  it('760 kg after a best of 76 x 12: "!" instead of the tick, and Best is the logged 76 kg', () => {
     render(760)
-    expect(container.querySelector('.load-warn')?.textContent).toContain('760 kg is far above your best (estimated 1RM 106.4 kg)')
+    expect(tick().classList.contains('warn')).toBe(true)
+    expect(tick().textContent).toBe('!')
     const tags = [...container.querySelectorAll('.tag')].map(x => x.textContent)
     expect(tags.some(x => x.includes('Best:') && x.includes('76'))).toBe(true)
     expect(tags.some(x => x.includes('10,000') || x.includes('10000'))).toBe(false)
   })
-  it('an ordinary weight does not warn', () => {
+
+  it('tapping "!" asks; "No, correct it" leaves the set unticked, "Yes" logs it and asks no more', () => {
+    render(760)
+    act(() => tick().click())
+    expect(useStore.getState().S.active.entries[0].sets[0].done).toBe(false)
+    let { box, r } = renderSheet()
+    expect(box.textContent).toContain('760 kg is far above your best (estimated 1RM 106.4 kg)')
+    act(() => [...box.querySelectorAll('button')].find(b => b.textContent === 'No, correct it').click())
+    act(() => r.unmount()); box.remove()
+    expect(useStore.getState().S.active.entries[0].sets[0].done).toBe(false)
+
+    act(() => tick().click())
+    ;({ box, r } = renderSheet())
+    act(() => [...box.querySelectorAll('button')].find(b => b.textContent.startsWith('Yes, log')).click())
+    act(() => r.unmount()); box.remove()
+    const row = useStore.getState().S.active.entries[0].sets[0]
+    expect(row.done).toBe(true)
+    expect(row.loadOk).toBe(760)
+    // Unticked and ticked again at the same weight: no question this time.
+    useUI.setState({ sheets: [] })
+    act(() => tick().click())
+    act(() => tick().click())
+    expect(useStore.getState().S.active.entries[0].sets[0].done).toBe(true)
+    // Ticking the last set may bring up the workout's own sheets, never the question again.
+    for (const sh of useUI.getState().sheets) {
+      const b = renderSheet.call(null, sh)
+      expect(b.box.textContent).not.toContain('Is 760 kg right?')
+      act(() => b.r.unmount()); b.box.remove()
+    }
+  })
+
+  it('an ordinary weight shows the plain tick and ticks at once', () => {
     render(78)
-    expect(container.querySelector('.load-warn')).toBeNull()
+    expect(tick().classList.contains('warn')).toBe(false)
+    act(() => tick().click())
+    expect(useStore.getState().S.active.entries[0].sets[0].done).toBe(true)
   })
 })

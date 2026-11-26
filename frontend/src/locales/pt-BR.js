@@ -2099,6 +2099,10 @@ export const PT_BR_OVERRIDES = {
   "Connect to Strava": "Conectar ao Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} está muito acima do seu melhor (1RM estimado {1}). É um erro de digitação?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} é mais do que alguém já levantou. É um erro de digitação?",
+  "Is {0} right?": "{0} está certo?",
+  "Yes, log {0}": "Sim, registrar {0}",
+  "No, correct it": "Não, corrigir",
+  "check the weight": "confira o peso",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,

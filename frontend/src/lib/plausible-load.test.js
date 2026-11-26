@@ -1,6 +1,6 @@
 // A typed weight far above what the person has ever lifted is flagged as a likely typo.
 import { describe, expect, it } from 'vitest'
-import { implausibleLoad, topLoadOf } from './plausible-load.js'
+import { implausibleLoad, topLoadOf, loadReference, setNeedsConfirm } from './plausible-load.js'
 
 const DB_BENCH = '0289'
 const set = (w, r, done = true) => ({ w, r, done })
@@ -32,5 +32,16 @@ describe('implausible loads', () => {
   })
   it('warm-ups and empty rows are ignored; the sides of a unilateral row count', () => {
     expect(topLoadOf({ sets: [{ w: 900, r: 5, warmup: true }, { w: 0, r: 5 }, { sides: { L: { w: 40 }, R: { w: 44 } } }] })).toBe(44)
+  })
+  it('a set asks to be confirmed once per weight: confirmed at 760 it is not asked again, changed to 770 it is', () => {
+    const ref = loadReference(past, { id: DB_BENCH })
+    expect(setNeedsConfirm(ref, set(760, 12, false))).toEqual({ w: 760, ref: 106.4, kind: 'rm' })
+    expect(setNeedsConfirm(ref, { ...set(760, 12, false), loadOk: 760 })).toBeNull()
+    expect(setNeedsConfirm(ref, { ...set(770, 12, false), loadOk: 760 })).not.toBeNull()
+    expect(setNeedsConfirm(ref, { w: 760, r: 5, warmup: true })).toBeNull()
+    expect(implausibleLoad(past, { id: DB_BENCH, sets: [{ ...set(760, 12), loadOk: 760 }] })).toBeNull()
+  })
+  it('an assisted machine has no reference: a high number is less help, never a typo warning', () => {
+    expect(loadReference(past, { id: '0009' })).toBeNull()
   })
 })
