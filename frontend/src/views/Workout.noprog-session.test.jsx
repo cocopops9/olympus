@@ -76,8 +76,10 @@ const openHeaderMenu = () => {
   act(() => more.click())
   return renderTopSheet()
 }
-const headerItem = () => [...openHeaderMenu().querySelectorAll('.menu-item')]
-  .find(it => it.querySelector('.tt')?.textContent === 'Don’t count for progression' && it.querySelector('.ss')?.textContent === HEADER_SUB)
+// The menu's row for it (components/WorkoutMenu.jsx), answered by its switch.
+const headerItem = () => [...openHeaderMenu().querySelectorAll('.wmenu .lrow')]
+  .find(it => it.querySelector('.lrow-t')?.textContent === 'Don’t count for progression' && it.querySelector('.lrow-s')?.textContent === HEADER_SUB)
+  ?.querySelector('[role="switch"]')
 // Opened outside act(): the menu is rendered by nested act() calls, which an outer one would
 // batch until it ends, so the item would not be there yet to tap.
 const tapHeaderItem = () => {
@@ -85,7 +87,7 @@ const tapHeaderItem = () => {
   expect(item).toBeTruthy()
   act(() => item.click())
 }
-const isOn = item => !!item.querySelector('.menu-on.is-on')
+const isOn = item => item.getAttribute('aria-checked') === 'true'
 const markers = () => [...container.querySelectorAll('.noprog')]
 const active = () => useStore.getState().S.active
 
@@ -164,7 +166,7 @@ describe('don’t count the whole workout for progression', () => {
   it('a routine added afterwards joins it, with its own prescription kept', () => {
     renderWorkout([entry(BENCH, 'main', 100)])
     tapHeaderItem()
-    const addRoutine = [...openHeaderMenu().querySelectorAll('.menu-item')].find(it => it.querySelector('.tt')?.textContent === 'Add routine')
+    const addRoutine = [...openHeaderMenu().querySelectorAll('.wmenu-tile')].find(it => it.textContent === 'Add routine')
     act(() => addRoutine.click())
     const legs = [...renderTopSheet().querySelectorAll('.item')].find(it => it.textContent.includes('Legs'))
     expect(legs).toBeTruthy()

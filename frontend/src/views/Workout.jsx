@@ -35,6 +35,7 @@ import WorkoutChips from '../components/WorkoutChips.jsx'
 import { supersetMeta } from '../lib/superset-meta.js'
 import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
+import { workoutMenuSheet } from '../components/WorkoutMenu.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import ClockValue from '../components/ClockValue.jsx'
 import { pauseStopwatch, startStopwatch, stopStopwatch, stopwatchActive, stopwatchPaused, stopwatchRunning, stopwatchSec } from '../lib/stopwatch.js'
@@ -1406,24 +1407,9 @@ function ActiveWorkout() {
   // (Settings → During a workout → Workout view). It writes s.active.workoutView, which the
   // render above prefers over S.workoutView.
   const setWorkoutView = v => update(s => { if (s.active) s.active.workoutView = v })
-  const LAYOUT_LABEL = {
-    cards: t('Cards'),
-    list: t('List'),
-    compact: t('Compact'),
-    focus: t('Focus'),
-  }
-  const openLayoutMenu = () => menuSheet({
-    title: t('Layout'),
-    items: [
-      { icon: 'layout', label: t('Cards'), on: workoutView === 'cards', onClick: () => setWorkoutView('cards') },
-      { icon: 'list', label: t('List'), on: workoutView === 'list', onClick: () => setWorkoutView('list') },
-      { icon: 'compact', label: t('Compact'), on: workoutView === 'compact', onClick: () => setWorkoutView('compact') },
-      { icon: 'target', label: t('Focus'), on: workoutView === 'focus', onClick: () => setWorkoutView('focus') },
-      listMode && { icon: 'minimize', label: t('Collapse completed exercises'),
-        sub: t('Keep the current exercise open'), on: collapseOn,
-        onClick: () => update(s => { if (s.active) s.active.collapseCompleted = !collapseOn }) },
-    ],
-  })
+  // Read inside the update: the open menu keeps this function, and its own collapseOn goes stale
+  // after the first tap.
+  const toggleCollapse = () => update(s => { if (s.active) s.active.collapseCompleted = !(s.active.collapseCompleted ?? s.collapseCompleted) })
   // Logging a past workout (#284): the sets were done days ago, so one tap ticks them all and
   // offers the finish, the same sheet the last set of a live session opens. What went
   // differently is still edited on the rows before finishing.
@@ -1495,32 +1481,21 @@ function ActiveWorkout() {
     confirmText: t('Discard'), danger: true,
     onConfirm: () => { update(s => { s.active = null }); track('workout.discard'); stopRest(); stopWork(); nav('/home') },
   })
-  // The header ⋯, in groups: the settings you change at the gym first (their own sheet, the same
-  // values as Settings), then what to add, what to change about this workout, and Discard last.
-  // Layout here stays this session's own (s.active.workoutView); the settings sheet's Layout is
-  // the saved one.
-  const openViewMenu = () => menuSheet({
-    sections: [
-      { items: [
-        { icon: 'gear', accent: true, chevron: true, label: t('Workout settings'),
-          sub: [S.restSec > 0 ? t('{0} rest', fmtRest(S.restSec)) : t('No rest timer'), S.sound ? t('Sound') : t('Silent')].join(' · '),
-          onClick: workoutSettingsSheet },
-      ] },
-      { title: t('Add'), items: [
-        { icon: 'plusCircle', label: t('Add exercise'), onClick: addExercise },
-        !editing && { icon: 'clipboard', label: t('Add routine'), sub: t('Bring another routine into this session'), onClick: addRoutineToSessionSheet },
-      ] },
-      { title: t('This workout'), items: [
-        A.backfill && A.entries.length > 0 && { icon: 'checkCircle', label: t('Mark all sets done'), onClick: markAllDone },
-        { icon: 'pencil', label: t('Rename workout'), onClick: renameWorkoutSheet },
-        { icon: 'layout', label: t('Layout'), sub: LAYOUT_LABEL[workoutView] || LAYOUT_LABEL.cards, onClick: openLayoutMenu },
-        { icon: 'note', label: A.note ? t('Edit session note') : t('Add session note'), onClick: sessionNoteSheet },
-        noProgSwitchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A), onClick: toggleSessionNoProg },
-      ] },
-      { items: [
-        !editing && { icon: 'trash', label: t('Discard workout'), danger: true, onClick: discardWorkout },
-      ] },
-    ],
+  // The header ⋯ (components/WorkoutMenu.jsx): rename by tapping the name, the two ways to add,
+  // the layouts picked in place, this workout's note, progression switch and settings, and
+  // Discard at the foot. Layout here stays this session's own (s.active.workoutView); the
+  // settings sheet's Layout is the saved one. A null action is not offered.
+  const openViewMenu = () => workoutMenuSheet({
+    onRename: renameWorkoutSheet,
+    onAddExercise: addExercise,
+    onAddRoutine: editing ? null : addRoutineToSessionSheet,
+    onMarkAllDone: A.backfill && A.entries.length > 0 ? markAllDone : null,
+    onLayout: setWorkoutView,
+    onToggleCollapse: toggleCollapse,
+    onNote: sessionNoteSheet,
+    onToggleNoProg: noProgSwitchable ? toggleSessionNoProg : null,
+    onSettings: workoutSettingsSheet,
+    onDiscard: editing ? null : discardWorkout,
   })
   // An exercise's own rest, from its ⋯ menu: the same wheel as the default rest timer, where 0:00
   // means "no rest of its own", so the default applies. Like everything edited on the exercise

@@ -2250,6 +2250,33 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 .wset-lay:active{transform:scale(.97)}
 .wset-layouts+.lrow::before{display:none}
 .wset-tile.sp-flash,.wset-layouts.sp-flash{animation:spflash 1.8s ease}
+/* ---- The workout's ⋯ (components/WorkoutMenu.jsx), in the same gold on black as .wset ----
+   The workout's name as the title (tap to rename) over a strip of Greek key, the two ways to add
+   as tiles, the layouts in place, one card for this workout, and Discard as a red link. */
+.wmenu .sect{margin-bottom:18px}
+.wmenu-hd{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:2px 8px 0;
+  background:none;border:0;color:var(--label);font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wmenu-name{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wmenu-pen{color:var(--acc);font-size:15px;flex:none;opacity:.85}
+.wmenu-hd:active .wmenu-name{opacity:.6}
+.wmenu-sub{text-align:center;font-size:13px;color:var(--label-2);margin-top:3px}
+.wmenu-key{display:block;color:var(--acc);opacity:.55;margin:12px 0 18px}
+.wmenu-done{width:100%;margin-bottom:18px;gap:8px}
+.wmenu-add{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wmenu-add.one{grid-template-columns:1fr}
+.wmenu .wmenu-tile{flex-direction:row;align-items:center;gap:12px;padding:16px 14px;font:inherit;cursor:pointer;border:0}
+.wmenu-ti{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex:none;font-size:20px;color:var(--acc);
+  background:linear-gradient(150deg,color-mix(in srgb,var(--acc) 16%,var(--surface)),var(--surface));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 30%,transparent)}
+.wmenu-tile.main .wmenu-ti{background:var(--acc);color:var(--on-acc);box-shadow:0 4px 12px color-mix(in srgb,var(--acc) 35%,transparent)}
+.wmenu-tl{font-size:15px;font-weight:600;line-height:1.25;min-width:0}
+.wmenu .wset-layouts{padding:10px}
+.wmenu .wset-layouts+.lrow{border-top:1px solid color-mix(in srgb,var(--label) 9%,transparent)}
+.wmenu-note .lrow-s{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
+.wmenu-discard{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:4px;padding:12px;
+  background:none;border:0;color:var(--red);font:inherit;font-size:15px;font-weight:600;cursor:pointer;border-radius:14px}
+.wmenu-discard:active{background:color-mix(in srgb,var(--red) 12%,transparent)}
 
 /* ----------------------------------------------------------- RTL (Arabic) -- */
 /* Directional icons flip: back chevrons point right, trailing chevrons point left. */

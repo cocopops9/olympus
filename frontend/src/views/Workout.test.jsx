@@ -39,6 +39,7 @@ const mocks = vi.hoisted(() => {
     renameWorkoutSheet: vi.fn(),
     durationSheet: vi.fn(),
     workoutSettingsSheet: vi.fn(),
+    workoutMenuSheet: vi.fn(),
     nav: vi.fn(),
     setNoteSheet: vi.fn(),
   }
@@ -114,6 +115,8 @@ vi.mock('../components/WorkoutThumb.jsx', () => ({
 }))
 vi.mock('../components/DurationWheel.jsx', () => ({ durationSheet: mocks.durationSheet }))
 vi.mock('../components/WorkoutSettingsSheet.jsx', () => ({ workoutSettingsSheet: mocks.workoutSettingsSheet }))
+// The header ⋯ is its own sheet (components/WorkoutMenu.test.jsx draws it); here, what the view hands it.
+vi.mock('../components/WorkoutMenu.jsx', () => ({ workoutMenuSheet: mocks.workoutMenuSheet }))
 // api.js reads navigator.userAgent at module scope. This file installs its own DOM inside the
 // tests rather than declaring a vitest environment, so it must not depend on an ambient one.
 vi.mock('../lib/api.js', () => ({
@@ -214,9 +217,9 @@ async function requestDiscard() {
   const button = container.querySelector('button[aria-label="Workout options"]')
   expect(button).toBeTruthy()
   await act(async () => { button.dispatchEvent(new dom.Event('click', { bubbles: true })) })
-  const discard = menuItemsOf(mocks.menuSheet.mock.calls.at(-1)[0]).find(it => it.label === 'Discard workout')
-  expect(discard?.danger).toBe(true)
-  await act(async () => { discard.onClick() })
+  const { onDiscard } = mocks.workoutMenuSheet.mock.calls.at(-1)[0]
+  expect(onDiscard).toEqual(expect.any(Function))
+  await act(async () => { onDiscard() })
 }
 
 async function rerender() {
@@ -2336,80 +2339,44 @@ describe('workout view header menu', () => {
     const btn = container.querySelector('button[aria-label="Workout options"]')
     expect(btn).toBeTruthy()
     await act(async () => { btn.dispatchEvent(new dom.Event('click', { bubbles: true })) })
-    return mocks.menuSheet.mock.calls.at(-1)[0]
-  }
-  const item = (menu, label) => menuItemsOf(menu).find(it => it.label === label)
-
-  // The header ⋮ now leads with "Add routine"; the layouts moved to a nested "Layout" sheet.
-  const openLayout = async menu => {
-    await act(async () => { item(menu, 'Layout').onClick() })
-    return mocks.menuSheet.mock.calls.at(-1)[0]
+    return mocks.workoutMenuSheet.mock.calls.at(-1)[0]
   }
 
-  it('groups Workout settings, Add, This workout and Discard, then a Layout sheet with the four layouts marked current', async () => {
+  it('hands the menu every action of a running session, each wired to its sheet', async () => {
     await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'list', routineIds: [] } })
 
     const menu = await openMenu()
-    expect(menu.sections.map(g => g.title)).toEqual([undefined, 'Add', 'This workout', undefined])
-    expect(menuItemsOf(menu).map(it => it.label)).toEqual([
-      'Workout settings', 'Add exercise', 'Add routine', 'Rename workout', 'Layout', 'Add session note', 'Don’t count for progression', 'Discard workout',
+    expect(Object.keys(menu).filter(k => menu[k])).toEqual([
+      'onRename', 'onAddExercise', 'onAddRoutine', 'onLayout', 'onToggleCollapse', 'onNote', 'onToggleNoProg', 'onSettings', 'onDiscard',
     ])
-    expect(item(menu, 'Coach during workouts')).toBeUndefined()   // the coaches are always in the header now
-    expect(item(menu, 'Workout settings').sub).toBe('1:30 rest · Silent')
-    expect(item(menu, 'Discard workout').danger).toBe(true)
-    expect(item(menu, 'Don’t count for progression')).toMatchObject({ sub: 'Every exercise in this workout', on: false })
-    expect(item(menu, 'Layout').sub).toBe('List')
-
-    await act(async () => { item(menu, 'Rename workout').onClick() })
+    expect(menu.onMarkAllDone).toBeNull()
+    await act(async () => { menu.onRename() })
     expect(mocks.renameWorkoutSheet).toHaveBeenCalled()
-
-    const layout = await openLayout(menu)
-    expect(menuItemsOf(layout).map(it => it.label)).toEqual(['Cards', 'List', 'Compact', 'Focus', 'Collapse completed exercises'])
-    expect(item(layout, 'List').on).toBe(true)
-    expect(item(layout, 'Cards').on).toBe(false)
-  })
-
-  it('marks Focus current in the Layout sheet when the session is in the focus view', async () => {
-    await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'focus', routineIds: [] } })
-
-    const menu = await openMenu()
-    expect(item(menu, 'Layout').sub).toBe('Focus')
-
-    const layout = await openLayout(menu)
-    expect(menuItemsOf(layout).map(it => it.label)).toEqual(['Cards', 'List', 'Compact', 'Focus'])
-    expect(item(layout, 'Focus').on).toBe(true)
-    expect(item(layout, 'Cards').on).toBe(false)
+    menu.onSettings()
+    expect(mocks.workoutSettingsSheet).toHaveBeenCalledOnce()
   })
 
   it('writes the layout pick onto s.active without touching the global default', async () => {
     await mount([exercise('plain-bench', [false])], 0, { workoutView: 'cards', active: { workoutView: 'cards', routineIds: [] } })
 
-    const layout = await openLayout(await openMenu())
-    await act(async () => { item(layout, 'Compact').onClick() })
+    await act(async () => { (await openMenu()).onLayout('compact') })
 
     expect(mocks.S.active.workoutView).toBe('compact')
     expect(mocks.S.workoutView).toBe('cards')
   })
 
-  it('toggles completed exercises for the running list session and can show them again', async () => {
+  it('toggles completed exercises for the running list session and can show them again, from one open menu', async () => {
     await mount([exercise('bench', [true]), exercise('row', [false])], 1, { active: { workoutView: 'list' } })
-    let layout = await openLayout(await openMenu())
-    expect(item(layout, 'Collapse completed exercises').on).toBe(false)
-    await act(async () => { item(layout, 'Collapse completed exercises').onClick() })
+    const menu = await openMenu()
+    await act(async () => { menu.onToggleCollapse() })
     await rerender()
     expect(container.querySelectorAll('.wl-summary').length).toBe(1)
     expect(mocks.S.collapseCompleted).toBeUndefined()
-    layout = await openLayout(await openMenu())
-    expect(item(layout, 'Collapse completed exercises').on).toBe(true)
-    await act(async () => { item(layout, 'Collapse completed exercises').onClick() })
+    // The same menu stays open after a switch, so its action must read the state afresh.
+    await act(async () => { menu.onToggleCollapse() })
     await rerender()
     expect(container.querySelector('.wl-summary')).toBeNull()
     expect(container.querySelectorAll('[role="checkbox"]').length).toBe(2)
-  })
-
-  it('only offers collapsing in layouts that show more than the current exercise', async () => {
-    await mount([exercise('bench', [true])], 0, { active: { workoutView: 'cards' } })
-    expect(item(await openLayout(await openMenu()), 'Collapse completed exercises')).toBeUndefined()
   })
 })
 
@@ -2603,10 +2570,7 @@ describe('list layout: only what is left to do (Discord request, #241)', () => {
     await mount([exercise('bench', [true]), exercise('row', [false])], 1, { collapseCompleted: true, active: { workoutView: 'list' } })
     expect(container.querySelectorAll('.wl-summary').length).toBe(1)
     await click(container.querySelector('button[aria-label="Workout options"]'))
-    await act(async () => { menuItemsOf(mocks.menuSheet.mock.calls.at(-1)[0]).find(it => it.label === 'Layout').onClick() })
-    const toggleItem = menuItemsOf(mocks.menuSheet.mock.calls.at(-1)[0]).find(it => it.label === 'Collapse completed exercises')
-    expect(toggleItem.on).toBe(true)
-    await act(async () => { toggleItem.onClick() })
+    await act(async () => { mocks.workoutMenuSheet.mock.calls.at(-1)[0].onToggleCollapse() })
     await rerender()
     expect(mocks.S.active.collapseCompleted).toBe(false)
     expect(mocks.S.collapseCompleted).toBe(true)
@@ -3215,9 +3179,8 @@ describe('mark all sets done while logging a past workout', () => {
   const openMenu = async () => {
     const btn = container.querySelector('button[aria-label="Workout options"]')
     await act(async () => { btn.dispatchEvent(new dom.Event('click', { bubbles: true })) })
-    return mocks.menuSheet.mock.calls.at(-1)[0]
+    return mocks.workoutMenuSheet.mock.calls.at(-1)[0]
   }
-  const labels = menu => menuItemsOf(menu).map(it => it.label)
 
   it('ticks every set, stamps the top weight and offers the finish', async () => {
     await mount([
@@ -3225,8 +3188,8 @@ describe('mark all sets done while logging a past workout', () => {
       exercise('plain-row', [false], { sets: [{ w: 40, r: 8, done: false, phase: 'warmup' }, { w: 70, r: 8, done: false }] }),
     ], 0, { active: { backfill: { durationMin: 60, replaceId: null }, routineIds: [] } })
     const menu = await openMenu()
-    expect(menu.sections[2].items.filter(Boolean)[0].label).toBe('Mark all sets done')
-    await act(async () => { menu.sections[2].items.filter(Boolean)[0].onClick() })
+    expect(menu.onMarkAllDone).toEqual(expect.any(Function))
+    await act(async () => { menu.onMarkAllDone() })
     expect(mocks.S.active.entries.every(e => e.sets.every(s => s.done))).toBe(true)
     expect(mocks.S.active.entries.map(e => e.topW)).toEqual([60, 70])
     expect(mocks.workoutCompleteSheet).toHaveBeenCalledTimes(1)
@@ -3234,7 +3197,7 @@ describe('mark all sets done while logging a past workout', () => {
 
   it('is only there for a past workout', async () => {
     await mount([exercise('plain-bench', [false])], 0, { active: { routineIds: [] } })
-    expect(labels(await openMenu())).not.toContain('Mark all sets done')
+    expect((await openMenu()).onMarkAllDone).toBeNull()
   })
 })
 
@@ -3371,19 +3334,10 @@ describe('the workout screen chrome (v1.3.11)', () => {
     expect(container.querySelector('button[aria-label="Minimize"]')).toBeNull()
   })
 
-  it('leads the workout menu with Workout settings, which opens its sheet', async () => {
-    await mount([exercise('plain-bench', [false])], 0, { restSec: 0, sound: true })
-    await click(container.querySelector('button[aria-label="Workout options"]'))
-    const ws = menuItemsOf(lastMenu())[0]
-    expect(ws).toMatchObject({ label: 'Workout settings', sub: 'No rest timer · Sound', accent: true })
-    ws.onClick()
-    expect(mocks.workoutSettingsSheet).toHaveBeenCalledOnce()
-  })
-
   it('adds an exercise from the workout menu the same way as the button under the session', async () => {
     await mount([exercise('plain-bench', [false])])
     await click(container.querySelector('button[aria-label="Workout options"]'))
-    item('Add exercise').onClick()
+    mocks.workoutMenuSheet.mock.calls.at(-1)[0].onAddExercise()
     expect(mocks.exercisePicker).toHaveBeenCalledOnce()
   })
 
@@ -3442,7 +3396,7 @@ describe('the workout screen chrome (v1.3.11)', () => {
   it('is not on the workout options menu any more', async () => {
     await mount([exercise('plain-bench', [false])])
     await click(container.querySelector('button[aria-label="Workout options"]'))
-    expect(menuItemsOf(lastMenu()).map(it => it.label).some(l => /^Switch to/.test(l))).toBe(false)
+    expect(Object.keys(mocks.workoutMenuSheet.mock.calls.at(-1)[0]).some(k => /unit/i.test(k))).toBe(false)
   })
 
   it('sets an exercise’s own rest on the wheel, 0:00 meaning the default', async () => {

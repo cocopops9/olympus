@@ -6,6 +6,7 @@
 // colour and stay sharp at any size without shipping an image per month.
 import { t } from '../lib/i18n.js'
 import { atticMonthFor } from '../lib/greek-months.js'
+import Meander from './Meander.jsx'
 
 // Each month's scene: a black-figure frieze of its festival (scripts/greek-scenes), keyed by the
 // month's `art`. A month without one shows the banner alone. The glob sits in try/catch because a
@@ -102,25 +103,13 @@ export function GreekMonthArt({ art, size = 56 }) {
   </svg>
 }
 
-// A strip of running Greek key, as wide as its box.
-function Meander({ id }) {
-  return <svg className="gm-key" aria-hidden="true" width="100%" height="8">
-    <defs>
-      <pattern id={id} width="12" height="8" patternUnits="userSpaceOnUse">
-        <path d="M0 7.5H9.5V.5H3V5H6.5V3" fill="none" stroke="currentColor" strokeWidth="1.1" />
-      </pattern>
-    </defs>
-    <rect width="100%" height="8" fill={`url(#${id})`} />
-  </svg>
-}
-
 export default function GreekMonthBanner({ month }) {
   const m = atticMonthFor(month)
   const scene = sceneFor(m.art)
   return <div className={'gm-banner' + (scene ? ' has-scene' : '')} style={{ '--gm': m.tint }} data-art={m.art}>
     {scene
       ? <img className="gm-scene" src={scene} alt="" width="960" height="381" decoding="async" draggable="false" />
-      : <Meander id="gm-key-top" />}
+      : <Meander id="gm-key-top" className="gm-key" />}
     <div className="gm-body">
       <div className="gm-medal"><GreekMonthArt art={m.art} /></div>
       <div className="gm-text">
@@ -130,6 +119,6 @@ export default function GreekMonthBanner({ month }) {
       </div>
       <div className="gm-ghost"><GreekMonthArt art={m.art} size={96} /></div>
     </div>
-    <Meander id="gm-key-bottom" />
+    <Meander id="gm-key-bottom" className="gm-key" />
   </div>
 }
