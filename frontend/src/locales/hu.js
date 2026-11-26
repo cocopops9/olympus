@@ -3952,4 +3952,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "Nem mutatok meg mindent egyszerre. Amikor először nyitod meg az app egy részét, néhány buborékban megmutatom, és ha valami új történik, pár másodperc alatt elmagyarázom. Kezdjük itt.",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "Kalliopé vagyok. Amikor először nyitsz meg egy képernyőt, néhány buborékban megmutatom. Ha valami ritkább történik, például egy elírásnak tűnő súly, néhány másodpercre megjelenek, hogy elmagyarázzam.",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "Minden magyarázat csak egyszer jön. Koppints rá, hogy a képernyőn maradjon, vagy zárd be. A Beállítások, Névjegy és frissítések alatt kikapcsolhatod vagy újra megjelenítheted a tippeket.",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "Gyémánt",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "Személyes célod: amit nagyjából {0} hét rendszeres edzés hozhat neked a kiindulópontodtól, a korodhoz és a testedhez mérten. Ehhez {1} hét is kell, amikor ezt a gyakorlatot edzed.",
+  "Strength kept for {0} year": "{0} évig megőrzött erő",
+  "Strength kept for {0} years": "{0} évig megőrzött erő",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "40 éves kortól: egy sorozat legfeljebb 5%-kal az ennyi évvel korábbi csúcsod alatt. Az erő megőrzése az évek során önmagában is bravúr.",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "Személyes érmek: ahhoz mérve, amit elérhetsz, az első edzéseid, a korod, a nemed és a tested alapján. Minden fokozat nagyjából ugyanannyi munkát kíván mindenkitől; az Olimpikon évekig tart.",
+  "Add your date of birth and body weight to unlock them.": "Add meg a születési dátumodat és a testsúlyodat a feloldásukhoz.",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "Ismerkedünk a szinteddel: {0}. A személyes érmek egy gyakorlat két héten belüli 3 edzése után jelennek meg.",
 }

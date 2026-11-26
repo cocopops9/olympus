@@ -11,6 +11,7 @@
 
 import { api } from './api.js'
 import { getLang } from './i18n.js'
+import { cleanFacts } from './athlete-profile.js'
 
 export const MAX_KEPT = 40       // messages kept per conversation
 export const MAX_CHATS = 20      // conversations kept per coach
@@ -210,10 +211,14 @@ export function editNote(uid, id, text, now = Date.now()) {
 }
 export const deleteNote = (uid, id) => editNote(uid, id, '')
 
-/** The app's notes: { insights: [...], ts, upTo }, upTo the time of the last message read. */
+/**
+ * The app's notes: { insights: [...], athlete, ts, upTo }, upTo the time of the last message read.
+ * `athlete` is what the distillation read about the person as an athlete ({ trainingYears,
+ * returning }), for the personal medal targets (lib/athlete-profile.js); {} when nothing.
+ */
 export function loadHidden(uid) {
   const v = read(hiddenKey(uid))
-  return { insights: Array.isArray(v?.insights) ? v.insights.map(cleanNote).filter(Boolean) : [], ts: Number(v?.ts) || 0, upTo: Number(v?.upTo) || 0 }
+  return { insights: Array.isArray(v?.insights) ? v.insights.map(cleanNote).filter(Boolean) : [], athlete: cleanFacts(v?.athlete), ts: Number(v?.ts) || 0, upTo: Number(v?.upTo) || 0 }
 }
 const saveHidden = (uid, h) => { try { localStorage.setItem(hiddenKey(uid), JSON.stringify(h)) } catch { /* a convenience */ } }
 
@@ -304,7 +309,7 @@ export function distillMemory(uid, S, { now = Date.now(), force = false } = {}) 
   const sent = fresh.slice(-60)
   distilling = api('/api/coach/memory', {
     method: 'POST',
-    body: JSON.stringify({ messages: sent.map(({ coach, content }) => ({ coach, content })), notes: notes.map(n => n.text), insights: hidden.insights, data: dataNotes(S, now).join('\n'), lang: getLang() }),
+    body: JSON.stringify({ messages: sent.map(({ coach, content }) => ({ coach, content })), notes: notes.map(n => n.text), insights: hidden.insights, athlete: hidden.athlete, data: dataNotes(S, now).join('\n'), lang: getLang() }),
   }).then(r => {
     const theirs = loadNotes(uid).filter(n => n.by === 'you')
     const own = new Set(theirs.map(n => n.text.toLowerCase()))
@@ -312,7 +317,9 @@ export function distillMemory(uid, S, { now = Date.now(), force = false } = {}) 
     const fromChat = (r?.notes || []).map(cleanNote).filter(t => t && !own.has(t.toLowerCase()))
       .map(t => before.get(t.toLowerCase()) || { id: noteId(), text: t, by: 'chat', ts: now })
     saveNotes(uid, [...theirs, ...fromChat].sort((a, b) => a.ts - b.ts))
-    saveHidden(uid, { insights: (r?.insights || []).map(cleanNote).filter(Boolean), ts: now, upTo: sent.at(-1).ts })
+    // A server that does not read the athlete facts yet answers without them: the old ones stay.
+    const athlete = r?.athlete && typeof r.athlete === 'object' ? cleanFacts(r.athlete) : hidden.athlete
+    saveHidden(uid, { insights: (r?.insights || []).map(cleanNote).filter(Boolean), athlete, ts: now, upTo: sent.at(-1).ts })
     return true
   }, () => false).finally(() => { distilling = null })
   return distilling

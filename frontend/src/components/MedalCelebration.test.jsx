@@ -38,7 +38,7 @@ describe('medal celebration', () => {
       expect(steps[i].stay).toBeGreaterThan(steps[i - 1].stay)
       expect(steps[i].confetti).toBeGreaterThanOrEqual(steps[i - 1].confetti)
     }
-    expect(celebrationOf(medal('platinum')).kind).toBe('stage')
+    expect(celebrationOf(medal('diamond')).kind).toBe('stage')
     expect(celebrationOf({ tier: 'unknown' })).toBe(CELEBRATION.bronze)
   })
 
@@ -62,11 +62,11 @@ describe('medal celebration', () => {
   })
 
   it('the Olympian takes the stage: rays, a second wheel, the shockwave, the flash, the most confetti', () => {
-    act(() => celebrate([medal('platinum')]))
+    act(() => celebrate([medal('diamond')]))
     expect(shown().className).toContain('mdl-cele-stage')
     expect(host.querySelectorAll('.mdl-rays').length).toBe(1)
     expect(host.querySelector('.mdl-shock')).toBe(null)
-    act(() => { vi.advanceTimersByTime(CELEBRATION.platinum.stay + 50) })
+    act(() => { vi.advanceTimersByTime(CELEBRATION.diamond.stay + 50) })
     expect(shown()).toBe(null)
     act(() => celebrate([medal('olympian')]))
     expect(host.querySelectorAll('.mdl-rays').length).toBe(2)
@@ -85,7 +85,7 @@ describe('medal celebration', () => {
       expect(pop.querySelectorAll('.mdl-sparks i').length, tier).toBe(CELEBRATION[tier].sparks)
       act(() => { vi.advanceTimersByTime(CELEBRATION[tier].stay + 50) })
     }
-    act(() => celebrate([medal('platinum')]))
+    act(() => celebrate([medal('diamond')]))
     expect(host.querySelector('.mdl-pop')).toBe(null)
   })
 

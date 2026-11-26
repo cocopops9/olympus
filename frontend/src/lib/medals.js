@@ -6,12 +6,20 @@
 // own level, so that most of what is shown can be reached and some of it is ambitious:
 //   - the start of a ladder that was already far below where they began (an athlete's first
 //     workout was 9,000 kg: 1,000 kg is no achievement) is left out, except the highest one earned;
-//   - the targets above them stop at a ceiling from their own numbers: for a lift, the start of the
-//     Elite level for their sex, age and body weight (lib/strength-level.js), so a 50 kg woman is
-//     never shown a 150 kg squat; for volume, a few times what they lift now;
+//   - the targets above them stop at a ceiling from their own numbers: for a lift, their personal
+//     Olympian target (lib/athlete-profile.js), so a 50 kg woman is never shown a 150 kg squat;
+//     for volume, a few times what they lift now;
 //   - at most two or three targets ahead are shown at once, the next ones appear as they get close.
-// The medal's colour (tier) is personal too: for a lift, the level the target stands at for this
-// person; for volume, how far the target is above where they started.
+// The medal's colour (tier) is personal too: for a lift, the personal tier the target falls in;
+// for volume, how far the target is above where they started.
+//
+// Strength is measured against the athlete's own potential (lib/athlete-profile.js): bronze,
+// silver, gold, diamond and Olympian are the gains about 6, 16, 40, 80 and 156 weeks of steady
+// training should bring this athlete, from their first sessions, for their sex, age, body weight
+// and body fat and what the coaches know of their years of training. So each tier takes about the
+// same work from a professional and from a beginner of 58, and Olympian takes years. From 40 on,
+// strength kept over the years earns its own ladder. The medals of spreading the word, of
+// consistency and the special days are the same for everyone.
 //
 // The medals of "Your goals" (lib/goal-medals.js) come from what the person told their coaches: the
 // way they train, their phase, targets named in their goals and in the notes the coaches keep.
@@ -25,12 +33,14 @@ import { EXIDX } from './exercises.js'
 import { fmtNum, weekKey, weekStartOf } from './format.js'
 import { e1rmSeries } from './onerm.js'
 import { lastBW } from './history.js'
-import { LIFTS, METRICS, levelOf, levelOfValue, levelStart, valuePoints, ageOn, LEVELS } from './strength-level.js'
+import { LIFTS, METRICS, valuePoints, ageOn, missingFor, speedForVo2max, levelStart } from './strength-level.js'
+import { TIERS, HORIZON_WEEKS, MIN_WEEKS, KEPT_YEARS, athleteBase, profileOf, valueAt, zOf, tierIndexOf, keptFor } from './athlete-profile.js'
+import { fmtSpeed, speedUnitOf } from './speed.js'
 import { goalGroup } from './goal-medals.js'
 import { isWarmupRow } from './workout-model.js'
 
 const LB = 0.45359237
-export const TIERS = ['bronze', 'silver', 'gold', 'platinum', 'olympian']
+export { TIERS }
 
 // Heavy things to compare a volume with, in kg (rounded, typical adult weights).
 const THINGS = [
@@ -131,7 +141,7 @@ function longestStreak(ws, keys) {
  * at, progress, value, current }. `opts.notes` are the notes the coaches keep about the person
  * (texts, read for goals); `opts.all` lists every medal of the app, not only the person's own.
  */
-export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = false } = {}) {
+export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = false, facts = {} } = {}) {
   const unit = S?.unit === 'lb' ? 'lb' : 'kg'
   const toKg = v => (unit === 'lb' ? v * LB : v)
   const x = unit === 'lb' ? 2 : 1   // ladders in pounds: the same round numbers, doubled
@@ -216,56 +226,85 @@ export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = f
     title: v => t('{0} lifted in total', vol(v)), desc: () => t('Everything you have lifted in Olympus.'), fun: funKg, at: firstAt(totalPts), unit }))
   groups.push({ key: 'volume', title: t('Volume'), medals: volume })
 
-  // ---- Strength: the main lifts and the other exercises with a level, for the ones they train
-  // and the ones their goals point at.
+  // ---- Strength: personal tiers (lib/athlete-profile.js) for the exercises they train and the
+  // ones their goals point at, the round weights on the main lifts, and strength kept with age.
   const strength = []
+  const pending = []
+  const base = athleteBase(S, now)
+  const su = speedUnitOf(S)
+  const valueText = (m, v) => {
+    const type = m.type || 'load'
+    if (type === 'load') return vol(unit === 'lb' ? Math.ceil(v) : Math.ceil(v * 2) / 2)
+    if (type === 'reps') return `${fmtNum(Math.ceil(v - 1e-9))} ${t('reps')}`
+    if (type === 'aerobic') return t('{0} for 30 min', fmtSpeed(Math.round(speedForVo2max(v, 30) * 10) / 10, su))
+    return fmtSpeed(Math.round(v * 10) / 10, su)
+  }
   const PLATES = unit === 'lb' ? [95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545, 585, 635] : [40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 250, 280, 300]
   const PLATE_N = unit === 'lb' ? { 135: 1, 225: 2, 315: 3, 405: 4, 495: 5, 585: 6 } : { 60: 1, 100: 2, 140: 3, 180: 4, 220: 5, 260: 6 }
   // For the catalogue, a person without a birth date or body weight is measured as a reference adult.
-  const ref = { ...who, age: age || 30, bw: bw || (female ? 62 : 80) * (unit === 'lb' ? 2.2046 : 1) }
-  const w2 = all ? ref : who
+  const ref = { ...base, age: base.age || 30, birth: base.birth || `${new Date(now).getFullYear() - 30}-01-01`, bw: base.bw || (female ? 62 : 80) * (unit === 'lb' ? 2.2046 : 1) }
+  const w2 = all ? ref : base
+  let potentialRatio = 0   // the highest Olympian target of a lift, against body weight
   for (const m of METRICS) {
     const type = m.type || 'load'
     const { pts, best, start } = series(m)
     // An exercise never done is shown only when their style or a goal of theirs points at it.
     if (!pts.length && !all && !goals.focus.has(m.key)) continue
-    // The level medals: Intermediate, Advanced, Elite, from the level this person started at.
-    if (w2.age && (type !== 'load' || w2.bw > 0)) {
-      const lvOf = v => (v > 0 ? (type === 'load' ? levelOf(m, v, w2.bw, w2.sex, w2.age, unit) : levelOfValue(m, v, w2.sex, w2.age)) : null)
-      const lvStart = lvOf(start), lvNow = lvOf(best)
-      const firstIdx = Math.max(1, lvStart?.index || 0)
-      for (let i = 1; i < LEVELS.length; i++) {
-        const got = (lvNow?.index || 0) >= i
-        if (!all) {
-          if (got && i < firstIdx && i !== lvNow.index) continue   // they began above it
-          if (!got && i > (lvNow?.index || 0) + 2) break
-        }
-        const from = levelStart(m, LEVELS[i], w2)
+    const prof = profileOf(S, m, w2, facts)
+    if (prof.status === 'calibrating' && !all) pending.push({ key: m.key, name: nameOf(m), done: prof.done, need: prof.need })
+    if (prof.status === 'ready') {
+      if (type === 'load' && w2.bw > 0) potentialRatio = Math.max(potentialRatio, valueAt(m, prof.thresholds.olympian, w2) / w2.bw)
+      let ahead = 0
+      TIERS.forEach((tier, i) => {
+        const z = prof.thresholds[tier]
+        const at = prof.earnedAt(tier)
+        const kept = !all && (S?.medals?.got || {})[`pt:${m.key}:${tier}`]
+        if (!at && !kept && !all && ahead >= 2) return
+        if (!at && !kept) ahead++
+        const target = valueAt(m, z, w2)
+        const span = z - prof.z0
+        const progress = at ? 1 : Math.max(0, Math.min(1, Math.min(span > 0 ? (prof.zBest - prof.z0) / span : 0, prof.weeks / MIN_WEEKS[tier])))
         strength.push({
-          id: `level:${m.key}:${LEVELS[i]}`, group: 'strength', icon: 'bolt', value: from, current: best, unit,
-          earned: got, at: got ? firstAt(pts)(from) : null, progress: got ? 1 : Math.max(0, Math.min(1, best / from)),
-          tier: TIERS[i === 1 ? 1 : i === 2 ? 2 : 4],
-          title: `${nameOf(m)}: ${levelName(LEVELS[i])}`,
-          desc: t('Your level at this exercise, for your sex, age and body weight.'), fun: '',
+          id: `pt:${m.key}:${tier}`, group: 'strength', icon: i >= 3 ? 'crown' : 'bolt', value: target, current: best, unit,
+          earned: !!at, at, progress, tier,
+          title: t('{0}: {1}', nameOf(m), valueText(m, target)),
+          desc: t('Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.', HORIZON_WEEKS[tier], MIN_WEEKS[tier]),
+          fun: '',
         })
-      }
+      })
+    } else if (all) {
+      // The catalogue: the tiers of a reference adult who starts this exercise from scratch.
+      for (const tier of TIERS) strength.push({ id: `pt:${m.key}:${tier}`, group: 'strength', icon: 'bolt', value: 0, current: best, unit, earned: false, at: null, progress: 0, tier,
+        title: t('{0}: {1}', nameOf(m), tierLabel(tier)), desc: t('Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.', HORIZON_WEEKS[tier], MIN_WEEKS[tier]), fun: '' })
     }
-    // The round weights (plates on a barbell lift), between where they began and Elite for them.
+    // The round weights (plates on a barbell lift), between where they began and their Olympian target.
     if (type === 'load' && LIFTS.includes(m)) {
-      const elite = w2.age && w2.bw > 0 ? levelStart(m, 'elite', w2) : best * 1.6
-      strength.push(...L({ id: `lift:${m.key}`, group: 'strength', icon: 'barbell', values: PLATES, best, start, trivial: 0.8, cap: elite, ahead: 2,
+      const ready = prof.status === 'ready'
+      // Before the profile is ready: the start of Elite for their sex, age and body weight.
+      const cap = ready ? valueAt(m, prof.thresholds.olympian, w2) : w2.age && w2.bw > 0 ? levelStart(m, 'elite', w2) : best * 1.6
+      strength.push(...L({ id: `lift:${m.key}`, group: 'strength', icon: 'barbell', values: PLATES, best, start, trivial: 0.8, cap, ahead: 2,
         tierOf: v => {
-          if (!(w2.age && w2.bw > 0)) return byIndex(PLATES.length)(v, PLATES.indexOf(v))
-          const lv = levelOf(m, v, w2.bw, w2.sex, w2.age, unit)
-          return lv ? [0, 1, 2, 4][lv.index] : 0
+          if (!ready) return byIndex(PLATES.length)(v, PLATES.indexOf(v))
+          return Math.max(0, tierIndexOf(prof, zOf(m, v, w2)))
         },
         title: v => t('{0}: {1}', nameOf(m), vol(v)),
         desc: v => (PLATE_N[v] ? tn('Estimated one-rep max: {0} plate on each side.', 'Estimated one-rep max: {0} plates on each side.', PLATE_N[v]) : t('Estimated one-rep max.')),
         at: firstAt(pts), unit }))
     }
   }
+  // Strength kept with age: from 40 on, holding within 5 % of a best of years before.
+  if (all || (base.age >= 40)) {
+    const kept = keptFor(S, base, now)
+    if (all || kept.span >= 0.75) {
+      strength.push(...L({ id: 'kept', group: 'strength', icon: 'hourglass', values: KEPT_YEARS, best: kept.years, ahead: 1, tierOf: byIndex(KEPT_YEARS.length),
+        title: v => tn('Strength kept for {0} year', 'Strength kept for {0} years', v),
+        desc: () => t('From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.'),
+        at: v => (kept.years >= v ? kept.at : null) }))
+    }
+  }
   // A target of theirs already has its own medal: the round weight is not shown twice.
-  groups.push({ key: 'strength', title: t('Strength'), medals: strength.filter(m => !(m.id.startsWith('lift:') && goals.covers.has(m.id.slice(5)))) })
+  const missing = !all && (!(base.age > 0) || !(base.bw > 0)) ? missingFor(S, new Date(now)) : []
+  groups.push({ key: 'strength', title: t('Strength'), medals: strength.filter(m => !(m.id.startsWith('lift:') && goals.covers.has(m.id.slice(5)))), pending, missing })
 
   // ---- Consistency and milestones
   const streak = longestStreak(ws, W.map(w => weekKey(w.d, ws)))
@@ -343,22 +382,22 @@ export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = f
     (show || all || w ? { id: 'special:' + k, group: 'special', icon, earned: !!w, at: w?.d || (typeof w === 'string' ? w : null), progress: w ? 1 : Math.max(0, Math.min(1, progress || 0)), tier, title, desc, fun: '' } : null)
   const special = [
     one('early', 'sunrise', 'silver', first(early), t('Early bird'), t('A workout started before 7 in the morning.')),
-    one('dawn', 'sunrise', 'platinum', nth(early, 10), t('Dawn patrol'), t('Ten workouts started before 7 in the morning.'), { progress: countOf(early) / 10 }),
+    one('dawn', 'sunrise', 'diamond', nth(early, 10), t('Dawn patrol'), t('Ten workouts started before 7 in the morning.'), { progress: countOf(early) / 10 }),
     one('late', 'moon', 'silver', first(w => w.start && hour(w) >= 22), t('Night owl'), t('A workout started after 10 at night.')),
     one('weekend', 'star', 'gold', first(w => days.get(weekKey(w.d, ws)) === 3), t('Weekend warrior'), t('Trained on both Saturday and Sunday of the same weekend.')),
     one('long', 'hourglass', 'gold', first(long), t('Marathon session'), t('One workout of two hours or more.')),
     one('quick', 'stopwatch', 'silver', first(w => w.end && w.start && w.end - w.start <= 30 * 60000 && workSets(w).length >= 12), t('In and out'), t('Twelve sets or more in a workout of half an hour or less.')),
     one('twice', 'repeat', 'silver', twice, t('Twice in a day'), t('Two workouts on the same day.')),
-    { ...one('seven', 'flame', 'platinum', runAt, t('Seven days straight'), t('A workout every day for seven days in a row.'), { progress: bestRun / 7 }), at: runAt },
+    { ...one('seven', 'flame', 'diamond', runAt, t('Seven days straight'), t('A workout every day for seven days in a row.'), { progress: bestRun / 7 }), at: runAt },
     one('comeback', 'undo', 'silver', comeback, t('The comeback'), t('Back to training after a month or more away.')),
     { ...one('year', 'calendar', 'olympian', mAt, t('A year without a month off'), t('Twelve calendar months in a row, each with at least one workout.'), { progress: mBest / 12 }), at: mAt },
     one('records', 'trophy', 'gold', first(w => (w.prs || []).length >= 5), t('Record day'), t('Five personal records or more in one workout.')),
     one('labours', 'list', 'gold', first(w => new Set((w.entries || []).filter(e => workSets({ entries: [e] }).length).map(e => e.id)).size >= 12), t('Twelve labours'), t('Twelve different exercises in one workout, as many as the labours of Hercules.')),
     { ...one('explorer', 'magnifier', 'silver', seenAt(25), t('Explorer'), t('Twenty-five different exercises tried.'), { progress: seen.size / 25 }), at: seenAt(25) },
-    { ...one('odyssey', 'magnifier', 'platinum', seenAt(75), t('Odyssey'), t('Seventy-five different exercises tried.'), { progress: seen.size / 75 }), at: seenAt(75) },
+    { ...one('odyssey', 'magnifier', 'diamond', seenAt(75), t('Odyssey'), t('Seventy-five different exercises tried.'), { progress: seen.size / 75 }), at: seenAt(75) },
     { ...one('sets100', 'checkCircle', 'gold', sets100 ? sets100[0] : null, t('A hundred sets'), t('A hundred working sets in one week.'), { progress: Math.max(0, ...weekSets.values()) / 100 }), at: sets100 ? sets100[0] : null },
     { ...one('traveller', 'pin', 'silver', [...gymsSeen.values()][2] || null, t('Traveller'), t('Workouts in three different gyms.'), { progress: gymsSeen.size / 3 }), at: [...gymsSeen.values()][2] || null },
-    one('atlas', 'arm', 'olympian', heavy, t('Atlas holds the sky'), t('A set with twice your body weight on the bar.'), { show: bw > 0 }),
+    one('atlas', 'arm', 'olympian', heavy, t('Atlas holds the sky'), t('A set with twice your body weight on the bar.'), { show: bw > 0 && (potentialRatio >= 2 || all) }),
     one('birthday', 'crown', 'gold', birth ? first(w => mdOf(w) === birth) : null, t('Birthday gains'), t('A workout on your birthday.'), { show: !!birth }),
     one('newyear', 'sparkles', 'gold', first(w => mdOf(w) === '01-01'), t('New year, first rep'), t('A workout on the first of January.')),
     one('valentine', 'heart', 'silver', first(w => mdOf(w) === '02-14'), t('Love the iron'), t('A workout on Valentine’s Day.')),
@@ -370,8 +409,16 @@ export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = f
   ].filter(Boolean).map(m => (m.earned && !m.at ? { ...m, at: null } : m))
   groups.push({ key: 'special', title: t('Special'), medals: special })
 
+  // A medal already celebrated stays won: the personal targets follow age, body weight and what
+  // the coaches learn, so a target can move after it was reached; the medal does not go away.
+  const got = S?.medals?.got || {}
+  if (!all) for (const g of groups) g.medals = g.medals.map(m => (!m.earned && got[m.id] ? { ...m, earned: true, progress: 1, at: m.at || new Date(Number(got[m.id]) || now).toISOString().slice(0, 10) } : m))
+
   return groups
 }
+
+/** The name of a tier, in the app's language. */
+export const tierLabel = tier => ({ bronze: t('Bronze'), silver: t('Silver'), gold: t('Gold'), diamond: t('Diamond'), olympian: t('Olympian') }[tier] || tier)
 
 const levelName = lvl => (lvl === 'intermediate' ? t('Intermediate') : lvl === 'advanced' ? t('Advanced') : lvl === 'elite' ? t('Elite') : t('Beginner'))
 

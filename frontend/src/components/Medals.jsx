@@ -13,8 +13,8 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { t, tn } from '../lib/i18n.js'
 import { fmtDate, fmtNum } from '../lib/format.js'
-import { medalsOf, allMedals, newlyEarned, nextMedal, TIERS } from '../lib/medals.js'
-import { loadNotes } from '../lib/coach-memory.js'
+import { medalsOf, allMedals, newlyEarned, nextMedal, TIERS, tierLabel } from '../lib/medals.js'
+import { loadNotes, loadHidden } from '../lib/coach-memory.js'
 import { socialReady } from '../lib/social.js'
 import { fetchReferral } from '../lib/referral.js'
 import { shareStory } from '../lib/story-card.js'
@@ -22,6 +22,7 @@ import { medalSound } from '../lib/sound.js'
 import { MOBILE } from '../lib/mobile.js'
 import { inviteSheet } from './Community.jsx'
 import { coachGoalsSheet } from './CoachGoals.jsx'
+import { aboutYouSheet } from './AboutYou.jsx'
 import { Button } from './ui.jsx'
 import Icon from './Icon.jsx'
 import '../medals.css'
@@ -45,7 +46,9 @@ export function rememberSocial(nums) {
 const social = S => ({ invited: S.medals?.invited, posts: S.medals?.posts })
 
 /** The medals of `S` for profile `uid`: the notes the coaches keep are read for goals. */
-const medalsFor = (S, uid, opts = {}) => medalsOf(S, social(S), Date.now(), { notes: loadNotes(uid).map(n => n.text), ...opts })
+// What the coaches' memory read about the athlete (years of training, a comeback) shapes the
+// personal strength targets (lib/athlete-profile.js).
+const medalsFor = (S, uid, opts = {}) => medalsOf(S, social(S), Date.now(), { notes: loadNotes(uid).map(n => n.text), facts: loadHidden(uid).athlete, ...opts })
 
 /** The medal: a disc of the tier's metal on a ribbon, the medal's sign in the middle. */
 export function MedalBadge({ m, size = 64, glow = false }) {
@@ -55,7 +58,7 @@ export function MedalBadge({ m, size = 64, glow = false }) {
   </span>
 }
 
-const tierName = tier => ({ bronze: t('Bronze'), silver: t('Silver'), gold: t('Gold'), platinum: t('Platinum'), olympian: t('Olympian') }[tier] || tier)
+const tierName = tierLabel
 
 function MedalDetail({ m, close }) {
   const nav = useNavigate()
@@ -104,7 +107,7 @@ export const celebrate = list => showCelebration?.(list)
  *   bronze, silver   the medal pops up in the middle of the screen with a burst of sparks, then
  *                    flies up into a banner at the top (silver with a glint and a little confetti)
  *   gold             the same, with more confetti
- *   platinum         the medal takes the middle of the screen, with rays and confetti
+ *   diamond          the medal takes the middle of the screen, with rays and confetti
  *   olympian         the same, larger: a flash, a shockwave, two wheels of rays, a golden rain
  * The pop of the three lower tiers lets nothing stop: it cannot be touched and is gone in 1.5 s.
  * Until 2026-11-21 bronze and silver were only the banner, silent and without the pop, and were
@@ -116,7 +119,7 @@ export const CELEBRATION = {
   bronze: { kind: 'banner', stay: 4200, confetti: 0, sparks: 10 },
   silver: { kind: 'banner', stay: 4800, confetti: 12, sparks: 12 },
   gold: { kind: 'banner', stay: 5400, confetti: 22, sparks: 14 },
-  platinum: { kind: 'stage', stay: 6000, confetti: 44, sparks: 0 },
+  diamond: { kind: 'stage', stay: 6000, confetti: 44, sparks: 0 },
   olympian: { kind: 'stage', stay: 7000, confetti: 84, sparks: 0 },
 }
 export const celebrationOf = m => CELEBRATION[m?.tier] || CELEBRATION.bronze
@@ -238,7 +241,7 @@ export function useMedalWatcher(ready) {
       if (got) showCelebration?.(fresh.filter(m => recent(m.at)).slice(0, 4))
     }, 1500)
     return () => clearTimeout(timer.current)
-  }, [ready, visible, S.workouts, S.medals, S.active, S.bodyweight, S.birth, S.body, S.coachProfile, S.unit, user?.id])
+  }, [ready, visible, S.workouts, S.medals, S.active, S.bodyweight, S.measurements, S.birth, S.body, S.coachProfile, S.unit, user?.id])
   // The friends who joined: the server's count, asked once per start.
   useEffect(() => {
     if (!ready || !socialReady(user)) return
@@ -317,8 +320,16 @@ export default function MedalsView() {
         <div className="mdl-cta-b"><Button size="sm" variant="primary" icon="target" onClick={coachGoalsSheet}>{t('Set your goals')}</Button></div>
       </div>
     </section>}
-    {groups.map(g => g.medals.length > 0 && <section key={g.key} className={'mdl-sec mdl-sec-' + g.key}>
+    {groups.map(g => (g.medals.length > 0 || g.pending?.length > 0 || g.missing?.length > 0) && <section key={g.key} className={'mdl-sec mdl-sec-' + g.key}>
       <h3>{g.title}{catalogue && <span className="mdl-n"> {fmtNum(g.medals.length)}</span>}</h3>
+      {g.key === 'strength' && !catalogue && <div className="mdl-cta">
+        <p className="small">{t('Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.')}</p>
+        {g.missing?.length > 0 && <>
+          <p className="small muted">{t('Add your date of birth and body weight to unlock them.')}</p>
+          <div className="mdl-cta-b"><Button size="sm" variant="tinted" icon="person" onClick={aboutYouSheet}>{t('About you')}</Button></div>
+        </>}
+        {g.pending?.length > 0 && <p className="small muted">{t('Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.', g.pending.map(x => x.name).join(', '))}</p>}
+      </div>}
       {g.key === 'goals' && <div className="mdl-cta">
         <p className="small">{t('Medals that follow what you told your coaches: how you train, your phase and your goals.')}</p>
         <div className="mdl-cta-b"><Button size="sm" variant="tinted" icon="target" onClick={coachGoalsSheet}>{t('Edit goals')}</Button></div>

@@ -4004,4 +4004,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "لن أريك كل شيء دفعة واحدة. في أول مرة تفتح فيها كل جزء من التطبيق سأريك إياه في فقاعات قليلة، وعندما يحدث شيء جديد سأشرحه في ثوانٍ. لنبدأ من هنا.",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "أنا كاليوبي. في أول مرة تفتح فيها كل شاشة أريك إياها في فقاعات قليلة. وعندما يحدث شيء أقل شيوعًا، مثل وزن يبدو خطأً في الكتابة، أظهر لبضع ثوانٍ لأشرحه.",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "كل شرح يظهر مرة واحدة. انقر عليه لإبقائه على الشاشة أو أغلقه. من الإعدادات، حول التطبيق والتحديثات يمكنك إيقاف النصائح أو إظهارها كلها من جديد.",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "ماسية",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "هدفك الشخصي: ما ينبغي أن تمنحك إياه نحو {0} أسابيع من التدريب المنتظم، انطلاقًا من نقطة بدايتك، بحسب عمرك وجسمك. ويتطلب أيضًا {1} أسابيع من التدريب على هذا التمرين.",
+  "Strength kept for {0} year": "حافظت على قوتك لمدة {0} سنة",
+  "Strength kept for {0} years": "حافظت على قوتك لمدة {0} سنوات",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "من سن الأربعين: مجموعة في حدود 5% من أفضل أداء لك قبل هذا العدد من السنين. الحفاظ على قوتك مع مرور السنين إنجاز بحد ذاته.",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "ميداليات شخصية: تُقاس بما يمكنك بلوغه، بحسب جلساتك الأولى وعمرك وجنسك وجسمك. كل مستوى يتطلب من الجميع الجهد نفسه تقريبًا؛ والأولمبية تستغرق سنوات.",
+  "Add your date of birth and body weight to unlock them.": "أضف تاريخ ميلادك ووزن جسمك لفتحها.",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "نتعرف على مستواك: {0}. تظهر الميداليات الشخصية بعد 3 جلسات لتمرين خلال أسبوعين.",
 }

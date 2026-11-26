@@ -12,7 +12,11 @@
 .mdl.t-bronze{--m0:#ffd7ad;--m1:#c9803f;--m2:#7d4515;--m3:#5a2f0b;--rib1:#2f6db3;--rib2:#b3302f}
 .mdl.t-silver{--m0:#ffffff;--m1:#c9ced6;--m2:#7f8794;--m3:#4b525d;--rib1:#2f6db3;--rib2:#e8e8e8}
 .mdl.t-gold{--m0:#fff6c9;--m1:#f2b51c;--m2:#a8700a;--m3:#6b4400;--rib1:#b3302f;--rib2:#f2b51c}
-.mdl.t-platinum{--m0:#ffffff;--m1:#b8e3e8;--m2:#5f9aa6;--m3:#2b5560;--rib1:#1e2a4a;--rib2:#7fd3e0}
+.mdl.t-diamond{--m0:#ffffff;--m1:#d6f4ff;--m2:#6fb6d9;--m3:#1f4f6e;--rib1:#0f2340;--rib2:#9fe6ff}
+/* Diamond: facets of light over the disc, a prism catching every colour. */
+.mdl.t-diamond .mdl-disc::before{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 20deg,rgba(255,255,255,.55),rgba(160,220,255,.15) 12%,rgba(255,255,255,.5) 25%,rgba(255,190,240,.18) 37%,rgba(255,255,255,.55) 50%,rgba(170,255,230,.16) 62%,rgba(255,255,255,.5) 75%,rgba(255,240,170,.16) 87%,rgba(255,255,255,.55));
+  mix-blend-mode:screen;opacity:.7}
 .mdl.t-olympian{--m0:#fff9db;--m1:#ffd34d;--m2:#8a4fd6;--m3:#3b1a6b;--rib1:#3b1a6b;--rib2:#ffd34d}
 .mdl.locked .mdl-disc{filter:grayscale(1) brightness(.55);opacity:.7}
 .mdl.locked .mdl-rib{filter:grayscale(1) brightness(.5);opacity:.6}

@@ -3949,4 +3949,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "मैं सब कुछ एक साथ नहीं दिखाऊँगी। ऐप का हर हिस्सा पहली बार खोलने पर मैं उसे कुछ बबल्स में दिखाऊँगी, और जब कुछ नया होगा, तो कुछ सेकंड में समझा दूँगी। चलिए यहीं से शुरू करते हैं।",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "मैं कैलिओपी हूँ। हर स्क्रीन पहली बार खोलने पर मैं उसे कुछ बबल्स में दिखाती हूँ। जब कुछ कम आम होता है, जैसे कोई वज़न जो टाइपिंग की गलती लगे, तो मैं कुछ सेकंड के लिए आकर उसे समझाती हूँ।",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "हर समझाइश एक ही बार आती है। उसे स्क्रीन पर रखने के लिए टैप करें, या बंद करें। सेटिंग्स, जानकारी और अपडेट में टिप्स बंद या फिर से चालू कर सकते हैं।",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "हीरा",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "आपका निजी लक्ष्य: जहाँ से आपने शुरू किया वहाँ से, आपकी उम्र और शरीर के हिसाब से, लगभग {0} सप्ताह की नियमित ट्रेनिंग से जो मिलना चाहिए। इस एक्सरसाइज़ की {1} सप्ताह ट्रेनिंग भी ज़रूरी है।",
+  "Strength kept for {0} year": "{0} साल ताकत बनाए रखी",
+  "Strength kept for {0} years": "{0} साल ताकत बनाए रखी",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "40 की उम्र से: उतने साल पहले के आपके सर्वश्रेष्ठ के 5% के भीतर एक सेट। सालों के साथ ताकत बनाए रखना अपने आप में एक उपलब्धि है।",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "निजी पदक: आप जो हासिल कर सकते हैं उसके आधार पर मापे जाते हैं, आपके पहले सेशन, उम्र, लिंग और शरीर से। हर स्तर में सबको लगभग बराबर मेहनत लगती है; ओलंपियन में सालों लगते हैं।",
+  "Add your date of birth and body weight to unlock them.": "इन्हें खोलने के लिए अपनी जन्मतिथि और शरीर का वज़न जोड़ें।",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "आपके स्तर को समझा जा रहा है: {0}। दो सप्ताह में किसी एक्सरसाइज़ के 3 सेशन के बाद निजी पदक दिखेंगे।",
 }

@@ -9,7 +9,7 @@
 //              aulos (the double-reed pipe) holds
 //   gold       a drum, a lyre arpeggio and the salpinx (the bronze war trumpet) calling three notes,
 //              the last over a ringing lyre chord
-//   platinum   two drum hits, a lyre run over two octaves, the salpinx in fifths, a held chord
+//   diamond    two drum hits, a lyre run over two octaves, the salpinx in fifths, a held chord
 //              of trumpets and strings
 //   olympian   a drum roll, a lyre sweep down the whole mode, an aulos trill, the salpinx in
 //              fifths and octaves, and a chord of four held for two seconds, with a drum under it
@@ -39,7 +39,7 @@ const D = { d3: 146.83, a3: 220, d4: 293.66, f4: 349.23, a4: 440, d5: 587.33, f5
 // record's lyre run rises, so the two are not the same gesture.
 const SWEEP = [587.33, 523.25, 493.88, 440, 392, 349.23, 329.63, 293.66, 261.63, 246.94, 220, 196, 174.61, 164.81, 146.83]
 
-export const MEDAL_TIERS = ['bronze', 'silver', 'gold', 'platinum', 'olympian']
+export const MEDAL_TIERS = ['bronze', 'silver', 'gold', 'diamond', 'olympian']
 
 export const MEDAL_SOUNDS = {
   bronze: {
@@ -63,7 +63,7 @@ export const MEDAL_SOUNDS = {
     ],
     horn: [[D.d5, 0.6, 0.2], [D.d5, 0.85, 0.2], [D.a5, 1.1, 1.6]],
   },
-  platinum: {
+  diamond: {
     gain: 0.82,
     drum: [[D.d3, 0], [D.d3, 0.5]],
     lyre: [

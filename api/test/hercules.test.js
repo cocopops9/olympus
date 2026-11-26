@@ -205,11 +205,14 @@ test('Chiron coaches in the workout: brief, on Hercules\'s key, 30 messages a da
 test('the coaches\' memory: notes they can edit and insights they do not see, distilled from their chats', async () => {
   const { parseMemory, MEMORY } = await import('../hercules.js');
   assert.deepEqual(parseMemory('```json\n{"notes": ["Wants to squat 140 kg by June", "Wants to squat 140 kg by June"], "insights": ["Asks about knees often"]}\n```'),
-    { notes: ['Wants to squat 140 kg by June'], insights: ['Asks about knees often'] });
+    { notes: ['Wants to squat 140 kg by June'], insights: ['Asks about knees often'], athlete: null });
   assert.equal(parseMemory('Sure! Here is the memory.'), null);
+  // What the medals need to know about the athlete, made safe.
+  assert.deepEqual(parseMemory('{"notes": [], "insights": [], "athlete": {"trainingYears": 4.25, "returning": true}}').athlete, { trainingYears: 4.3, returning: true });
+  assert.deepEqual(parseMemory('{"notes": [], "insights": [], "athlete": {"trainingYears": "lots", "returning": "yes"}}').athlete, {});
   const env = { HERCULES_API_KEY: 'k' };
   const seen = [];
-  const answer = JSON.stringify({ notes: ['Trains Mondays and Thursdays'], insights: ['Prefers short, numeric advice'] });
+  const answer = JSON.stringify({ notes: ['Trains Mondays and Thursdays'], insights: ['Prefers short, numeric advice'], athlete: { trainingYears: 3, returning: false } });
   const app = createApp({ store: memoryStore(), photos: memoryPhotos(), env, fetchImpl: fakeFetch([{ status: 200, reply: answer }, { status: 200, reply: 'not json' }], seen) });
   const call = async (method, path, body, token) => {
     const res = await app.handle(new Request('https://x.test/functions/v1/olympus' + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined }));
@@ -218,15 +221,16 @@ test('the coaches\' memory: notes they can edit and insights they do not see, di
   const token = (await call('POST', '/api/app/signup', { name: 'mem_lifts', email: 'mem@example.com', password: 'correct horse battery staple' })).body?.token;
   // Nothing new said: the lists come back as they are and nothing is spent.
   const none = await call('POST', '/api/coach/memory', { messages: [], notes: ['Has a home gym'] }, token);
-  assert.deepEqual(none.body, { notes: ['Has a home gym'], insights: [], left: null });
-  const r = await call('POST', '/api/coach/memory', { messages: [{ coach: 'hercules', content: 'I can only train Mondays and Thursdays' }], notes: ['Has a home gym'], lang: 'it' }, token);
-  assert.deepEqual(r.body, { notes: ['Trains Mondays and Thursdays'], insights: ['Prefers short, numeric advice'], left: MEMORY.perDay - 1 });
+  assert.deepEqual(none.body, { notes: ['Has a home gym'], insights: [], athlete: {}, left: null });
+  const r = await call('POST', '/api/coach/memory', { messages: [{ coach: 'hercules', content: 'I can only train Mondays and Thursdays, I have lifted for three years' }], notes: ['Has a home gym'], athlete: { trainingYears: 2 }, lang: 'it' }, token);
+  assert.deepEqual(r.body, { notes: ['Trains Mondays and Thursdays'], insights: ['Prefers short, numeric advice'], athlete: { trainingYears: 3 }, left: MEMORY.perDay - 1 });
+  assert.match(seen[0].messages[1].content, /"trainingYears":2/);
   assert.match(seen[0].messages[0].content, /keep the memory of the coaches/);
   assert.match(seen[0].messages[1].content, /Has a home gym/);
   assert.match(seen[0].messages[1].content, /Italian/);
   // An answer that is not the JSON asked for changes nothing and costs nothing.
   const bad = await call('POST', '/api/coach/memory', { messages: [{ coach: 'athena', content: 'x' }], notes: ['A'], insights: ['B'] }, token);
-  assert.deepEqual(bad.body, { notes: ['A'], insights: ['B'], left: MEMORY.perDay - 1 });
+  assert.deepEqual(bad.body, { notes: ['A'], insights: ['B'], athlete: {}, left: MEMORY.perDay - 1 });
 });
 
 test('Athena thinks with another model than Hercules, and both know they share the conversation', () => {

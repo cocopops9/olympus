@@ -4177,7 +4177,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="ep-sum">Distil the coaches' memory from recent chats</span>
   </summary>
   <div class="ep-body">
-<p>Updates the two memories every coach reads, both kept on the device: <code>notes</code>, what the person said about themselves (they can read and edit them in the app), and <code>insights</code>, what the app reads between the lines of their chats and data (used by the coaches, not shown). Runs on Chiron's model, 4 times a day per profile; with no <code>messages</code> the lists come back as sent and nothing is counted. An answer the model got wrong is not counted.</p>
+<p>Updates the two memories every coach reads, both kept on the device: <code>notes</code>, what the person said about themselves (they can read and edit them in the app), and <code>insights</code>, what the app reads between the lines of their chats and data (used by the coaches, not shown). Also reads <code>athlete</code>, what the personal medals need: the years the person has trained and whether they are coming back after a long break. Runs on Chiron's model, 4 times a day per profile; with no <code>messages</code> the lists come back as sent and nothing is counted. An answer the model got wrong is not counted.</p>
     <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
 
 <p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
@@ -4207,6 +4207,11 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <span class="p-desc"></span>
   </div>
   <div class="prow">
+    <span class="p-name">athlete</span>
+    <span class="p-type"><a href="#schema-AthleteFacts">AthleteFacts</a></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
     <span class="p-name">data</span>
     <span class="p-type">string <span class="p-hint">(&le; 6000 chars)</span></span>
     <span class="p-desc">A short summary of their training data.</span>
@@ -4221,7 +4226,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc">OK.<span class="r-sig">{ notes: string[], insights: string[], left: integer | null }</span></span>
+    <span class="p-desc">OK.<span class="r-sig">{ notes: string[], insights: string[], athlete: <a href="#schema-AthleteFacts">AthleteFacts</a>, left: integer | null }</span></span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">401</span>
@@ -5681,6 +5686,29 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
        is <b>representative, not enforced</b>: the server stores it opaquely and the app
        grows it over time.</p>
     <div class="eps">
+
+<details class="ep sch" id="schema-AthleteFacts">
+  <summary>
+    <span class="sch-name"><code>AthleteFacts</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">What the coaches' memory read about the person as an athlete, for the personal medal targets (frontend lib/athlete-profile.js).</span>
+  </summary>
+  <div class="ep-body">
+<p>Keys are left out when not known.</p>
+<div class="ptab">
+  <div class="prow">
+    <span class="p-name">trainingYears</span>
+    <span class="p-type">number <span class="p-hint">(0&ndash;60)</span></span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">returning</span>
+    <span class="p-type">boolean</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+  </div>
+</details>
 
 <details class="ep sch" id="schema-Error">
   <summary>

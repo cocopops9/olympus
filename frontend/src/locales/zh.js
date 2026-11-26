@@ -3949,4 +3949,13 @@ export default {
   "I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.": "我不会一次把所有东西都给你看。你第一次打开应用的每个部分时，我会用几个气泡介绍它；遇到新情况时，我会用几秒钟解释。我们从这里开始吧。",
   "I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.": "我是卡利俄佩。你第一次打开每个页面时，我会用几个气泡介绍它。遇到不太常见的情况，比如一个看起来像打错的重量，我会出现几秒钟来解释。",
   "Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.": "每条说明只出现一次。点一下可以让它留在屏幕上，也可以关掉。在 设置、关于与更新 中可以关闭提示，或重新显示全部提示。",
+  // Olympus: personal medals (lib/athlete-profile.js), diamond tier.
+  "Diamond": "钻石",
+  "Your personal target: what about {0} weeks of steady training should bring you, from where you started, for your age and body. It also takes {1} weeks of training this exercise.": "你的个人目标：从你的起点出发，按你的年龄和身体，大约 {0} 周规律训练应该带来的水平。还需要练这个动作 {1} 周。",
+  "Strength kept for {0} year": "力量保持 {0} 年",
+  "Strength kept for {0} years": "力量保持 {0} 年",
+  "From the age of 40: a set within 5% of your best of that many years before. Keeping your strength as the years go by is a feat of its own.": "40 岁起：一组成绩在你多年前最佳成绩的 5% 以内。随着岁月保持力量，本身就是一项成就。",
+  "Personal medals: measured against what you can reach, from your first sessions, your age, sex and body. Each tier takes about the same work for everyone; Olympian takes years.": "个人奖牌：根据你的头几次训练、年龄、性别和身体，以你能达到的水平来衡量。每个等级对所有人需要的努力大致相同；奥林匹克需要数年。",
+  "Add your date of birth and body weight to unlock them.": "添加出生日期和体重即可解锁。",
+  "Getting to know your level: {0}. Personal medals appear after 3 sessions of an exercise over two weeks.": "正在了解你的水平：{0}。一个动作在两周内练 3 次后会出现个人奖牌。",
 }
