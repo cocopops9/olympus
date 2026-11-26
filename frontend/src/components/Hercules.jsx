@@ -37,6 +37,8 @@ import ExerciseDemo from './ExerciseDemo.jsx'
 import { demoFor } from '../lib/exercise-ask.js'
 import { richBlocks, inlineRuns } from '../lib/rich-text.js'
 import { splitSpeech } from '../lib/speech-text.js'
+import { useSwipeUpToExpand } from './swipe-sheet.js'
+import calliope from '../assets/calliope.webp'
 
 const SHOWN_ON = ['/home', '/today', '/profile', '/workout', '/plan', '/stats', '/history', '/library']
 const GREET_AFTER_MS = 1400
@@ -47,11 +49,13 @@ export const COACHES = {
   athena: { name: 'Athena', portrait: athena },
   // Only in the workout (components/Chiron.jsx), never one of the chat's pills.
   chiron: { name: 'Chiron', portrait: CHIRON_URL },
+  // The guide (components/Calliope.jsx): not a coach, but she can be picked in the full screen.
+  calliope: { name: 'Calliope', portrait: calliope },
 }
 // A coach of your own (lib/own-coach.js): its name and portrait, read from this device.
 const ownOf = id => (isOwn(id) ? ownCoach(useStore.getState().user?.id, id) : null)
 // Chiron's name follows the language (Chirone, Quirón…); Hercules and Athena are kept as they are.
-export const coachName = id => (id === BOTH ? 'Hercules & Athena' : isOwn(id) ? ownOf(id)?.name || 'Coach' : id === 'chiron' ? t('Chiron') : (COACHES[id] || COACHES.hercules).name)
+export const coachName = id => (id === BOTH ? 'Hercules & Athena' : isOwn(id) ? ownOf(id)?.name || 'Coach' : id === 'chiron' ? t('Chiron') : id === 'calliope' ? t('Calliope') : (COACHES[id] || COACHES.hercules).name)
 export const coachPortrait = id => (isOwn(id) ? avatarUrl(ownOf(id)?.avatar) : (COACHES[id] || COACHES.hercules).portrait)
 
 // The status of each coach is asked once per profile and session, and again after each answer.
@@ -330,58 +334,8 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   return { uid, name, data, list, draft, setDraft, busy, writing: writing || (coach === BOTH ? 'hercules' : coach), err, left, lefts, status, input, send, start, open, remove, suggestions, markApplied, authorOf }
 }
 
-// Dragging the small chat window up makes it the full screen, the way dragging the full screen
-// down (views/CoachAI.jsx) makes it the small window again. It starts from the grab handle, the
-// header, or the conversation while that has nothing to scroll; the conversation itself, the text
-// box and the coach pills keep their own touches. A long pull or a quick flick does it.
-const SWIPE_UP_ENGAGE = 14
-const SWIPE_UP_EXPAND = 60
-function useSwipeUpToExpand(ref, onExpand) {
-  const expandRef = useRef(onExpand)
-  expandRef.current = onExpand
-  useEffect(() => {
-    const el = ref.current?.closest?.('.sheet') || ref.current
-    if (!el) return
-    let g = null   // { x, y, t, up, on }
-    const startsHere = target => {
-      if (!target?.closest) return false
-      if (target.closest('textarea, input, .hc-switch, .hc-in')) return false
-      const list = target.closest('.hc-list')
-      if (list) return list.scrollHeight <= list.clientHeight + 1
-      return !!target.closest('.grab, .hc-h')
-    }
-    const start = e => {
-      g = e.touches.length === 1 && startsHere(e.target) ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), up: 0, on: false } : null
-    }
-    const move = e => {
-      if (!g) return
-      const dx = e.touches[0].clientX - g.x, dy = e.touches[0].clientY - g.y
-      if (!g.on) {
-        if (dy > SWIPE_UP_ENGAGE || Math.abs(dx) > SWIPE_UP_ENGAGE && Math.abs(dx) > Math.abs(dy)) { g = null; return }
-        if (dy > -SWIPE_UP_ENGAGE || -dy < Math.abs(dx) * 1.5) return
-        g.on = true
-      }
-      g.up = Math.max(0, -dy - SWIPE_UP_ENGAGE)
-      if (e.cancelable) e.preventDefault()
-    }
-    const end = () => {
-      const d = g
-      g = null
-      if (!d || !d.on) return
-      const fast = d.up > 30 && d.up / Math.max(1, Date.now() - d.t) > 0.5
-      if (d.up > SWIPE_UP_EXPAND || fast) expandRef.current()
-    }
-    el.addEventListener('touchstart', start, { passive: true })
-    el.addEventListener('touchmove', move, { passive: false })
-    el.addEventListener('touchend', end)
-    el.addEventListener('touchcancel', () => { g = null })
-    return () => {
-      el.removeEventListener('touchstart', start)
-      el.removeEventListener('touchmove', move)
-      el.removeEventListener('touchend', end)
-    }
-  }, [ref])
-}
+// Dragging the small chat window up makes it the full screen (components/swipe-sheet.js).
+const SWIPE_ZONES = { skip: 'textarea, input, .hc-switch, .hc-in', list: '.hc-list', handle: '.grab, .hc-h' }
 
 function Chat({ close, ask, chatId, coach, ons, pick, own }) {
   const c = useCoachChat({ coach, ask, chatId })
@@ -394,7 +348,7 @@ function Chat({ close, ask, chatId, coach, ons, pick, own }) {
   // The same conversation, full screen (views/CoachAI.jsx).
   const expand = () => { close(); setTimeout(() => { window.location.hash = '#/ai?c=' + coach + (data.current ? '&chat=' + data.current : '') }, 0) }
   const root = useRef(null)
-  useSwipeUpToExpand(root, expand)
+  useSwipeUpToExpand(root, expand, SWIPE_ZONES)
 
   // Which model each coach answers with (api/hercules.js modelLabel): they are not the same one.
   const modelOf = id => statusOf(c.uid, id)?.model || ''
