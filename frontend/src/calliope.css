@@ -101,3 +101,21 @@
   .cal-fig,.cal-stage-fig,.cal-face.talking,.cal-tour,.cal-bubble,.cal-spot::after,.cal-typing i{animation:none}
   .cal-spot{transition:none}
 }
+
+/* A moment (components/CalliopeMoment.jsx): a few words at the top of the screen, for a few
+   seconds, over a screen that keeps working. The thin line at the bottom runs out with its time. */
+.cal-moment{position:fixed;z-index:85;top:calc(var(--sat,0px) + 10px);left:12px;right:12px;max-width:500px;margin:0 auto;
+  display:flex;align-items:flex-start;gap:10px;padding:12px 10px 14px 12px;border-radius:18px;overflow:hidden;cursor:pointer;
+  background:color-mix(in srgb,var(--acc) 9%,var(--surface));border:1.5px solid color-mix(in srgb,var(--acc) 40%,transparent);
+  box-shadow:0 12px 32px rgba(0,0,0,.35);animation:cal-drop .34s cubic-bezier(.2,.9,.3,1.15) backwards}
+@keyframes cal-drop{from{opacity:0;transform:translateY(-24px)}}
+.cal-moment-b{flex:1;min-width:0}
+.cal-moment-b b{display:block;font-size:14px;color:var(--acc)}
+.cal-moment-b p{margin:2px 0 0;font-size:14.5px;line-height:1.42;color:var(--label)}
+.cal-moment-off{margin-top:8px;padding:0;border:0;background:none;color:var(--label-3);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline}
+.cal-moment-x{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;margin:-4px -2px 0 0;padding:0;border:0;border-radius:50%;background:none;color:var(--label-2);font-size:15px;cursor:pointer}
+.cal-moment-x:active{background:var(--surface-2)}
+.cal-moment-time{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--acc);transform-origin:left;animation:cal-run var(--cal-moment-ms,8s) linear forwards}
+[dir="rtl"] .cal-moment-time{transform-origin:right}
+@keyframes cal-run{to{transform:scaleX(0)}}
+@media (prefers-reduced-motion: reduce){.cal-moment{animation:none}.cal-moment-time{animation:none;opacity:.5}}

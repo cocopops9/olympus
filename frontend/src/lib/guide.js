@@ -6,6 +6,8 @@
 //   hints.welcomed true once the welcome was shown, answered or skipped
 //   hints.tips     { <tip id>: true } — the tips already dismissed
 //   hints.tours    { <screen id>: true } — the screens Calliope has already shown (lib/calliope.js)
+//   hints.moments  { <moment id>: true } — the situations she has already explained
+//                  (lib/calliope-moments.js)
 //
 // Two kinds of tip. A 'basic' tip explains the app itself (where Start is, what a routine is) and
 // is for someone who said they are new. An 'analysis' tip explains a screen full of numbers
@@ -77,10 +79,11 @@ export function tourDue(S, id, kind = 'basic') {
 /** `hints` with screen `id` shown. */
 export const withTourSeen = (hints, id) => ({ ...(hints || {}), tours: { ...(hints?.tours || {}), [id]: true } })
 
-/** `hints` with every screen to be shown again (the welcome replayed from Settings). */
+/** `hints` with every screen and every moment to be shown again (the welcome replayed from Settings). */
 export function withToursReset(hints) {
   const next = { ...(hints || {}) }
   delete next.tours
+  delete next.moments
   return next
 }
 
@@ -96,10 +99,11 @@ export function withGuideLevel(hints, level) {
 /** `hints` with the welcome marked as shown, the level left as it is. */
 export const withWelcomed = hints => ({ ...(hints || {}), welcomed: true })
 
-/** `hints` with every tip back on, for Settings → Show the tips again. */
+/** `hints` with every tip and every moment back on, for Settings → Show the tips again. */
 export function withTipsReset(hints) {
   const next = { ...(hints || {}) }
   delete next.tips
+  delete next.moments
   if (next.guide === 'off') next.guide = 'some'
   return next
 }

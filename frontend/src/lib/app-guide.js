@@ -148,7 +148,8 @@ export const TOPICS = [
     title: () => t('Ask Calliope'),
     summary: () => t('Your guide, whenever you are stuck.'),
     steps: () => [
-      { art: 'calliope', text: t('I am Calliope. The first time you open each screen, I show you how it works.') },
+      { art: 'calliope', text: t('I am Calliope. The first time you open each screen, I show it in a few bubbles. When something less common happens, like a weight that looks like a typo, I appear for a few seconds to explain it.') },
+      { art: 'lightbulb', text: t('Each explanation comes once. Tap it to keep it on screen, or close it. Settings, About & updates turns the tips off or shows them all again.') },
       { art: 'mic', text: t('Say “{0}” into any microphone of the app and ask your question. I answer aloud and can take you to the right screen.', t('Calliope')) },
       { art: 'chat', text: t('You also find me in Settings, About & updates, Ask Calliope.') },
     ],

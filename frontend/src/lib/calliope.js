@@ -26,6 +26,9 @@ export function withVoice(hints, on) {
  * The tours: Calliope shows each screen the first time it is opened, and only that screen, in a
  * few bubbles, each pointing at the real thing it is about. Nobody is told everything at once.
  *
+ * At most four bubbles a tour (lib/calliope-moments.js has the evidence): what a screen does not
+ * need on the first day is told when it is first met, as a moment, or kept in the app guide.
+ *
  * A step: { id, target, text, need, scroll }. `target` is a CSS selector of what she points at
  * (a step without one is told without a spotlight); `need` leaves the step out when its target is
  * not on screen (a button that only some profiles have); `scroll` brings the target into view
@@ -37,10 +40,10 @@ export function withVoice(hints, on) {
 export const SCREEN_TOURS = {
   home: {
     kind: 'basic',
+    // Three bubbles: where a workout starts, the coach, and where she is. The feed explains itself
+    // and Profile has a tour of its own the first time it is opened.
     steps: () => [
       { id: 'start', target: '#tabbar .start', text: t('The round button in the middle of the bar at the bottom starts a workout. Pick a routine, or start an empty workout and add exercises as you go.') },
-      { id: 'feed', target: '[data-tour="feed-tabs"]', need: true, text: t('Home is your feed: your friends’ workouts next to yours. Follow people you know and train together, even from far away.') },
-      { id: 'profile', target: '#tabbar > button:last-child', text: t('Profile has your week, your charts and your settings. Stats starts simple; switch to Detailed whenever you want every number.') },
       { id: 'coach', target: '.hc-fab', need: true, text: t('The round face on the screen is your AI coach. Ask it about training, technique or food. Drag it aside if it is in the way.') },
       { id: 'me', target: '.hc-fab', text: whereText() },
     ],
@@ -57,13 +60,12 @@ export const SCREEN_TOURS = {
   workout: {
     kind: 'basic',
     ready: '.setrow',
+    // The three things every set needs. The rest comes when it is met: the first rest brings
+    // Chiron, a superset or a lowered weight their own word (lib/calliope-moments.js), and the
+    // unit switch, the ⋯ menu and Add exercise are in the app guide (lib/app-guide.js, Log your sets).
     steps: () => [
       { id: 'set', target: '.setrow', scroll: true, text: t('Type the weight and the reps, then tick the set when it is done. The rest timer starts by itself, and next time Olympus suggests what to lift.') },
-      { id: 'unit', target: '.sethead .unit-hd', need: true, text: t('Tap the Weight title to switch between kg and lb.') },
       { id: 'kind', target: '.setrow .n', text: t('Tap a set’s number to mark it as a warm-up, a drop set or a set taken to failure.') },
-      { id: 'menu', target: '.exhd .iconbtn:last-child', scroll: true, text: t('The dots open this exercise’s menu: swap it, see your history, learn how to do it, or change its rest timer.') },
-      { id: 'add', target: '.wadd', need: true, scroll: true, text: t('Add exercise is below the last exercise.') },
-      { id: 'chiron', target: '.whdr-chiron', need: true, scroll: true, text: t('Chiron is asleep up here: tap him three times to wake him, and ask him anything between sets, even by voice.') },
       { id: 'finish', target: '.whdr-finish', text: t('When you are done, Finish saves the workout.') },
     ],
   },
@@ -119,7 +121,7 @@ export function tourFor(id, { has = onScreen } = {}) {
 const whereText = () => t('I am always here. Say “{0}” into any microphone in the app and ask your question, or find me next to your coaches and in Settings.', t('Calliope'))
 
 /** What she says to a newcomer, before showing the first screen: how she will help from now on. */
-export const introStep = () => ({ id: 'intro', text: t('From now on, the first time you open each part of the app, I’ll show you how it works. Let’s start here.') })
+export const introStep = () => ({ id: 'intro', text: t('I won’t show you everything at once. The first time you open each part of the app, I’ll show it in a few bubbles, and when something new happens, I’ll explain it in a few seconds. Let’s start here.') })
 
 /** What she says to someone who knows apps like this: only where she is. */
 export const whereStep = () => ({ id: 'where', target: '.hc-fab', text: whereText() })

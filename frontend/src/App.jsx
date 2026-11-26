@@ -12,6 +12,7 @@ import UpdateBar from './components/UpdateBar.jsx'
 import { aboutYouSheet } from './components/AboutYou.jsx'
 import HerculesButton from './components/Hercules.jsx'
 import { useWelcome, useTouring, WelcomeTour } from './components/Welcome.jsx'
+import { CalliopeMoments } from './components/CalliopeMoment.jsx'
 import { useVoiceSetup } from './components/VoiceSetup.jsx'
 import MedalsView, { MedalCelebration, useMedalWatcher } from './components/Medals.jsx'
 import './voice-setup.css'
@@ -343,6 +344,7 @@ function Shell() {
       {authed && !needsMobileOnboarding && <HerculesButton />}
       <RestTimer />
       {authed && !needsMobileOnboarding && <WelcomeTour />}
+      {authed && !needsMobileOnboarding && <CalliopeMoments />}
       <Modals />
       {authed && !needsMobileOnboarding && <MedalCelebration />}
       <Toast />
