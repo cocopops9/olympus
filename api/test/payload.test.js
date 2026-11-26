@@ -401,9 +401,12 @@ test('a session note reaches the model whole, bounded only at the app\'s own cap
     id: 'w' + d, d, name: 'A', start: 0, end: 60000, prs: [], note,
     entries: [{ id: '0001', target: { sets: 3, reps: 10, weight: 20 }, sets: [{ w: 20, r: 10, done: true }] }]
   });
-  S.workouts = [mk('2026-09-02', whole), mk('2026-09-03', 'y'.repeat(payload.NOTE_MAX + 100))];   // only a document edited outside the app carries the second
+  // Two recent days: fixed dates fell out of the 12-week review window as the calendar moved on.
+  const day = ago => new Date(Date.now() - ago * 86400000).toISOString().slice(0, 10);
+  S.workouts = [mk(day(3), whole), mk(day(2), 'y'.repeat(payload.NOTE_MAX + 100))];   // only a document edited outside the app carries the second
   const p = payload.build(S, { handle: handleFor('u1'), kind: 'review' });
-  const [full, edited] = p.window.workouts;
+  const full = p.window.workouts.find(w => w.d === day(3));
+  const edited = p.window.workouts.find(w => w.d === day(2));
   assert.equal(full.compact, undefined, 'both sessions are in full detail');
   assert.equal(full.note, whole, 'the session note arrives whole (was cut at 300)');
   assert.equal(edited.note.length, payload.NOTE_MAX, 'a note no app could have written is bounded at the cap');

@@ -3918,4 +3918,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} आराम का दिन",
   "{0} rest days": "{0} आराम के दिन",
+  "Edit message": "संदेश संपादित करें",
+  "Editing message": "संदेश संपादित हो रहा है",
+  "Stop editing": "संपादन रोकें",
+  "edited": "संपादित",
+  "A message can be edited for 5 hours after it is sent.": "संदेश भेजने के 5 घंटे बाद तक उसे संपादित किया जा सकता है।",
 }

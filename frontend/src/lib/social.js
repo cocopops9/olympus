@@ -64,6 +64,12 @@ export const sendMessage = (id, text, attachment = null) => api('/api/chat/send'
 export const chatMedia = (id, message) => apiBlob('/api/chat/media?id=' + encodeURIComponent(id) + '&m=' + message, { expectSize: 3.6 * 1024 * 1024 })
 export const markChatRead = id => api('/api/chat/read', { method: 'POST', body: JSON.stringify({ id }) })
 export const deleteMessage = (id, message) => api('/api/chat/delete', { method: 'POST', body: JSON.stringify({ id, message }) })
+/** Changes the words of message `message` sent to profile `id`; answers { message }. */
+export const editMessage = (id, message, text) => api('/api/chat/edit', { method: 'POST', body: JSON.stringify({ id, message, text }) })
+// How long after sending a message its words may still be changed (the server checks it too:
+// api/chat.js CHAT.editHours).
+export const CHAT_EDIT_MS = 5 * 3600 * 1000
+export const canEditMessage = (m, now = Date.now()) => !!m?.mine && !m.pending && typeof m.id === 'number' && now - m.at <= CHAT_EDIT_MS
 
 /** Why a message could not be sent or a conversation opened, in words. */
 export function chatErrorText(e, t) {
@@ -78,6 +84,7 @@ export function chatErrorText(e, t) {
   if (code === 'once-opened') return t('It was already opened.')
   if (code === 'once-sender') return t('Only the person you sent it to can open it.')
   if (code === 'no-file') return t('It is no longer there.')
+  if (code === 'edit-expired') return t('A message can be edited for 5 hours after it is sent.')
   if (e?.status === 404) return t('Messages are not available on this server yet.')
   return socialErrorText(e, t)
 }

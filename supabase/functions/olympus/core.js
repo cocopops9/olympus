@@ -983,6 +983,12 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       } catch (e) { if (e instanceof ChatError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
     },
     'POST /api/chat/read': chatRoute(async (me, req) => { const b = await readJson(req); await chat.read(me.id, text(b.id)); return { ok: true }; }),
+    // Changing the words of a message one sent, for CHAT.editHours after sending it.
+    'POST /api/chat/edit': chatRoute(async (me, req) => {
+      const b = await readJson(req);
+      const user = await chatPeer(me, b.id);
+      return { message: await chat.edit(me.id, user.id, b.message, b.text) };
+    }),
     'POST /api/chat/delete': chatRoute(async (me, req) => { const b = await readJson(req); await chat.remove(me.id, text(b.id), b.message); return { ok: true }; }),
     'GET /api/social/notifications': async req => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.notifications(me)) }; },
     'POST /api/social/notifications/read': async req => { const { user: me } = await signedIn(req); return { body: await withSocial(s => s.markRead(me)) }; },
