@@ -3922,4 +3922,9 @@ export default {
   "Trend": "추세",
   "{0} per week": "주당 {0}",
   "{0} per month": "월 {0}",
+  "Edit message": "메시지 수정",
+  "Editing message": "메시지 수정 중",
+  "Stop editing": "수정 취소",
+  "edited": "수정됨",
+  "A message can be edited for 5 hours after it is sent.": "메시지는 보낸 후 5시간 동안 수정할 수 있습니다.",
 }

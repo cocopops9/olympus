@@ -3922,4 +3922,9 @@ export default {
   "Trend": "रुझान",
   "{0} per week": "{0} प्रति सप्ताह",
   "{0} per month": "{0} प्रति माह",
+  "Edit message": "संदेश संपादित करें",
+  "Editing message": "संदेश संपादित हो रहा है",
+  "Stop editing": "संपादन रोकें",
+  "edited": "संपादित",
+  "A message can be edited for 5 hours after it is sent.": "संदेश भेजने के 5 घंटे बाद तक उसे संपादित किया जा सकता है।",
 }

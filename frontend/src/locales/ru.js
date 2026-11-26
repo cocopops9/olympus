@@ -3926,4 +3926,9 @@ export default {
   "Trend": "Тренд",
   "{0} per week": "{0} в неделю",
   "{0} per month": "{0} в месяц",
+  "Edit message": "Изменить сообщение",
+  "Editing message": "Изменение сообщения",
+  "Stop editing": "Отменить изменение",
+  "edited": "изменено",
+  "A message can be edited for 5 hours after it is sent.": "Сообщение можно изменить в течение 5 часов после отправки.",
 }

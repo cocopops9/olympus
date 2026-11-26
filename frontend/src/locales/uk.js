@@ -3919,4 +3919,9 @@ export default {
   "Trend": "Тренд",
   "{0} per week": "{0} на тиждень",
   "{0} per month": "{0} на місяць",
+  "Edit message": "Редагувати повідомлення",
+  "Editing message": "Редагування повідомлення",
+  "Stop editing": "Скасувати редагування",
+  "edited": "змінено",
+  "A message can be edited for 5 hours after it is sent.": "Повідомлення можна редагувати протягом 5 годин після надсилання.",
 }

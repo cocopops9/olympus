@@ -3915,4 +3915,9 @@ export default {
   "Trend": "趨勢",
   "{0} per week": "每週 {0}",
   "{0} per month": "每月 {0}",
+  "Edit message": "編輯訊息",
+  "Editing message": "正在編輯訊息",
+  "Stop editing": "停止編輯",
+  "edited": "已編輯",
+  "A message can be edited for 5 hours after it is sent.": "訊息在傳送後 5 小時內可以編輯。",
 }

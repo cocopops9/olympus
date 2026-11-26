@@ -3925,4 +3925,9 @@ export default {
   "Trend": "Trend",
   "{0} per week": "heti {0}",
   "{0} per month": "havi {0}",
+  "Edit message": "Üzenet szerkesztése",
+  "Editing message": "Üzenet szerkesztése folyamatban",
+  "Stop editing": "Szerkesztés befejezése",
+  "edited": "szerkesztve",
+  "A message can be edited for 5 hours after it is sent.": "Az üzenet az elküldése után 5 óráig szerkeszthető.",
 }

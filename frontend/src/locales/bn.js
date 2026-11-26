@@ -4001,4 +4001,9 @@ export default {
   "Trend": "প্রবণতা",
   "{0} per week": "সপ্তাহে {0}",
   "{0} per month": "মাসে {0}",
+  "Edit message": "বার্তা সম্পাদনা করুন",
+  "Editing message": "বার্তা সম্পাদনা করা হচ্ছে",
+  "Stop editing": "সম্পাদনা বন্ধ করুন",
+  "edited": "সম্পাদিত",
+  "A message can be edited for 5 hours after it is sent.": "পাঠানোর পর 5 ঘণ্টা পর্যন্ত একটি বার্তা সম্পাদনা করা যায়।",
 }

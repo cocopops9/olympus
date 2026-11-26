@@ -3933,4 +3933,9 @@ export default {
   "Trend": "แนวโน้ม",
   "{0} per week": "{0} ต่อสัปดาห์",
   "{0} per month": "{0} ต่อเดือน",
+  "Edit message": "แก้ไขข้อความ",
+  "Editing message": "กำลังแก้ไขข้อความ",
+  "Stop editing": "หยุดแก้ไข",
+  "edited": "แก้ไขแล้ว",
+  "A message can be edited for 5 hours after it is sent.": "แก้ไขข้อความได้ภายใน 5 ชั่วโมงหลังส่ง",
 }

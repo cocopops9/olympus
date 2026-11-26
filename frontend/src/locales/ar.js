@@ -3977,4 +3977,9 @@ export default {
   "Trend": "الاتجاه",
   "{0} per week": "{0} أسبوعيًا",
   "{0} per month": "{0} شهريًا",
+  "Edit message": "تعديل الرسالة",
+  "Editing message": "تعديل الرسالة",
+  "Stop editing": "إيقاف التعديل",
+  "edited": "معدّلة",
+  "A message can be edited for 5 hours after it is sent.": "يمكن تعديل الرسالة خلال 5 ساعات من إرسالها.",
 }

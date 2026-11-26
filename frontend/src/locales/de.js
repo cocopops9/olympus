@@ -3942,4 +3942,9 @@ export default {
   "Trend": "Trend",
   "{0} per week": "{0} pro Woche",
   "{0} per month": "{0} pro Monat",
+  "Edit message": "Nachricht bearbeiten",
+  "Editing message": "Nachricht wird bearbeitet",
+  "Stop editing": "Bearbeiten beenden",
+  "edited": "bearbeitet",
+  "A message can be edited for 5 hours after it is sent.": "Eine Nachricht kann bis 5 Stunden nach dem Senden bearbeitet werden.",
 }

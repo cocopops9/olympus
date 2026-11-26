@@ -3922,4 +3922,9 @@ export default {
   "Trend": "Tendencia",
   "{0} per week": "{0} por semana",
   "{0} per month": "{0} al mes",
+  "Edit message": "Editar mensaje",
+  "Editing message": "Editando el mensaje",
+  "Stop editing": "Dejar de editar",
+  "edited": "editado",
+  "A message can be edited for 5 hours after it is sent.": "Un mensaje se puede editar hasta 5 horas después de enviarlo.",
 }

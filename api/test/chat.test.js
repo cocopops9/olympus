@@ -83,6 +83,42 @@ test('a message can be taken back by who wrote it, and the lists follow', async 
   assert.equal(theirs.unread, 1);
 });
 
+test('a message can be edited by who wrote it for 5 hours, and is marked as edited', async () => {
+  let t = 1_800_000_000_000;
+  const chat = createChat({ kv: memoryKv(), now: () => t });
+  const first = await chat.send('ada', 'bea', 'gym at 6');
+  t += 1000;
+  const m = await chat.send('ada', 'bea', 'gym at 7?');
+  assert.equal(m.edited, undefined);
+  // Not by the other person, and not a message that is not there.
+  await assert.rejects(chat.edit('bea', 'ada', m.id, 'hacked'), e => e.code === 'no-message');
+  await assert.rejects(chat.edit('ada', 'bea', 99, 'x'), e => e.code === 'no-message');
+  // Words are still needed on a message without an attachment, and the usual length holds.
+  await assert.rejects(chat.edit('ada', 'bea', m.id, '   '), e => e.code === 'empty');
+  await assert.rejects(chat.edit('ada', 'bea', m.id, 'x'.repeat(CHAT.text + 1)), e => e.code === 'too-long');
+  // The same words change nothing and leave no mark.
+  assert.equal((await chat.edit('ada', 'bea', m.id, ' gym at 7? ')).edited, undefined);
+  t += 60000;
+  const e = await chat.edit('ada', 'bea', m.id, 'gym at 7:30?');
+  assert.deepEqual([e.id, e.text, e.edited, e.at], [m.id, 'gym at 7:30?', t, m.at]);
+  const seen = (await chat.thread('bea', 'ada')).messages;
+  assert.deepEqual(seen.map(x => [x.text, x.edited || 0]), [['gym at 6', 0], ['gym at 7:30?', t]]);
+  // The lists show the new words of the latest message, and it is not unread a second time.
+  const [theirs] = await chat.list('bea');
+  assert.deepEqual([theirs.text, theirs.unread, theirs.at], ['gym at 7:30?', 2, m.at]);
+  assert.equal((await chat.list('ada'))[0].text, 'gym at 7:30?');
+  // An older message changes, the lists keep the latest line.
+  await chat.edit('ada', 'bea', first.id, 'gym at 6 tomorrow');
+  assert.equal((await chat.list('bea'))[0].text, 'gym at 7:30?');
+  // Exactly 5 hours after sending it may still be edited; a moment later it may not, and an
+  // edit does not move the window.
+  t = m.at + CHAT.editHours * 3600000;
+  assert.equal((await chat.edit('ada', 'bea', m.id, 'last call')).text, 'last call');
+  t += 1;
+  await assert.rejects(chat.edit('ada', 'bea', m.id, 'too late'), e => e.code === 'edit-expired' && e.status === 403);
+  assert.equal((await chat.thread('bea', 'ada')).messages[1].text, 'last call');
+});
+
 test('an account that is deleted leaves no conversation behind', async () => {
   const kv = memoryKv();
   const chat = createChat({ kv, now: clock() });
@@ -119,10 +155,19 @@ test('over the server: only signed in, never to someone who blocked you, and the
   assert.deepEqual((await call('GET', '/api/chat/thread?id=' + ada.user.id, null, cal.token)).body.messages, []);
   assert.equal((await call('POST', '/api/chat/send', { id: 'nobody', text: 'x' }, ada.token)).status, 404);
   assert.equal((await call('POST', '/api/chat/send', { id: ada.user.id, text: 'me' }, ada.token)).status, 400);
+  // Ada edits her message over the server; Bea cannot, and neither can anyone after 5 hours.
+  const sentId = thread.messages[0].id;
+  const edited = (await call('POST', '/api/chat/edit', { id: bea.user.id, message: sentId, text: 'Ciao Bea!' }, ada.token)).body.message;
+  assert.equal(edited.text, 'Ciao Bea!');
+  assert.ok(edited.edited > 0);
+  assert.equal((await call('GET', '/api/chat/thread?id=' + ada.user.id, null, bea.token)).body.messages[0].edited, edited.edited);
+  assert.equal((await call('POST', '/api/chat/edit', { id: ada.user.id, message: sentId, text: 'nope' }, bea.token)).body.code, 'no-message');
+  assert.equal((await call('POST', '/api/chat/edit', { id: bea.user.id, message: sentId, text: 'x' })).status, 401);
   // Bea blocks Ada: Ada cannot write to her any more, and the conversation leaves both lists.
   assert.equal((await call('POST', '/api/social/block', { id: ada.user.id }, bea.token)).status, 200);
   assert.equal((await call('POST', '/api/chat/send', { id: bea.user.id, text: 'still there?' }, ada.token)).status, 404);
   assert.equal((await call('POST', '/api/chat/send', { id: ada.user.id, text: 'no' }, bea.token)).status, 403);
+  assert.equal((await call('POST', '/api/chat/edit', { id: bea.user.id, message: sentId, text: 'after the block' }, ada.token)).status, 404);
   assert.deepEqual((await call('GET', '/api/chat', null, ada.token)).body.chats, []);
   assert.deepEqual((await call('GET', '/api/chat', null, bea.token)).body.chats, []);
 });
@@ -164,6 +209,15 @@ test('a message can carry a photo, a voice message or a file, checked by what it
   // an account deleted: its conversations' files go too
   await chat.removeUser('ada');
   assert.equal(files.m.size, 0);
+});
+
+test('the words under a photo may be removed by an edit; the photo stays', async () => {
+  const files = memFiles();
+  const chat = createChat({ kv: memoryKv(), now: clock(), files });
+  const m = await chat.send('ada', 'bea', 'look', { kind: 'image', data: jpeg.toString('base64') });
+  const e = await chat.edit('ada', 'bea', m.id, '');
+  assert.deepEqual([e.text, e.attachment.kind, e.edited > 0], ['', 'image', true]);
+  assert.equal(files.m.size, 1);
 });
 
 test('a server without a place for files says so, and texts still work', async () => {

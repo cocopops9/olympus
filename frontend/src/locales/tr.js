@@ -3922,4 +3922,9 @@ export default {
   "Trend": "Eğilim",
   "{0} per week": "haftada {0}",
   "{0} per month": "ayda {0}",
+  "Edit message": "Mesajı düzenle",
+  "Editing message": "Mesaj düzenleniyor",
+  "Stop editing": "Düzenlemeyi bırak",
+  "edited": "düzenlendi",
+  "A message can be edited for 5 hours after it is sent.": "Bir mesaj, gönderildikten sonra 5 saat boyunca düzenlenebilir.",
 }
