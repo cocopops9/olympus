@@ -10,6 +10,7 @@
 //   'hercules', 'athena', 'chiron', 'calliope'   today's count of messages to each coach and to the guide, per profile (hercules.js)
 //   'chat:<a>|<b>', 'chats:<uid>'   a conversation between two profiles, and each profile's list of them (chat.js)
 //   'speech:<digest>', 'speech-index'   the guide's fixed lines, read once and kept (voice.js synthesizeCached)
+//   'strava:<uid>' the profile's Strava connection and what was posted there (strava.js)
 //   'tel:<uid>'   the usage statistics a profile shares, and 'feedback' (insights.js)
 // A request that changes a document takes its row lock first, so two phones writing at once
 // are serialized the way the single Node process serialized them.
@@ -31,6 +32,7 @@ import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
 import { newConnectorToken, tokenHash, connectorBase, sealToken, openToken, CONNECTOR_SLOTS, connectorClient } from './connector-token.js';
+import { stravaConfig, authorizeUrl, canWrite, exchangeCode, refreshTokens, deauthorize, needsRefresh, cleanActivity, createActivity, trimPosted, athleteName, docKey as stravaKey, StravaError, STATE_TTL_MS, PENDING_MS } from './strava.js';
 import { usernameProblem, USERNAME_ERRORS, usernameFrom, startReset, checkReset, resetMail, startEmailChange, checkEmailChange, emailChangeMail, emailChangedNotice, googleClients, verifyGoogle } from './accounts.js';
 
 const SESSION_DAYS = 90;
@@ -365,6 +367,51 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     return { users, tel, feedback: await store.read('feedback') };
   }
 
+  // Strava (strava.js): the connection's tokens, opened with the server's key, refreshed first
+  // when they are about to run out. Throws 409 strava-off when the profile has none.
+  const strava = stravaConfig(env);
+  async function stravaAccess(uid) {
+    const doc = await store.read(stravaKey(uid));
+    if (!doc?.a || !doc?.r) throw new HttpError(409, 'Strava is not connected', 'strava-off');
+    const k = await key();
+    if (!needsRefresh(doc, now())) {
+      const access = openToken(k, doc.a);
+      if (access) return access;
+    }
+    const refresh = openToken(k, doc.r);
+    if (!refresh) throw new HttpError(409, 'Strava is not connected', 'strava-off');
+    let t;
+    try { t = await refreshTokens(strava, refresh, fetchImpl); }
+    catch (e) { if (e instanceof StravaError && e.code === 'strava-revoked') await dropStrava(uid); throw e; }
+    await store.update([stravaKey(uid)], ({ get, set }) => {
+      const d = get(stravaKey(uid));
+      if (!d) return;
+      d.a = sealToken(k, t.access_token);
+      if (t.refresh_token) d.r = sealToken(k, t.refresh_token);
+      d.exp = Number(t.expires_at) || Math.floor(now() / 1000) + 21600;
+      set(stravaKey(uid), d);
+    });
+    return t.access_token;
+  }
+  // Forgets the connection; with `revoke`, ends the grant on Strava's side too (best effort).
+  async function dropStrava(uid, { revoke = false } = {}) {
+    if (revoke && strava) {
+      try {
+        const doc = await store.read(stravaKey(uid));
+        const access = doc?.a ? openToken(await key(), doc.a) : null;
+        if (access) await deauthorize(access, fetchImpl);
+      } catch { /* forgotten here either way */ }
+    }
+    await store.update([stravaKey(uid)], ({ set }) => { set(stravaKey(uid), null); });
+  }
+  const stravaRoute = fn => async (req, q) => {
+    try { return await fn(req, q); }
+    catch (e) { if (e instanceof StravaError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
+  };
+  // The page the browser shows after Strava's approval: plain text, since a Supabase function on
+  // the default domain is not allowed to serve HTML.
+  const stravaPage = (status, message) => ({ status, raw: message + '\n', headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+
   async function readJson(req) {
     const raw = await req.text();
     if (raw.length > MAX_BODY) throw new HttpError(413, 'body too large');
@@ -455,6 +502,100 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       });
       return { status: 200, body: { ok: true } };
     },
+    // Strava (strava.js): whether this server offers it, and the profile's connection.
+    'GET /api/strava': async req => {
+      const { user } = await signedIn(req);
+      const doc = await store.read(stravaKey(user.id));
+      const on = !!(doc?.a && doc?.r);
+      return { status: 200, body: { available: !!strava, on, ...(on ? { athlete: doc.athlete || null, since: doc.at || null, posted: Object.values(doc.posted || {}).filter(v => v && v !== '-' && !String(v).startsWith('p:')).length } : {}) } };
+    },
+    // Strava's page for approving, with a state signed for this profile that lasts ten minutes.
+    'POST /api/strava/connect': async req => {
+      const { user } = await signedIn(req);
+      const b = await readJson(req);
+      if (!strava) return { status: 503, body: { error: 'Strava is not set up on this server', code: 'no-strava' } };
+      const state = await sign('strava:' + user.id + ':' + (now() + STATE_TTL_MS) + ':' + crypto.randomBytes(6).toString('base64url'));
+      return { status: 200, body: { url: authorizeUrl(strava, state, { mobile: b.mobile === true }) } };
+    },
+    // Where Strava sends the browser back. No session here: the signed state says whose it is.
+    'GET /api/strava/callback': async (req, q) => {
+      if (!strava) return stravaPage(503, 'Strava is not set up on this server.');
+      const payload = await verifySig(text(q.get('state')));
+      const [tag, uid, exp] = (payload || '').split(':');
+      if (tag !== 'strava' || !uid || !(+exp > now())) return stravaPage(400, 'This link has expired. Go back to Olympus and tap Connect with Strava again.');
+      if (q.get('error') || !q.get('code')) return stravaPage(200, 'Strava was not connected. You can go back to Olympus.');
+      if (!canWrite(q.get('scope'))) return stravaPage(200, 'Strava was not connected: Olympus needs permission to upload your activities. Go back to Olympus and connect again, leaving that box ticked.');
+      if (!usersOf(await store.read('db')).some(u => u.id === uid)) return stravaPage(400, 'This Olympus profile no longer exists.');
+      let t;
+      try { t = await exchangeCode(strava, text(q.get('code')), fetchImpl); }
+      catch (e) { if (e instanceof StravaError) return stravaPage(502, 'Strava did not complete the connection. Go back to Olympus and try again.'); throw e; }
+      const k = await key();
+      await store.update([stravaKey(uid)], ({ get, set }) => {
+        const prev = get(stravaKey(uid));
+        set(stravaKey(uid), {
+          athlete: { id: t.athlete?.id ?? null, name: athleteName(t.athlete) },
+          scope: text(q.get('scope')),
+          at: now(),
+          a: sealToken(k, t.access_token),
+          r: sealToken(k, t.refresh_token),
+          exp: Number(t.expires_at) || Math.floor(now() / 1000) + 21600,
+          // The same Strava account connected again keeps what it was sent, so nothing is posted twice.
+          posted: prev?.athlete?.id != null && prev.athlete.id === t.athlete?.id ? (prev.posted || {}) : {},
+        });
+      });
+      return stravaPage(200, 'Strava is connected. Go back to Olympus: your workouts will now appear in your Strava feed.');
+    },
+    'POST /api/strava/delete': async req => {
+      const { user } = await signedIn(req);
+      await req.text();
+      await dropStrava(user.id, { revoke: true });
+      return { status: 200, body: { ok: true } };
+    },
+    // One finished workout as a Strava activity (strava.js cleanActivity). Posting the same
+    // workout again answers with the activity it already made.
+    'POST /api/strava/post': stravaRoute(async req => {
+      const { user } = await signedIn(req);
+      const activity = cleanActivity(await readJson(req));
+      if (!strava) return { status: 503, body: { error: 'Strava is not set up on this server', code: 'no-strava' } };
+      const key_ = stravaKey(user.id);
+      // Claim the workout under the document's lock, so two phones never post it twice.
+      const claim = await store.update([key_], ({ get, set }) => {
+        const d = get(key_);
+        if (!d?.a) return { off: true };
+        const was = d.posted?.[activity.wid];
+        if (was === '-') return { refused: true };
+        if (was && !String(was).startsWith('p:')) return { id: was };
+        if (was && now() - Number(String(was).slice(2)) < PENDING_MS) return { busy: true };
+        d.posted = trimPosted({ ...(d.posted || {}), [activity.wid]: 'p:' + now() });
+        set(key_, d);
+        return {};
+      });
+      if (claim.off) return { status: 409, body: { error: 'Strava is not connected', code: 'strava-off' } };
+      if (claim.refused) return { status: 422, body: { error: 'Strava refused this activity', code: 'strava-refused' } };
+      if (claim.id) return { status: 200, body: { id: claim.id, again: true } };
+      if (claim.busy) return { status: 409, body: { error: 'this workout is being posted', code: 'strava-busy' } };
+      const settle = value => store.update([key_], ({ get, set }) => {
+        const d = get(key_);
+        if (!d) return;
+        const posted = { ...(d.posted || {}) };
+        if (value == null) delete posted[activity.wid]; else posted[activity.wid] = value;
+        d.posted = trimPosted(posted);
+        set(key_, d);
+      });
+      try {
+        const access = await stravaAccess(user.id);
+        const id = await createActivity(access, activity, fetchImpl);
+        await settle(id);
+        return { status: 200, body: { id } };
+      } catch (e) {
+        if (e instanceof StravaError && e.code === 'strava-refused') { await settle('-'); throw e; }
+        if (e instanceof StravaError && (e.code === 'strava-revoked' || e.code === 'strava-scope')) { await dropStrava(user.id); throw new HttpError(409, 'Strava is not connected', 'strava-off'); }
+        // Anything else may go through on a later try.
+        try { await settle(null); } catch { /* the claim runs out on its own */ }
+        throw e;
+      }
+    }),
+
     'POST /api/activity': async req => { await signedIn(req); await req.text(); return { status: 200, body: { ok: true } }; },
 
     'GET /api/account/password': async req => {
@@ -591,6 +732,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
         if (!(await verifyPassword(text(body.password), user.pw.h))) return { status: 401, body: { error: 'your current password is not right', code: 'current-wrong' } };
       } else if (text(body.confirm) !== 'DELETE') return { status: 400, body: { error: 'type DELETE to confirm', code: 'confirm' } };
       await withSocial(s => s.removeUser(user.id));
+      try { await dropStrava(user.id, { revoke: true }); } catch (e) { console.error('strava: could not remove', e?.message || e); }
       try { await chat.removeUser(user.id); } catch (e) { console.error('chat: could not remove', e?.message || e); }
       await store.update(['db', 'state:' + user.id, 'tel:' + user.id], ({ get, set }) => {
         set('tel:' + user.id, null);
@@ -951,6 +1093,7 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
     } catch (e) {
       if (e instanceof HttpError) return json(e.status, { error: e.message, ...(e.code ? { code: e.code } : {}) }, cors(origin));
       if (e instanceof SocialError) return json(e.status, { error: e.message, code: e.code }, cors(origin));
+      if (e instanceof StravaError) return json(e.status, { error: e.message, code: e.code }, cors(origin));
       if (e instanceof HerculesError) return json(e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) }, cors(origin));
       if (e instanceof BusyError) return json(503, { error: 'the server is busy', code: 'busy' }, { ...cors(origin), 'Retry-After': '2' });
       console.error(`${req.method} ${path}`, e);
