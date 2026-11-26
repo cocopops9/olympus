@@ -4006,4 +4006,6 @@ export default {
   "Stop editing": "সম্পাদনা বন্ধ করুন",
   "edited": "সম্পাদিত",
   "A message can be edited for 5 hours after it is sent.": "পাঠানোর পর 5 ঘণ্টা পর্যন্ত একটি বার্তা সম্পাদনা করা যায়।",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} আপনার সেরার চেয়ে অনেক বেশি (আনুমানিক 1RM {1})। এটা কি টাইপের ভুল?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} এ পর্যন্ত কেউ যা তুলেছে তার চেয়েও বেশি। এটা কি টাইপের ভুল?",
 }

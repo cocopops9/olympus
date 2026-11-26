@@ -3927,4 +3927,6 @@ export default {
   "Stop editing": "संपादन रोकें",
   "edited": "संपादित",
   "A message can be edited for 5 hours after it is sent.": "संदेश भेजने के 5 घंटे बाद तक उसे संपादित किया जा सकता है।",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} आपके सर्वश्रेष्ठ से बहुत ऊपर है (अनुमानित 1RM {1})। क्या यह टाइपिंग की गलती है?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} उससे ज़्यादा है जितना किसी ने कभी उठाया है। क्या यह टाइपिंग की गलती है?",
 }

@@ -3924,4 +3924,6 @@ export default {
   "Stop editing": "Скасувати редагування",
   "edited": "змінено",
   "A message can be edited for 5 hours after it is sent.": "Повідомлення можна редагувати протягом 5 годин після надсилання.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} значно більше за ваш найкращий результат (розрахунковий 1ПМ {1}). Це помилка?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} більше, ніж будь-хто будь-коли піднімав. Це помилка?",
 }

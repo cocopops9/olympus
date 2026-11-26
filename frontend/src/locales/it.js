@@ -3927,4 +3927,6 @@ export default {
   "Stop editing": "Annulla modifica",
   "edited": "modificato",
   "A message can be edited for 5 hours after it is sent.": "Un messaggio si può modificare fino a 5 ore dopo l’invio.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} è molto sopra il tuo massimo (1RM stimato {1}). È un errore di battitura?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} è più di quanto chiunque abbia mai sollevato. È un errore di battitura?",
 }

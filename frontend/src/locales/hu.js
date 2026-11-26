@@ -3930,4 +3930,6 @@ export default {
   "Stop editing": "Szerkesztés befejezése",
   "edited": "szerkesztve",
   "A message can be edited for 5 hours after it is sent.": "Az üzenet az elküldése után 5 óráig szerkeszthető.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} jóval meghaladja a legjobbadat (becsült 1RM {1}). Elírás?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} több, mint amennyit valaha bárki felemelt. Elírás?",
 }

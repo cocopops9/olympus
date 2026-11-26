@@ -3927,4 +3927,6 @@ export default {
   "Stop editing": "Zakończ edycję",
   "edited": "edytowano",
   "A message can be edited for 5 hours after it is sent.": "Wiadomość można edytować przez 5 godzin od wysłania.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} to znacznie więcej niż Twój rekord (szacowane 1RM {1}). Czy to literówka?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} to więcej, niż ktokolwiek kiedykolwiek podniósł. Czy to literówka?",
 }
