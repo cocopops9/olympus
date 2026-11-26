@@ -425,7 +425,6 @@ export default function Settings({ page = null, find = null, via = null }) {
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
     about: () => 'v' + __APP_VERSION__,
-    strava: () => (S.stravaOn ? t('Connected') : ''),
     guide: () => { const g = guideProgress(S); return g.done ? g.done + '/' + g.total : t('Start here') },
   }
 

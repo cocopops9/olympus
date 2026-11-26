@@ -89,7 +89,8 @@ const CLIENTS = {
 }
 
 /**
- * Settings → Olympus in Claude and ChatGPT: the one menu for both assistants. A short pitch under
+ * Settings → Claude, ChatGPT and Strava: the one menu for every connection. The two assistants
+ * first, then Strava (components/StravaConnect.jsx), which posts each workout to the Strava feed. A short pitch under
  * the app's icon, then each assistant with how its connection stands; a tap opens its own page
  * (ConnectorPage). `onOpen(client)` navigates there.
  */
@@ -98,6 +99,7 @@ export function AssistantsPage({ onOpen }) {
   const [st, setSt] = useState({})
   useEffect(() => {
     let live = true
+    api('/api/strava').then(r => r, () => null).then(r => { if (live) setSt(prev => ({ ...prev, strava: r })) })
     for (const [client, c] of Object.entries(CLIENTS)) {
       api('/api/connector' + c.query)
         .then(r => (client === 'claude' || r?.for === client ? r : null), () => null)
@@ -116,17 +118,19 @@ export function AssistantsPage({ onOpen }) {
       <Row icon="sparkles" iconTint="var(--orange)" title={t('Connect to Claude')} value={status(st.claude)} accessory="chevron" onClick={() => onOpen('claude')} />
       <Row icon="chat" iconTint="var(--green)" title={t('Connect to ChatGPT')} value={status(st.chatgpt)} accessory="chevron" onClick={() => onOpen('chatgpt')} />
     </Section>
+    <Section title="Strava" footer={t('Post every workout you finish to your Strava feed.')}>
+      <Row icon="share" iconTint="#FC5200" title={t('Connect to Strava')} value={st.strava?.on ? t('Connected') : null} accessory="chevron" onClick={() => onOpen('strava')} />
+    </Section>
   </>
 }
 
-/** The root's card for the assistants menu: drawn apart from the plain rows so it is noticed. */
+/** The root's card for the connections menu (assistants and Strava): drawn apart from the plain rows so it is noticed. */
 export function AssistantsCard({ onClick }) {
   return <button className="ai-hero ai-hero-card" onClick={onClick}>
     <img src={appIcon} alt="" className="ai-hero-icon" draggable={false} />
     <span className="ai-hero-m">
-      <span className="ai-hero-badge"><Icon name="sparkles" />AI</span>
-      <span className="ai-hero-t">{t('Olympus in Claude and ChatGPT')}</span>
-      <span className="ai-hero-s">{t('Ask your AI assistant about your training, and let it log for you.')}</span>
+      <span className="ai-hero-t">{t('Claude, ChatGPT and Strava')}</span>
+      <span className="ai-hero-s">{t('Ask your AI assistant about your training, and post your workouts to Strava.')}</span>
     </span>
     <Icon name="chevronRight" className="lrow-c" />
   </button>

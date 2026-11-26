@@ -3923,4 +3923,8 @@ export default {
   "Stop editing": "수정 취소",
   "edited": "수정됨",
   "A message can be edited for 5 hours after it is sent.": "메시지는 보낸 후 5시간 동안 수정할 수 있습니다.",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT 및 Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "AI 어시스턴트에게 운동에 대해 묻고 운동을 Strava에 게시하세요.",
+  "Post every workout you finish to your Strava feed.": "완료한 모든 운동을 Strava 피드에 게시하세요.",
+  "Connect to Strava": "Strava에 연결",
 }

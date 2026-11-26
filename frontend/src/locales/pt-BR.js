@@ -2093,6 +2093,10 @@ export const PT_BR_OVERRIDES = {
   "Workouts posted": "Treinos publicados",
   "Disconnect Strava": "Desconectar o Strava",
   "Strava": "Strava",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT e Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "Pergunte ao seu assistente de IA sobre seu treino e publique seus treinos no Strava.",
+  "Post every workout you finish to your Strava feed.": "Publique cada treino que você termina no seu feed do Strava.",
+  "Connect to Strava": "Conectar ao Strava",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,

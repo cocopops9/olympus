@@ -3916,4 +3916,8 @@ export default {
   "Stop editing": "停止編輯",
   "edited": "已編輯",
   "A message can be edited for 5 hours after it is sent.": "訊息在傳送後 5 小時內可以編輯。",
+  "Claude, ChatGPT and Strava": "Claude、ChatGPT 與 Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "向 AI 助理詢問你的訓練，並把訓練發佈到 Strava。",
+  "Post every workout you finish to your Strava feed.": "把你完成的每次訓練發佈到 Strava 動態。",
+  "Connect to Strava": "連結 Strava",
 }

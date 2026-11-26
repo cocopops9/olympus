@@ -3927,4 +3927,8 @@ export default {
   "Stop editing": "Отменить изменение",
   "edited": "изменено",
   "A message can be edited for 5 hours after it is sent.": "Сообщение можно изменить в течение 5 часов после отправки.",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT и Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "Спрашивайте ИИ-ассистента о своих тренировках и публикуйте их в Strava.",
+  "Post every workout you finish to your Strava feed.": "Публикуйте каждую завершённую тренировку в ленте Strava.",
+  "Connect to Strava": "Подключить Strava",
 }

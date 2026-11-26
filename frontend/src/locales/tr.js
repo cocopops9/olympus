@@ -3923,4 +3923,8 @@ export default {
   "Stop editing": "Düzenlemeyi bırak",
   "edited": "düzenlendi",
   "A message can be edited for 5 hours after it is sent.": "Bir mesaj, gönderildikten sonra 5 saat boyunca düzenlenebilir.",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT ve Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "Yapay zekâ asistanına antrenmanını sor ve antrenmanlarını Strava'da paylaş.",
+  "Post every workout you finish to your Strava feed.": "Bitirdiğin her antrenmanı Strava akışında paylaş.",
+  "Connect to Strava": "Strava'ya bağlan",
 }

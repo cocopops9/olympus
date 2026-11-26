@@ -3978,4 +3978,8 @@ export default {
   "Stop editing": "إيقاف التعديل",
   "edited": "معدّلة",
   "A message can be edited for 5 hours after it is sent.": "يمكن تعديل الرسالة خلال 5 ساعات من إرسالها.",
+  "Claude, ChatGPT and Strava": "Claude وChatGPT وStrava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "اسأل مساعد الذكاء الاصطناعي عن تمرينك وانشر تمارينك على Strava.",
+  "Post every workout you finish to your Strava feed.": "انشر كل تمرين تنهيه في موجز Strava.",
+  "Connect to Strava": "الاتصال بـ Strava",
 }

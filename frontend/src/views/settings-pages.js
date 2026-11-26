@@ -17,10 +17,10 @@ export const PAGES = {
   units: { title: 'Units & language', icon: 'ruler', tint: 'var(--teal)' },
   equipment: { title: 'Equipment', icon: 'kettlebell', tint: 'var(--indigo)' },
   look: { title: 'Look & Home', icon: 'palette', tint: 'var(--purple)' },
-  assistants: { title: 'Olympus in Claude and ChatGPT', icon: 'sparkles', tint: 'var(--acc)' },
+  assistants: { title: 'Claude, ChatGPT and Strava', icon: 'sparkles', tint: 'var(--acc)' },
   claude: { title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)', parent: 'assistants' },
   chatgpt: { title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)', parent: 'assistants' },
-  strava: { title: 'Strava', icon: 'share', tint: '#FC5200' },
+  strava: { title: 'Strava', icon: 'share', tint: '#FC5200', parent: 'assistants' },
   coach: { title: 'AI Coach', icon: 'sparkles', tint: 'var(--green)' },
   data: { title: 'Data & backup', icon: 'folder', tint: 'var(--blue)' },
   about: { title: 'About & updates', icon: 'info', tint: 'var(--grey)' },
@@ -34,10 +34,10 @@ export const PAGE_IDS = Object.keys(PAGES)
 // Olympus: the plan-writing AI Coach is not listed; Hercules, Athena and your own coaches live in
 // the AI coach screen (views/CoachAI.jsx).
 // Olympus: the app guide first, where someone new to the app looks for help. Then the AI
-// assistants, one entry for Claude and ChatGPT together, drawn as a card of its own so it is not
+// assistants and Strava, one entry for every connection (Claude, ChatGPT, Strava), drawn as a card of its own so it is not
 // lost among the plain rows (views/Settings.jsx AssistantsCard). Both connectors read the profile
 // on the server, so they need one (components/ClaudeConnector.jsx).
-export const ROOT_GROUPS = [['guide'], ['assistants'], ['strava'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['data', 'about']]
+export const ROOT_GROUPS = [['guide'], ['assistants'], ['workout', 'alerts', 'reminders'], ['plan', 'units', 'equipment'], ['look'], ['data', 'about']]
 
 /**
  * Whether a page exists for this device and profile. Reminders need a push server (signed in) or
@@ -141,6 +141,7 @@ export const SEARCH = [
   // Olympus in Claude and ChatGPT
   { page: 'assistants', title: 'Connect to Claude', icon: 'sparkles', tint: 'var(--orange)', kw: 'claude ai assistant anthropic mcp connector connect llm', when: c => !!c.user && !c.demo },
   { page: 'assistants', title: 'Connect to ChatGPT', icon: 'chat', tint: 'var(--green)', kw: 'chatgpt openai gpt ai assistant mcp connector plugin connect llm', when: c => !!c.user && !c.demo },
+  { page: 'assistants', title: 'Connect to Strava', icon: 'share', tint: '#FC5200', kw: 'strava feed activities share sync integration connect', when: c => !!c.user && !c.demo },
   // Connect to Claude
   { page: 'claude', title: 'Ask Claude about your training', icon: 'sparkles', tint: 'var(--orange)', kw: 'claude ai assistant anthropic mcp connector connect link llm integration', when: c => !!c.user && !c.demo },
   // Connect to ChatGPT

@@ -4002,4 +4002,8 @@ export default {
   "Stop editing": "সম্পাদনা বন্ধ করুন",
   "edited": "সম্পাদিত",
   "A message can be edited for 5 hours after it is sent.": "পাঠানোর পর 5 ঘণ্টা পর্যন্ত একটি বার্তা সম্পাদনা করা যায়।",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT ও Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "আপনার AI সহকারীকে আপনার ট্রেনিং নিয়ে জিজ্ঞেস করুন এবং আপনার ওয়ার্কআউট Strava-তে পোস্ট করুন।",
+  "Post every workout you finish to your Strava feed.": "শেষ করা প্রতিটি ওয়ার্কআউট আপনার Strava ফিডে পোস্ট করুন।",
+  "Connect to Strava": "Strava-র সাথে সংযোগ করুন",
 }
