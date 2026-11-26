@@ -3973,4 +3973,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} يوم راحة",
   "{0} rest days": "{0} أيام راحة",
+  "Edit message": "تعديل الرسالة",
+  "Editing message": "تعديل الرسالة",
+  "Stop editing": "إيقاف التعديل",
+  "edited": "معدّلة",
+  "A message can be edited for 5 hours after it is sent.": "يمكن تعديل الرسالة خلال 5 ساعات من إرسالها.",
 }

@@ -21,6 +21,9 @@ import { MicButton, useCanListen, VoiceModeButton } from '../components/Voice.js
 import { speak, stopSpeaking, canSpeak, warmVoice, warmCoachVoice } from '../lib/voice.js'
 import { useUI } from '../store/useUI.js'
 import { splitActions } from '../lib/coach-actions.js'
+import { CalliopeConversation, CalliopeFace, CalliopeVoiceToggle, calliopeSheet } from '../components/Calliope.jsx'
+import { GUIDE } from '../lib/calliope.js'
+import { pullOutcome, pullOpacity } from '../lib/pull-sheet.js'
 
 const ROLE = {
   hercules: () => t('Your motivator: training, technique and nutrition.'),
@@ -50,6 +53,15 @@ function ModelMenu({ coach, ons, pick, close, own }) {
         {id === coach && <Icon name="check" />}
       </button>
     })}
+    {/* Calliope, the guide: she answers about the app, not about training (components/Calliope.jsx). */}
+    <button role="menuitem" className={'cai-model' + (coach === GUIDE ? ' on' : '')} onClick={() => { close(); pick(GUIDE) }}>
+      <CalliopeFace size={44} />
+      <span className="grow">
+        <b>{t('Calliope')}</b>
+        <span className="small muted">{t('Your guide: how anything in the app works')}</span>
+      </span>
+      {coach === GUIDE && <Icon name="check" />}
+    </button>
     {own.map(c => <button key={c.id} role="menuitem" className={'cai-model' + (c.id === coach ? ' on' : '')} onClick={() => { close(); pick(c.id) }}>
       <Avatar size="md" coach={c.id} />
       <span className="grow">
@@ -222,15 +234,17 @@ function Conversation({ coach, chatId, onChange, voice = false, onVoiceOff, onVo
 }
 
 // Dragging down with a finger makes the screen smaller, like a sheet: from the top bar, or from
-// the conversation while it is scrolled to its top. The screen follows the finger; let go past a
-// third of the way (or with a quick flick) and it hands over to the small chat window on the same
-// conversation (dragging that window up brings this screen back), otherwise it springs back.
+// the conversation while it is scrolled to its top. The screen follows the finger, fading as it
+// goes; where it is let go decides (lib/pull-sheet.js): about halfway, the small chat window takes
+// over on the same conversation (dragging that window up brings this screen back); all the way
+// down, the AI panel closes; a short pull springs back.
 // Horizontal moves, the text box, the conversations drawer and the coach menu are left alone.
 const PULL_ENGAGE = 12
-const PULL_LEAVE = 120
-function useSwipeDownToShrink(ref, onShrink) {
-  const leaveRef = useRef(onShrink)
-  leaveRef.current = onShrink
+function useSwipeDown(ref, onShrink, onClose) {
+  const shrinkRef = useRef(onShrink)
+  shrinkRef.current = onShrink
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -258,32 +272,36 @@ function useSwipeDownToShrink(ref, onShrink) {
       g.pull = Math.max(0, dy - PULL_ENGAGE)
       if (e.cancelable) e.preventDefault()
       el.style.transform = 'translateY(' + g.pull + 'px)'
-      el.style.opacity = String(Math.max(0.5, 1 - g.pull / 600))
+      el.style.opacity = String(pullOpacity(g.pull, window.innerHeight))
     }
     const end = () => {
       if (!g || !g.on) { g = null; return }
       const { pull, t } = g
       g = null
-      const fast = pull > 40 && pull / Math.max(1, Date.now() - t) > 0.5
+      const outcome = pullOutcome({ pull, height: window.innerHeight, ms: Date.now() - t })
       el.style.transition = 'transform .2s ease-out, opacity .2s ease-out'
-      if (pull > PULL_LEAVE || fast) {
-        el.style.transform = 'translateY(100%)'
-        el.style.opacity = '0'
-        setTimeout(() => leaveRef.current(), 200)
-      } else {
+      if (outcome === 'stay') {
         el.style.transform = ''
         el.style.opacity = ''
+        return
       }
+      el.style.transform = 'translateY(100%)'
+      el.style.opacity = '0'
+      setTimeout(() => (outcome === 'close' ? closeRef.current() : shrinkRef.current()), 200)
+    }
+    const cancel = () => {
+      if (g?.on) { el.style.transition = 'transform .2s ease-out, opacity .2s ease-out'; el.style.transform = ''; el.style.opacity = '' }
+      g = null
     }
     el.addEventListener('touchstart', start, { passive: true })
     el.addEventListener('touchmove', move, { passive: false })
     el.addEventListener('touchend', end)
-    el.addEventListener('touchcancel', end)
+    el.addEventListener('touchcancel', cancel)
     return () => {
       el.removeEventListener('touchstart', start)
       el.removeEventListener('touchmove', move)
       el.removeEventListener('touchend', end)
-      el.removeEventListener('touchcancel', end)
+      el.removeEventListener('touchcancel', cancel)
     }
   }, [ref])
 }
@@ -294,7 +312,7 @@ export default function CoachAI() {
   const user = useStore(s => s.user)
   const ready = socialReady(user)
   const asked = params.get('c')
-  const [coach, setCoach] = useState(() => (COACH_IDS.includes(asked) || asked === BOTH || (isOwn(asked) && ownCoach(user?.id, asked)) ? asked : lastCoach(user?.id) || 'hercules'))
+  const [coach, setCoach] = useState(() => (COACH_IDS.includes(asked) || asked === BOTH || asked === GUIDE || (isOwn(asked) && ownCoach(user?.id, asked)) ? asked : lastCoach(user?.id) || 'hercules'))
   const [chat, setChat] = useState(() => params.get('chat') || null)
   const [drawer, setDrawer] = useState(false)
   const [models, setModels] = useState(false)
@@ -315,8 +333,12 @@ export default function CoachAI() {
   useEffect(() => { if (!models) return; const off = e => { if (!e.target.closest?.('.cai-models, .cai-pick')) setModels(false) }; document.addEventListener('pointerdown', off); return () => document.removeEventListener('pointerdown', off) }, [models])
 
   const own = useOwnCoaches()
+  const guide = coach === GUIDE
   const pick = id => {
-    const keep = chatBucket(id) === chatBucket(coach)
+    // Calliope has one conversation of her own (components/Calliope.jsx), and is never the coach
+    // on the floating button.
+    if (id === GUIDE) { setCoach(id); setChat(null); setParams({ c: id }, { replace: true }); return }
+    const keep = !guide && chatBucket(id) === chatBucket(coach)
     setCoach(id); if (!keep) setChat(null); setLastCoach(user?.id, id)
     setParams(keep && chat ? { c: id, chat } : { c: id }, { replace: true })
   }
@@ -326,19 +348,23 @@ export default function CoachAI() {
     const next = id === TEAM ? (chatBucket(coach) === TEAM ? coach : chatBucket(last) === TEAM ? last : 'hercules') : id
     setCoach(next); setChat(chatId); setLastCoach(user?.id, next); setDrawer(false); setParams({ c: next, chat: chatId }, { replace: true }); bump()
   }
-  const newChat = () => { setChat('new'); setDrawer(false); setParams({ c: coach }, { replace: true }); bump() }
+  const newChat = () => {
+    // A new conversation is with a coach: the one talked to last when Calliope is on screen.
+    const next = guide ? lastCoach(user?.id) || 'hercules' : coach
+    setCoach(next); setChat('new'); setDrawer(false); setParams({ c: next }, { replace: true }); bump()
+  }
   const leave = () => (window.history.length > 1 ? nav(-1) : nav('/profile'))
   const root = useRef(null)
   // Making the screen smaller leaves it like the ✕ does, and the small chat window opens on the
   // same coach and conversation once it is gone (a window opened while this one is still the
   // route would be closed by the route change).
   const shrinkTo = useRef(null)
-  const shrink = () => { shrinkTo.current = { coach, chat: chat && chat !== 'new' ? chat : undefined }; leave() }
-  useSwipeDownToShrink(root, shrink)
+  const shrink = () => { shrinkTo.current = guide ? { guide: true } : { coach, chat: chat && chat !== 'new' ? chat : undefined }; leave() }
+  useSwipeDown(root, shrink, leave)
   useEffect(() => () => {
     const to = shrinkTo.current
     shrinkTo.current = null
-    if (to) setTimeout(() => herculesSheet(to), 0)
+    if (to) setTimeout(() => (to.guide ? calliopeSheet() : herculesSheet(to)), 0)
   }, [])
 
   if (!ready) return <div className="cai cai-off"><div className="cai-col"><p className="muted">{t('{0} is not available on this server.', t('AI coach'))}</p></div></div>
@@ -348,22 +374,23 @@ export default function CoachAI() {
       <header className="cai-top">
         <button className="iconbtn cai-only-narrow" onClick={() => setDrawer(true)} aria-label={t('Conversations')}><Icon name="list" /></button>
         <button className="cai-pick" onClick={() => setModels(m => !m)} aria-expanded={models}>
-          <Avatar size="xs" badge={false} coach={coach} /><b>{coachName(coach)}</b><Icon name="chevronDown" />
+          {guide ? <CalliopeFace size={24} /> : <Avatar size="xs" badge={false} coach={coach} />}<b>{coachName(coach)}</b><Icon name="chevronDown" />
         </button>
         <span className="grow" />
         {isOwn(coach) && <button className="iconbtn" onClick={() => ownCoachSheet(ownCoach(user?.id, coach), saved => pick(saved ? saved.id : 'hercules'))} aria-label={t('Edit your coach')}><Icon name="gear" /></button>}
-        {canVoice && <button className={'iconbtn' + (voice ? ' voice-on' : '')} onClick={() => setVoice(v => { const n = !v; if (n) track('coach.voice'); try { localStorage.setItem('olympus_voice_mode', n ? '1' : '0') } catch { /* a convenience */ } return n })}
+        {guide && <CalliopeVoiceToggle />}
+        {canVoice && !guide && <button className={'iconbtn' + (voice ? ' voice-on' : '')} onClick={() => setVoice(v => { const n = !v; if (n) track('coach.voice'); try { localStorage.setItem('olympus_voice_mode', n ? '1' : '0') } catch { /* a convenience */ } return n })}
           aria-pressed={voice} aria-label={t('Voice mode')} title={t('Voice mode')}><Icon name="speaker" /></button>}
         {/* The memory the coaches share (lib/coach-memory.js), one tap away. A new conversation is
             the drawer's first button, so the pencil that did the same thing is gone. */}
-        <button className="iconbtn" onClick={() => coachGoalsSheet({ focus: 'memory' })} aria-label={t('Your memory')} title={t('Your memory')}><Icon name="brain" /></button>
+        {!guide && <button className="iconbtn" onClick={() => coachGoalsSheet({ focus: 'memory' })} aria-label={t('Your memory')} title={t('Your memory')}><Icon name="brain" /></button>}
         <button className="iconbtn" onClick={leave} aria-label={t('Close')}><Icon name="xmark" /></button>
         {models && <ModelMenu coach={coach} ons={ons} pick={pick} close={() => setModels(false)} own={own} />}
       </header>
-      <Conversation key={chatBucket(coach)} coach={coach} chatId={chat} voice={voice && canVoice}
+      {guide ? <CalliopeConversation leave={leave} /> : <Conversation key={chatBucket(coach)} coach={coach} chatId={chat} voice={voice && canVoice}
         onVoiceOff={() => { setVoice(false); try { localStorage.setItem('olympus_voice_mode', '0') } catch { /* a convenience */ } }}
         onVoiceOn={canVoice ? () => { setVoice(true); track('coach.voice'); try { localStorage.setItem('olympus_voice_mode', '1') } catch { /* a convenience */ } } : null}
-        onChange={id => { if (id && id !== chat) { setChat(id); setParams({ c: coach, chat: id }, { replace: true }) } bump() }} />
+        onChange={id => { if (id && id !== chat) { setChat(id); setParams({ c: coach, chat: id }, { replace: true }) } bump() }} />}
     </div>
   </div>
 }

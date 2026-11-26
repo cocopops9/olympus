@@ -3918,4 +3918,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} día de descanso",
   "{0} rest days": "{0} días de descanso",
+  "Edit message": "Editar mensaje",
+  "Editing message": "Editando el mensaje",
+  "Stop editing": "Dejar de editar",
+  "edited": "editado",
+  "A message can be edited for 5 hours after it is sent.": "Un mensaje se puede editar hasta 5 horas después de enviarlo.",
 }

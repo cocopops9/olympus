@@ -7,13 +7,13 @@ import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 
-const mocks = vi.hoisted(() => ({ nav: vi.fn(), id: 'u_b', chats: vi.fn(), thread: vi.fn(), send: vi.fn(), read: vi.fn(), del: vi.fn() }))
+const mocks = vi.hoisted(() => ({ nav: vi.fn(), id: 'u_b', chats: vi.fn(), thread: vi.fn(), send: vi.fn(), read: vi.fn(), del: vi.fn(), edit: vi.fn() }))
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav, useParams: () => ({ id: mocks.id }), Navigate: () => null }))
 vi.mock('../lib/social.js', async importOriginal => ({
   ...(await importOriginal()),
   socialReady: () => true,
   fetchChats: (...a) => mocks.chats(...a), fetchThread: (...a) => mocks.thread(...a), sendMessage: (...a) => mocks.send(...a),
-  markChatRead: (...a) => mocks.read(...a), deleteMessage: (...a) => mocks.del(...a),
+  markChatRead: (...a) => mocks.read(...a), deleteMessage: (...a) => mocks.del(...a), editMessage: (...a) => mocks.edit(...a),
   fetchNotifications: async () => ({ unread: 0, requests: 0, items: [] }), fetchChatUnread: async () => ({ unread: 0 }),
 }))
 vi.mock('../lib/social-photo.js', () => ({ preparePhoto: async () => 'data:image/jpeg;base64,/9j/AAAA' }))
@@ -31,7 +31,7 @@ let host, root
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host)
-  for (const k of ['nav', 'chats', 'thread', 'send', 'read', 'del']) mocks[k].mockReset()
+  for (const k of ['nav', 'chats', 'thread', 'send', 'read', 'del', 'edit']) mocks[k].mockReset()
   mocks.read.mockResolvedValue({})
   useStore.setState({ user: { id: 'u_a', name: 'Anna' } })
   useUI.setState({ sheets: [] })
@@ -125,9 +125,63 @@ describe('one conversation', () => {
     mocks.thread.mockResolvedValue({ user: ben, messages: [msg(1, true, 'Oops')], more: false, seen: 0 })
     mocks.del.mockResolvedValue({})
     await show(<ChatThread />)
-    act(() => host.querySelector('.chat-m-x').click())
+    act(() => host.querySelector('.chat-m-x[aria-label="Delete"]').click())
     expect(mocks.del).not.toHaveBeenCalled()
     expect(useUI.getState().sheets).toHaveLength(1)
+  })
+
+  it('edits a message of yours within 5 hours, and marks it edited; the draft waits meanwhile', async () => {
+    const old = { id: 1, mine: true, text: 'Sent this morning', at: NOW - 5 * 3600000 - 60000 }
+    const theirs = msg(2, false, 'Hi')
+    const mine = msg(3, true, 'Gym at 6')
+    mocks.thread.mockResolvedValue({ user: ben, messages: [old, theirs, mine], more: false, seen: 0 })
+    mocks.edit.mockResolvedValue({ message: { ...mine, text: 'Gym at 7', edited: NOW } })
+    await show(<ChatThread />)
+    const bubbles = () => [...host.querySelectorAll('.chat-m')]
+    const pencil = b => b.querySelector('.chat-m-x[aria-label="Edit message"]')
+    // Only your own messages, and only within 5 hours of sending them.
+    expect(bubbles().map(b => !!pencil(b))).toEqual([false, false, true])
+    const box = () => host.querySelector('textarea')
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set
+    const type = async v => act(async () => { setter.call(box(), v); box().dispatchEvent(new Event('input', { bubbles: true })) })
+    await type('half written')
+    await act(async () => { pencil(bubbles()[2]).click() })
+    expect(host.querySelector('.chat-editing').textContent).toContain('Editing message')
+    expect(box().value).toBe('Gym at 6')
+    expect(host.querySelector('.chat-tool[aria-label="Attach a photo, video or file"]')).toBeNull()
+    await type('Gym at 7 ')
+    await act(async () => { host.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await flush()
+    expect(mocks.edit).toHaveBeenCalledWith('u_b', 3, 'Gym at 7')
+    expect(mocks.send).not.toHaveBeenCalled()
+    expect(bubbles()[2].querySelector('.chat-m-t').textContent).toBe('Gym at 7')
+    expect(bubbles()[2].querySelector('.chat-m-ed').textContent).toBe('edited')
+    expect(bubbles()[1].querySelector('.chat-m-ed')).toBeNull()
+    // Back to the draft that was put aside.
+    expect(host.querySelector('.chat-editing')).toBeNull()
+    expect(box().value).toBe('half written')
+  })
+
+  it('stops editing with the cross, and says why when the 5 hours have passed', async () => {
+    const mine = msg(1, true, 'Gym at 6')
+    mocks.thread.mockResolvedValue({ user: ben, messages: [mine], more: false, seen: 0 })
+    mocks.edit.mockRejectedValue(Object.assign(new Error('expired'), { status: 403, data: { code: 'edit-expired' } }))
+    const real = useUI.getState().toast
+    const toast = vi.fn(); useUI.setState({ toast })
+    await show(<ChatThread />)
+    await act(async () => { host.querySelector('.chat-m-x[aria-label="Edit message"]').click() })
+    await act(async () => { host.querySelector('.chat-tool[aria-label="Stop editing"]').click() })
+    expect(host.querySelector('.chat-editing')).toBeNull()
+    expect(host.querySelector('textarea').value).toBe('')
+    await act(async () => { host.querySelector('.chat-m-x[aria-label="Edit message"]').click() })
+    const box = host.querySelector('textarea')
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set
+    await act(async () => { setter.call(box, 'Gym at 8'); box.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => { host.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) })
+    await flush()
+    expect(toast).toHaveBeenCalledWith('A message can be edited for 5 hours after it is sent.')
+    expect(host.querySelector('.chat-m-t').textContent).toBe('Gym at 6')
+    useUI.setState({ toast: real })
   })
 
   it('loads earlier messages above the ones on screen', async () => {

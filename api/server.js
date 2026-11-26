@@ -2742,6 +2742,12 @@ const routes = {
     }
   },
   'POST /api/chat/read': chatRoute(async (me, req) => { const b = await readBody(req); await CHATS.read(me.id, String(b.id || '')); return { ok: true }; }),
+  // Changing the words of a message one sent, for CHAT.editHours after sending it.
+  'POST /api/chat/edit': chatRoute(async (me, req) => {
+    const b = await readBody(req);
+    const user = SOCIAL.messageable(me, String(b.id || ''));
+    return { message: await CHATS.edit(me.id, user.id, b.message, b.text) };
+  }),
   'POST /api/chat/delete': chatRoute(async (me, req) => { const b = await readBody(req); await CHATS.remove(me.id, String(b.id || ''), b.message); return { ok: true }; }),
   'GET /api/social/notifications': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;

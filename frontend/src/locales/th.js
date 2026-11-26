@@ -3929,4 +3929,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "พัก {0} วัน",
   "{0} rest days": "พัก {0} วัน",
+  "Edit message": "แก้ไขข้อความ",
+  "Editing message": "กำลังแก้ไขข้อความ",
+  "Stop editing": "หยุดแก้ไข",
+  "edited": "แก้ไขแล้ว",
+  "A message can be edited for 5 hours after it is sent.": "แก้ไขข้อความได้ภายใน 5 ชั่วโมงหลังส่ง",
 }

@@ -24,7 +24,14 @@
 .chat-seen{font-size:11px}
 .chat-m-x{border:0;background:none;color:inherit;font-size:11px;padding:2px;opacity:.65;cursor:pointer}
 .chat-in{position:sticky;bottom:calc(var(--sab,0px) + 76px);display:flex;align-items:flex-end;gap:8px;padding:8px 0;background:var(--bg)}
-.chat-in.with-emoji{flex-wrap:wrap}
+.chat-in.with-emoji,.chat-in.is-editing{flex-wrap:wrap}
+/* Editing a sent message: a strip above the line saying which, with a cross to stop. */
+.chat-editing{flex:0 0 100%;order:-1;display:flex;align-items:center;gap:10px;padding:6px 4px 6px 12px;border-radius:14px;background:var(--surface-2);border-inline-start:3px solid var(--acc);color:var(--acc)}
+.chat-editing>span{flex:1;min-width:0;display:flex;flex-direction:column;color:var(--label)}
+.chat-editing b{font-size:13px;color:var(--acc)}
+.chat-editing small{font-size:12px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-m.editing{outline:2px solid color-mix(in srgb,var(--acc) 55%,transparent);outline-offset:2px}
+.chat-m-ed{font-style:italic}
 .chat-tool.on{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
 .emoji-panel{flex:0 0 100%;order:-1;background:var(--surface-2);border-radius:18px;padding:6px 8px 8px}
 .emoji-tabs{display:flex;gap:4px;padding-bottom:4px;border-bottom:1px solid var(--sep,rgba(128,128,128,.2))}

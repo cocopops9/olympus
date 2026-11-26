@@ -4,6 +4,7 @@
 import pt from './pt.js'
 
 export const PT_BR_OVERRIDES = {
+  "Editing message": "Editando a mensagem",
   "Downloading update": "Baixando a atualização",
   "Installing…": "Instalando…",
   "Download failed": "O download falhou",

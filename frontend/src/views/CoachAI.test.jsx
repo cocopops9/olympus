@@ -63,6 +63,27 @@ describe('AI coach, full screen', () => {
     expect(host.querySelector('.cai-me').textContent).toBe('Squat tips')
   })
 
+  it('lists Calliope in the coach menu and opens her full screen', async () => {
+    act(() => root.render(<MemoryRouter initialEntries={['/ai']}><CoachAI /></MemoryRouter>))
+    await flush()
+    act(() => host.querySelector('.cai-pick').click())
+    const names = [...host.querySelectorAll('.cai-model b')].map(b => b.textContent)
+    expect(names).toEqual(expect.arrayContaining(['Hercules', 'Athena', 'Calliope']))
+    act(() => [...host.querySelectorAll('.cai-model')].find(b => b.textContent.includes('Calliope')).click())
+    await flush()
+    expect(host.querySelector('.cai-pick').textContent).toContain('Calliope')
+    expect(host.querySelector('.cai-box textarea').placeholder).toBe('Ask about the app…')
+    // her own conversation: the coaches' voice mode and memory are not hers
+    expect(host.querySelector('.cai-top button[aria-label="Your memory"]')).toBeNull()
+  })
+
+  it('opens straight on Calliope from ?c=calliope', async () => {
+    act(() => root.render(<MemoryRouter initialEntries={['/ai?c=calliope']}><CoachAI /></MemoryRouter>))
+    await flush()
+    expect(host.querySelector('.cai-pick').textContent).toContain('Calliope')
+    expect(host.querySelectorAll('.cai-card').length).toBe(4)
+  })
+
   it('brings the floating coach back', async () => {
     setFabHidden(true)
     act(() => root.render(<MemoryRouter initialEntries={['/ai?c=athena']}><CoachAI /></MemoryRouter>))
@@ -138,6 +159,37 @@ describe('AI coach, drag down to minimise', () => {
     await flush()
     expect(sheet.querySelector('.hc')).toBeTruthy()
     expect(sheet.textContent).toContain('Squat tips')
+    act(() => sheetRoot.unmount()); sheet.remove()
+  })
+
+  it('closes the AI panel without the small window when pulled all the way down', async () => {
+    screen(); await flush()
+    const h = window.innerHeight
+    drag(host.querySelector('.cai-top'), [40, 120, h * 0.5, h - 10])
+    expect(host.querySelector('.cai').style.transform).toBe('translateY(100%)')
+    await later(300)
+    expect(host.querySelector('#profile-page')).toBeTruthy()
+    await later(20)
+    expect(openSheet).not.toHaveBeenCalled()
+  })
+
+  it('halfway down hands Calliope over to her small window', async () => {
+    act(() => root.render(
+      <MemoryRouter initialEntries={['/ai?c=calliope']}><Routes>
+        <Route path="/ai" element={<CoachAI />} />
+        <Route path="/profile" element={<div id="profile-page">Profile</div>} />
+      </Routes></MemoryRouter>))
+    await flush()
+    const h = window.innerHeight
+    drag(host.querySelector('.cai-top'), [40, 120, 40 + h * 0.45])
+    await later(300)
+    expect(host.querySelector('#profile-page')).toBeTruthy()
+    await later(20)
+    expect(openSheet).toHaveBeenCalledTimes(1)
+    const sheet = document.createElement('div'); document.body.appendChild(sheet)
+    const sheetRoot = createRoot(sheet)
+    act(() => sheetRoot.render(openSheet.mock.calls[0][0](() => {})))
+    expect(sheet.querySelector('.cal-ask')).toBeTruthy()
     act(() => sheetRoot.unmount()); sheet.remove()
   })
 

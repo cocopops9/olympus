@@ -3921,4 +3921,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} pihenőnap",
   "{0} rest days": "{0} pihenőnap",
+  "Edit message": "Üzenet szerkesztése",
+  "Editing message": "Üzenet szerkesztése folyamatban",
+  "Stop editing": "Szerkesztés befejezése",
+  "edited": "szerkesztve",
+  "A message can be edited for 5 hours after it is sent.": "Az üzenet az elküldése után 5 óráig szerkeszthető.",
 }

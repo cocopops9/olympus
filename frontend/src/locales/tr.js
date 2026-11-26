@@ -3918,4 +3918,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} dinlenme günü",
   "{0} rest days": "{0} dinlenme günü",
+  "Edit message": "Mesajı düzenle",
+  "Editing message": "Mesaj düzenleniyor",
+  "Stop editing": "Düzenlemeyi bırak",
+  "edited": "düzenlendi",
+  "A message can be edited for 5 hours after it is sent.": "Bir mesaj, gönderildikten sonra 5 saat boyunca düzenlenebilir.",
 }

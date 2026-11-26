@@ -3915,4 +3915,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} день відпочинку",
   "{0} rest days": { one: '{0} день відпочинку', few: '{0} дні відпочинку', many: '{0} днів відпочинку' },
+  "Edit message": "Редагувати повідомлення",
+  "Editing message": "Редагування повідомлення",
+  "Stop editing": "Скасувати редагування",
+  "edited": "змінено",
+  "A message can be edited for 5 hours after it is sent.": "Повідомлення можна редагувати протягом 5 годин після надсилання.",
 }

@@ -3491,6 +3491,25 @@ paths:
       responses:
         '200': { description: '`{ ok: true }`.' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/chat/edit:
+    post:
+      tags: [social]
+      operationId: chatEdit
+      summary: Change the words of a message you sent
+      description: Allowed for 5 hours after the message was sent (server clock). An edit does not extend the window. The message comes back with `edited`, when it was last changed. A message with an attachment may be left without words; one without may not.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [id, message, text], properties: { id: { type: string, description: The other profile. }, message: { type: integer }, text: { type: string, maxLength: 2000 } } }
+      responses:
+        '200': { description: '`{ message }`, as the sender sees it.' }
+        '400': { description: 'The message would be empty (`empty`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: 'More than 5 hours since it was sent (`edit-expired`), or the person cannot be written to (`blocked`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: 'Not a message of yours (`no-message`), or no such profile (`no-profile`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '413': { description: 'Longer than 2000 characters (`too-long`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'Too many edits in an hour (`chat-limit`).', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /api/chat/delete:
     post:
       tags: [social]

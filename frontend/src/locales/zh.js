@@ -3918,4 +3918,9 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} 天休息日",
   "{0} rest days": "{0} 天休息日",
+  "Edit message": "编辑消息",
+  "Editing message": "正在编辑消息",
+  "Stop editing": "停止编辑",
+  "edited": "已编辑",
+  "A message can be edited for 5 hours after it is sent.": "消息在发送后 5 小时内可以编辑。",
 }
