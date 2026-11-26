@@ -147,7 +147,14 @@ function useAccountStatus() {
 }
 
 /** Name, e-mail and password: the rows that change how you sign in. */
-export function SignInRows({ onRenamed }) {
+/** The name sheet on its own: Settings → Account opens it from the name under the picture. */
+export function openNameSheet(onSaved) {
+  return useUI.getState().openSheet(close => <NameSheet close={close} onSaved={onSaved} />)
+}
+
+/** Name, e-mail and password rows; `name: false` leaves the name out where it is shown (and
+    edited) already, as under the picture in Settings → Account. */
+export function SignInRows({ onRenamed, name = true }) {
   const user = useStore(s => s.user)
   const [st, reload] = useAccountStatus()
   const emailSub = !st ? null
@@ -156,8 +163,8 @@ export function SignInRows({ onRenamed }) {
   // A profile made with Google has no password to change: it sets one through the e-mail code.
   const hasPw = st ? !!st.set : true
   return <>
-    <Row icon="person" iconTint="var(--blue)" title={t('Name')} subtitle={user?.name} accessory="chevron"
-      onClick={() => useUI.getState().openSheet(close => <NameSheet close={close} onSaved={onRenamed} />)} />
+    {name && <Row icon="person" iconTint="var(--blue)" title={t('Name')} subtitle={user?.name} accessory="chevron"
+      onClick={() => openNameSheet(onRenamed)} />}
     <Row icon="envelope" iconTint="var(--indigo)" title={t('E-mail')} subtitle={emailSub} accessory="chevron"
       onClick={() => st ? useUI.getState().openSheet(close => <EmailSheet status={st} close={close} done={reload} />) : toast(t('Could not connect'))} />
     <Row icon="key" iconTint="var(--orange)" title={t('Password')} subtitle={hasPw ? t('Change password') : t('Set a password')} accessory="chevron"
@@ -166,10 +173,11 @@ export function SignInRows({ onRenamed }) {
   </>
 }
 
-/** Settings → Account: the sign-in rows in a section of their own. */
+/** Settings → Account: e-mail and password in a section of their own; the name is the title of
+    the page, under the picture (components/AccountHero.jsx), and is changed by tapping it. */
 export function SignInSection() {
   return <Section title={t('Sign-in details')} footer={t('Your name is what others see and what you sign in with. A forgotten password is reset through your e-mail.')}>
-    <SignInRows />
+    <SignInRows name={false} />
   </Section>
 }
 

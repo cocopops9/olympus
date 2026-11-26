@@ -2387,16 +2387,49 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
 }
 .clk-f .num:focus{border-color:var(--acc)}
 
-/* Settings → Account: the header with the picture, the name, the server and how sync stands */
-.acc-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:22px 16px 20px;margin-bottom:22px;
-  border-radius:20px;background:radial-gradient(120% 120% at 50% 0%,color-mix(in srgb,var(--acc) 22%,transparent),transparent 70%),var(--surface);
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--label) 7%,transparent)}
-.acc-av{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:34px;font-weight:700;
+/* Settings → Account, in the gold on black of .wset (Settings.jsx pages.account): the picture in a
+   gold ring and the name over a strip of Greek key, how sync stands and "Sync now" as two tiles,
+   gold section heads and glyphs, and Disconnect as a red link at the foot. */
+.acc-hero{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 16px 18px;margin-bottom:24px;
+  border-radius:24px;overflow:hidden;
+  background:radial-gradient(90% 110% at 50% -10%,color-mix(in srgb,var(--acc) 30%,transparent),transparent 68%),
+    linear-gradient(180deg,color-mix(in srgb,var(--label) 4%,var(--surface)),var(--surface));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 22%,transparent),0 10px 28px rgba(0,0,0,.22)}
+.acc-av{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;font-size:36px;font-weight:700;
   background:var(--acc-soft);color:var(--acc);
-  box-shadow:0 0 0 3px var(--surface),0 0 0 5px color-mix(in srgb,var(--acc) 80%,transparent),0 10px 24px rgba(0,0,0,.28)}
+  box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--acc),0 0 26px 4px color-mix(in srgb,var(--acc) 28%,transparent)}
 .acc-av.acc-face{background:none}
-.acc-av.acc-face .avatar{--av:84px}
-.acc-name{margin-top:10px;font-size:23px;font-weight:700;letter-spacing:-.02em;overflow-wrap:anywhere}
+.acc-av.acc-face .avatar{--av:92px}
+.acc-name{margin-top:12px;font-size:25px;font-weight:700;letter-spacing:-.02em;overflow-wrap:anywhere;color:var(--label)}
+.acc-rename{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;padding:2px 10px;border-radius:12px;
+  background:none;border:0;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.acc-rename span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-pen{color:var(--acc);font-size:16px;flex:none;opacity:.85}
+.acc-rename:active{background:color-mix(in srgb,var(--acc) 12%,transparent)}
+.acc-key{display:block;color:var(--acc);opacity:.5;margin-top:14px}
+/* How sync stands, and Sync now. */
+.acc-sync{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:10px;padding:10px}
+.acc-sync.wide{grid-template-columns:minmax(0,1fr)}
+.acc-sync.wide .wset-tile{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:2px;align-items:center}
+.acc-sync.wide .acc-light,.acc-sync.wide .acc-well{grid-row:span 2;margin-bottom:0}
+.acc-sync .wset-tile{gap:4px;padding:14px;font:inherit;border:0}
+.acc-sync button.wset-tile{cursor:pointer;color:var(--label)}
+.acc-state{background:radial-gradient(130% 150% at 0% 0%,color-mix(in srgb,var(--tone) 22%,transparent),transparent 65%),var(--surface-2);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tone) 38%,transparent)}
+.acc-light,.acc-well{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;font-size:18px;margin-bottom:6px;flex:none}
+.acc-light{color:var(--tone);background:color-mix(in srgb,var(--tone) 16%,var(--surface));box-shadow:0 0 14px color-mix(in srgb,var(--tone) 35%,transparent)}
+.acc-well{background:var(--acc);color:var(--on-acc);box-shadow:0 4px 12px color-mix(in srgb,var(--acc) 35%,transparent)}
+.acc-now.busy .acc-well .icn{animation:accspin 1s linear infinite}
+@keyframes accspin{to{transform:rotate(-360deg)}}
+@media (prefers-reduced-motion:reduce){.acc-now.busy .acc-well .icn{animation:none}}
+.acc-line{font-size:16px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+.acc-state .acc-line{color:var(--tone)}
+.acc-sub{font-size:12.5px;line-height:1.3;color:var(--label-2)}
+.acc-sync+.lrow::before{display:none}
+.acc-sync+.lrow{border-top:1px solid color-mix(in srgb,var(--label) 9%,transparent)}
+.acc-now.sp-flash,.acc-rename.sp-flash,.acct-out .wmenu-discard.sp-flash{animation:spflash 1.8s ease}
+.acct-out{margin-top:-4px;margin-bottom:22px}
+.acct-out .sect-f{text-align:center;padding-top:2px}
 .acc-host{font-size:14px;color:var(--label-2);max-width:100%;overflow-wrap:anywhere}
 .acc-host svg{display:inline-block;vertical-align:-2px;margin-inline-end:6px;opacity:.7}
 .acc-chip{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:600;
