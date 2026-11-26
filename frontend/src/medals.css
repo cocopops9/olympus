@@ -147,9 +147,16 @@
 @keyframes mdl-flash{0%{opacity:0}18%{opacity:.85}100%{opacity:0}}
 @keyframes mdl-rise{from{opacity:0;transform:translateY(14px)}}
 @keyframes mdl-stage-out{to{opacity:0}}
+@keyframes mdl-pop-still{0%{opacity:0}15%{opacity:1}70%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){
   .mdl-banner,.mdl-banner .mdl,.mdl-cele-stage,.mdl-stage-medal,.tier-olympian .mdl-stage-medal,.mdl-stage h2,.mdl-stage .mdl-burst-k,.mdl-stage .mdl-tier,.mdl-stage .mdl-fun,.mdl-stage-d{animation:none}
-  .mdl-confetti,.mdl-rays,.mdl-shock,.mdl-stage-flash,.mdl-banner::after,.mdl-pop{display:none}
+  .mdl-confetti,.mdl-rays,.mdl-shock,.mdl-stage-flash,.mdl-banner::after,.mdl-sparks,.mdl-pop::before{display:none}
+  /* With less motion asked for (also what some phones' battery savers ask), the medal still
+     shows in the middle of the screen: it fades in and out instead of spinning and flying up.
+     Until 2026-11-26 it was hidden, and only the banner came. */
+  .mdl-pop{animation:mdl-pop-still 1.5s ease both}
+  .mdl-pop .mdl{animation:none}
+  .mdl-cele-banner .mdl-banner{animation:mdl-fade .3s ease 1.05s both}
   .mdl.glow .mdl-disc::after{animation:none;display:none}
 }
 
