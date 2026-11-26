@@ -6,7 +6,11 @@
 //           beatsWeight, so on an assisted machine less help is the record);
 //   rm      the best estimated one-rep max (lib/onerm.js, the formula chosen in Settings);
 //   volume  the most weight moved in the exercise in one session (weight x reps of its work sets).
-// An exercise done for the first time sets no record: there is nothing to beat yet.
+// An exercise done for the first time sets one record: its weight is the heaviest it has ever been
+// lifted, which is what the finish already calls a PR (sheets.jsx: beatsWeight against nothing).
+// Until 2026-11-26 a first time set none here, so a first session showed no medal however heavy
+// it was, while the saved workout still listed the PR. The 1RM and volume records still need
+// a previous session to beat: on a first time they would only repeat the same news.
 import { bestWeightFor, workoutVolume } from './history.js'
 import { betterWeight, beatsWeight } from './exercises.js'
 import { is1RMRecord } from './onerm.js'
@@ -37,7 +41,7 @@ export function recordsOf(S, entry) {
   if (loads.length) {
     const best = bestWeightFor(S, entry.id, entryDbLoad(entry))
     const mx = loads.reduce((a, b) => betterWeight(entry.id, a, b))
-    if (best > 0 && beatsWeight(entry.id, mx, best)) out.push('weight')
+    if (beatsWeight(entry.id, mx, best)) out.push('weight')
     const rm = is1RMRecord(S, entry.id, entry)
     if (rm && rm.prev > 0) out.push('rm')
   }

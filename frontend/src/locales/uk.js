@@ -3915,6 +3915,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} день відпочинку",
   "{0} rest days": { one: '{0} день відпочинку', few: '{0} дні відпочинку', many: '{0} днів відпочинку' },
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Тренд",
+  "{0} per week": "{0} на тиждень",
+  "{0} per month": "{0} на місяць",
   "Edit message": "Редагувати повідомлення",
   "Editing message": "Редагування повідомлення",
   "Stop editing": "Скасувати редагування",
@@ -3924,4 +3928,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "Питайте ШІ-асистента про свої тренування й публікуйте їх у Strava.",
   "Post every workout you finish to your Strava feed.": "Публікуйте кожне завершене тренування у стрічці Strava.",
   "Connect to Strava": "Підключити Strava",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} значно більше за ваш найкращий результат (розрахунковий 1ПМ {1}). Це помилка?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} більше, ніж будь-хто будь-коли піднімав. Це помилка?",
 }

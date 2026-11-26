@@ -2097,6 +2097,8 @@ export const PT_BR_OVERRIDES = {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "Pergunte ao seu assistente de IA sobre seu treino e publique seus treinos no Strava.",
   "Post every workout you finish to your Strava feed.": "Publique cada treino que você termina no seu feed do Strava.",
   "Connect to Strava": "Conectar ao Strava",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} está muito acima do seu melhor (1RM estimado {1}). É um erro de digitação?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} é mais do que alguém já levantou. É um erro de digitação?",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,
@@ -2983,4 +2985,8 @@ export default { ...pt, ...PT_BR_OVERRIDES,
   "Start the stopwatch": "Iniciar o cronômetro",
   "Pause the stopwatch": "Pausar o cronômetro",
   "Resume the stopwatch": "Retomar o cronômetro",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Tendência",
+  "{0} per week": "{0} por semana",
+  "{0} per month": "{0} por mês",
 }

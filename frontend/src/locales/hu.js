@@ -3921,6 +3921,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} pihenőnap",
   "{0} rest days": "{0} pihenőnap",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Trend",
+  "{0} per week": "heti {0}",
+  "{0} per month": "havi {0}",
   "Edit message": "Üzenet szerkesztése",
   "Editing message": "Üzenet szerkesztése folyamatban",
   "Stop editing": "Szerkesztés befejezése",
@@ -3930,4 +3934,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "Kérdezd az MI-asszisztensedet az edzéseidről, és tedd közzé az edzéseidet a Straván.",
   "Post every workout you finish to your Strava feed.": "Minden befejezett edzésed kerüljön fel a Strava-hírfolyamodba.",
   "Connect to Strava": "Csatlakozás a Stravához",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} jóval meghaladja a legjobbadat (becsült 1RM {1}). Elírás?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} több, mint amennyit valaha bárki felemelt. Elírás?",
 }

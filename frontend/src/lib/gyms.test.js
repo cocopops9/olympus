@@ -93,6 +93,28 @@ describe('gyms with a picture, the session\'s gym, and records per gym', () => {
     expect(recordHistory(on, '')).toBe(on)
   })
 
+  test('records per gym: an exercise never trained in this gym is held against all of its history', () => {
+    const RDL = '0085', SQUAT = '0043'
+    const lift = (id, kg) => ({ id, sets: [{ w: kg, r: 5, done: true }] })
+    const S = {
+      recordsByGym: true,
+      workouts: [
+        { ...w('a', 'Conde de Casal', 1e12), entries: [lift(RDL, 90), lift(SQUAT, 100)] },
+        { ...w('b', 'Ciudad de Barcelona', 2e12), entries: [lift(SQUAT, 80)] },
+        { ...w('c', null, 3e12), entries: [lift(RDL, 95)] },
+      ],
+    }
+    // Squats were done here: the gym's own history.
+    expect(recordHistory(S, 'Ciudad de Barcelona', SQUAT).workouts.map(x => x.id)).toEqual(['b'])
+    // Romanian deadlifts never were: everything, so a set above 95 kg is a record and 2,000 kg certainly is.
+    expect(recordHistory(S, 'Ciudad de Barcelona', RDL)).toBe(S)
+    // A row left unticked there is not "trained here".
+    S.workouts[1].entries.push({ id: RDL, sets: [{ w: 60, r: 5, done: false }] })
+    expect(recordHistory(S, 'Ciudad de Barcelona', RDL)).toBe(S)
+    // Without an exercise, the gym's history as before.
+    expect(recordHistory(S, 'Ciudad de Barcelona').workouts.map(x => x.id)).toEqual(['b'])
+  })
+
   test('a saved workout being edited or picked up again is in its own gym, not the latest one', () => {
     const S = { workouts: [w('a', 'Home', 1e12), w('b', 'McFit', 2e12)] }
     expect(activeGym({ ...S, active: { editingWorkoutId: 'a' } })).toBe('Home')

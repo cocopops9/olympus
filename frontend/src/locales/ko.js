@@ -3918,6 +3918,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "휴식일 {0}일",
   "{0} rest days": "휴식일 {0}일",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "추세",
+  "{0} per week": "주당 {0}",
+  "{0} per month": "월 {0}",
   "Edit message": "메시지 수정",
   "Editing message": "메시지 수정 중",
   "Stop editing": "수정 취소",
@@ -3927,4 +3931,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "AI 어시스턴트에게 운동에 대해 묻고 운동을 Strava에 게시하세요.",
   "Post every workout you finish to your Strava feed.": "완료한 모든 운동을 Strava 피드에 게시하세요.",
   "Connect to Strava": "Strava에 연결",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0}은(는) 최고 기록(추정 1RM {1})보다 훨씬 높습니다. 오타인가요?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0}은(는) 지금까지 누구도 들어 올린 적 없는 무게입니다. 오타인가요?",
 }

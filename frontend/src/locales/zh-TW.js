@@ -3911,6 +3911,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} 天休息日",
   "{0} rest days": "{0} 天休息日",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "趨勢",
+  "{0} per week": "每週 {0}",
+  "{0} per month": "每月 {0}",
   "Edit message": "編輯訊息",
   "Editing message": "正在編輯訊息",
   "Stop editing": "停止編輯",
@@ -3920,4 +3924,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "向 AI 助理詢問你的訓練，並把訓練發佈到 Strava。",
   "Post every workout you finish to your Strava feed.": "把你完成的每次訓練發佈到 Strava 動態。",
   "Connect to Strava": "連結 Strava",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} 遠高於你的最佳成績（估算 1RM {1}）。是輸入錯誤嗎？",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} 超過了人類舉起過的最大重量。是輸入錯誤嗎？",
 }

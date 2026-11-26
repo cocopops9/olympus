@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { fmtNum, fmtDate, MONTHS, isoOf } from '../lib/format.js'
 import { t } from '../lib/i18n.js'
+import { timeTicks, anchorFor, linearTrend, trendRate } from '../lib/chart-axis.js'
+import { useStore } from '../store/useStore.js'
 
 const W = 340   // viewBox width; the svg stretches to its container, height comes from `h`
 
@@ -15,7 +17,12 @@ const W = 340   // viewBox width; the svg stretches to its container, height com
 //   series draws several lines instead of one: [{ points, color }] (issue #145, one per set
 //   number). `points` then only anchors the hover — one per date, its `note` the tooltip — and
 //   the y axis spans every series.
+// The x axis is proportional to time, labelled on calendar boundaries with the year at every
+// new year (lib/chart-axis.js). A chart with axes and three or more points offers a trend line:
+// a least-squares fit through the points shown, switched on or off for every chart at once
+// (S.chartTrend) and read out as a rate per week or per month.
 export default function LineChart({ points, h = 150, unit = '', color = 'var(--acc)', axes = true, goal = null, invert = false, series = null }) {
+  const trendOn = useStore(s => !!s.S.chartTrend)
   const svgRef = useRef(null)
   const wrapRef = useRef(null)
   const tipRef = useRef(null)
@@ -80,26 +87,30 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
         <text x={P.l - 5} y={y + 3.5} textAnchor="end" fontSize="9.5" fill="var(--label-2)">{fmtNum(v)}</text>
       </g>)
     }
-    const d0 = new Date(t0), d1 = new Date(t1)
-    const ticks = []
-    let m = new Date(d0.getFullYear(), d0.getMonth() + 1, 1)
-    while (m <= d1) { ticks.push({ t: +m, txt: t(MONTHS[m.getMonth()]) }); m = new Date(m.getFullYear(), m.getMonth() + 1, 1) }
-    if (ticks.length === 0 && !single) {
-      for (let i = 0; i <= 2; i++) {
-        const tv = t0 + (t1 - t0) * i / 2, dd = new Date(tv)
-        ticks.push({ t: tv, txt: dd.getDate() + ' ' + t(MONTHS[dd.getMonth()]), anchor: i === 0 ? 'start' : i === 2 ? 'end' : 'middle' })
-      }
+    if (!single) {
+      const { ticks } = timeTicks(t0, t1, W - P.l - P.r, { monthName: m => t(MONTHS[m]) })
+      ticks.forEach((tk, i) => {
+        const x = X(tk.t)
+        gridlines.push(<g key={'x' + i}>
+          <line x1={x} y1={P.t} x2={x} y2={H - P.b} stroke={tk.year ? 'var(--label-3)' : 'var(--sep-op)'} strokeWidth="1" strokeDasharray="2 4" />
+          <text x={x} y={H - 7} textAnchor={tk.anchor || anchorFor(x, tk.label, W)} fontSize="9.5"
+            fontWeight={tk.year ? 600 : 400} fill={tk.year ? 'var(--label)' : 'var(--label-2)'}>{tk.label}</text>
+        </g>)
+      })
     }
-    const every = Math.max(1, Math.ceil(ticks.length / 7))
-    ticks.forEach((tk, i) => {
-      if (i % every) return
-      const x = X(tk.t)
-      gridlines.push(<g key={'x' + i}>
-        <line x1={x} y1={P.t} x2={x} y2={H - P.b} stroke="var(--sep-op)" strokeWidth="1" strokeDasharray="2 4" />
-        <text x={x} y={H - 7} textAnchor={tk.anchor || 'middle'} fontSize="9.5" fill="var(--label-2)">{tk.txt}</text>
-      </g>)
-    })
   }
+
+  // Trend: offered where there is an axis to read it against and enough points for a fit to
+  // say more than "the line between two dots". Per-set charts draw several lines, so no one fit.
+  const canTrend = axes && !multi && points.length >= 3
+  const fit = canTrend ? linearTrend(points) : null
+  const rate = fit ? trendRate(fit, t1 - t0) : null
+  const showTrend = trendOn && !!fit
+  const rateText = rate ? (() => {
+    const v = Math.round(rate.value * 10) / 10 || 0
+    const num = (v > 0 ? '+' : v < 0 ? '\u2212' : '') + fmtNum(Math.abs(v)) + (unit ? ' ' + unit : '')
+    return rate.per === 'week' ? t('{0} per week', num) : t('{0} per month', num)
+  })() : ''
 
   const poly = pts.map(p => X(p.t).toFixed(1) + ',' + Y(p.y).toFixed(1)).join(' ')
   const last = pts[pts.length - 1]
@@ -121,7 +132,7 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
     setHover(best)
   }
 
-  return (
+  return (<>
     <div className="chart-i" ref={wrapRef}
       onMouseMove={onMove} onMouseDown={onMove}
       onMouseLeave={() => setHover(null)}
@@ -132,6 +143,8 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
           <stop offset="1" stopColor={color} stopOpacity="0" />
         </linearGradient></defs>
         {gridlines}
+        {showTrend && <line data-trend-line x1={X(t0)} y1={Y(fit.at(t0))} x2={X(t1)} y2={Y(fit.at(t1))}
+          stroke="var(--label)" strokeOpacity=".75" strokeWidth="1.6" strokeDasharray="6 4" strokeLinecap="round" />}
         {goal != null && isFinite(goal) && <>
           <line x1={P.l} y1={Y(goal)} x2={W - P.r} y2={Y(goal)} stroke="var(--yellow)" strokeWidth="1.6" strokeDasharray="7 4" />
           <text x={W - P.r - 2} y={Y(goal) - 5} textAnchor="end" fontSize="9.5" fontWeight="700" fill="var(--yellow)">{fmtNum(goal)}</text>
@@ -169,5 +182,12 @@ export default function LineChart({ points, h = 150, unit = '', color = 'var(--a
           : <>{fmtDate(hover.iso, true, showYear)} · {fmtNum(hover.v)}{unit ? ' ' + unit : ''}{hover.note ? ' · ' + hover.note : ''}</>}
       </div>}
     </div>
-  )
+    {canTrend && fit && <div className="chart-trend">
+      <button type="button" className={'chip nocap' + (trendOn ? ' on' : '')} aria-pressed={trendOn}
+        onClick={() => useStore.getState().update(st => { st.chartTrend = !st.chartTrend })}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 12 14 4" /></svg>{t('Trend')}
+      </button>
+      {trendOn && <span className="small dim" data-trend-rate>{rateText}</span>}
+    </div>}
+  </>)
 }

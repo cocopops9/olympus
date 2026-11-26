@@ -3918,6 +3918,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} आराम का दिन",
   "{0} rest days": "{0} आराम के दिन",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "रुझान",
+  "{0} per week": "{0} प्रति सप्ताह",
+  "{0} per month": "{0} प्रति माह",
   "Edit message": "संदेश संपादित करें",
   "Editing message": "संदेश संपादित हो रहा है",
   "Stop editing": "संपादन रोकें",
@@ -3927,4 +3931,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "अपने AI असिस्टेंट से अपनी ट्रेनिंग के बारे में पूछें और अपने वर्कआउट Strava पर पोस्ट करें।",
   "Post every workout you finish to your Strava feed.": "हर पूरा किया गया वर्कआउट अपनी Strava फ़ीड में पोस्ट करें।",
   "Connect to Strava": "Strava से कनेक्ट करें",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} आपके सर्वश्रेष्ठ से बहुत ऊपर है (अनुमानित 1RM {1})। क्या यह टाइपिंग की गलती है?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} उससे ज़्यादा है जितना किसी ने कभी उठाया है। क्या यह टाइपिंग की गलती है?",
 }

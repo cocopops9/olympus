@@ -110,6 +110,9 @@ export const DEF = {
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Stats activity heatmap metric. Profiles without this key continue to open on time.
   heatmapMetric: 'time',
+  // Whether line charts draw their least-squares trend line (components/LineChart.jsx): one
+  // switch for every chart, flipped from the Trend chip under any of them.
+  chartTrend: false,
   // Olympus: whether this person shares usage statistics with the server's owner (lib/telemetry.js).
   // null = not asked yet (components/TelemetryConsent.jsx asks once), true or false = their answer.
   telemetry: null,

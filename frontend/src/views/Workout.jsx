@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { useUI } from '../store/useUI.js'
-import { exOr, betterWeight, allExercises, isSport } from '../lib/exercises.js'
+import { exOr, allExercises, isSport } from '../lib/exercises.js'
 import { equipmentVariants } from '../lib/equipment-groups.js'
 
 const capFirst = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
@@ -19,6 +19,7 @@ import { clampIncline, hasIncline, inclineFits, inclineFrom, INCLINE_STEP } from
 import { beep, vibrate, unlock, triumph } from '../lib/sound.js'
 import { newRecords, recordsOf, recordSignature } from '../lib/records.js'
 import RecordMedals, { recordLabel } from '../components/RecordMedals.jsx'
+import { implausibleLoad } from '../lib/plausible-load.js'
 import { activeGym, recordHistory, sessionPast } from '../lib/gyms.js'
 import { changeSessionGym } from '../lib/gym-refill.js'
 import { GymIcon, gymChooserSheet } from '../components/Gyms.jsx'
@@ -207,8 +208,14 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const meaning = entryDbLoad(entry)
   const bestHist = bestWeightFor(H, entry.id, meaning)
   const bestKept = (H.exWeights[entry.id] || {}).w || 0
-  const best = cardio ? 0
-    : bestHist > 0 && bestKept > 0 ? betterWeight(entry.id, bestHist, bestKept) : Math.max(bestHist, bestKept)
+  // The kept working weight counts only while nothing is logged: it is a weight to start from,
+  // not one lifted, and it can outlive the set it came from. Until 2026-11-26 it was folded in
+  // with the logged sets, so a 10,000 kg test long since gone still read "Best: 10,000 kg" on a
+  // dumbbell bench press whose heaviest logged set was 76 kg.
+  // A weight far above anything this person has lifted is probably a typo (lib/plausible-load.js),
+  // held against all of the exercise's history, every gym included.
+  const odd = cardio ? null : implausibleLoad(S, entry)
+  const best = cardio ? 0 : bestHist > 0 ? bestHist : bestKept
   // What the progression policy decided for this session, and why (issue #17). Computed when
   // the session was built so the reason matches the numbers already in the rows.
   const plan = entry.plan
@@ -694,6 +701,11 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
         or by a deload or rehab routine, which owns that choice and offers no undo. On in every
         view, compact included: it changes what the next session is built from. */}
     {entry.rec?.length > 0 && <RecordMedals kinds={entry.rec} />}
+    {odd && <div className="load-warn" role="alert">
+      <Icon name="warning" /><span>{odd.kind === 'rm'
+        ? t('{0} is far above your best (estimated 1RM {1}). Is it a typo?', `${fmtNum(odd.w)} ${S.unit}`, `${fmtNum(odd.ref)} ${S.unit}`)
+        : t('{0} is more than anyone has ever lifted. Is it a typo?', `${fmtNum(odd.w)} ${S.unit}`)}</span>
+    </div>}
     {entry.noProg === true && <div className="noprog">
       <Icon name="chartLineSlash" /><span>{t('Not counted for progression')}</span>
       {onNoProg && <button type="button" className="chip" onClick={() => onNoProg(false)}>{t('Undo')}</button>}
@@ -1708,12 +1720,12 @@ function ActiveWorkout() {
     if (!e) return
     if (!checked) {
       if (!e.rec?.length) return
-      const still = new Set(recordsOf(recordHistory(st, activeGym(st)), e))
+      const still = new Set(recordsOf(recordHistory(st, activeGym(st), e.id), e))
       if (e.rec.every(k => still.has(k))) return
       update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = (en.rec || []).filter(k => still.has(k)) })
       return
     }
-    const fresh = newRecords(recordHistory(st, activeGym(st)), e)
+    const fresh = newRecords(recordHistory(st, activeGym(st), e.id), e)
     if (!fresh.length) return
     update(s => { const en = s.active?.entries?.[idx]; if (en) en.rec = [...new Set([...(en.rec || []), ...fresh])] })
     triumph(st.sound)
@@ -1756,7 +1768,7 @@ function ActiveWorkout() {
     const st = useStore.getState().S
     const e = st.active?.entries?.[idx]
     if (!e) return
-    const now = recordsOf(recordHistory(st, activeGym(st)), e)
+    const now = recordsOf(recordHistory(st, activeGym(st), e.id), e)
     const had = Array.isArray(e.rec) ? e.rec : []
     const fresh = now.filter(k => !had.includes(k))
     const kept = had.filter(k => now.includes(k))

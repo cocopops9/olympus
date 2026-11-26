@@ -3918,6 +3918,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} dinlenme günü",
   "{0} rest days": "{0} dinlenme günü",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Eğilim",
+  "{0} per week": "haftada {0}",
+  "{0} per month": "ayda {0}",
   "Edit message": "Mesajı düzenle",
   "Editing message": "Mesaj düzenleniyor",
   "Stop editing": "Düzenlemeyi bırak",
@@ -3927,4 +3931,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "Yapay zekâ asistanına antrenmanını sor ve antrenmanlarını Strava'da paylaş.",
   "Post every workout you finish to your Strava feed.": "Bitirdiğin her antrenmanı Strava akışında paylaş.",
   "Connect to Strava": "Strava'ya bağlan",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0}, en iyinin çok üzerinde (tahmini 1RM {1}). Yazım hatası mı?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0}, bugüne kadar kimsenin kaldırdığından fazla. Yazım hatası mı?",
 }

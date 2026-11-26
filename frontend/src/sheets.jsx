@@ -3677,11 +3677,11 @@ function doFinishWorkout() {
   const resumed = A.resumeOf != null ? A.resumeOf : null
   // The gym the session was in (lib/gyms.js activeGym): picked in it, else the one it was saved
   // with when picked up again, else the latest. With records per gym on, the records below are
-  // held against that gym's workouts and the ones with no gym.
+  // held against that gym's workouts, each exercise against all of its history when it was never
+  // trained in that gym (lib/gyms.js recordHistory).
   const sessionGym = typeof A.gym === 'string' ? cleanGym(A.gym)
     : resumed != null ? cleanGym(st.workouts.find(x => resumedKeyOf(x) === resumed)?.gym) : lastGym(st)
   const histAll = resumed != null ? { ...st, workouts: st.workouts.filter(x => resumedKeyOf(x) !== resumed) } : st
-  const hist = recordHistory(histAll, sessionGym)
   const prs = []
   const e1prs = []
   // A workout logged into the past is held against the history before it, the way an edit of a
@@ -3691,6 +3691,7 @@ function doFinishWorkout() {
   if (!past) A.entries.forEach(e => {
     const loads = e.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w).filter(w => w > 0)
     const mx = loads.length ? loads.reduce((a, b) => betterWeight(e.id, a, b)) : 0
+    const hist = recordHistory(histAll, sessionGym, e.id)
     // Held against history read the way this session logged a dumbbell weight (lib/dumbbells.js).
     if (beatsWeight(e.id, mx, bestWeightFor(hist, e.id, entryDbLoad(e)))) prs.push(e.id)
     // A heavier estimate without a heavier top set is its own kind of progress —

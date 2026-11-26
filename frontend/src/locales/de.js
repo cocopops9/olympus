@@ -3938,6 +3938,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} Ruhetag",
   "{0} rest days": "{0} Ruhetage",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Trend",
+  "{0} per week": "{0} pro Woche",
+  "{0} per month": "{0} pro Monat",
   "Edit message": "Nachricht bearbeiten",
   "Editing message": "Nachricht wird bearbeitet",
   "Stop editing": "Bearbeiten beenden",
@@ -3947,4 +3951,6 @@ export default {
   "Ask your AI assistant about your training, and post your workouts to Strava.": "Frag deinen KI-Assistenten zu deinem Training und poste deine Workouts auf Strava.",
   "Post every workout you finish to your Strava feed.": "Poste jedes beendete Workout in deinen Strava-Feed.",
   "Connect to Strava": "Mit Strava verbinden",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} liegt weit über deiner Bestleistung (geschätztes 1RM {1}). Ein Tippfehler?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} ist mehr, als je ein Mensch gehoben hat. Ein Tippfehler?",
 }
