@@ -1569,28 +1569,61 @@ describe('workout focus view', () => {
     expect(container.textContent).toContain('3–5 Reps')
     expect(container.textContent).toContain('@ 60 kg')
     expect(container.textContent).toContain('Rest 120s')
-    expect(buttonNamed('Previous set').disabled).toBe(false)
-    expect(buttonNamed('Next set').disabled).toBe(false)
+    expect(buttonNamed('Set 2').getAttribute('aria-current')).toBe('step')
+    expect(buttonNamed('Set 1').classList.contains('done')).toBe(true)
   })
 
-  it('moves with chevrons, dots, and Skip without completing a set', async () => {
+  it('moves with the set chips and Skip without completing a set', async () => {
     await mount([exercise('plain-bench', [false, false, false])], 0, { active: { workoutView: 'focus' } })
 
-    await click(buttonNamed('Next set'))
+    await click(buttonNamed('Set 2'))
     expect(container.textContent).toContain('2/3')
     await click(container.querySelector('button[aria-label="Set 3"]'))
     expect(container.textContent).toContain('3/3')
-    await click(buttonNamed('Previous set'))
+    await click(buttonNamed('Set 2'))
     expect(container.textContent).toContain('2/3')
     await click(buttonNamed('Skip set'))
     expect(container.textContent).toContain('3/3')
     expect(mocks.S.active.entries[0].sets.every(set => !set.done)).toBe(true)
   })
 
+  it('adds a set after the last one and removes the last one from the set rail', async () => {
+    await mount([exercise('plain-bench', [true, false, false])], 0, { active: { workoutView: 'focus' } })
+
+    expect(container.querySelectorAll('.focus-chip:not(.edit)').length).toBe(3)
+    await click(buttonNamed('Add set'))
+    await rerender()
+    expect(mocks.S.active.entries[0].sets.length).toBe(4)
+    expect(container.textContent).toContain('2/4')
+    expect(container.querySelectorAll('.focus-chip:not(.edit)').length).toBe(4)
+
+    await click(buttonNamed('Remove set'))
+    await rerender()
+    expect(mocks.S.active.entries[0].sets.length).toBe(3)
+    expect(mocks.S.active.entries[0].sets[0].done).toBe(true)
+    expect(container.textContent).toContain('2/3')
+  })
+
+  it('keeps the last set: Remove set is off when only one is left', async () => {
+    await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'focus' } })
+    expect(buttonNamed('Remove set').disabled).toBe(true)
+    expect(buttonNamed('Add set').disabled).toBe(false)
+  })
+
+  it('removes the exercise from the bin on the card, through the confirm sheet', async () => {
+    await mount([exercise('plain-bench', [true, false]), exercise('plain-row', [false])], 0, { active: { workoutView: 'focus' } })
+
+    await click(buttonNamed('Remove exercise'))
+    expect(mocks.confirmSheet).toHaveBeenCalled()
+    const sheet = mocks.confirmSheet.mock.calls.at(-1)[0]
+    expect(sheet.danger).toBe(true)
+    expect(sheet.message).toContain('will be lost')
+  })
+
   it('locks later Focus sets while keeping them inspectable', async () => {
     await mount([exercise('plain-bench', [false, false])], 0, { active: { workoutView: 'focus' }, effort: 'rpe' })
 
-    await click(buttonNamed('Next set'))
+    await click(buttonNamed('Set 2'))
 
     expect(container.querySelector('[data-testid="focus-set"]').classList.contains('locked')).toBe(true)
     expect(container.textContent).toContain('Complete set 1 to edit this one.')
@@ -1834,7 +1867,7 @@ describe('workout focus view', () => {
 
   it('does not expose a Focus-only set note action', async () => {
     await mount([exercise('plain-bench', [false, false])], 0, { active: { workoutView: 'focus' } })
-    await click(buttonNamed('Next set'))
+    await click(buttonNamed('Set 2'))
     expect(buttonNamed('Set note')).toBeNull()
   })
 

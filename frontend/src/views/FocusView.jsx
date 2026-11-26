@@ -5,7 +5,7 @@ import { clampIncline, hasIncline, inclineFits, INCLINE_MAX, INCLINE_STEP } from
 import { exerciseNameFor, t } from '../lib/i18n.js'
 import { fmtDate, fmtNum, fmtPlate } from '../lib/format.js'
 import { EFFORT, effortOf, modeOf } from '../lib/history.js'
-import { lastEntryFor, pinnedNoteFor, setsRepsOf } from '../lib/history.js'
+import { lastEntryFor, pinnedNoteFor, setSpanAt, setsRepsOf } from '../lib/history.js'
 import { sessionPast } from '../lib/gyms.js'
 import { loadReference, setNeedsConfirm } from '../lib/plausible-load.js'
 import { effortColor, rirOf } from '../lib/effort.js'
@@ -67,7 +67,7 @@ const addBurstTo = (row, restSec) => {
   return { ...addCluster(row, { r: reps, restSec }), r: (row.r || 0) + reps }
 }
 
-function Prescription({ entry, setIdx, unit, fallbackRest, children }) {
+function Prescription({ entry, unit, fallbackRest, children }) {
   const target = entry.target || {}
   const reps = target.repsMin > 0 ? `${target.repsMin}–${target.reps}` : target.reps > 0 ? String(target.reps) : ''
   const load = target.weight > 0
@@ -80,7 +80,6 @@ function Prescription({ entry, setIdx, unit, fallbackRest, children }) {
   const badges = [reps && `${reps} Reps`, load, rpe, rest, target.tempo].filter(Boolean)
 
   return <div className="focus-prescription">
-    <span className="focus-badge focus-progress">{setIdx + 1}/{entry.sets.length}</span>
     {badges.map(label => <span className="focus-badge" key={label}>{label}</span>)}
     {children}
   </div>
@@ -111,7 +110,7 @@ function PlateBadge({ S, entry, set }) {
 
 export default function FocusView({
   entryIdx, unit, onToggle, onToggleSide, onField, onMutateSet, onStartTimed,
-  onAddWarmup, onRemoveSetAt, onProgressionSettings, onSwap, onRemoveExercise,
+  onAddWarmup, onAddSet, onRemoveSetAt, onProgressionSettings, onSwap, onRemoveExercise,
   onNoProg, busy, onSelectEntry, onAdvanceUnit, onPairPrev, onPairNext, onUnpair, pointerEpoch,
 }) {
   const S = useStore(state => state.S)
@@ -265,34 +264,62 @@ export default function FocusView({
         </div>
       </div>}
       <header className="focus-card-header">
-        <h2>{exerciseNameFor(ex)}</h2>
-        <button className="iconbtn" aria-label={t('Details')} onClick={() => exerciseDetailSheet(ex)}><Icon name="info" /></button>
-        {isWarmupRow(set) && <span className="focus-warmup" aria-label={t('Warm-up')}>🔥</span>}
-        {isFailureSet(set) && <span className="focus-failure" role="img" aria-label={t('Taken to failure')}>{t('F')}</span>}
-        <button className="iconbtn" aria-label={t('More')} onClick={openExerciseMenu}><Icon name="more" /></button>
+        <div className="focus-title">
+          <h2>{exerciseNameFor(ex)}</h2>
+          <div className="focus-tags">
+            {mode === 'cardio' && <span className="tag acc">{t('Cardio')}</span>}
+            {isSideSet(set) && <span className="tag acc">{t('Per side')}</span>}
+            {(ex.tg || ex.bp) && <span className="tag">{t(ex.tg || ex.bp)}</span>}
+            {ex.eq && <span className="tag">{t(ex.eq)}</span>}
+          </div>
+        </div>
+        {/* Removing an exercise was only in the ⋯ menu, ninth row down, and people did not find
+            it there. The bin sits on the card itself; the confirm sheet behind it says what is
+            lost, so a stray tap costs nothing. */}
+        <div className="focus-actions">
+          <button className="iconbtn" aria-label={t('Details')} onClick={() => exerciseDetailSheet(ex)}><Icon name="info" /></button>
+          <button className="iconbtn focus-remove" aria-label={t('Remove exercise')} disabled={busy} onClick={onRemoveExercise}><Icon name="trash" /></button>
+          <button className="iconbtn" aria-label={t('More')} onClick={openExerciseMenu}><Icon name="more" /></button>
+        </div>
       </header>
 
       <div className="focus-context">
-        <div className="focus-tags">
-          {mode === 'cardio' && <span className="tag acc">{t('Cardio')}</span>}
-          {isSideSet(set) && <span className="tag acc">{t('Per side')}</span>}
-          {(ex.tg || ex.bp) && <span className="tag">{t(ex.tg || ex.bp)}</span>}
-          {ex.eq && <span className="tag">{t(ex.eq)}</span>}
-        </div>
         {entry.target?.note && <div className="focus-note">{entry.target.note}</div>}
         {pinnedNote && <div className="focus-note pinned"><Icon name="flag" />{t('From {0}:', fmtDate(pinnedNote.d, true))} {pinnedNote.note}</div>}
         {entry.note && <div className="focus-note">{entry.note}</div>}
         {last && <div className="focus-last">{t('Last time')} · {fmtDate(last.d)}</div>}
         {guidance && <button className="focus-guidance" onClick={onProgressionSettings}><Icon name="lightbulb" />{t(guidance.policyLabel)}</button>}
       </div>
-      <Prescription entry={entry} setIdx={setIdx} unit={S.unit} fallbackRest={S.restSec}>
+      <Prescription entry={entry} unit={S.unit} fallbackRest={S.restSec}>
         <PlanBadge entry={entry} mode={mode} />
         <PlateBadge S={S} entry={entry} set={set} />
         {entry.noProg === true && <span className="focus-badge warning"><Icon name="pause" />{t('Not counted for progression')}{onNoProg && <button type="button" className="focus-badge-action" onClick={() => onNoProg(false)}>{t('Undo')}</button>}</span>}
       </Prescription>
+      {/* The sets of the exercise, one chip each: tap one to look at it (the chevrons are gone:
+          the chips do their job and Skip still moves on). − and + take the last set away or add
+          one after it, the way "Add set" and "Remove set" do in the other
+          layouts. Focus had no way to change the number of sets before. */}
+      <section className="focus-sets" aria-label={t('Sets')}>
+        <div className="focus-sets-hd">
+          <span className="focus-sets-label">{t('Sets')}</span>
+          <span className="focus-progress"><b>{setIdx + 1}</b>/{entry.sets.length}</span>
+          {isWarmupRow(set) && <span className="focus-warmup" aria-label={t('Warm-up')}>🔥</span>}
+          {isFailureSet(set) && <span className="focus-failure" role="img" aria-label={t('Taken to failure')}>{t('F')}</span>}
+          <span className="focus-sets-edit">
+            <button className="focus-chip edit" aria-label={t('Remove set')} disabled={entry.sets.length <= setSpanAt(entry.sets, entry.sets.length - 1)[1]}
+              onClick={() => onRemoveSetAt(entry.sets.length - 1)}><Icon name="minus" /></button>
+            <button className="focus-chip edit add" aria-label={t('Add set')} onClick={onAddSet}><Icon name="plus" /></button>
+          </span>
+        </div>
+        <div className="focus-chips">
+          {entry.sets.map((row, index) => <button key={index} aria-label={t('Set {0}', index + 1)} aria-current={index === setIdx ? 'step' : undefined}
+            className={'focus-chip' + (index === setIdx ? ' active' : '') + (row.done ? ' done' : '') + (isWarmupRow(row) ? ' warm' : '')}
+            onClick={() => selectSet(index)}>{row.done ? <Icon name="check" /> : index + 1}</button>)}
+        </div>
+      </section>
       {locked && <p className="focus-lock-note" role="status">{t('Complete set {0} to edit this one.', firstOpenSet + 1)}</p>}
 
-      <div data-testid="focus-set" className={(set.done ? 'complete ' : '') + (locked ? 'locked' : '')}>
+      <div data-testid="focus-set" className={'focus-set' + (set.done ? ' complete' : '') + (locked ? ' locked' : '')}>
         {isSideSet(set) ? <div className="focus-sides">{sideFields('L')}{sideFields('R')}</div> : <>
           {mode === 'cardio' ? <>
             {/* An interval run's segment can be half a minute, and is started like a hold: the
@@ -349,14 +376,5 @@ export default function FocusView({
       </div>
     </div>
 
-    <footer className="focus-pager">
-      <button aria-label={t('Previous set')} disabled={setIdx === 0} onClick={() => selectSet(setIdx - 1)}><Icon name="chevronLeft" /></button>
-      <div className="focus-dots">
-        {entry.sets.map((row, index) => <button key={index} aria-label={t('Set {0}', index + 1)}
-          className={(index === setIdx ? 'active ' : '') + (row.done ? 'done' : '')}
-          onClick={() => selectSet(index)} />)}
-      </div>
-      <button aria-label={t('Next set')} disabled={setIdx === entry.sets.length - 1} onClick={() => selectSet(setIdx + 1)}><Icon name="chevronRight" /></button>
-    </footer>
   </div>
 }
