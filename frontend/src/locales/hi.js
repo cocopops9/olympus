@@ -3918,6 +3918,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} आराम का दिन",
   "{0} rest days": "{0} आराम के दिन",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "रुझान",
+  "{0} per week": "{0} प्रति सप्ताह",
+  "{0} per month": "{0} प्रति माह",
   "Edit message": "संदेश संपादित करें",
   "Editing message": "संदेश संपादित हो रहा है",
   "Stop editing": "संपादन रोकें",

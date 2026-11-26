@@ -3918,6 +3918,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} dinlenme günü",
   "{0} rest days": "{0} dinlenme günü",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Eğilim",
+  "{0} per week": "haftada {0}",
+  "{0} per month": "ayda {0}",
   "Edit message": "Mesajı düzenle",
   "Editing message": "Mesaj düzenleniyor",
   "Stop editing": "Düzenlemeyi bırak",

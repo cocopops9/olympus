@@ -3918,6 +3918,10 @@ export default {
   "Strava": "Strava",
   "{0} rest day": "{0} giorno di riposo",
   "{0} rest days": "{0} giorni di riposo",
+  // Line charts: the trend-line chip and its rate (components/LineChart.jsx).
+  "Trend": "Trend",
+  "{0} per week": "{0} a settimana",
+  "{0} per month": "{0} al mese",
   "Edit message": "Modifica messaggio",
   "Editing message": "Modifica del messaggio",
   "Stop editing": "Annulla modifica",
