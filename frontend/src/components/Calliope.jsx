@@ -22,6 +22,7 @@ import portrait from '../assets/calliope.webp'
 import figure from '../assets/calliope-full.webp'
 import mouth from '../assets/calliope-mouth.webp'
 import '../calliope.css'
+import { useSwipeUpToExpand } from './swipe-sheet.js'
 
 /**
  * What she is doing on screen: `tour` is null, or { id, steps, then, key }: `steps` null for the
@@ -288,47 +289,76 @@ function Tour({ tour }) {
 
 // ---- Ask Calliope -------------------------------------------------------------------------------
 
-function AskSheet({ close, question }) {
+// One conversation with her for the whole app session, shared by the small window (the sheet)
+// and the full screen (views/CoachAI.jsx), so making one into the other keeps it, and an answer
+// asked for in one lands in the other. Kept in memory only, as it always was.
+const useGuideChat = create(() => ({ log: [], draft: '', busy: false, err: '' }))
+export const resetGuideChatForTests = () => useGuideChat.setState({ log: [], draft: '', busy: false, err: '' })
+
+async function askGuide(said) {
+  const st = useGuideChat.getState()
+  const q = String(said ?? st.draft).trim()
+  if (!q || st.busy) return
+  const asked = [...st.log, { role: 'user', content: q }]
+  useGuideChat.setState({ log: asked, draft: '', err: '', busy: true })
+  try {
+    const app = useStore.getState()
+    const path = String(window.location.hash || '').replace(/^#/, '').split('?')[0]
+    const r = await askCalliope(asked, { S: app.S, path })
+    const answer = r.text || t('I could not answer just now. Check the connection and ask me again.')
+    useGuideChat.setState({ log: [...asked, { role: 'assistant', content: answer, go: r.go }] })
+  } catch (e) {
+    useGuideChat.setState({ err: askErrorText(e) })
+  } finally { useGuideChat.setState({ busy: false }) }
+}
+
+/**
+ * The conversation with her, for a view of it: what was said, the draft, and sending. A new
+ * answer is read aloud by the view on screen when it arrives (not one that was already there).
+ */
+function useGuideConversation() {
   const voice = useCalliopeVoice()
-  const [log, setLog] = useState([])          // { role, content, go }
-  const [draft, setDraft] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
+  const { log, draft, busy, err } = useGuideChat()
+  const setDraft = v => useGuideChat.setState({ draft: v })
+  const send = said => { voice.hush(); return askGuide(said) }
+  const seen = useRef(log.length)
+  useEffect(() => {
+    const fresh = log.length > seen.current ? log.slice(seen.current).filter(m => m.role === 'assistant') : []
+    seen.current = log.length
+    if (fresh.length) voice.say(fresh[fresh.length - 1].content)
+  }, [log.length])   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { warmVoice() }, [])
+  return { voice, log, draft, setDraft, busy, err, send }
+}
+
+const helloText = () => t('Ask me how anything in the app works. For training itself, ask Hercules and Athena.')
+
+// The small window made full screen (views/CoachAI.jsx, ?c=calliope).
+const openFull = close => { close(); setTimeout(() => { window.location.hash = '#/ai?c=' + GUIDE }, 0) }
+const SWIPE_ZONES = { skip: 'textarea, input, .cal-in, .cal-chips', list: '.cal-ask-log', handle: '.grab, .cal-ask-h' }
+
+function AskSheet({ close, question }) {
+  const { voice, log, draft, setDraft, busy, err, send } = useGuideConversation()
   const end = useRef(null)
-  const hello = t('Ask me how anything in the app works. For training itself, ask Hercules and Athena.')
+  const root = useRef(null)
+  const expand = () => { voice.hush(); openFull(close) }
+  useSwipeUpToExpand(root, expand, SWIPE_ZONES)
 
-  const send = async said => {
-    const q = String(said ?? draft).trim()
-    if (!q || busy) return
-    const asked = [...log, { role: 'user', content: q }]
-    setLog(asked); setDraft(''); setErr(''); setBusy(true)
-    voice.hush()
-    try {
-      const st = useStore.getState()
-      const path = String(window.location.hash || '').replace(/^#/, '').split('?')[0]
-      const r = await askCalliope(asked, { S: st.S, path })
-      const answer = r.text || t('I could not answer just now. Check the connection and ask me again.')
-      setLog([...asked, { role: 'assistant', content: answer, go: r.go }])
-      voice.say(answer)
-    } catch (e) {
-      setErr(askErrorText(e))
-    } finally { setBusy(false) }
-  }
-
-  useEffect(() => { warmVoice(); if (question) send(question) }, [])   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (question) send(question) }, [])   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [log.length, busy, err])
 
   const go = route => { voice.hush(); close(); window.location.hash = '#' + route }
   const tour = () => { voice.hush(); close(); replayGuide() }
 
-  return <div className="cal-ask">
+  return <div className="cal-ask" ref={root}>
     <div className="cal-ask-h">
       <CalliopeFace size={46} className={voice.talking ? 'talking' : ''} />
       <div className="grow"><b>{t('Calliope')}</b><div className="small muted">{t('Your guide to the app')}</div></div>
       <VoiceToggle voice={voice} />
+      <button type="button" className="iconbtn" onClick={expand} aria-label={t('Full screen')}><Icon name="expand" /></button>
     </div>
     <div className="cal-ask-log" data-nodrag>
-      <div className="cal-m her">{hello}</div>
+      <div className="cal-m her">{helloText()}</div>
       {log.map((m, i) => <div key={i} className={'cal-m ' + (m.role === 'user' ? 'me' : 'her')}>
         {m.content}
         {m.go && <div className="cal-m-go"><Button size="sm" variant="tinted" trailingIcon="chevronRight" onClick={() => go(m.go)}>{t('Take me there')}</Button></div>}
@@ -348,6 +378,60 @@ function AskSheet({ close, question }) {
     </form>
     <button type="button" className="cal-again" onClick={tour}><Icon name="sparkles" /> {t('Show me around again')}</button>
   </div>
+}
+
+/**
+ * Calliope full screen (views/CoachAI.jsx): the same conversation as her small window, laid out
+ * like the coaches' full screen. `leave` closes the full screen.
+ */
+export function CalliopeConversation({ leave }) {
+  const { voice, log, draft, setDraft, busy, err, send } = useGuideConversation()
+  const end = useRef(null)
+  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [log.length, busy, err])
+  const go = route => { voice.hush(); leave?.(); setTimeout(() => { window.location.hash = '#' + route }, 0) }
+  const tour = () => { voice.hush(); replayGuide() }
+  return <>
+    <main className="cai-main">
+      <div className="cai-col">
+        {!log.length && <div className="cai-hi">
+          <CalliopeFace size={96} className={voice.talking ? 'talking' : ''} />
+          <h2>{t('Calliope')}</h2>
+          <p className="muted">{helloText()}</p>
+          {!busy && <div className="cai-sugg">
+            {starterQuestions().map(q => <button key={q} className="cai-card" onClick={() => send(q)}><Icon name="sparkles" /><span>{q}</span></button>)}
+          </div>}
+          <button type="button" className="cal-again" onClick={tour}><Icon name="sparkles" /> {t('Show me around again')}</button>
+        </div>}
+        {log.map((m, i) => m.role === 'user'
+          ? <div key={i} className="cai-me">{m.content}</div>
+          : <div key={i} className="cai-him">
+            {log[i - 1]?.role !== 'assistant' && <div className="cai-who"><CalliopeFace size={24} />{t('Calliope')}</div>}
+            <div className="cai-text"><p>{m.content}</p>
+              {m.go && <div className="cal-m-go"><Button size="sm" variant="tinted" trailingIcon="chevronRight" onClick={() => go(m.go)}>{t('Take me there')}</Button></div>}
+            </div>
+          </div>)}
+        {busy && <div className="cai-him"><div className="cai-who"><CalliopeFace size={24} className="talking" />{t('Calliope')}</div>
+          <div className="hc-typing" aria-label={t('Calliope is thinking')}><i /><i /><i /></div></div>}
+        {err && <div className="hc-err" role="alert">{err}</div>}
+        <div ref={end} />
+      </div>
+    </main>
+    <form className="cai-in" onSubmit={e => { e.preventDefault(); send() }}>
+      <div className="cai-box">
+        <textarea rows={1} maxLength={500} value={draft} placeholder={t('Ask about the app…')} aria-label={t('Ask about the app…')}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
+        <MicButton guide={false} onText={setDraft} onFinal={text => send(calledByName(text) ?? text)} disabled={busy} />
+        <button type="submit" className="hc-send" disabled={busy || !draft.trim()} aria-label={t('Send')}><Icon name="arrowUp" /></button>
+      </div>
+    </form>
+  </>
+}
+
+/** Her voice switch, for the full screen's top bar. */
+export function CalliopeVoiceToggle() {
+  const voice = useCalliopeVoice()
+  return <VoiceToggle voice={voice} />
 }
 
 /**

@@ -12,7 +12,7 @@ vi.mock('../lib/api.js', async orig => ({ ...(await orig()), api }))
 
 import { DEF, useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { CalliopeFigure, calliopeSheet } from './Calliope.jsx'
+import { CalliopeFigure, calliopeSheet, resetGuideChatForTests } from './Calliope.jsx'
 import { calledByName, openGuide } from '../lib/calliope.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -37,6 +37,7 @@ beforeEach(() => {
   Object.values(voice).forEach(f => f.mockClear())
   api.mockReset()
   useUI.setState({ sheets: [] })
+  resetGuideChatForTests()
   useStore.setState({ S: clone(DEF), user: { id: 'u1', name: 'Ada' } })
   window.location.hash = '#/home'
 })
@@ -103,6 +104,35 @@ describe('ask Calliope', () => {
     await flush()
     expect(bubbles().at(-1)).toBe('Tap the check at the end of the row.')
     expect(voice.speak).not.toHaveBeenCalled()
+  })
+})
+
+describe('Calliope full screen', () => {
+  it('has a full-screen button that opens her in the full-screen AI panel', async () => {
+    vi.useFakeTimers()
+    show(<Sheet />)
+    act(() => calliopeSheet())
+    const btn = host.querySelector('.cal-ask-h button[aria-label="Full screen"]')
+    expect(btn).not.toBe(null)
+    act(() => btn.click())
+    act(() => { vi.advanceTimersByTime(10) })
+    expect(window.location.hash).toBe('#/ai?c=calliope')
+    expect(useUI.getState().sheets.length).toBe(0)
+    vi.useRealTimers()
+  })
+
+  it('keeps the conversation when her window is opened again (and so when it changes size)', async () => {
+    api.mockResolvedValue({ reply: 'Tap the check at the end of the row.', left: 5 })
+    show(<Sheet />)
+    act(() => calliopeSheet('How do I log a set?'))
+    await flush()
+    await flush()
+    act(() => useUI.setState({ sheets: [] }))
+    act(() => calliopeSheet())
+    await flush()
+    expect(bubbles()).toContain('How do I log a set?')
+    expect(bubbles().at(-1)).toBe('Tap the check at the end of the row.')
+    expect(api).toHaveBeenCalledTimes(1)
   })
 })
 
