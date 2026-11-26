@@ -2282,6 +2282,38 @@ button.wl-summary{width:100%;padding:0 0 10px;text-align:start;border-radius:var
   background:none;border:0;color:var(--red);font:inherit;font-size:15px;font-weight:600;cursor:pointer;border-radius:14px}
 .wmenu-discard:active{background:color-mix(in srgb,var(--red) 12%,transparent)}
 
+/* ---- On every exercise card: the bin beside ⋯, and the number of sets as − / + under the sets ---- */
+.exhd .ex-remove{color:color-mix(in srgb,var(--red) 80%,var(--label-2))}
+.exhd .ex-remove:active{background:color-mix(in srgb,var(--red) 14%,transparent)}
+.exhd .ex-remove:disabled{opacity:.35}
+.sets-warm{margin-bottom:8px}
+.sets-edit{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sets-edit-b{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:8px 10px;border-radius:12px;border:0;
+  font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--label);background:transparent;box-shadow:inset 0 0 0 1.5px var(--sep)}
+.sets-edit-b .icn{font-size:15px;--icon-stroke:2.4}
+.sets-edit-b.add{color:var(--acc);background:color-mix(in srgb,var(--acc) 9%,transparent);box-shadow:inset 0 0 0 1.5px var(--acc-line)}
+.sets-edit-b:active{transform:scale(.98)}
+.sets-edit-b:disabled{opacity:.35;cursor:default}
+
+/* ---- An exercise's ⋯ and a set's menu (sheets.jsx GoldMenu), in the gold of .wmenu ----
+   The name, the Greek key, the common actions as tiles, the rest as cards, Remove as a red button. */
+.xmenu-name{text-align:center;font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:2px 8px 0;text-transform:capitalize}
+.xmenu-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.xmenu .xmenu-tile{flex-direction:row;align-items:center;gap:12px;padding:14px 12px;font:inherit;cursor:pointer;border:0}
+.xmenu-tile:disabled{opacity:.4}
+.xmenu-tt{display:grid;gap:2px;min-width:0}
+.xmenu-ts{font-size:12px;color:var(--label-2);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xmenu .lrow-s{white-space:normal}
+.xmenu-row{width:100%;cursor:pointer}
+.xmenu-row.disabled{opacity:.4;pointer-events:none}
+.xmenu-row .menu-on{margin-inline-start:auto}
+.xmenu-danger{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;margin-top:2px;padding:12px;
+  border-radius:16px;border:0;font:inherit;font-size:16px;font-weight:700;cursor:pointer;color:var(--red);
+  background:color-mix(in srgb,var(--red) 10%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--red) 45%,transparent)}
+.xmenu-danger:active{background:color-mix(in srgb,var(--red) 18%,transparent)}
+.xmenu-danger:disabled{opacity:.4}
+.xmenu-danger+.xmenu-danger{margin-top:10px}
+
 /* ----------------------------------------------------------- RTL (Arabic) -- */
 /* Directional icons flip: back chevrons point right, trailing chevrons point left. */
 [dir="rtl"] [data-icon="chevronLeft"],

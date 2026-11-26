@@ -26,6 +26,7 @@ import { durationSheet } from './components/DurationWheel.jsx'
 import { SG_NAME_MAX } from './lib/superset-meta.js'
 import { REST_MAX, fmtRest } from './lib/duration.js'
 import Icon from './components/Icon.jsx'
+import Meander from './components/Meander.jsx'
 import { SOURCE_URL } from './lib/app-info.js'
 import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow } from './components/ui.jsx'
 import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
@@ -159,10 +160,50 @@ export function askAddDeviceData(extras) {
 // A title is shown as written: most are sentences ("Convert to lb?", "Set 2"), which a default
 // title-casing turned into "Convert To Lb?". An exercise name passes exerciseNameClass as
 // titleClass, which title-cases the lower-case packs and leaves a cased one alone.
-function MenuSheet({ title, titleClass = '', subtitle, items, sections, close }) {
+// The gold look (look: 'gold'), as the workout's own ⋯ (components/WorkoutMenu.jsx): the name
+// over a strip of Greek key, the rows marked `tile` as big gold tiles up top, the other groups as
+// cards under gold heads, and a destructive row (danger) as a full-width red button at the end,
+// where it is found instead of being the last line of a long list.
+function GoldMenu({ title, titleClass, subtitle, groups, close }) {
+  const tap = it => () => { if (it.disabled) return; close(); it.onClick && it.onClick() }
+  const all = groups.flatMap(g => g.items)
+  const tiles = all.filter(it => it.tile && !it.danger)
+  const danger = all.filter(it => it.danger)
+  const rest = groups.map(g => ({ ...g, items: g.items.filter(it => !it.tile && !it.danger) })).filter(g => g.items.length)
+  return <div className="wset xmenu">
+    {title && <h3 className={'xmenu-name ' + (titleClass || '')}>{title}</h3>}
+    {subtitle && <div className="wmenu-sub">{subtitle}</div>}
+    <Meander id="xmenu-key" className="wmenu-key" />
+    {tiles.length > 0 && <div className="xmenu-tiles">
+      {tiles.map((it, i) => <button key={i} type="button" disabled={it.disabled || undefined}
+        className={'wset-tile wmenu-tile xmenu-tile menu-item' + (i === 0 ? ' main' : '')} onClick={tap(it)}>
+        <span className="wmenu-ti"><Icon name={it.icon} /></span>
+        <span className="xmenu-tt"><span className="wmenu-tl tt">{it.label}</span>{it.sub && <span className="xmenu-ts ss">{it.sub}</span>}</span>
+      </button>)}
+    </div>}
+    {rest.map((g, gi) => <section key={gi} className="sect">
+      {g.title && <h2 className="sect-t">{g.title}</h2>}
+      <div className="sect-b">
+        {g.items.map((it, i) => <div key={i} className={'lrow tap xmenu-row menu-item' + (it.disabled ? ' disabled' : '')}
+          aria-disabled={it.disabled || undefined} {...tappable(it.disabled ? null : tap(it))}>
+          {it.icon && <span className="lrow-i"><Icon name={it.icon} /></span>}
+          <span className="lrow-m"><span className="lrow-t tt">{it.label}</span>{it.sub && <span className="lrow-s ss">{it.sub}</span>}</span>
+          {it.on != null ? <span className={'menu-on' + (it.on ? ' is-on' : '')}><Icon name="check" /></span>
+            : it.chevron && <Icon name="chevronRight" className="lrow-c" />}
+        </div>)}
+      </div>
+    </section>)}
+    {danger.map((it, i) => <button key={i} type="button" className="xmenu-danger menu-item danger" disabled={it.disabled || undefined} onClick={tap(it)}>
+      <Icon name={it.icon || 'trash'} /><span className="tt">{it.label}</span>
+    </button>)}
+  </div>
+}
+
+function MenuSheet({ title, titleClass = '', subtitle, items, sections, look, close }) {
   const groups = (sections || [{ items }])
     .map(g => ({ title: g.title, items: (g.items || []).filter(Boolean) }))
     .filter(g => g.items.length)
+  if (look === 'gold') return <GoldMenu title={title} titleClass={titleClass} subtitle={subtitle} groups={groups} close={close} />
   return <>
     {title && <h3 className={titleClass || undefined} style={{ marginBottom: subtitle ? 2 : 10 }}>{title}</h3>}
     {subtitle && <div className="muted small" style={{ marginBottom: 10 }}>{subtitle}</div>}
