@@ -3938,6 +3938,10 @@ export default {
   "Stop editing": "หยุดแก้ไข",
   "edited": "แก้ไขแล้ว",
   "A message can be edited for 5 hours after it is sent.": "แก้ไขข้อความได้ภายใน 5 ชั่วโมงหลังส่ง",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT และ Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "ถามผู้ช่วย AI เกี่ยวกับการฝึกของคุณ และโพสต์การออกกำลังกายไปที่ Strava",
+  "Post every workout you finish to your Strava feed.": "โพสต์ทุกการออกกำลังกายที่คุณจบไปยังฟีด Strava",
+  "Connect to Strava": "เชื่อมต่อกับ Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} สูงกว่าสถิติดีที่สุดของคุณมาก (1RM โดยประมาณ {1}) พิมพ์ผิดหรือเปล่า?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} มากกว่าที่ใครเคยยกได้ พิมพ์ผิดหรือเปล่า?",
 }

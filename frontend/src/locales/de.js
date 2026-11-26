@@ -3947,6 +3947,10 @@ export default {
   "Stop editing": "Bearbeiten beenden",
   "edited": "bearbeitet",
   "A message can be edited for 5 hours after it is sent.": "Eine Nachricht kann bis 5 Stunden nach dem Senden bearbeitet werden.",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT und Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "Frag deinen KI-Assistenten zu deinem Training und poste deine Workouts auf Strava.",
+  "Post every workout you finish to your Strava feed.": "Poste jedes beendete Workout in deinen Strava-Feed.",
+  "Connect to Strava": "Mit Strava verbinden",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} liegt weit über deiner Bestleistung (geschätztes 1RM {1}). Ein Tippfehler?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} ist mehr, als je ein Mensch gehoben hat. Ein Tippfehler?",
 }

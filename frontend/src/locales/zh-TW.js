@@ -3920,6 +3920,10 @@ export default {
   "Stop editing": "停止編輯",
   "edited": "已編輯",
   "A message can be edited for 5 hours after it is sent.": "訊息在傳送後 5 小時內可以編輯。",
+  "Claude, ChatGPT and Strava": "Claude、ChatGPT 與 Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "向 AI 助理詢問你的訓練，並把訓練發佈到 Strava。",
+  "Post every workout you finish to your Strava feed.": "把你完成的每次訓練發佈到 Strava 動態。",
+  "Connect to Strava": "連結 Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} 遠高於你的最佳成績（估算 1RM {1}）。是輸入錯誤嗎？",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} 超過了人類舉起過的最大重量。是輸入錯誤嗎？",
 }

@@ -3930,6 +3930,10 @@ export default {
   "Stop editing": "Szerkesztés befejezése",
   "edited": "szerkesztve",
   "A message can be edited for 5 hours after it is sent.": "Az üzenet az elküldése után 5 óráig szerkeszthető.",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT és Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "Kérdezd az MI-asszisztensedet az edzéseidről, és tedd közzé az edzéseidet a Straván.",
+  "Post every workout you finish to your Strava feed.": "Minden befejezett edzésed kerüljön fel a Strava-hírfolyamodba.",
+  "Connect to Strava": "Csatlakozás a Stravához",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} jóval meghaladja a legjobbadat (becsült 1RM {1}). Elírás?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} több, mint amennyit valaha bárki felemelt. Elírás?",
 }

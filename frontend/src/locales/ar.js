@@ -3982,6 +3982,10 @@ export default {
   "Stop editing": "إيقاف التعديل",
   "edited": "معدّلة",
   "A message can be edited for 5 hours after it is sent.": "يمكن تعديل الرسالة خلال 5 ساعات من إرسالها.",
+  "Claude, ChatGPT and Strava": "Claude وChatGPT وStrava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "اسأل مساعد الذكاء الاصطناعي عن تمرينك وانشر تمارينك على Strava.",
+  "Post every workout you finish to your Strava feed.": "انشر كل تمرين تنهيه في موجز Strava.",
+  "Connect to Strava": "الاتصال بـ Strava",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} أعلى بكثير من أفضل ما رفعته (1RM المقدّر {1}). هل هو خطأ في الكتابة؟",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} أكثر مما رفعه أي إنسان على الإطلاق. هل هو خطأ في الكتابة؟",
 }

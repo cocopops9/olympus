@@ -3927,6 +3927,10 @@ export default {
   "Stop editing": "संपादन रोकें",
   "edited": "संपादित",
   "A message can be edited for 5 hours after it is sent.": "संदेश भेजने के 5 घंटे बाद तक उसे संपादित किया जा सकता है।",
+  "Claude, ChatGPT and Strava": "Claude, ChatGPT और Strava",
+  "Ask your AI assistant about your training, and post your workouts to Strava.": "अपने AI असिस्टेंट से अपनी ट्रेनिंग के बारे में पूछें और अपने वर्कआउट Strava पर पोस्ट करें।",
+  "Post every workout you finish to your Strava feed.": "हर पूरा किया गया वर्कआउट अपनी Strava फ़ीड में पोस्ट करें।",
+  "Connect to Strava": "Strava से कनेक्ट करें",
   "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} आपके सर्वश्रेष्ठ से बहुत ऊपर है (अनुमानित 1RM {1})। क्या यह टाइपिंग की गलती है?",
   "{0} is more than anyone has ever lifted. Is it a typo?": "{0} उससे ज़्यादा है जितना किसी ने कभी उठाया है। क्या यह टाइपिंग की गलती है?",
 }
