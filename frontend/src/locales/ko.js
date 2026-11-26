@@ -3923,4 +3923,6 @@ export default {
   "Stop editing": "수정 취소",
   "edited": "수정됨",
   "A message can be edited for 5 hours after it is sent.": "메시지는 보낸 후 5시간 동안 수정할 수 있습니다.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0}은(는) 최고 기록(추정 1RM {1})보다 훨씬 높습니다. 오타인가요?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0}은(는) 지금까지 누구도 들어 올린 적 없는 무게입니다. 오타인가요?",
 }

@@ -3927,4 +3927,6 @@ export default {
   "Stop editing": "Отменить изменение",
   "edited": "изменено",
   "A message can be edited for 5 hours after it is sent.": "Сообщение можно изменить в течение 5 часов после отправки.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} намного больше вашего лучшего результата (расчётный 1ПМ {1}). Это опечатка?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} больше, чем кто-либо когда-либо поднимал. Это опечатка?",
 }

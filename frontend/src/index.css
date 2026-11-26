@@ -1402,6 +1402,10 @@ body.chips-dragging *{cursor:inherit}
 /* an exercise kept out of progression for this session, with its undo */
 .noprog{display:flex;align-items:center;gap:7px;margin:0 0 6px;font-size:13px;line-height:1.38;color:var(--orange)}
 .noprog svg{flex:none}
+/* A weight far above anything lifted on the exercise: probably a typo (lib/plausible-load.js). */
+.load-warn{display:flex;align-items:flex-start;gap:7px;margin:0 0 8px;padding:8px 10px;border-radius:12px;font-size:13px;line-height:1.38;
+  color:var(--orange);background:color-mix(in srgb,var(--orange) 12%,transparent)}
+.load-warn svg{flex:none;margin-top:1px}
 .noprog .chip{margin-inline-start:auto;padding:3px 11px;font-size:13px;color:var(--orange);background:color-mix(in srgb,var(--orange) 14%,transparent)}
 
 /* start a timed set (issue #16) — sits where you'd otherwise reach for the checkbox */

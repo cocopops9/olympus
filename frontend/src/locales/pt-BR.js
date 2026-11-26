@@ -2093,6 +2093,8 @@ export const PT_BR_OVERRIDES = {
   "Workouts posted": "Treinos publicados",
   "Disconnect Strava": "Desconectar o Strava",
   "Strava": "Strava",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} está muito acima do seu melhor (1RM estimado {1}). É um erro de digitação?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} é mais do que alguém já levantou. É um erro de digitação?",
 }
 
 export default { ...pt, ...PT_BR_OVERRIDES,

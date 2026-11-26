@@ -3934,4 +3934,6 @@ export default {
   "Stop editing": "หยุดแก้ไข",
   "edited": "แก้ไขแล้ว",
   "A message can be edited for 5 hours after it is sent.": "แก้ไขข้อความได้ภายใน 5 ชั่วโมงหลังส่ง",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0} สูงกว่าสถิติดีที่สุดของคุณมาก (1RM โดยประมาณ {1}) พิมพ์ผิดหรือเปล่า?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0} มากกว่าที่ใครเคยยกได้ พิมพ์ผิดหรือเปล่า?",
 }

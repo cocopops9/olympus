@@ -3923,4 +3923,6 @@ export default {
   "Stop editing": "Düzenlemeyi bırak",
   "edited": "düzenlendi",
   "A message can be edited for 5 hours after it is sent.": "Bir mesaj, gönderildikten sonra 5 saat boyunca düzenlenebilir.",
+  "{0} is far above your best (estimated 1RM {1}). Is it a typo?": "{0}, en iyinin çok üzerinde (tahmini 1RM {1}). Yazım hatası mı?",
+  "{0} is more than anyone has ever lifted. Is it a typo?": "{0}, bugüne kadar kimsenin kaldırdığından fazla. Yazım hatası mı?",
 }
