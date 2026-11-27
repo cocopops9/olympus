@@ -9,7 +9,7 @@ import { getLang } from './i18n.js'
 import { localVoicesOn, hasLocalVoice, speakLocal, stopLocal, warmLocal, voiceKey, audioNormal, coachVoices, coachesKey } from './local-voice.js'
 import { speechParts } from './speech-text.js'
 import { castVoice, KOKORO, PIPER } from './voice-cast.js'
-import { api } from './api.js'
+import { api, apiStream } from './api.js'
 import { clipOf } from './wav.js'
 import { textLang } from './text-lang.js'
 
@@ -425,7 +425,110 @@ export function preloadVoice(text, { lang, who, keep = false } = {}) {
   }
 }
 
+// ---- The server's voice as it is made -------------------------------------------------------
+// The server's voice sends its sound while it makes it (api/voice.js synthesizeStream): measured on
+// the function, the first audio is there 0.45 to 0.97 s after the request whatever the length,
+// while a whole piece took about 12 ms a character (4 s for 329 characters). So the answer goes as
+// one request and is played from its first chunk; it is made about five times faster than it is
+// heard, so it does not stop. A server or phone that cannot stream: the pieces below, as before.
+let streamable = true          // turned off for this run of the app when the server says it cannot
+const STREAM_CHARS = 900       // what the server reads in one request (api/voice.js VOICE_LIMITS.textChars)
+let outCtx = null
+const LEAD_S = 0.12            // sound held back before the first chunk plays, against jitter (an assumption: a few chunks' worth)
+const BLOCK_SAMPLES = 2400     // chunks are played in blocks of at least 0.1 s at 24 kHz, not one node per chunk
+
+/** 16-bit little-endian PCM bytes as samples between -1 and 1. */
+export function pcmSamples(bytes) {
+  const n = bytes.length >> 1
+  const out = new Float32Array(n)
+  const v = new DataView(bytes.buffer, bytes.byteOffset, n * 2)
+  for (let i = 0; i < n; i++) out[i] = v.getInt16(i * 2, true) / 32768
+  return out
+}
+
+/**
+ * Reads `say` as `who` from the server's stream. Resolves true when it was heard (or stopped),
+ * false when nothing could be played, so the caller tries the whole pieces instead.
+ */
+const audioContextClass = () => (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) || null
+const canStream = () => streamable && !!audioContextClass() && typeof ReadableStream !== 'undefined'
+async function speakStreamed(say, lang, who, run, onStart) {
+  const AC = audioContextClass()
+  if (!canStream()) return false
+  const stop = new AbortController()
+  let r
+  try {
+    r = await apiStream('/api/voice/stream', { text: say, lang, who }, { signal: stop.signal })
+  } catch (e) {
+    if (e?.status === 404 || e?.status === 501) streamable = false
+    if (e?.status === 429) { serverVoice = false; setTimeout(() => { serverVoice = null; voiceFails = 0 }, 5 * 60 * 1000) }
+    return false
+  }
+  if (run !== speakRun) { stop.abort(); return true }
+  const rate = Number(/rate=(\d+)/.exec(r.headers.get('content-type') || '')?.[1]) || 24000
+  const reader = r.body?.getReader?.()
+  if (!reader) { streamable = false; return false }
+  if (!outCtx || outCtx.state === 'closed') outCtx = new AC()
+  const ctx = outCtx
+  try { await ctx.resume?.() } catch { /* resumes with the first sound */ }
+  const sources = []
+  let next = 0, heard = false, stopped = false, carry = null, pending = [], pendingN = 0
+  const end = () => { stopped = true; stop.abort(); try { reader.cancel() } catch { /* done */ } for (const x of sources) { try { x.stop() } catch { /* ended */ } } }
+  playing = { audio: null, stop: end }
+  const flush = () => {
+    if (!pendingN) return
+    const buf = ctx.createBuffer(1, pendingN, rate)
+    const ch = buf.getChannelData(0)
+    let at = 0
+    for (const p of pending) { ch.set(p, at); at += p.length }
+    pending = []; pendingN = 0
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(ctx.destination)
+    // Late (the network held a chunk back): the sound starts again a lead from now.
+    const when = Math.max(next, ctx.currentTime + LEAD_S)
+    src.start(when)
+    sources.push(src)
+    src.onended = () => { const i = sources.indexOf(src); if (i >= 0) sources.splice(i, 1) }
+    if (!heard) { heard = true; serverVoice = true; voiceFails = 0; const f = onStart; setTimeout(() => f?.(), Math.max(0, (when - ctx.currentTime) * 1000)) }
+    next = when + buf.duration
+  }
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (stopped || run !== speakRun) { end(); return true }
+      if (done) break
+      let b = value
+      if (carry) { const j = new Uint8Array(carry.length + b.length); j.set(carry); j.set(b, carry.length); b = j; carry = null }
+      if (b.length % 2) { carry = b.slice(b.length - 1); b = b.subarray(0, b.length - 1) }
+      const x = pcmSamples(b)
+      pending.push(x); pendingN += x.length
+      // Blocks of BLOCK_SAMPLES: at the measured pace (five times faster than heard) the first is
+      // in within some 20 ms of the first chunk.
+      if (pendingN >= BLOCK_SAMPLES) flush()
+    }
+    flush()
+  } catch {
+    if (!heard) return false
+    flush()
+  }
+  if (!heard) return false
+  // Until the last block has played (or the voice is stopped).
+  await new Promise(resolve => {
+    const wait = () => { if (stopped || run !== speakRun || ctx.currentTime >= next) return resolve(); setTimeout(wait, Math.min(250, Math.max(20, (next - ctx.currentTime) * 1000))) }
+    wait()
+  })
+  if (playing?.stop === end) playing = null
+  return true
+}
+
 async function speakOnServer(say, lang, who, run, onStart, keep) {
+  // The whole answer as it is made, when the server and the phone can (not the guide's kept lines,
+  // which the server keeps whole and serves to everyone).
+  if (!keep && canStream() && say.length <= STREAM_CHARS) {
+    if (await speakStreamed(say, lang, who, run, onStart)) return true
+    if (run !== speakRun) return true
+  }
   // One more try when a piece fails: a cold start or a busy moment is not a reason for the phone's voice.
   const once = piece => {
     const k = aheadKey(piece, lang, who)
@@ -616,6 +719,8 @@ async function speakNow(text, { lang, rate, who, onStart, keep = false } = {}) {
   // skipping through Calliope's tour quickly kept the last line going over the new one while the
   // new one's sound was still on its way from the server.
   playing?.stop()
+  try { fillerAudio?.pause() } catch { /* ended */ }
+  fillerAudio = null
   stopLocal()
   if (!MOBILE && canSpeak()) window.speechSynthesis.cancel()
   if (MOBILE && nativeBusy) nativeTTS().then(({ p }) => p.stop()).catch(() => {})
@@ -677,6 +782,48 @@ async function speakNow(text, { lang, rate, who, onStart, keep = false } = {}) {
     window.speechSynthesis.speak(u)
   })
 }
+// ---- A word while he thinks ----------------------------------------------------------------
+// From the end of a question to the first word of the answer there are still about 3 s (function
+// log, 2026-11-27: the question written out in 0.35 s, the answer in 0.85 to 1.33 s, the voice's
+// first audio 0.5 to 0.9 s after that, and the network between). A short word of his own, ready on
+// the phone, is said as soon as the question has gone, the way a coach next to you says "let me
+// see": made once per language and kept for the run of the app, so it costs one request each.
+const FILLERS = { en: 'Let me see.', it: 'Vediamo.', es: 'A ver.', fr: 'Voyons.', de: 'Mal sehen.', pt: 'Deixa ver.' }
+const fillers = new Map()   // who|lang -> Promise<{ audio, type }>
+let fillerAudio = null
+export const fillerText = lang => FILLERS[String(lang || '').split('-')[0]] || ''
+
+/** Makes `who`'s word for `lang` ready ahead (nothing when the server has no voice for them). */
+export function prepareFiller(who, lang = getLang()) {
+  const text = fillerText(lang)
+  // Only for the server's voice: an offline voice of the phone answers in another voice.
+  if (!text || !onServer(who) || localVoices(who, null, { lang: String(lang).split('-')[0] }).length) return null
+  const k = who + '|' + String(lang).split('-')[0]
+  if (!fillers.has(k)) {
+    const p = askServer(text, voiceTag(String(lang).split('-')[0]), who, false)
+    p.catch(() => { if (fillers.get(k) === p) fillers.delete(k) })
+    fillers.set(k, p)
+  }
+  return fillers.get(k)
+}
+
+/**
+ * Says `who`'s short word for `lang` if it is ready now; never waits for it (a word that comes
+ * after the answer would be worse than none). Resolves when it has been said, or at once.
+ */
+export async function sayFiller(who, lang = getLang()) {
+  const k = who + '|' + String(lang || '').split('-')[0]
+  const p = fillers.get(k)
+  if (!p) { prepareFiller(who, lang); return false }
+  const r = await Promise.race([p, new Promise(res => setTimeout(() => res(null), 30))]).catch(() => null)
+  if (!r?.audio || typeof Audio === 'undefined') return false
+  const audio = new Audio('data:' + (r.type || 'audio/wav') + ';base64,' + r.audio)
+  fillerAudio = audio
+  await new Promise(resolve => { audio.onended = audio.onerror = resolve; audio.play().catch(resolve) })
+  if (fillerAudio === audio) fillerAudio = null
+  return true
+}
+
 /** Asks the server once whether it has a voice, so the first answer is not kept waiting. */
 let warming = null
 export function warmVoice() {
@@ -693,6 +840,8 @@ export async function stopSpeaking({ who } = {}) {
   speaker = null
   speakRun++
   playing?.stop()
+  try { fillerAudio?.pause() } catch { /* ended */ }
+  fillerAudio = null
   stopLocal()
   if (MOBILE) { try { const { p: TTS } = await nativeTTS(); await TTS.stop() } catch { /* nothing playing */ } return }
   if (canSpeak()) window.speechSynthesis.cancel()

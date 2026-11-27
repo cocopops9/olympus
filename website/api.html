@@ -246,7 +246,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>126 endpoints</span>
+    <span>127 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -4664,6 +4664,60 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow rrow">
     <span class="r-code s5">501</span>
     <span class="p-desc">No server voice; the phone reads with its own.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">502</span>
+    <span class="p-desc">The voice service did not answer.</span>
+  </div>
+    </div>
+  </div>
+</details>
+
+<details class="ep" id="op-voiceStream">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/voice/stream</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">Text read aloud by a coach's voice, sent while it is being made</span>
+  </summary>
+  <div class="ep-body">
+<p>The Gemini voice, streamed. The body is raw 16-bit little-endian mono PCM (<code>audio/L16;rate=24000</code>), sent chunk by chunk as the voice service makes it, so the phone can start playing after the first fraction of a second instead of waiting for the whole answer. Only the Gemini voice streams; with Google Chirp configured the answer is 501 and the phone uses <code>/api/voice/speak</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">text<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">lang</span>
+    <span class="p-type">string</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">who</span>
+    <span class="p-type">&quot;chiron&quot; | &quot;hercules&quot; | &quot;athena&quot; | &quot;calliope&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">Raw PCM, <code>Content-Type: audio/L16;rate=&lt;hz&gt;</code>.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">Not signed in.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">429</span>
+    <span class="p-desc">The voice service's quota is spent for now.</span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s5">501</span>
+    <span class="p-desc">This server's voice does not stream; use <code>/api/voice/speak</code>.</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s5">502</span>

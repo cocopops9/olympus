@@ -369,6 +369,119 @@ async function geminiSpeak(words, who, { key, model, fetchImpl, now = Date.now()
   throw new VoiceError(502, 'the voice service did not answer', 'tts-failed');
 }
 
+// ---- The voice as it is made: streamed to the phone -------------------------------------------
+// Measured on the function (2026-11-27, 26 requests): the voice's first audio comes 0.45 to 0.97 s
+// after the request whatever the length, the whole of it about 12 ms a character later (4.0 s for
+// 329 characters, 7.8 s for 379), and it comes in hundreds of chunks. Sent whole, a piece is heard
+// only once all of it is made: Chiron's answers started 1 to 2.5 s after the text and stopped
+// between pieces. Streamed, the first sound follows the first chunk, and since the voice is made
+// about five times faster than it is heard, one request carries the whole answer without a gap.
+
+/** Raw PCM chunks out of a Gemini SSE body, as they arrive: an async generator of { pcm, rate }. */
+export async function* sseAudio(body) {
+  const reader = body.getReader();
+  const text = new TextDecoder();
+  let rest = '';
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      rest += text.decode(value, { stream: true });
+      let nl;
+      while ((nl = rest.indexOf('\n')) >= 0) {
+        const line = rest.slice(0, nl).trim();
+        rest = rest.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        let j; try { j = JSON.parse(line.slice(5)); } catch { continue; }
+        for (const p of j?.candidates?.[0]?.content?.parts || []) if (p?.inlineData?.data) yield pcmOf(p.inlineData);
+      }
+    }
+    const line = rest.trim();
+    if (line.startsWith('data:')) {
+      let j = null; try { j = JSON.parse(line.slice(5)); } catch { /* cut short */ }
+      for (const p of j?.candidates?.[0]?.content?.parts || []) if (p?.inlineData?.data) yield pcmOf(p.inlineData);
+    }
+  } finally { try { reader.releaseLock(); } catch { /* gone */ } }
+}
+
+/**
+ * `text` read by `who`, as it is made: { rate, type, stream } where `stream` is a ReadableStream
+ * of 16-bit little-endian mono PCM at `rate`. Only the Gemini voice streams; otherwise this throws
+ * VoiceError 501 ('tts-nostream' or 'tts-off'), and the caller asks for the whole sound (synthesize).
+ * The first audio is waited for here, so a model that is out of quota or gives nothing is passed
+ * over for the next one before anything is sent.
+ */
+export async function synthesizeStream({ text, who } = {}, { key, geminiKey, geminiModel, fetchImpl = globalThis.fetch, now = Date.now() } = {}) {
+  // The Chirp voice (GOOGLE_TTS_API_KEY) is the one synthesize uses when it is set, and it does not
+  // stream: the caller asks for the whole sound, so the coach keeps one voice.
+  if (key) throw new VoiceError(501, 'this voice does not stream', 'tts-nostream');
+  if (!geminiKey) throw new VoiceError(501, 'no server voice', 'tts-off');
+  const words = String(text || '').trim().slice(0, VOICE_LIMITS.textChars);
+  if (!words) throw new VoiceError(400, 'nothing to say', 'tts-empty');
+  const all = [geminiModel, ...GEMINI_MODELS].filter((m, i, a) => m && a.indexOf(m) === i);
+  const ready = all.filter(m => (resting.get(m) || 0) <= now);
+  const models = ready.length ? ready : all;
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: words }] }],
+    generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: SPEAKER[who] || SPEAKER.hercules } } } },
+  });
+  let quota = false;
+  for (const m of models) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 30000);
+    const t0 = Date.now();
+    let parts = null;
+    try {
+      const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?alt=sse`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey }, body, signal: ctl.signal,
+      });
+      if (!r.ok || !r.body) {
+        console.error('gemini voice', m, r.status, (await r.text().catch(() => '')).slice(0, 120));
+        if (r.status === 429) { quota = true; resting.set(m, now + REST_MS); }
+        clearTimeout(timer);
+        continue;
+      }
+      parts = sseAudio(r.body);
+      const first = await parts.next();
+      if (first.done || !first.value?.pcm?.length) { console.error('gemini voice', m, 'no audio'); clearTimeout(timer); continue; }
+      const rate = first.value.rate || 24000;
+      const firstMs = Date.now() - t0;
+      let bytes = 0, chunks = 0;
+      let odd = null;   // a byte left over: every chunk sent is whole samples
+      const whole = pcm => {
+        let b = pcm;
+        if (odd) { const j = new Uint8Array(odd.length + b.length); j.set(odd); j.set(b, odd.length); b = j; odd = null; }
+        if (b.length % 2) { odd = b.subarray(b.length - 1); b = b.subarray(0, b.length - 1); }
+        return b;
+      };
+      const stream = new ReadableStream({
+        start(c) { const b = whole(first.value.pcm); bytes += b.length; chunks++; if (b.length) c.enqueue(b); },
+        async pull(c) {
+          try {
+            const n = await parts.next();
+            if (n.done) {
+              clearTimeout(timer);
+              console.info(`gemini voice ${m} (streamed): ${words.length} chars, first audio ${firstMs} ms, whole ${Date.now() - t0} ms, ${chunks} chunks, ${(bytes / 2 / rate).toFixed(1)} s of sound`);
+              c.close();
+              return;
+            }
+            const b = whole(n.value.pcm);
+            bytes += b.length; chunks++;
+            if (b.length) c.enqueue(b);
+          } catch (e) { clearTimeout(timer); console.error('gemini voice', m, 'stream cut', e?.name || e); c.error(e); }
+        },
+        cancel() { clearTimeout(timer); ctl.abort(); },
+      });
+      return { rate, type: 'audio/L16;rate=' + rate, stream };
+    } catch (e) {
+      clearTimeout(timer);
+      console.error('gemini voice', m, e?.name || e);
+    }
+  }
+  if (quota) throw new VoiceError(429, 'the voice has no quota left for now', 'tts-quota');
+  throw new VoiceError(502, 'the voice service did not answer', 'tts-failed');
+}
+
 /** `text` read by `who` in `lang`: { audio: base64 mp3 }. */
 export async function synthesize({ text, lang, who } = {}, { key, geminiKey, geminiModel, fetchImpl = globalThis.fetch } = {}) {
   if (!key && !geminiKey) throw new VoiceError(501, 'no server voice', 'tts-off');
