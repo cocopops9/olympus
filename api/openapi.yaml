@@ -3690,6 +3690,29 @@ paths:
         '401': { description: Not signed in. }
         '501': { description: No server voice; the phone reads with its own. }
         '502': { description: The voice service did not answer. }
+  /api/voice/stream:
+    post:
+      tags: [coach]
+      operationId: voiceStream
+      summary: Text read aloud by a coach's voice, sent while it is being made
+      description: The Gemini voice, streamed. The body is raw 16-bit little-endian mono PCM (`audio/L16;rate=24000`), sent chunk by chunk as the voice service makes it, so the phone can start playing after the first fraction of a second instead of waiting for the whole answer. Only the Gemini voice streams; with Google Chirp configured the answer is 501 and the phone uses `/api/voice/speak`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+                lang: { type: string }
+                who: { type: string, enum: [chiron, hercules, athena, calliope] }
+      responses:
+        '200': { description: 'Raw PCM, `Content-Type: audio/L16;rate=<hz>`.' }
+        '401': { description: Not signed in. }
+        '429': { description: The voice service's quota is spent for now. }
+        '501': { description: This server's voice does not stream; use `/api/voice/speak`. }
+        '502': { description: The voice service did not answer. }
   /api/music/top:
     get:
       tags: [social]

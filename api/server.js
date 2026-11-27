@@ -34,7 +34,7 @@ import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from 
 import { createSocial, SocialError } from './social.js';
 import { createChat, ChatError, memoryKv } from './chat.js';
 import { topSongs, searchSongs, deezerPreview } from './music.js';
-import { transcribeWithLang, synthesize, canSynthesize, speakers, VoiceError } from './voice.js';
+import { transcribeWithLang, synthesize, synthesizeStream, canSynthesize, speakers, VoiceError } from './voice.js';
 import { handleMedalTargets } from './medal-model.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
@@ -2782,9 +2782,24 @@ const routes = {
     try { json(res, 200, await synthesize({ text: body.text, lang: body.lang, who: body.who }, { key: String(process.env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(process.env.GEMINI_API_KEY || '').trim(), geminiModel: String(process.env.GEMINI_TTS_MODEL || '').trim() })); }
     catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
   },
+  // The same voice as it is made (voice.js synthesizeStream): 16-bit PCM, its rate in the type.
+  'POST /api/voice/stream': async (req, res) => {
+    const me = socialUser(req, res); if (!me) return;
+    const body = await readBody(req);
+    let s;
+    try { s = await synthesizeStream({ text: body.text, lang: body.lang, who: body.who }, { key: String(process.env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(process.env.GEMINI_API_KEY || '').trim(), geminiModel: String(process.env.GEMINI_TTS_MODEL || '').trim() }); }
+    catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
+    res.writeHead(200, { 'Content-Type': s.type, 'Cache-Control': 'no-store' });
+    const reader = s.stream.getReader();
+    req.on('close', () => { reader.cancel().catch(() => {}); });
+    try {
+      for (;;) { const { done, value } = await reader.read(); if (done) break; if (!res.write(Buffer.from(value))) await new Promise(r => res.once('drain', r)); }
+    } catch { /* the voice was cut: the sound so far has been sent */ }
+    res.end();
+  },
   'GET /api/voice': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
-    json(res, 200, { speak: canSynthesize(process.env), who: speakers(), listen: !!herculesConfig(process.env, 'chiron').key });
+    json(res, 200, { speak: canSynthesize(process.env), who: speakers(), listen: !!herculesConfig(process.env, 'chiron').key, stream: true });
   },
   // Songs for a post: what is popular now in a country, and search (api/music.js).
   'GET /api/music/top': async (req, res) => {

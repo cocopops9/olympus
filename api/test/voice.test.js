@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transcribe, transcribeWithLang, spokenLang, synthesize, synthesizeCached, keepable, keptKey, keptIndex, KEPT, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
+import { transcribe, transcribeWithLang, spokenLang, synthesize, synthesizeStream, synthesizeCached, keepable, keptKey, keptIndex, KEPT, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
@@ -342,4 +342,33 @@ test('the language Whisper heard comes back with the words, as an app language c
   // Nothing heard: no language either.
   const silent = async () => ({ ok: true, json: async () => ({ text: 'Grazie.', language: 'italian' }) });
   assert.deepEqual(await transcribeWithLang({ data: clip, type: 'audio/webm' }, { key: 'k', fetchImpl: silent }), { text: '', lang: '' });
+});
+
+test('the voice is streamed as it is made: PCM chunks in order, whole samples, the next model on a 429', async () => {
+  _clearResting();
+  const pcm = Uint8Array.from({ length: 9 }, (_, i) => i + 1);   // an odd length: the last byte waits
+  const sse = [pcm.subarray(0, 3), pcm.subarray(3, 9)].map(b => 'data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: Buffer.from(b).toString('base64') } }] } }] }) + '\n\n').join('');
+  // The body arrives cut in the middle of its lines.
+  const pieces = [sse.slice(0, 17), sse.slice(17, 90), sse.slice(90)];
+  const urls = [];
+  const fetchImpl = async url => {
+    urls.push(url);
+    if (urls.length === 1) return { ok: false, status: 429, text: async () => 'quota', body: null };
+    const enc = new TextEncoder();
+    return { ok: true, status: 200, body: new ReadableStream({ start(c) { for (const p of pieces) c.enqueue(enc.encode(p)); c.close(); } }) };
+  };
+  const s = await synthesizeStream({ text: 'Rest two minutes.', who: 'chiron' }, { key: '', geminiKey: 'g', fetchImpl });
+  assert.equal(s.rate, 24000);
+  assert.equal(s.type, 'audio/L16;rate=24000');
+  assert.match(urls[0], /gemini-3\.8-flash-lite-tts:streamGenerateContent/);
+  assert.match(urls[1], /gemini-3\.8-flash-tts:streamGenerateContent/);
+  const out = [];
+  const reader = s.stream.getReader();
+  for (;;) { const { done, value } = await reader.read(); if (done) break; out.push(value); }
+  assert.ok(out.every(b => b.length % 2 === 0));
+  assert.deepEqual([...out.flatMap(b => [...b])], [1, 2, 3, 4, 5, 6, 7, 8]);
+  // The Chirp voice does not stream, and no voice at all says so.
+  await assert.rejects(synthesizeStream({ text: 'x' }, { key: 'chirp', geminiKey: 'g', fetchImpl }), e => e.code === 'tts-nostream' && e.status === 501);
+  await assert.rejects(synthesizeStream({ text: 'x' }, { key: '', geminiKey: '', fetchImpl }), e => e.code === 'tts-off');
+  _clearResting();
 });

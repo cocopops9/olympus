@@ -26,7 +26,7 @@ import { Buffer } from 'node:buffer';
 import { createSocial, SocialError } from './social.js';
 import { countryOf, topSongs, searchSongs, deezerPreview } from './music.js';
 import { createChat, ChatError } from './chat.js';
-import { transcribeWithLang, synthesizeCached, keptIndex, canSynthesize, speakers, VoiceError } from './voice.js';
+import { transcribeWithLang, synthesizeCached, synthesizeStream, keptIndex, canSynthesize, speakers, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
 import { handleMedalTargets } from './medal-model.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
@@ -1015,7 +1015,15 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       try { return { body: await synthesizeCached({ text: b.text, lang: b.lang, who: b.who, keep: b.keep === true }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(env.GEMINI_API_KEY || '').trim(), geminiModel: String(env.GEMINI_TTS_MODEL || '').trim(), fetchImpl }, keptLines) }; }
       catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
     },
-    'GET /api/voice': async req => { await signedIn(req); return { body: { speak: canSynthesize(env), who: speakers(), listen: !!herculesConfig(env, 'chiron').key } }; },
+    // The same voice as it is made (voice.js synthesizeStream): 16-bit PCM, its rate in the type.
+    'POST /api/voice/stream': async req => {
+      await signedIn(req); const b = await readJson(req);
+      try {
+        const s = await synthesizeStream({ text: b.text, lang: b.lang, who: b.who }, { key: String(env.GOOGLE_TTS_API_KEY || '').trim(), geminiKey: String(env.GEMINI_API_KEY || '').trim(), geminiModel: String(env.GEMINI_TTS_MODEL || '').trim(), fetchImpl });
+        return { raw: s.stream, headers: { 'Content-Type': s.type, 'Cache-Control': 'no-store' } };
+      } catch (e) { if (e instanceof VoiceError) return { status: e.status, body: { error: e.message, code: e.code } }; throw e; }
+    },
+    'GET /api/voice': async req => { await signedIn(req); return { body: { speak: canSynthesize(env), who: speakers(), listen: !!herculesConfig(env, 'chiron').key, stream: true } }; },
     // Songs for a post: what is popular now in a country, and search (api/music.js).
     'GET /api/music/top': async (req, q) => {
       await signedIn(req);

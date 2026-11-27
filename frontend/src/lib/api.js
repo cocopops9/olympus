@@ -63,6 +63,29 @@ export async function api(path, opts) {
   return request(url, Object.assign({}, init, { headers }), ms)
 }
 
+/**
+ * A POST whose answer is read as it comes (the coaches' voice, /api/voice/stream): resolves with
+ * the Response once its headers are in, within `ms`; the body is the caller's to read, and
+ * `signal` stops it. A status that is not 2xx throws as api() does, with the server's JSON error.
+ */
+export async function apiStream(path, body, { ms = 15000, signal, fetchImpl = globalThis.fetch } = {}) {
+  if (MOBILE && !remoteBase) throw failure(t('This phone is not connected to a server.'), 'not-paired', 0)
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, remoteHeaders())
+  const url = remoteBase ? remoteBase + path : appBase().replace(/\/$/, '') + path
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null
+  if (signal) signal.addEventListener('abort', () => ctl?.abort(), { once: true })
+  const timer = setTimeout(() => ctl?.abort(), ms)
+  try {
+    const r = await fetchImpl(url, { method: 'POST', headers, body: JSON.stringify(body), ...(ctl ? { signal: ctl.signal } : {}) })
+    if (!r.ok) {
+      let data = null
+      try { data = await r.json() } catch { /* not JSON */ }
+      throw Object.assign(new Error((data && data.error) || ('HTTP ' + r.status)), { status: r.status, data: data || {} })
+    }
+    return r
+  } finally { clearTimeout(timer) }
+}
+
 // One exchange, bounded by `ms`. No status on the timeout, like a fetch that failed outright: to
 // the store both mean the server could not be reached, and the device says it is offline instead
 // of waiting forever.

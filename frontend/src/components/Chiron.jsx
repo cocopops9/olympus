@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { t, tn } from '../lib/i18n.js'
+import { t, tn, getLang } from '../lib/i18n.js'
 import { EXIDX, exOr } from '../lib/exercises.js'
 import { modeOf } from '../lib/history.js'
 import { isWarmupRow } from '../lib/workout-model.js'
@@ -17,7 +17,8 @@ import { coachProfileOf } from '../lib/coach-profile.js'
 import { tapWake, quickTips, WAKE_TAPS } from '../lib/chiron.js'
 import { WORKOUT_COACH } from '../lib/hercules.js'
 import { socialReady } from '../lib/social.js'
-import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice, warmCoachVoice, speechGuardMs, releaseMic } from '../lib/voice.js'
+import { canSpeak, speak, speakable, listen, stopSpeaking, canListen, warmVoice, warmCoachVoice, speechGuardMs, releaseMic, prepareFiller, sayFiller } from '../lib/voice.js'
+import { questionLang } from '../lib/text-lang.js'
 import { fmtNum, exerciseNameText } from '../lib/format.js'
 import { useCoachChat, Reply } from './Hercules.jsx'
 import { MicButton, useCanListen } from './Voice.jsx'
@@ -293,6 +294,8 @@ function ChironVoice({ tips, unit, online }) {
       silent = 0
       if (isSleepWord(text)) { await say(t('Good work. Call me when you need me.')); if (going()) sleepNow(); return }
       setPose('thinking')
+      // A word of his while the answer is made (lib/voice.js sayFiller), in the question's language.
+      sayFiller('chiron', heardIn.current || questionLang(text) || getLang()).catch(() => {})
       const reply = await chat.current.send(text, { asked: heardIn.current })
       if (!going()) return
       await say(reply || chat.current.err || t('I could not answer that. Try again.'), { answer: !!reply })
@@ -304,7 +307,7 @@ function ChironVoice({ tips, unit, online }) {
 
   useEffect(() => {
     live.current = true
-    warmVoice()
+    Promise.resolve(warmVoice()).then(() => prepareFiller('chiron', getLang()), () => {})
     warmCoachVoice('chiron')
     run(true)
     return () => { live.current = false; halt(); releaseMic() }
