@@ -72,7 +72,26 @@ export function looping(text) {
 }
 
 /** The words in a recorded clip ({ data: base64, type, lang }), or '' when nothing was said. */
-export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', geminiKey = '', geminiModel = '', hearGraceMs = HEAR_GRACE_MS, fetchImpl = globalThis.fetch } = {}) {
+/**
+ * The language Whisper heard (verbose_json gives its English name, "english"), as an app language
+ * code, or '' when it is none of the app's. A code ("it") is taken as it is.
+ */
+export function spokenLang(whisper) {
+  const v = String(whisper || '').trim().toLowerCase();
+  if (!v) return '';
+  if (Object.hasOwn(LANG_NAME, v)) return v;
+  return Object.keys(LANG_NAME).find(k => LANG_NAME[k].toLowerCase() === v) || '';
+}
+
+/** transcribeWithLang's text only. */
+export async function transcribe(input = {}, opts = {}) { return (await transcribeWithLang(input, opts)).text; }
+
+/**
+ * What was said in a clip, and the language it was said in: { text, lang }. `lang` is Whisper's
+ * finding (spokenLang), '' when Whisper did not answer; the coach is told to answer in it, since
+ * the app's own language is not always the one spoken (hercules.js answerIn).
+ */
+export async function transcribeWithLang({ data, type, lang, hint } = {}, { key, baseUrl = 'https://api.groq.com/openai/v1', model = 'whisper-large-v3', fixModel = 'llama-3.3-70b-versatile', geminiKey = '', geminiModel = '', hearGraceMs = HEAR_GRACE_MS, fetchImpl = globalThis.fetch } = {}) {
   if (!key) throw new VoiceError(503, 'voice is not set up on this server', 'voice-off');
   const ext = extOf(type);
   if (!ext) throw new VoiceError(400, 'unknown recording format', 'clip-format');
@@ -102,14 +121,16 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
       const why = await r.text().catch(() => '');
       console.error('transcribe', r.status, why.slice(0, 300));
       const g = await heard;
-      if (g) return g;
+      if (g) return { text: g, lang: '' };
       throw new VoiceError(502, 'the transcription service did not answer', 'stt-failed');
     }
     const j = await r.json();
     const text = believable(j);
+    const said = spokenLang(j?.language);
+    const out = t => ({ text: t, lang: t ? said : '' });
     // Whisper's well-known inventions over silence or noise.
-    if (/^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|grazie(?: a tutti)?\.?|sottotitoli .*|gracias\.?|merci\.?|you)$/i.test(text)) return '';
-    if (looping(text)) { console.error('transcribe: a loop of words dropped', text.slice(0, 120)); return ''; }
+    if (/^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|grazie(?: a tutti)?\.?|sottotitoli .*|gracias\.?|merci\.?|you)$/i.test(text)) return out('');
+    if (looping(text)) { console.error('transcribe: a loop of words dropped', text.slice(0, 120)); return out(''); }
     // Gemini gets a short grace after Whisper, not the whole of its own time: a model that is slow or
     // overloaded used to hold every question for 9 s (measured in the server's logs, 2026-11-03).
     // Its answer is used when it is there in time; Whisper's, corrected, when it is not. A model that
@@ -119,7 +140,7 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     // after the other (up to 1.5 s plus a model's answer). The price: a correction asked for
     // nothing when Gemini answers within the grace.
     const ready = await within(heard, 0);
-    if (ready != null) { hearOnTime = Date.now(); return ready; }
+    if (ready != null) { hearOnTime = Date.now(); return out(ready); }
     const fixing = mended(text.slice(0, 600), { lang: l, words }, { key, baseUrl, model: fixModel, fetchImpl });
     // The grace is given only while Gemini has lately been on time: in the function's log
     // (2026-11-22) it answered within the grace on none of 51 clips, and the grace added 1.5 s to
@@ -128,12 +149,12 @@ export async function transcribe({ data, type, lang, hint } = {}, { key, baseUrl
     if (Date.now() - hearOnTime > HEAR_TRUST_MS) {
       const t = Date.now();
       heard.then(v => { if (v != null && Date.now() - t <= hearGraceMs) hearOnTime = Date.now(); }, () => {});
-      return await fixing;
+      return out(await fixing);
     }
     const g = await within(heard, hearGraceMs);
-    if (g != null) { hearOnTime = Date.now(); return g; }
+    if (g != null) { hearOnTime = Date.now(); return out(g); }
     hearOnTime = 0;
-    return await fixing;
+    return out(await fixing);
   } finally { clearTimeout(timer); }
 }
 
@@ -308,6 +329,7 @@ async function geminiSpeak(words, who, { key, model, fetchImpl, now = Date.now()
   for (const m of models) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 25000);
+    const t0 = Date.now();
     try {
       const r = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${m}:streamGenerateContent?alt=sse`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body, signal: ctl.signal,
@@ -319,7 +341,14 @@ async function geminiSpeak(words, who, { key, model, fetchImpl, now = Date.now()
       }
       const parts = [];
       let rate = 24000;
-      for (const line of (await r.text()).split('\n')) {
+      const first = Date.now() - t0;
+      const sse = await r.text();
+      // How long the voice takes, from the server: to its first byte and in all, and in how many
+      // audio chunks. Whether streaming the sound on to the phone would start it sooner depends on
+      // the gap between the two (function log, read when Chiron was slow to speak, 2026-11-27).
+      const chunks = (sse.match(/"inlineData"/g) || []).length;
+      console.info(`gemini voice ${m}: ${words.length} chars, first byte ${first} ms, whole ${Date.now() - t0} ms, ${chunks} chunks`);
+      for (const line of sse.split('\n')) {
         if (!line.startsWith('data:')) continue;
         let j; try { j = JSON.parse(line.slice(5)); } catch { continue; }
         for (const p of j?.candidates?.[0]?.content?.parts || []) {

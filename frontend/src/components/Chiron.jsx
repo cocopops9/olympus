@@ -223,6 +223,7 @@ function ChironVoice({ tips, unit, online }) {
   const stopListening = useRef(null)
   const mouthTimer = useRef(null)
   const loop = useRef(0)   // which run of the loop is current: a new one makes the old stop
+  const heardIn = useRef('')   // the language the last question was heard in (lib/voice.js listen)
 
   // One conversation per workout, as in the sheet.
   useEffect(() => {
@@ -262,12 +263,13 @@ function ChironVoice({ tips, unit, online }) {
     // "Listening" once the microphone really records, so the first words are never said too early.
     setPose('idle'); setHeard('')
     let last = '', done = false
+    heardIn.current = ''
     // A recogniser that never starts or never stops counts as silence after 20 seconds.
     const guard = setTimeout(() => { stopListening.current?.(); end(last.trim()) }, 35000)
     const end = v => { if (!done) { done = true; clearTimeout(guard); stopListening.current = null; resolve(v) } }
     // Once the person stops talking he says he is writing it out: the microphone is no longer
     // listening, and a new user knows the words were heard.
-    listen({ onReady: () => setPose('listening'), onHeard: () => setPose('writing'), onText: text => { if (text) { last = text; setHeard(text) } }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
+    listen({ onReady: () => setPose('listening'), onHeard: () => setPose('writing'), onText: (text, final, said) => { if (text) { last = text; setHeard(text) } if (final) heardIn.current = said || '' }, onEnd: error => { if (error) useUI.getState().toast(t('The microphone stopped: {0}', error)); end(last.trim()) } })
       .then(stop => { stopListening.current = stop; if (!live.current) stop() }, e => end(e?.code === 'permission' ? false : ''))
   })
 
@@ -291,7 +293,7 @@ function ChironVoice({ tips, unit, online }) {
       silent = 0
       if (isSleepWord(text)) { await say(t('Good work. Call me when you need me.')); if (going()) sleepNow(); return }
       setPose('thinking')
-      const reply = await chat.current.send(text)
+      const reply = await chat.current.send(text, { asked: heardIn.current })
       if (!going()) return
       await say(reply || chat.current.err || t('I could not answer that. Try again.'), { answer: !!reply })
     }

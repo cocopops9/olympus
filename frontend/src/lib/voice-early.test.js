@@ -91,17 +91,49 @@ describe('early transcription', () => {
     reply = () => ({ text: 'hello' })
   })
 
-  it('does not end early on an unfinished sentence', async () => {
-    reply = () => ({ text: 'What should I train' })
+  it('ends an unpunctuated question after heardMs, not after the long pause', async () => {
+    // Whisper often writes a spoken question without its question mark (2026-11-27: the question
+    // waited 1.7 s and 2.9 s for the long pause after its text was back).
+    reply = () => ({ text: 'What should I train', lang: 'en' })
     const { out, LISTEN } = await start()
     await run(LISTEN.calibrateMs + 100)
     level = 0.2
     await run(600)
     level = 0
-    await run(LISTEN.sentenceMs + 400)
+    await run(LISTEN.sentenceMs + 300)
+    expect(out.ended).toBe(false)
+    await run(LISTEN.heardMs - LISTEN.sentenceMs)
+    expect(out.ended).toBe(true)
+    expect(LISTEN.heardMs).toBeLessThan(LISTEN.pauseMs / 2)
+    reply = () => ({ text: 'hello' })
+  })
+
+  it('a single word still waits for the long pause', async () => {
+    reply = () => ({ text: 'Bench' })
+    const { out, LISTEN } = await start()
+    await run(LISTEN.calibrateMs + 100)
+    level = 0.2
+    await run(600)
+    level = 0
+    await run(LISTEN.heardMs + 300)
     expect(out.ended).toBe(false)
     await run(LISTEN.earlyPauseMs)
     expect(out.ended).toBe(true)
+    reply = () => ({ text: 'hello' })
+  })
+
+  it('passes on the language the server heard the question in', async () => {
+    reply = () => ({ text: 'How much rest should I take?', lang: 'en' })
+    vi.resetModules()
+    const { listen, LISTEN } = await import('./voice.js')
+    let said = null
+    await listen({ onText: (t, final, lang) => { if (final) said = lang }, onEnd: () => {}, lang: 'it-IT' })
+    await run(LISTEN.calibrateMs + 100)
+    level = 0.2
+    await run(600)
+    level = 0
+    await run(LISTEN.pauseMs + 500)
+    expect(said).toBe('en')
     reply = () => ({ text: 'hello' })
   })
 })

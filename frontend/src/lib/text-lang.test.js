@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { textLang } from './text-lang.js'
+import { textLang, questionLang } from './text-lang.js'
 
 describe('textLang', () => {
   it('finds Italian in an answer to a person whose app is in English', () => {
@@ -31,3 +31,13 @@ describe('textLang', () => {
     expect(textLang('Oggi hai fatto un ottimo lavoro sulla panca.', 'it')).toBe('it')
   })
 })
+
+describe('questionLang', () => {
+  it('names the language of a question, or nothing when the words do not settle it', () => {
+    expect(questionLang('How much weight should I put on the bar for the next set?')).toBe('en')
+    expect(questionLang('Quanto peso devo mettere per la prossima serie?')).toBe('it')
+    expect(questionLang('OK')).toBe('')
+    expect(questionLang('')).toBe('')
+  })
+})
+

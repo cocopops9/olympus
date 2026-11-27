@@ -104,3 +104,19 @@ describe('the microphone is never kept by a request that was still opening it', 
     v.unstubAllGlobals()
   })
 })
+
+describe('the first spoken piece', () => {
+  it('cuts a long first sentence at its first clause, so the first sound comes sooner', async () => {
+    const { pieces, opening } = await import('./voice.js')
+    const a = 'Rest about two and a half minutes before the next set, because your last set of bench press was close to failure. Then do 80 kg for 8 reps again.'
+    const p = pieces(a)
+    expect(p[0]).toBe('Rest about two and a half minutes before the next set,')
+    expect(p[0].length).toBeLessThanOrEqual(60)
+    expect(p.join(' ').replace(/\s+/g, ' ')).toBe(a)
+    expect(opening('Short and clear, this one stays.')).toEqual(['Short and clear, this one stays.'])
+    // No clause to cut at: the sentence stays whole rather than breaking mid-phrase.
+    const long = 'Rest about two and a half minutes before the next heavy set of bench press today.'
+    expect(opening(long)).toEqual([long])
+  })
+})
+

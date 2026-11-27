@@ -77,7 +77,12 @@ export const setVoiceHint = fn => { hintOf = typeof fn === 'function' ? fn : nul
 // noise counted as speech: Chiron stayed on "listening" for 25 s after the question ended
 // (2026-11-22, the first clip reached the server 40 s after he was opened). 3 s holds several
 // pauses between words, so speech itself never becomes the floor.
-export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 700, sentenceMs: 1000, specMax: 3, floorMs: 3000 }
+// heardMs: the silence after which a question whose early transcript is back (two words at least)
+// is taken as finished, punctuation or not. Whisper often leaves a spoken question unpunctuated, and
+// it then waited for pauseMs (3.2 s, 4.2 s for a short one): in the function's log (2026-11-27) the
+// question went to Chiron 1.7 s and 2.9 s after its transcript was back. Pauses inside a turn are
+// mostly well under a second; 1.5 s is the assumption that keeps most of them.
+export const LISTEN = { pauseMs: 3200, earlyPauseMs: 4200, earlyMs: 2500, nothingMs: 9000, maxMs: 45000, calibrateMs: 350, specMs: 700, sentenceMs: 1000, heardMs: 1500, specMax: 3, floorMs: 3000 }
 
 /** The voice threshold over a room whose noise changes: `hear(level, now)` says whether it is voice. */
 export function voiceGate({ calibrateMs = LISTEN.calibrateMs, floorMs = LISTEN.floorMs, ratio = 2.2, least = 0.008, t0 = 0 } = {}) {
@@ -95,6 +100,8 @@ export function voiceGate({ calibrateMs = LISTEN.calibrateMs, floorMs = LISTEN.f
   }
 }
 /** Whether a transcript reads as a finished sentence: at least three words, closed by . ? or ! */
+/** Whether an early transcript says enough to end the question on a pause (LISTEN.heardMs). */
+export const saysEnough = text => /\S+\s+\S+/.test(String(text || '').trim())
 export const endsSentence = text => /\S+\s+\S+\s+\S+/.test(String(text || '').trim()) && /[.?!…]["')\]]*$/.test(String(text || '').trim())
 
 /**
@@ -182,7 +189,8 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
   let spoke = !analyser, lastVoice = t0, firstVoice = t0, cancelled = false, finished = false, sent = false
   const gate = voiceGate({ t0 })
   const loud = () => { analyser.getFloatTimeDomainData(buf); let sum = 0; for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i]; return Math.sqrt(sum / buf.length) }
-  const done = (text, error) => { if (finished) return; finished = true; onText?.(text || '', true); onEnd?.(error || null) }
+  // `said`: the language the server heard it in (api/voice.js transcribeWithLang), '' when unknown.
+  const done = (text, error, said = '') => { if (finished) return; finished = true; onText?.(text || '', true, said || ''); onEnd?.(error || null) }
   const release = () => { clearInterval(tick); micLater(stream); try { proc?.disconnect() } catch { /* gone */ } try { ac?.close() } catch { /* closed */ } }
   // The clip of what was said up to the last voice, or null when there is too little to send.
   const clipNow = () => {
@@ -194,7 +202,7 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
   const transcribe = async blob => {
     const data = await blobToBase64(blob)
     const r = await api('/api/voice/transcribe', { method: 'POST', body: JSON.stringify({ data, type: blob.type, lang, hint: (() => { try { return hintOf?.() || '' } catch { return '' } })() }), timeout: 25000 })
-    return r?.text || ''
+    return { text: r?.text || '', lang: r?.lang || '' }
   }
   // The early transcription: { at: the lastVoice it covers, text: null until it is back, promise }.
   let spec = null, specs = 0
@@ -203,7 +211,7 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
     if (!blob) return
     specs++
     const mine = { at: lastVoice, text: null, promise: null }
-    mine.promise = transcribe(blob).then(text => { mine.text = text; return text })
+    mine.promise = transcribe(blob).then(r => { mine.text = r.text; return r })
     mine.promise.catch(() => { if (spec === mine) spec = null })
     spec = mine
   }
@@ -220,9 +228,9 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
     try { onHeard?.() } catch { /* the caller's own */ }
     try {
       // A failed early request is simply made again, as a normal one.
-      const again = () => { const b = clipNow(); return b ? transcribe(b) : '' }
-      const text = early ? await early.promise.catch(again) : await transcribe(blob)
-      done(cancelled ? '' : text)
+      const again = () => { const b = clipNow(); return b ? transcribe(b) : { text: '', lang: '' } }
+      const r = early ? await early.promise.catch(again) : await transcribe(blob)
+      done(cancelled ? '' : r.text, null, cancelled ? '' : r.lang)
     } catch (e) { done('', cancelled ? null : e?.message || 'transcription failed') }
   }
   const stop = () => { if (rec.state !== 'inactive') { try { rec.stop() } catch { send() } } else send() }
@@ -237,7 +245,7 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
       if (spoke && now - lastVoice > pause) return stop()
       const quiet = now - lastVoice
       if (spoke && !finished && !sent && quiet > LISTEN.specMs && specs < LISTEN.specMax && (!spec || spec.at !== lastVoice) && !specBusy()) startSpec()
-      if (spoke && spec && spec.at === lastVoice && spec.text != null && quiet > LISTEN.sentenceMs && endsSentence(spec.text)) return stop()
+      if (spoke && spec && spec.at === lastVoice && spec.text != null && ((quiet > LISTEN.sentenceMs && endsSentence(spec.text)) || (quiet > LISTEN.heardMs && saysEnough(spec.text)))) return stop()
       if (!spoke && now - t0 > LISTEN.nothingMs) return stop()
     } else if (now - t0 > 7000) return stop()
     if (now - t0 > LISTEN.maxMs) stop()
@@ -248,8 +256,8 @@ async function recordAndWrite({ onText, onEnd, onReady, onHeard, lang }) {
 }
 
 /**
- * Listens once. `onText(text, final)` gets what was understood (on the web as it is said; on the
- * phone once, at the end), `onHeard()` once the person has finished and it is being written out,
+ * Listens once. `onText(text, final, lang)` gets what was understood (on the web as it is said; on
+ * the phone once, at the end, with the language the server heard it in, '' when unknown), `onHeard()` once the person has finished and it is being written out,
  * `onEnd(error)` when it stops: by itself after a pause, by the returned
  * stop(), or with `error` (a short reason, for a message) when the recogniser failed. Rejects with
  * { code: 'permission' | 'unavailable' } when it cannot start.
@@ -358,21 +366,36 @@ let voiceFails = 0
 // one before. Doubling assumes the server makes speech at least twice as fast as it is heard,
 // less its fixed cost per request; at most `most` requests are spent on one answer (the server's
 // voice has a quota per request), the last taking what is left.
-export function pieces(text, max = 800, { start = 100, most = 4 } = {}) {
+// The first piece is also short: a server voice takes longer for a longer piece (function log,
+// 2026-11-27: 1.1 s for one of Chiron's first sentences, 3.6 s for another), and nothing is heard
+// until it is back. A first sentence longer than `first` characters is cut at its first clause
+// (a comma, semicolon or colon) between 20 and `first` characters, where a reader pauses anyway.
+export function opening(sentence, first = 60) {
+  if (sentence.length <= first) return [sentence]
+  const re = /[,;:](?=\s)/g
+  let at = -1, m
+  while ((m = re.exec(sentence)) && m.index < first) if (m.index >= 20) { at = m.index; break }
+  if (at < 0) return [sentence]
+  return [sentence.slice(0, at + 1).trim(), sentence.slice(at + 1).trim()].filter(Boolean)
+}
+export function pieces(text, max = 800, { start = 100, most = 4, first = 60 } = {}) {
   const sentences = String(text).match(/[^.!?…\n]+[.!?…]*[\s\n]*/g) || [String(text)]
   const clean = sentences.map(x => x.trim()).filter(Boolean)
   const cut = x => (x.length > max ? x.match(new RegExp('.{1,' + max + '}', 'g')) : [x])
-  if (clean.length <= 1) return clean.flatMap(cut)
-  const out = [clean[0]]
-  let budget = Math.max(start, 2 * clean[0].length)
+  if (!clean.length) return []
+  const [head, ...tail] = opening(clean[0], first)
+  const rest = [...tail, ...clean.slice(1)]
+  if (!rest.length) return cut(head)
+  const out = [head]
+  let budget = Math.max(start, 2 * head.length)
   let cur = ''
-  for (let i = 1; i < clean.length; i++) {
-    cur = cur ? cur + ' ' + clean[i] : clean[i]
+  for (const x of rest) {
+    cur = cur ? cur + ' ' + x : x
     const last = out.length === most - 1
     if (!last && cur.length >= budget) { out.push(cur); cur = ''; budget *= 2 }
   }
   if (cur) out.push(cur)
-  return [out[0], ...out.slice(1).flatMap(cut)]
+  return [...cut(out[0]), ...out.slice(1).flatMap(cut)]
 }
 
 // Lines asked for ahead of time (preloadVoice): the answer waits here until the line is spoken,
@@ -412,7 +435,11 @@ async function speakOnServer(say, lang, who, run, onStart, keep) {
   }
   const ask = piece => once(piece).catch(e => ([501, 404, 401, 429].includes(e?.status) ? Promise.reject(e) : once(piece)))
   const parts = pieces(say)
+  // The first two pieces are asked for together: the first is short (opening), so the second has
+  // less time to be made while it plays. Each next one is asked for when the one before arrives.
   let next = ask(parts[0])
+  let then = parts.length > 1 ? ask(parts[1]) : null
+  then?.catch(() => {})
   for (let i = 0; i < parts.length; i++) {
     let r
     try { r = await next } catch (e) {
@@ -427,8 +454,9 @@ async function speakOnServer(say, lang, who, run, onStart, keep) {
     voiceFails = 0
     if (run !== speakRun) return true
     serverVoice = true
-    next = i + 1 < parts.length ? ask(parts[i + 1]) : null
-    next?.catch(() => {})
+    next = then
+    then = i + 2 < parts.length ? ask(parts[i + 2]) : null
+    then?.catch(() => {})
     await new Promise(resolve => {
       const audio = new Audio('data:' + (r.type || 'audio/mpeg') + ';base64,' + r.audio)
       const end = () => { if (playing?.audio === audio) playing = null; resolve() }

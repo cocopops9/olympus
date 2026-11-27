@@ -5,6 +5,7 @@
 // the one memory every coach shares (lib/coach-memory.js), up to MAX_CHATS per coach with the last
 // MAX_KEPT messages each, so they are there when the chat is opened again. Each coach lists its
 // own; every coach reads a digest of all of them with the training summary.
+import { questionLang } from './text-lang.js'
 import { api } from './api.js'
 import { getLang } from './i18n.js'
 import { useStore } from '../store/useStore.js'
@@ -86,7 +87,9 @@ export function askHercules(list, coach = 'hercules', opts = {}) {
     timeout: ANSWER_MS,
     // The memory every coach shares rides with the summary; the conversation in hand is sent as
     // messages already.
-    body: JSON.stringify({ messages, lang: getLang(), context: herculesContext(S, undefined, chiron
+    // asked: the language of the question (the recogniser's for a spoken one, else read from the
+    // words), which the answer is written in (api/hercules.js answerIn); '' when unclear.
+    body: JSON.stringify({ messages, lang: getLang(), asked: opts.asked || questionLang(list[list.length - 1]?.content || ''), context: herculesContext(S, undefined, chiron
       // Chiron has fewer messages and four times the room for each (api/hercules.js CHIRON_DEFAULTS).
       ? { memory: memoryContext(uid, S, { skipChat: opts.chatId, big: true }), max: CHIRON_CONTEXT }
       : { memory: memoryContext(uid, S, { skipChat: opts.chatId }) }) }),
