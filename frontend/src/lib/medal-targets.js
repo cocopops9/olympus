@@ -3,7 +3,8 @@
 // The tiers of lib/athlete-profile.js need, for each exercise, the gain of z the athlete can expect
 // after 6, 16, 40, 80 and 156 weeks of training. When signed in, that comes from the server
 // (POST /api/medals/targets, api/medal-model.js): a model fitted to the meet histories of
-// OpenPowerlifting lifters of the same sex, age, body weight and starting level. Without a server
+// OpenPowerlifting lifters of the same sex, age, body weight and starting level, and to the
+// 12-week gains of ordinary untrained adults (the FAMuSS study). Without a server
 // (guest mode, a phone not paired) or before the first answer, the curve of athlete-profile.js is
 // used instead. The answer is kept on the device, so the tiers read the same offline.
 //

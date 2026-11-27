@@ -3,7 +3,9 @@
 // The app sends, for each exercise it has calibrated (frontend lib/athlete-profile.js), the
 // athlete's sex, age, body weight and starting z score; the answer is the gain of z the median
 // lifter of that profile made after 6, 16, 40, 80 and 156 weeks, read from a model fitted to
-// OpenPowerlifting meet histories (scripts/medal-model/train.py, data in medal-model-data.js).
+// OpenPowerlifting meet histories and, for the first months of people who never trained, to the
+// FAMuSS training study of about 1000 ordinary adults (scripts/medal-model/train.py, data in
+// medal-model-data.js).
 // The app turns those gains into its bronze to Olympian targets. Only squat, bench press and
 // deadlift are measured; every other exercise asks for the lift closest to it (`lift`).
 //

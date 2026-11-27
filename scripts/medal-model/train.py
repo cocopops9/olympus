@@ -19,12 +19,23 @@ each lifter weighted once; parameters chosen on an inner split of the training l
 on 20 % of lifters held out. The 6 and 16 week gains are read from a hyperbola fitted through
 zero and the 40, 80 and 156 week gains (meets so close together are rare and noisy).
 
-  pip install pandas numpy lightgbm
-  python3 scripts/medal-model/train.py openpowerlifting.csv api/medal-model-data.js
+Ordinary people (since 2026-11-27): FAMuSS (Thompson et al. 2004; the full data as kept by the
+openintro R package, data-raw/famuss/famuss.Rdata): about 1000 untrained adults of 17 to 41, 12
+weeks of supervised training of the non-dominant elbow flexors, 1RM before and after. It measures
+what the meets cannot: the first months of people who never trained. Its 12-week gain (median
+LightGBM on sex, age, body weight, starting z) sets the short horizons for profiles inside its
+range of starting z; the meets keep the long horizons and everyone outside that range. Its limits:
+one isolation exercise, one-arm dumbbell maxima taken as half a barbell curl (assumption), the gain
+of z assumed to carry across exercises (as the app already assumes), ages 17 to 41 only (older
+ages scaled by the meets' own age effect), 12 weeks only.
+
+  pip install pandas numpy lightgbm pyreadr
+  python3 scripts/medal-model/train.py openpowerlifting.csv api/medal-model-data.js famuss.Rdata
 """
 import sys, json, itertools
 import pandas as pd, numpy as np, lightgbm as lgb
 OUT = sys.argv[2]
+FAMUSS = sys.argv[3] if len(sys.argv) > 3 else None
 # Builds (first meet, later meet) pairs per lifter and lift, with the app's z score.
 cols=['Name','Sex','Event','Equipment','Age','BodyweightKg','Best3SquatKg','Best3BenchKg','Best3DeadliftKg','Date']
 df=pd.read_csv(sys.argv[1],usecols=cols,low_memory=False)
@@ -110,6 +121,67 @@ cell=te.assign(w=wt,b=(te.dz<te.pred)).groupby(['Sex','lift','zq','ab'],observed
 cell=cell[cell.n>=200]; print('cells',len(cell),'worst',round((cell.below-0.5).abs().max(),3)); print(cell.sort_values('below').iloc[[0,1,-2,-1]])
 imp=dict(zip(feats,m.feature_importance('gain'))); print({k:round(v/sum(imp.values()),3) for k,v in imp.items()})
 print('cells outside 0.5+-0.08:', int(((cell.below-0.5).abs()>0.08).sum()), 'of', len(cell))
+# ---- Ordinary people: FAMuSS (see the docstring) ----
+CURL={'M':(0.4,0.85),'F':(0.22,0.5)}   # the app's barbell curl norms (lib/strength-level.js)
+def famuss():
+    import pyreadr
+    f=list(pyreadr.read_r(FAMUSS).values())[0]
+    d=f[['id','Gender','Age','Pre.weight','Pre_NDRM_Max','Post_NDRM_Max']].copy()
+    for c in d.columns[2:]: d[c]=pd.to_numeric(d[c],errors='coerce')
+    d=d.dropna(); d=d[(d.Pre_NDRM_Max>0)&(d.Post_NDRM_Max>0)]
+    d['sexF']=d.Gender.astype(str).str.startswith('F').astype(int)
+    sx=np.where(d.sexF==1,'F','M'); bw=d['Pre.weight'].values*0.45359237
+    lo=np.array([CURL[x][0] for x in sx]); hi=np.array([CURL[x][1] for x in sx])
+    s=(np.log(hi)-np.log(lo))/(CE-CI); mu=np.log(lo)-CI*s+np.log(agef(d.Age.values))-np.log(bw/np.where(d.sexF==1,62,80))/3
+    # One-arm dumbbell maximum, in pounds: a barbell curl taken as twice it (assumption).
+    d['z0']=(np.log(2*d.Pre_NDRM_Max.values*0.45359237/bw)-mu)/s
+    d['dz']=np.log(d.Post_NDRM_Max/d.Pre_NDRM_Max)/s
+    d['age0']=d.Age; d['bwr']=bw/np.where(d.sexF==1,62,80)
+    r=np.random.default_rng(7); d['hold']=r.random(len(d))<0.2
+    return d.reset_index(drop=True)
+FF=['sexF','age0','bwr','z0']
+FP=dict(objective='quantile',alpha=0.5,learning_rate=0.05,num_leaves=7,min_data_in_leaf=40,verbose=-1,seed=7)
+if FAMUSS:
+    FD=famuss(); ftr=FD[~FD.hold]
+    fm=lgb.train(FP,lgb.Dataset(ftr[FF],ftr.dz),num_boost_round=150)
+    # Its range of starting z, per sex: full weight between the 5th and 95th centiles, none a
+    # whole z beyond (the trees would only repeat the edge there).
+    FR={sx:tuple(np.quantile(ftr[ftr.sexF==sx].z0,[0.05,0.95])) for sx in (0,1)}
+    print('FAMuSS train',len(ftr),'holdout',int(FD.hold.sum()),'z0 range',{k:tuple(round(x,2) for x in v) for k,v in FR.items()})
+def famuss_weight(sx,z):
+    a,b=FR[sx]; return float(np.clip(1-max(a-z,z-b,0),0,1))
+def famuss_g12(si,age,bwr,z,g40_by_age):
+    """The ordinary people's median 12-week gain. Ages past 41 (the oldest in FAMuSS): the gain at
+    41 scaled by the meets' own 40-week age effect, kept within 0.5 to 1.2."""
+    g=float(fm.predict(pd.DataFrame([[si,min(max(age,17),41),bwr,z]],columns=FF))[0])
+    if age>41:
+        ref=np.interp(41,AG,g40_by_age)
+        if ref>0: g*=float(np.clip(np.interp(age,AG,g40_by_age)/ref,0.5,1.2))
+    return max(g,0.0)
+def famuss_check(arr,AG,BW,Z):
+    """Held-out ordinary people: the 12-week gain read from the exported grid (as the app reads
+    it), against the grid without them and against the app's curve."""
+    te=FD[FD.hold]
+    def grid12(a):
+        out=[]
+        for _,r in te.iterrows():
+            pts=[(AG,r.age0),(BW,r.bwr),(Z,r.z0)]; g=0
+            idx=[];
+            for ax,x in pts:
+                x=min(max(x,ax[0]),ax[-1]); i=max(0,min(len(ax)-2,int(np.searchsorted(ax,x))-1)); f=(x-ax[i])/(ax[i+1]-ax[i]); idx.append((i,f))
+            for da,db,dz in itertools.product((0,1),(0,1),(0,1)):
+                wgt=(idx[0][1] if da else 1-idx[0][1])*(idx[1][1] if db else 1-idx[1][1])*(idx[2][1] if dz else 1-idx[2][1])
+                h=a[int(r.sexF),1,idx[0][0]+da,idx[1][0]+db,idx[2][0]+dz]
+                g+=wgt*(h[0]+(h[1]-h[0])*(12-6)/(16-6))
+            out.append(g)
+        return np.array(out)
+    p_new=grid12(arr); p_old=grid12(ARR_OPL)
+    t=np.clip(te.z0.values,-1,1.999); u=(t+1)/3; tau=np.where(te.z0<=-1,0,0.75*u/(1-u))
+    p_hand=np.maximum(curve(tau+12/52)-curve(tau),0.045*np.sqrt(12/52)/0.3)
+    mae=lambda p: round(float(np.mean(np.abs(te.dz-p))),4)
+    r={'combined':mae(p_new),'meets only':mae(p_old),'hand curve':mae(p_hand),'zero':mae(0),'below':round(float(np.mean(te.dz<p_new)),3)}
+    print('FAMuSS holdout 12-week MAE (and share below the combined median)', r)
+    return r
 # Export: the model's median gain at the medal horizons on a grid, for the server.
 H=[6/52,16/52,40/52,80/52,156/52]
 AG=[16,20,25,30,40,50,60,70]; BW=[0.7,0.85,1.0,1.2,1.45]; Z=[round(-2+0.5*i,1) for i in range(12)]
@@ -123,20 +195,44 @@ arr=np.maximum.accumulate(np.maximum(arr,0),axis=-1)   # gains never shrink with
 # Meets closer than a few months apart are rare and carry first-meet nerves and peaking, so the
 # short horizons are not read from the trees: g(t) = A t / (t + h), through zero at the start,
 # is fitted to the 40, 80 and 156 week gains of each profile and gives the 6 and 16 week ones.
-t3=np.array(H[2:]); hs=np.linspace(0.05,6,240)
-flat=arr.reshape(-1,len(H))
-for i in range(len(flat)):
-    y=flat[i,2:]; best=None
-    for h in hs:
-        f=t3/(t3+h); A=max(0,(f@y)/(f@f)); e=((A*f-y)**2).sum()
-        if best is None or e<best[0]: best=(e,A,h)
-    _,A,h=best
-    flat[i,0]=A*H[0]/(H[0]+h); flat[i,1]=A*H[1]/(H[1]+h)
-arr=np.maximum.accumulate(flat.reshape(arr.shape),axis=-1)
-out={'source':'OpenPowerlifting snapshot to 2019-04-20 (raw/wraps, public domain), LightGBM median regression of z gain since first meet',
-     'holdout':res,'axes':{'sex':['male','female'],'lift':['squat','bench','deadlift'],'age':AG,'bwRatio':BW,'z0':Z,'weeks':[6,16,40,80,156]},
+def short_horizons(arr):
+    t3=np.array(H[2:]); hs=np.linspace(0.05,6,240)
+    flat=arr.copy().reshape(-1,len(H))
+    for i in range(len(flat)):
+        y=flat[i,2:]; best=None
+        for h in hs:
+            f=t3/(t3+h); A=max(0,(f@y)/(f@f)); e=((A*f-y)**2).sum()
+            if best is None or e<best[0]: best=(e,A,h)
+        _,A,h=best
+        flat[i,0]=A*H[0]/(H[0]+h); flat[i,1]=A*H[1]/(H[1]+h)
+    return np.maximum.accumulate(flat.reshape(arr.shape),axis=-1)
+ARR_OPL=short_horizons(arr)
+W=np.array([6,16,40,80,156])
+def opl_gain(si,li,ai,bi,z,weeks):
+    """The meets' gain from starting z `z` over `weeks`, read off the grid (linear in z and weeks)."""
+    if weeks<=0: return 0.0
+    z=min(max(z,Z[0]),Z[-1]); g=np.array([np.interp(z,Z,ARR_OPL[si,li,ai,bi,:,k]) for k in range(len(W))])
+    return float(np.interp(weeks,np.r_[0,W],np.r_[0,g]))
+# Ordinary people: inside FAMuSS's range, the first 12 weeks are theirs, and what follows is the
+# meets' gain from where those 12 weeks left them (the gain to come depends on the level reached,
+# as the meets' model already assumes); 6 weeks is read off the app's curve shape (assumption:
+# a hyperbola with a half-time of 0.75 years, so 57 % of the 12-week gain).
+SIX=(6/(6+39))/(12/(12+39))
+def with_ordinary_people(base):
+    out=base.copy()
+    for si,li,ai,bi,zi in itertools.product(range(2),range(3),range(len(AG)),range(len(BW)),range(len(Z))):
+        w=famuss_weight(si,Z[zi])
+        if w<=0: continue
+        g12=famuss_g12(si,AG[ai],BW[bi],Z[zi],base[si,li,:,bi,zi,2])
+        chain=[SIX*g12]+[g12+opl_gain(si,li,ai,bi,Z[zi]+g12,h-12) for h in W[1:]]
+        out[si,li,ai,bi,zi]=w*np.array(chain)+(1-w)*base[si,li,ai,bi,zi]
+    return np.maximum.accumulate(out,axis=-1)
+arr=with_ordinary_people(ARR_OPL) if FAMUSS else ARR_OPL
+FCHECK=famuss_check(arr,AG,BW,Z) if FAMUSS else None
+out={'source':'OpenPowerlifting snapshot to 2019-04-20 (raw/wraps, public domain), LightGBM median regression of z gain since first meet'+('; short horizons of untrained people from FAMuSS (12 weeks, n~1000)' if FAMUSS else ''),
+     'holdout':res,**({'holdoutFamuss':FCHECK} if FAMUSS else {}),'axes':{'sex':['male','female'],'lift':['squat','bench','deadlift'],'age':AG,'bwRatio':BW,'z0':Z,'weeks':[6,16,40,80,156]},
      'gain':np.round(arr,3).tolist()}
-open(OUT,'w').write('// Generated by scripts/medal-model/train.py from OpenPowerlifting data. Do not edit by hand.\n'
+open(OUT,'w').write('// Generated by scripts/medal-model/train.py from OpenPowerlifting'+(' and FAMuSS' if FAMUSS else '')+' data. Do not edit by hand.\n'
   '// The median gain of z (lib/strength-level.js units) after 6, 16, 40, 80 and 156 weeks, on a grid\n'
   '// of sex x lift x age x body weight (against 80 kg men, 62 kg women) x starting z.\n'
   'export const MEDAL_MODEL = '+json.dumps(out,separators=(',',':'))+';\n')

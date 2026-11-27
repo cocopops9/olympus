@@ -48,9 +48,11 @@
 //
 // The server's model. When signed in, 3 above comes from data instead of the curve: the gains of
 // z after each horizon that the median lifter of the same sex, age, body weight and starting z
-// made in the OpenPowerlifting meet histories (api/medal-model.js, trained by
+// made in the OpenPowerlifting meet histories, with the first 12 weeks of untrained people taken
+// from the FAMuSS study of about 1000 ordinary adults (api/medal-model.js, trained by
 // scripts/medal-model/train.py, fetched by lib/medal-targets.js). On 20 % of lifters held out it
-// predicts their gains with a mean absolute error of 0.238 z, against 0.283 for the curve. The
+// predicts their gains with a mean absolute error of 0.238 z, against 0.283 for the curve; on 20 %
+// of the ordinary people held out, 0.47 z at 12 weeks, against 0.73 for the curve. The
 // floor, the response rho, the perseverance weeks and the confirmed reading stay as above; the
 // curve stands in without a server, for rep counts and cardio, and before the first answer.
 //

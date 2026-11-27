@@ -1365,7 +1365,8 @@ paths:
         For each exercise sent, the gain of the strength score z (the app's strength level: how
         far a lift is above lifters of the same sex, age and body weight, in standard deviations)
         that the median lifter of that profile made after 6, 16, 40, 80 and 156 weeks. Read from a
-        model fitted to OpenPowerlifting meet histories (scripts/medal-model/train.py): a lookup
+        model fitted to OpenPowerlifting meet histories and to the 12-week gains of about 1000
+        untrained adults of the FAMuSS study (scripts/medal-model/train.py): a lookup
         with linear interpolation, clamped to the range the data covers. Only `squat`, `bench` and
         `deadlift` are measured; the app asks for the closest one. At most 40 items; items it
         cannot read are left out of `gains`.
