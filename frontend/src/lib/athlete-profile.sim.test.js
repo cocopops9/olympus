@@ -42,7 +42,7 @@ export const ARCHETYPES = [
 ]
 
 /** One simulated athlete over `weeks`: the week each tier was first earned (or null). */
-export function simulate(a, seed, weeks = 208) {
+export function simulate(a, seed, weeks = 208, gainsOf = null) {
   const r = rng(seed)
   const birthYear = 2020 - a.age
   const start = Date.parse('2020-01-06T18:00:00Z')
@@ -69,8 +69,10 @@ export function simulate(a, seed, weeks = 208) {
       n++
     }
     const now = start + (wk * 7 + 6) * DAY
-    const p = profileOf(S, BENCH, athleteBase(S, now), facts)
+    const base = athleteBase(S, now)
+    let p = profileOf(S, BENCH, base, facts)
     if (p.status !== 'ready') continue
+    if (gainsOf) p = profileOf(S, BENCH, base, facts, gainsOf(base, p.z0))
     for (const tier of TIERS) if (earned[tier] == null && p.earnedAt(tier)) earned[tier] = wk + 1
   }
   return earned

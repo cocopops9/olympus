@@ -141,7 +141,7 @@ function longestStreak(ws, keys) {
  * at, progress, value, current }. `opts.notes` are the notes the coaches keep about the person
  * (texts, read for goals); `opts.all` lists every medal of the app, not only the person's own.
  */
-export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = false, facts = {} } = {}) {
+export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = false, facts = {}, model = {} } = {}) {
   const unit = S?.unit === 'lb' ? 'lb' : 'kg'
   const toKg = v => (unit === 'lb' ? v * LB : v)
   const x = unit === 'lb' ? 2 : 1   // ladders in pounds: the same round numbers, doubled
@@ -250,7 +250,7 @@ export function medalsOf(S, social = {}, now = Date.now(), { notes = [], all = f
     const { pts, best, start } = series(m)
     // An exercise never done is shown only when their style or a goal of theirs points at it.
     if (!pts.length && !all && !goals.focus.has(m.key)) continue
-    const prof = profileOf(S, m, w2, facts)
+    const prof = profileOf(S, m, w2, facts, all ? null : model?.[m.key] || null)
     if (prof.status === 'calibrating' && !all) pending.push({ key: m.key, name: nameOf(m), done: prof.done, need: prof.need })
     if (prof.status === 'ready') {
       if (type === 'load' && w2.bw > 0) potentialRatio = Math.max(potentialRatio, valueAt(m, prof.thresholds.olympian, w2) / w2.bw)

@@ -35,6 +35,7 @@ import { createSocial, SocialError } from './social.js';
 import { createChat, ChatError, memoryKv } from './chat.js';
 import { topSongs, searchSongs, deezerPreview } from './music.js';
 import { transcribe, synthesize, canSynthesize, speakers, VoiceError } from './voice.js';
+import { handleMedalTargets } from './medal-model.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
@@ -262,6 +263,11 @@ const coachMemory = async (req, res) => {
     if (!(e instanceof HerculesError)) throw e;
     json(res, e.status, { error: e.message, code: e.code, ...(e.left != null ? { left: e.left } : {}) });
   }
+};
+// The personal medal targets (medal-model.js): a lookup, signed in only.
+const medalTargets = async (req, res) => {
+  if (!sessionOf(req)) return json(res, 401, { error: 'not signed in' });
+  json(res, 200, handleMedalTargets(await readBody(req)));
 };
 // How many earlier write ids a document keeps (`_wids`, see PUT /api/data): a device that last
 // synced more writes ago than this merges on its next pull instead of taking the server's copy.
@@ -2846,6 +2852,7 @@ const routes = {
   'GET /api/calliope': coachStatus('calliope'),
   'POST /api/calliope': coachAsk('calliope'),
   'POST /api/coach/memory': coachMemory,
+  'POST /api/medals/targets': medalTargets,
   'GET /api/social/feed': async (req, res) => {
     const me = socialUser(req, res); if (!me) return;
     json(res, 200, SOCIAL.feed(me, { before: qs(req).get('before') }));

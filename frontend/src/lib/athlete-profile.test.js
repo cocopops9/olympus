@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   curve, trainingAgeOf, expectedGain, effectiveBw, cleanFacts, profileOf, athleteBase, zOf, valueAt,
-  confirmedSeries, earnedAt, keptFor, ageResponse, TIERS, Z_CEILING, MIN_WEEKS,
+  confirmedSeries, earnedAt, keptFor, ageResponse, TIERS, Z_CEILING, MIN_WEEKS, gainAtWeeks, modelGain,
 } from './athlete-profile.js'
 import { LIFTS } from './strength-level.js'
 
@@ -125,5 +125,34 @@ describe('strength kept with age', () => {
   it('does not count before 40', () => {
     const S = person({ birth: '2000-01-01', workouts: [session(-800, 100), session(0, 100)] })
     expect(keptFor(S, athleteBase(S, T0 + DAY), T0 + DAY).years).toBe(0)
+  })
+})
+
+describe('the targets from the server model', () => {
+  const base = S => athleteBase(S, NOW)
+  const S = person({ workouts: [0, 7, 14].map(d => session(d, 80)) })
+  const GAINS = [0.05, 0.12, 0.24, 0.39, 0.53]
+  it('reads the model between and beyond its horizons', () => {
+    expect(gainAtWeeks(GAINS, 0)).toBe(0)
+    expect(gainAtWeeks(GAINS, 3)).toBeCloseTo(0.025, 9)
+    expect(gainAtWeeks(GAINS, 16)).toBe(0.12)
+    expect(gainAtWeeks(GAINS, 28)).toBeCloseTo(0.18, 9)
+    expect(gainAtWeeks(GAINS, 400)).toBe(0.53)
+  })
+  it('sets each tier at the model gain of its horizon, never below the floor', () => {
+    const p = profileOf(S, BENCH, base(S), {}, GAINS)
+    expect(p.source).toBe('model')
+    expect(p.rho).toBe(1)                                   // no readings after calibration yet
+    expect(p.thresholds.gold - p.z0).toBeCloseTo(0.24, 6)
+    expect(p.thresholds.olympian - p.z0).toBeCloseTo(0.53, 6)
+    const flat = profileOf(S, BENCH, base(S), {}, [0, 0, 0, 0, 0])
+    expect(flat.thresholds.olympian - flat.z0).toBeCloseTo(0.045 * Math.sqrt(3) / flat.sigma, 6)
+    expect(profileOf(S, BENCH, base(S)).source).toBe('curve')
+  })
+  it('gives smaller steps to an athlete who has trained longer than the readings show, never larger', () => {
+    const p = profileOf(S, BENCH, base(S), {}, GAINS)
+    const vet = profileOf(S, BENCH, base(S), { trainingYears: 6 }, GAINS)
+    expect(vet.thresholds.gold - vet.z0).toBeLessThan(p.thresholds.gold - p.z0)
+    expect(modelGain(GAINS, 40, 0, 2)).toBeCloseTo(0.24, 9)   // told fewer years than inferred: the model stands
   })
 })

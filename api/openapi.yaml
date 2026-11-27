@@ -1356,6 +1356,50 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { description: The memory was updated enough for today. }
         '503': { description: No provider key on this server. }
+  /api/medals/targets:
+    post:
+      tags: [data]
+      operationId: medalTargets
+      summary: The expected strength gains behind the personal medal tiers
+      description: |
+        For each exercise sent, the gain of the strength score z (the app's strength level: how
+        far a lift is above lifters of the same sex, age and body weight, in standard deviations)
+        that the median lifter of that profile made after 6, 16, 40, 80 and 156 weeks. Read from a
+        model fitted to OpenPowerlifting meet histories (scripts/medal-model/train.py): a lookup
+        with linear interpolation, clamped to the range the data covers. Only `squat`, `bench` and
+        `deadlift` are measured; the app asks for the closest one. At most 40 items; items it
+        cannot read are left out of `gains`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  maxItems: 40
+                  items:
+                    type: object
+                    required: [key, sex, lift, age, bwRatio, z0]
+                    properties:
+                      key: { type: string, maxLength: 40, description: The app's exercise key; the answer is keyed by it. }
+                      sex: { type: string, enum: [male, female] }
+                      lift: { type: string, enum: [squat, bench, deadlift] }
+                      age: { type: number }
+                      bwRatio: { type: number, description: Body weight over 80 kg for men, 62 kg for women. }
+                      z0: { type: number, description: The starting strength score. }
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weeks: { type: array, items: { type: integer }, description: '[6, 16, 40, 80, 156]' }
+                  gains: { type: object, additionalProperties: { type: array, items: { type: number } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/chiron:
     get:
       tags: [coach]

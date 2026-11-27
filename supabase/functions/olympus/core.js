@@ -28,6 +28,7 @@ import { countryOf, topSongs, searchSongs, deezerPreview } from './music.js';
 import { createChat, ChatError } from './chat.js';
 import { transcribe, synthesizeCached, keptIndex, canSynthesize, speakers, VoiceError } from './voice.js';
 import { stampPut } from './sync-stamps.js';
+import { handleMedalTargets } from './medal-model.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { hashPassword, verifyPassword, needsRehash, passwordProblem, nameKey, normalizeEmail, BusyError, MIN_LENGTH, MAX_LENGTH } from './password.js';
 import { newCode, inviter, invitedBy, addTelemetry, cleanFeedback, addFeedback, feedbackMail, sendMail, canMail, dashboard, personDetail, exportCsv, trainingActivity, socialSummary, communityTotals, moderationPosts } from './insights.js';
@@ -928,6 +929,12 @@ export function createApp({ store, photos, now = () => Date.now(), env = {}, fet
       const body = await readJson(req);
       const quota = fn => store.update(['coach-memory'], ({ get, set }) => { set('coach-memory', fn(get('coach-memory'))); });
       return { status: 200, body: await handleMemory({ user, body, config: coaches.chiron, quota, now: now(), fetchImpl }) };
+    },
+
+    // The personal medal targets (medal-model.js), as in api/server.js.
+    'POST /api/medals/targets': async req => {
+      await signedIn(req);
+      return { status: 200, body: handleMedalTargets(await readJson(req)) };
     },
 
     // The social layer, route for route as in api/server.js.

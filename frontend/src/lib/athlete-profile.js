@@ -46,6 +46,14 @@
 //      (a prior worth PRIOR_WEEKS weeks), scales the targets still to come. It is frozen after
 //      LEARN_WEEKS, so progress never keeps pushing its own targets away.
 //
+// The server's model. When signed in, 3 above comes from data instead of the curve: the gains of
+// z after each horizon that the median lifter of the same sex, age, body weight and starting z
+// made in the OpenPowerlifting meet histories (api/medal-model.js, trained by
+// scripts/medal-model/train.py, fetched by lib/medal-targets.js). On 20 % of lifters held out it
+// predicts their gains with a mean absolute error of 0.238 z, against 0.283 for the curve. The
+// floor, the response rho, the perseverance weeks and the confirmed reading stay as above; the
+// curve stands in without a server, for rep counts and cardio, and before the first answer.
+//
 // Enough data. Nothing is shown without sex, birth date and a body weight. An exercise gets its
 // tiers once it has CALIB_SESSIONS sessions spread over at least CALIB_DAYS days: the best of
 // that window is the athlete's starting point (first sessions are lighter than the athlete can
@@ -68,6 +76,8 @@ export const Z_CEILING = Z_UNTRAINED + GAIN
 export const RESPONSE = { load: 1, reps: 1.2, speed: 0.6, aerobic: 0.5, sprint: 0.3 }
 // The slowest gains, in ln units times sqrt(years), for athletes at their ceiling.
 export const FLOOR = { load: 0.045, reps: 0.06, speed: 0.03, aerobic: 0.03, sprint: 0.02 }
+// The horizons of the server's model (api/medal-model.js MODEL_WEEKS), the same as HORIZON_WEEKS.
+export const MODEL_WEEKS = [6, 16, 40, 80, 156]
 export const CALIB_SESSIONS = 3
 export const CALIB_DAYS = 14
 export const LEARN_WEEKS = 12
@@ -208,6 +218,41 @@ function weekOf(iso) {
 /** Distinct weeks of a list of readings. */
 const weeksOf = points => new Set(points.map(p => weekOf(p.d))).size
 
+/** The model's gain at `weeks`: linear between its horizons (MODEL_WEEKS), from 0 at week 0, flat past the last one. */
+export function gainAtWeeks(gains, weeks) {
+  if (!(weeks > 0)) return 0
+  let w0 = 0, g0 = 0
+  for (let i = 0; i < MODEL_WEEKS.length; i++) {
+    const w1 = MODEL_WEEKS[i], g1 = gains[i]
+    if (weeks <= w1) return g0 + (g1 - g0) * (weeks - w0) / (w1 - w0)
+    w0 = w1; g0 = g1
+  }
+  return g0
+}
+
+/**
+ * The gain of z over `weeks` from the server's model (gains of the median competitor of this sex,
+ * age, body weight and starting z), for an athlete placed at training age `tau0` where their
+ * readings alone place them at `inferred`.
+ *   - The data carry no training age (the first meet is not the first day of training), so when
+ *     the coaches know the athlete has trained longer than the readings imply, the model's gain
+ *     is scaled by what that placement changes on the curve (assumption: the curve's shape,
+ *     not its level, is right about it).
+ *   - The floor of slow gains is kept, as with the curve, so a day-to-day spread of estimates is
+ *     never a medal. Age is already in the model: no ageResponse here.
+ */
+export function modelGain(model, weeks, tau0, inferred, type = 'load', sigma = 0.28) {
+  const years = weeks / 52
+  const floor = (FLOOR[type] ?? FLOOR.load) * Math.sqrt(Math.max(0, years)) / sigma
+  let g = gainAtWeeks(model, weeks)
+  if (tau0 !== inferred && Number.isFinite(inferred)) {
+    const onCurve = t => (Number.isFinite(t) ? curve(t + years) - curve(t) : 0)
+    const base = onCurve(inferred)
+    if (base > 0) g *= Math.min(1, onCurve(tau0) / base)
+  }
+  return Math.max(g, floor)
+}
+
 /**
  * The athlete facts the coaches' memory read from the chats ({ trainingYears, returning }),
  * cleaned; {} when nothing usable.
@@ -226,9 +271,11 @@ export function cleanFacts(f) {
  *   { status: 'none' }              never done
  *   { status: 'calibrating', done, need }   not enough readings yet
  *   { status: 'ready', z0, zBest, tau0, rho, learned, thresholds: { tier: z }, readings, ... }
- * `base` is { sex, birth, age, bw, unit, fat } as of now; `facts` what the coaches know.
+ * `base` is { sex, birth, age, bw, unit, fat } as of now; `facts` what the coaches know; `model`
+ * the server's median gains of z at HORIZON_WEEKS for this profile (api/medal-model.js, fetched by
+ * lib/medal-targets.js), or null to use the curve of this file.
  */
-export function profileOf(S, metric, base, facts = {}) {
+export function profileOf(S, metric, base, facts = {}, model = null) {
   const type = metric.type || 'load'
   if (!(base.age > 0) || (type === 'load' && !(base.bw > 0))) return { status: 'missing' }
   const pts = readingsOf(S, metric, base)
@@ -254,6 +301,8 @@ export function profileOf(S, metric, base, facts = {}) {
   const tau0 = told == null ? inferred
     : Number.isFinite(inferred) ? Math.max(0, Math.min(told, inferred + 4, 15), inferred - 4) : Math.max(told, 6)
   const prior = 1
+  // The gain to expect over `years`: from the server's model when there is one, otherwise the curve.
+  const gainOver = years => (model ? modelGain(model, years * 52, tau0, inferred, type, sigma) : expectedGain(tau0, years, type, sigma, base.age))
 
   // Response: the gains of the first LEARN_WEEKS trained weeks after calibration, against the curve.
   const after = pts.filter(p => p.t > calibEnd)
@@ -264,7 +313,7 @@ export function profileOf(S, metric, base, facts = {}) {
   if (n > 0) {
     const zLearn = Math.max(z0, confirmedBest(learnPts))
     const elapsed = n / 52
-    const expected = expectedGain(tau0, elapsed, type, sigma, base.age)
+    const expected = gainOver(elapsed)
     const ratio = expected > 0 ? Math.max(0.3, Math.min(2.5, (zLearn - z0) / expected)) : prior
     rho = (n * ratio + PRIOR_WEEKS * prior) / (n + PRIOR_WEEKS)
   }
@@ -278,7 +327,7 @@ export function profileOf(S, metric, base, facts = {}) {
     // Early gains say more about how fast this athlete improves than about how far they can go,
     // so the measured response weighs fully on the near tiers and less on the far ones.
     const weight = HALF_YEARS / (HALF_YEARS + years)
-    let z = z0 + (1 + (rho - 1) * weight) * expectedGain(tau0, years, type, sigma, base.age)
+    let z = z0 + (1 + (rho - 1) * weight) * gainOver(years)
     if (type === 'reps') {
       const v0 = valueAt(metric, prev, base)
       if (v0 > 0) z = Math.max(z, prev + Math.log((Math.floor(v0) + 1) / v0) / sigma)
@@ -290,7 +339,7 @@ export function profileOf(S, metric, base, facts = {}) {
   const zBest = confirmedBest(pts)
   return {
     earnedAt: tier => earnedAt(pts, thresholds[tier], MIN_WEEKS[tier]),
-    weeks: weeksOf(pts), status: 'ready', type, z0, zBest, tau0, rho, learned: n >= LEARN_WEEKS, learnWeeks: n, sigma, thresholds, readings: pts, calibEnd }
+    weeks: weeksOf(pts), status: 'ready', source: model ? 'model' : 'curve', type, z0, zBest, tau0, rho, learned: n >= LEARN_WEEKS, learnWeeks: n, sigma, thresholds, readings: pts, calibEnd }
 }
 
 /**
