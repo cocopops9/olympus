@@ -246,7 +246,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <p class="api-facts">
     <span>OpenAPI 3.1.0</span>
     <span>openGym v1.4.1</span>
-    <span>125 endpoints</span>
+    <span>126 endpoints</span>
     <span>AGPL-3.0-or-later</span>
   </p>
 
@@ -1624,6 +1624,68 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <h2>Data</h2>
   <p class="sub">Per-user state sync (the whole app state as one JSON blob)</p>
   <div class="eps">
+
+<details class="ep" id="op-medalTargets">
+  <summary>
+    <span class="m post">POST</span>
+    <span class="ep-path"><code>/api/medals/targets</code></span>
+    <span class="ep-chev" aria-hidden="true"></span>
+    <span class="ep-sum">The expected strength gains behind the personal medal tiers</span>
+  </summary>
+  <div class="ep-body">
+<p>For each exercise sent, the gain of the strength score z (the app's strength level: how far a lift is above lifters of the same sex, age and body weight, in standard deviations) that the median lifter of that profile made after 6, 16, 40, 80 and 156 weeks. Read from a model fitted to OpenPowerlifting meet histories (scripts/medal-model/train.py): a lookup with linear interpolation, clamped to the range the data covers. Only <code>squat</code>, <code>bench</code> and <code>deadlift</code> are measured; the app asks for the closest one. At most 40 items; items it cannot read are left out of <code>gains</code>.</p>
+    <p class="ep-auth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Requires a session: the cookie set at sign-in, or <code>Authorization: Bearer &lt;token&gt;</code> from mobile-app pairing.</span></p>
+
+<p class="ep-h">Request body <span class="p-hint">(JSON)</span></p><div class="ptab">
+  <div class="prow">
+    <span class="p-name">items</span>
+    <span class="p-type">object[]</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].key<em class="p-req" title="required">required</em></span>
+    <span class="p-type">string <span class="p-hint">(&le; 40 chars)</span></span>
+    <span class="p-desc">The app's exercise key; the answer is keyed by it.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].sex<em class="p-req" title="required">required</em></span>
+    <span class="p-type">&quot;male&quot; | &quot;female&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].lift<em class="p-req" title="required">required</em></span>
+    <span class="p-type">&quot;squat&quot; | &quot;bench&quot; | &quot;deadlift&quot;</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].age<em class="p-req" title="required">required</em></span>
+    <span class="p-type">number</span>
+    <span class="p-desc"></span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].bwRatio<em class="p-req" title="required">required</em></span>
+    <span class="p-type">number</span>
+    <span class="p-desc">Body weight over 80 kg for men</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">items[].z0<em class="p-req" title="required">required</em></span>
+    <span class="p-type">number</span>
+    <span class="p-desc">The starting strength score.</span>
+  </div>
+</div>
+    <p class="ep-h">Responses</p>
+    <div class="ptab">
+  <div class="prow rrow">
+    <span class="r-code s2">200</span>
+    <span class="p-desc">OK.<span class="r-sig">{ weeks: integer[], gains: object }</span></span>
+  </div>
+  <div class="prow rrow">
+    <span class="r-code s4">401</span>
+    <span class="p-desc">No session, expired/revoked session, or a disabled account.<span class="r-sig"><code>{&quot;error&quot;:&quot;not signed in&quot;}</code></span></span>
+  </div>
+    </div>
+  </div>
+</details>
 
 <details class="ep" id="op-getData">
   <summary>

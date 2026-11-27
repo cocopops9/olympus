@@ -15,6 +15,7 @@ import { t, tn } from '../lib/i18n.js'
 import { fmtDate, fmtNum } from '../lib/format.js'
 import { medalsOf, allMedals, newlyEarned, nextMedal, TIERS, tierLabel } from '../lib/medals.js'
 import { loadNotes, loadHidden } from '../lib/coach-memory.js'
+import { medalModel, onMedalModel, refreshMedalTargets } from '../lib/medal-targets.js'
 import { socialReady } from '../lib/social.js'
 import { fetchReferral } from '../lib/referral.js'
 import { shareStory } from '../lib/story-card.js'
@@ -47,8 +48,16 @@ const social = S => ({ invited: S.medals?.invited, posts: S.medals?.posts })
 
 /** The medals of `S` for profile `uid`: the notes the coaches keep are read for goals. */
 // What the coaches' memory read about the athlete (years of training, a comeback) shapes the
-// personal strength targets (lib/athlete-profile.js).
-const medalsFor = (S, uid, opts = {}) => medalsOf(S, social(S), Date.now(), { notes: loadNotes(uid).map(n => n.text), facts: loadHidden(uid).athlete, ...opts })
+// personal strength targets (lib/athlete-profile.js), and so do the gains the server's model
+// expects for this athlete (lib/medal-targets.js), when it has answered.
+const medalsFor = (S, uid, opts = {}) => medalsOf(S, social(S), Date.now(), { notes: loadNotes(uid).map(n => n.text), facts: loadHidden(uid).athlete, model: medalModel(uid), ...opts })
+
+/** A number that changes whenever the server's gains arrive, for the memos that read them. */
+function useMedalModelVersion() {
+  const [v, setV] = useState(0)
+  useEffect(() => onMedalModel(() => setV(x => x + 1)), [])
+  return v
+}
 
 /** The medal: a disc of the tier's metal on a ribbon, the medal's sign in the middle. */
 export function MedalBadge({ m, size = 64, glow = false }) {
@@ -214,6 +223,14 @@ export function useMedalWatcher(ready) {
   const user = useStore(s => s.user)
   const timer = useRef(null)
   const visible = usePageVisible()
+  const modelVersion = useMedalModelVersion()
+  // The server's gains for the exercises whose profile is ready: asked again only when what they
+  // depend on (starting level, age, body weight) changed, or the kept answer is a week old.
+  useEffect(() => {
+    if (!ready || !user || S.active) return
+    const id = setTimeout(() => { refreshMedalTargets(S, loadHidden(user.id).athlete, { uid: user.id }) }, 3000)
+    return () => clearTimeout(id)
+  }, [ready, user?.id, S.active, S.workouts, S.bodyweight, S.measurements, S.birth, S.body, S.unit])
   useEffect(() => {
     // A screen nobody looks at (the app in the background, a browser tab behind another, the
     // phone locked after the last set) celebrates nothing and marks nothing: the medals wait
@@ -241,7 +258,7 @@ export function useMedalWatcher(ready) {
       if (got) showCelebration?.(fresh.filter(m => recent(m.at)).slice(0, 4))
     }, 1500)
     return () => clearTimeout(timer.current)
-  }, [ready, visible, S.workouts, S.medals, S.active, S.bodyweight, S.measurements, S.birth, S.body, S.coachProfile, S.unit, user?.id])
+  }, [ready, visible, S.workouts, S.medals, S.active, S.bodyweight, S.measurements, S.birth, S.body, S.coachProfile, S.unit, user?.id, modelVersion])
   // The friends who joined: the server's count, asked once per start.
   useEffect(() => {
     if (!ready || !socialReady(user)) return
@@ -256,7 +273,8 @@ export function MedalsCard() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const uid = useStore(s => s.user?.id)
-  const groups = useMemo(() => medalsFor(S, uid), [S, uid])
+  const modelVersion = useMedalModelVersion()
+  const groups = useMemo(() => medalsFor(S, uid), [S, uid, modelVersion])
   const all = allMedals(groups)
   const earned = all.filter(m => m.earned)
   const next = nextMedal(groups)
@@ -286,7 +304,8 @@ export default function MedalsView() {
   const [showAll, setShowAll] = useState(false)
   const catalogue = admin && showAll
   useEffect(() => { if (socialReady(user)) fetchReferral().then(d => rememberSocial({ invited: d?.invited }), () => {}) }, [user?.id])
-  const groups = useMemo(() => medalsFor(S, user?.id, { all: catalogue }), [S, user?.id, catalogue])
+  const modelVersion = useMedalModelVersion()
+  const groups = useMemo(() => medalsFor(S, user?.id, { all: catalogue }), [S, user?.id, catalogue, modelVersion])
   const all = allMedals(groups)
   const earned = all.filter(m => m.earned).length
   const pct = all.length ? earned / all.length : 0
