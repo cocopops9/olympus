@@ -3939,7 +3939,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">lang</span>
     <span class="p-type">string</span>
-    <span class="p-desc">The app's language; the answer is in it.</span>
+    <span class="p-desc">The app's language; the answer is in it unless <code>asked</code> says otherwise.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">asked</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional.</span>
   </div>
   <div class="prow">
     <span class="p-name">context</span>
@@ -4043,7 +4048,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">lang</span>
     <span class="p-type">string</span>
-    <span class="p-desc">The app's language; the answer is in it.</span>
+    <span class="p-desc">The app's language; the answer is in it unless <code>asked</code> says otherwise.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">asked</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional.</span>
   </div>
   <div class="prow">
     <span class="p-name">context</span>
@@ -4362,7 +4372,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">lang</span>
     <span class="p-type">string</span>
-    <span class="p-desc">The app's language; the answer is in it.</span>
+    <span class="p-desc">The app's language; the answer is in it unless <code>asked</code> says otherwise.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">asked</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional.</span>
   </div>
   <div class="prow">
     <span class="p-name">context</span>
@@ -4466,7 +4481,12 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
   <div class="prow">
     <span class="p-name">lang</span>
     <span class="p-type">string</span>
-    <span class="p-desc">The app's language; the answer is in it.</span>
+    <span class="p-desc">The app's language; the answer is in it unless <code>asked</code> says otherwise.</span>
+  </div>
+  <div class="prow">
+    <span class="p-name">asked</span>
+    <span class="p-type">string</span>
+    <span class="p-desc">The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional.</span>
   </div>
   <div class="prow">
     <span class="p-name">context</span>
@@ -4572,7 +4592,7 @@ main.api-main .lead { color: var(--fg-2); max-width: 58ch; margin: 14px 0 0; fon
     <div class="ptab">
   <div class="prow rrow">
     <span class="r-code s2">200</span>
-    <span class="p-desc"><code>{ text }</code>, empty when nothing was said.</span>
+    <span class="p-desc"><code>{ text, lang }</code>: <code>text</code> empty when nothing was said; <code>lang</code> the app language code Whisper heard it in, empty when unknown.</span>
   </div>
   <div class="prow rrow">
     <span class="r-code s4">400</span>
