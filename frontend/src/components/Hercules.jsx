@@ -271,7 +271,8 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
   // Your own coach has no daily limit: your provider decides.
   const leftOf = id => statusOf(uid, id)?.left ?? null
   const left = own ? null : coach === BOTH ? null : status ? status.left : null
-  const send = async text => {
+  // `asked`: the language a spoken question was heard in (lib/voice.js listen), sent with it.
+  const send = async (text, { asked = '' } = {}) => {
     const msg = String(text ?? draft).trim()
     if (!msg || busy) return
     const who = coach === BOTH ? COACH_IDS.filter(id => leftOf(id) !== 0) : [coach]
@@ -291,7 +292,7 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
       for (const r of who) {
         setWriting(r)
         try {
-          const res = own ? await askOwnCoach(ownCoach(uid, coach) || {}, msgs) : await askHercules(msgs, r, { chatId: sent.current })
+          const res = own ? await askOwnCoach(ownCoach(uid, coach) || {}, msgs) : await askHercules(msgs, r, { chatId: sent.current, asked })
           // What is shown, and the shorter version voice mode says instead (lib/speech-text.js).
           const { text: content, speech } = splitSpeech(cleanReply(res.reply))
           const demo = demoFor(msg, content, useStore.getState().S.customEx || [], demoShown)
@@ -305,7 +306,9 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
         }
       }
       // The memory every coach reads catches up with what was just said, when there is enough new.
-      setTimeout(() => { distillMemory(uid, useStore.getState().S).catch(() => {}) }, 0)
+      // Later, not now: it runs on the phone while the answer is being read aloud, and voice mode
+      // starts the answer's voice right after this returns.
+      setTimeout(() => { distillMemory(uid, useStore.getState().S).catch(() => {}) }, MEMORY_LATER_MS)
     } finally {
       setBusy(false)
       setWriting(null)
@@ -335,6 +338,10 @@ export function useCoachChat({ coach, ask, chatId, onSent } = {}) {
 }
 
 // Dragging the small chat window up makes it the full screen (components/swipe-sheet.js).
+// How long after an answer the shared memory is brought up to date (an assumption: past the
+// answer's first spoken sentences).
+const MEMORY_LATER_MS = 20000
+
 const SWIPE_ZONES = { skip: 'textarea, input, .hc-switch, .hc-in', list: '.hc-list', handle: '.grab, .hc-h' }
 
 function Chat({ close, ask, chatId, coach, ons, pick, own }) {

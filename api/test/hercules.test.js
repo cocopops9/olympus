@@ -328,3 +328,23 @@ test('a request the model finds too large (413) goes to the fallback', async () 
   assert.deepEqual(r, { reply: 'From the fallback.', model: ATHENA_DEFAULTS.fallback });
   assert.deepEqual(models, [ATHENA_DEFAULTS.model, ATHENA_DEFAULTS.fallback]);
 });
+
+test('a question asked in another language than the app is answered in it, said at the end as well', async () => {
+  // Reported 2026-11-27: asked in English, with the app and the notes in Italian, Chiron answered in Italian.
+  const p = systemPrompt({ coach: 'chiron', lang: 'it', asked: 'en' });
+  assert.match(p, /asked this question in English: write your whole answer in English/);
+  assert.doesNotMatch(p, /Answer in Italian/);
+  assert.match(systemPrompt({ coach: 'chiron', lang: 'it' }), /Answer in Italian, unless the person writes in another language/);
+  // An unknown language says nothing new.
+  assert.match(systemPrompt({ lang: 'it', asked: 'xx' }), /Answer in Italian, unless/);
+  const seen = [];
+  const config = herculesConfig({ HERCULES_API_KEY: 'k' }, 'chiron');
+  await askHercules({ config, messages: [{ role: 'user', content: 'How much rest?' }], lang: 'it', asked: 'en', fetchImpl: fakeFetch([{ status: 200, reply: 'Two minutes.' }], seen) });
+  const sent = seen[0].messages;
+  assert.equal(sent[sent.length - 1].role, 'system');
+  assert.match(sent[sent.length - 1].content, /in English/);
+  assert.equal(sent[sent.length - 2].content, 'How much rest?');
+  seen.length = 0;
+  await askHercules({ config, messages: [{ role: 'user', content: 'Quanto riposo?' }], lang: 'it', fetchImpl: fakeFetch([{ status: 200, reply: 'Due minuti.' }], seen) });
+  assert.equal(seen[0].messages[seen[0].messages.length - 1].role, 'user');
+});

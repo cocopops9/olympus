@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transcribe, synthesize, synthesizeCached, keepable, keptKey, keptIndex, KEPT, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
+import { transcribe, transcribeWithLang, spokenLang, synthesize, synthesizeCached, keepable, keptKey, keptIndex, KEPT, VoiceError, _clearResting, _clearHearResting } from '../voice.js';
 import { createApp, memoryStore, memoryPhotos } from '../../supabase/functions/olympus/core.js';
 
 const clip = Buffer.alloc(2000, 7).toString('base64');
@@ -329,4 +329,17 @@ test('Gemini is waited for only while it has lately been on time: earned by an a
   t0 = Date.now();
   assert.equal(await ask(), 'Quanto riposo devo prendere.');
   assert.ok(Date.now() - t0 < 50, 'waited ' + (Date.now() - t0) + ' ms');
+});
+
+test('the language Whisper heard comes back with the words, as an app language code', async () => {
+  assert.equal(spokenLang('english'), 'en');
+  assert.equal(spokenLang('Italian'), 'it');
+  assert.equal(spokenLang('it'), 'it');
+  assert.equal(spokenLang('klingon'), '');
+  assert.equal(spokenLang(undefined), '');
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ text: ' How much rest should I take? ', language: 'english' }) });
+  assert.deepEqual(await transcribeWithLang({ data: clip, type: 'audio/webm', lang: 'it-IT' }, { key: 'k', fixModel: '', fetchImpl }), { text: 'How much rest should I take?', lang: 'en' });
+  // Nothing heard: no language either.
+  const silent = async () => ({ ok: true, json: async () => ({ text: 'Grazie.', language: 'italian' }) });
+  assert.deepEqual(await transcribeWithLang({ data: clip, type: 'audio/webm' }, { key: 'k', fetchImpl: silent }), { text: '', lang: '' });
 });

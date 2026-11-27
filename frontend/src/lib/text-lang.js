@@ -79,3 +79,9 @@ export function textLang(text, fallback = 'en') {
   if (best === base) return fallback   // keeps a region (pt-BR, zh-TW) the app was set to
   return best
 }
+
+/** The language a question is written in, or '' when the text does not settle it. */
+export function questionLang(text) {
+  const l = textLang(text, 'xx')
+  return l === 'xx' ? '' : l
+}

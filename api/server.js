@@ -34,7 +34,7 @@ import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from 
 import { createSocial, SocialError } from './social.js';
 import { createChat, ChatError, memoryKv } from './chat.js';
 import { topSongs, searchSongs, deezerPreview } from './music.js';
-import { transcribe, synthesize, canSynthesize, speakers, VoiceError } from './voice.js';
+import { transcribeWithLang, synthesize, canSynthesize, speakers, VoiceError } from './voice.js';
 import { handleMedalTargets } from './medal-model.js';
 import { herculesConfig, handleHercules, handleMemory, handlePlanText, leftToday, dayOf, HerculesError, modelLabel } from './hercules.js';
 import { effectiveRoutineId } from './queue.js';
@@ -2773,7 +2773,7 @@ const routes = {
     const me = socialUser(req, res); if (!me) return;
     const body = await readBody(req);
     const cfg = herculesConfig(process.env, 'chiron');
-    try { json(res, 200, { text: await transcribe({ data: body.data, type: body.type, lang: body.lang, hint: body.hint }, { key: cfg.key, baseUrl: cfg.baseUrl, fixModel: String(process.env.VOICE_FIX_MODEL ?? 'llama-3.3-70b-versatile'), geminiKey: String(process.env.GEMINI_API_KEY || '').trim(), geminiModel: String(process.env.GEMINI_HEAR_MODEL || '').trim() }) }); }
+    try { json(res, 200, await transcribeWithLang({ data: body.data, type: body.type, lang: body.lang, hint: body.hint }, { key: cfg.key, baseUrl: cfg.baseUrl, fixModel: String(process.env.VOICE_FIX_MODEL ?? 'llama-3.3-70b-versatile'), geminiKey: String(process.env.GEMINI_API_KEY || '').trim(), geminiModel: String(process.env.GEMINI_HEAR_MODEL || '').trim() })); }
     catch (e) { if (e instanceof VoiceError) return json(res, e.status, { error: e.message, code: e.code }); throw e; }
   },
   'POST /api/voice/speak': async (req, res) => {

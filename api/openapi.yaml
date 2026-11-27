@@ -1111,7 +1111,8 @@ paths:
                     properties:
                       role: { type: string, enum: [user, assistant] }
                       content: { type: string }
-                lang: { type: string, description: The app's language; the answer is in it. }
+                lang: { type: string, description: "The app's language; the answer is in it unless `asked` says otherwise." }
+                asked: { type: string, description: "The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional." }
                 context: { type: string, description: The training summary. }
             example: { messages: [{ role: user, content: "How many sets for chest per week?" }], lang: en, context: "Workouts (last 6 weeks): ..." }
       responses:
@@ -1177,7 +1178,8 @@ paths:
                     properties:
                       role: { type: string, enum: [user, assistant] }
                       content: { type: string }
-                lang: { type: string, description: The app's language; the answer is in it. }
+                lang: { type: string, description: "The app's language; the answer is in it unless `asked` says otherwise." }
+                asked: { type: string, description: "The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional." }
                 context: { type: string, description: The training summary. }
             example: { messages: [{ role: user, content: "How many sets for chest per week?" }], lang: en, context: "Workouts (last 6 weeks): ..." }
       responses:
@@ -1447,7 +1449,8 @@ paths:
                     properties:
                       role: { type: string, enum: [user, assistant] }
                       content: { type: string }
-                lang: { type: string, description: The app's language; the answer is in it. }
+                lang: { type: string, description: "The app's language; the answer is in it unless `asked` says otherwise." }
+                asked: { type: string, description: "The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional." }
                 context: { type: string, description: The training summary. }
             example: { messages: [{ role: user, content: "How many sets for chest per week?" }], lang: en, context: "Workouts (last 6 weeks): ..." }
       responses:
@@ -1518,7 +1521,8 @@ paths:
                     properties:
                       role: { type: string, enum: [user, assistant] }
                       content: { type: string }
-                lang: { type: string, description: The app's language; the answer is in it. }
+                lang: { type: string, description: "The app's language; the answer is in it unless `asked` says otherwise." }
+                asked: { type: string, description: "The language the question was asked in (heard by the recogniser, or read from the words); the answer is written in it. Optional." }
                 context: { type: string, description: Where the person is in the app and how far they have come. }
             example: { messages: [{ role: user, content: "How do I create a routine?" }], lang: en, context: "Screen open now: Home (the feed). No routine yet." }
       responses:
@@ -3657,7 +3661,7 @@ paths:
                 type: { type: string, example: audio/webm }
                 lang: { type: string, example: it-IT }
       responses:
-        '200': { description: '`{ text }`, empty when nothing was said.' }
+        '200': { description: '`{ text, lang }`: `text` empty when nothing was said; `lang` the app language code Whisper heard it in, empty when unknown.' }
         '400': { description: An empty clip or an unknown format. }
         '401': { description: Not signed in. }
         '413': { description: Too long. }
